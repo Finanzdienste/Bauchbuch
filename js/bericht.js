@@ -16,12 +16,41 @@
 import { fmtDatum, tageDazwischen } from './datum.js';
 import { fmtZahl, mehrzahl } from './text.js';
 import { ausloeserName, beschwerdeName, STAERKE_WORT } from './daten.js';
-import { ausloeserBilanz, einstufung, gesamtZahlen, nachArt, nachTageszeit, tagesWert } from './auswertung.js';
+import {
+  ausloeserBilanz, einstufung, gesamtZahlen, klassenBilanz, klassenEinstufung,
+  nachArt, nachTageszeit, tagesWert,
+} from './auswertung.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
 import { wissenZu } from './mittel.js';
+import { kriterien } from './kriterien.js';
+import { stuhlZahlen } from './stuhl.js';
+import { befund, mittelBilanz } from './ansprechen.js';
+import { ergebnis } from './versuch.js';
 
 const prozent = (x) => `${Math.round(x * 100)} %`;
+
+/**
+ * Einen langen Satz auf Zeilenbreite umbrechen.
+ *
+ * Der Bericht ist reiner Text und wird ausgedruckt oder in eine Mail geklebt.
+ * Eine 400 Zeichen lange Zeile ist dort entweder abgeschnitten oder unlesbar –
+ * und die Sätze aus js/ansprechen.js und js/versuch.js sind genau das.
+ */
+function umbrochen(satz, breite = 68) {
+  const zeilen = [];
+  let zeile = '';
+  String(satz).split(/\s+/).forEach((wort) => {
+    if (zeile && (zeile.length + wort.length + 1) > breite) {
+      zeilen.push(zeile);
+      zeile = wort;
+    } else {
+      zeile = zeile ? `${zeile} ${wort}` : wort;
+    }
+  });
+  if (zeile) zeilen.push(zeile);
+  return zeilen;
+}
 
 /**
  * @param {object} zustand  der gesamte Speicherzustand
@@ -115,6 +144,34 @@ export function arztBericht(zustand, von, bis) {
     sag();
   }
 
+  /*
+   * Nach Wirkweise – vor den einzelnen Zutaten wäre falsch herum, danach ist
+   * richtig: Wer den Zettel liest, kennt dann schon die Beispiele und sieht
+   * hier, was sie gemeinsam haben.
+   */
+  const klassen = klassenBilanz(imZeitraum, { fenster: zustand.fenster })
+    .filter((k) => k.genug && ['auffaellig', 'moeglich'].includes(klassenEinstufung(k)));
+  if (klassen.length) {
+    sag('NACH WIRKWEISE ZUSAMMENGEFASST');
+    sag('  (Mehr Fälle je Vergleich als eine einzelne Zutat; die Zuordnung ist grob.)');
+    klassen.slice(0, 6).forEach((k) => {
+      sag(`  ${k.kurz.padEnd(24)} ${fmtZahl(k.schnittMit)} gegen ${fmtZahl(k.schnittOhne)} `
+        + `(${k.faelle} Mahlzeiten damit, ${k.gegenFaelle} ohne)`);
+    });
+    sag();
+  }
+
+  const s = stuhlZahlen(imZeitraum, tage);
+  if (s.gesamt) {
+    sag('STUHLGANG (BRISTOL)');
+    sag(`  Eingetragen                ${s.gesamt} Mal, ${fmtZahl(s.proTag)} je notiertem Tag`);
+    sag(`  Typ 1-2 (hart)             ${s.hart} (${prozent(s.anteilHart)})`);
+    sag(`  Typ 3-5 (unauffällig)      ${s.normal} (${prozent(s.anteilNormal)})`);
+    sag(`  Typ 6-7 (weich)            ${s.weich} (${prozent(s.anteilWeich)})`);
+    if (s.dringend) sag(`  davon dringend             ${s.dringend}`);
+    sag();
+  }
+
   const mittel = new Map();
   imZeitraum.filter((e) => e.art === 'medikament').forEach((e) => {
     const name = (e.mittel || 'ohne Angabe').trim();
@@ -125,6 +182,47 @@ export function arztBericht(zustand, von, bis) {
     [...mittel.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, n]) => {
       sag(`  ${name.padEnd(24)} ${mehrzahl(n, 'Mal', 'Mal')}`);
     });
+    sag();
+  }
+
+  /*
+   * Ob die Mittel etwas bewirkt haben.
+   *
+   * Für die Sprechstunde ist das oft die nützlichste Zeile des Zettels –
+   * besonders, wenn nichts passiert ist: Ein Säureblocker ohne Wirkung nach
+   * vier bis acht Wochen ist selbst ein Befund und spricht gegen die Säure als
+   * Ursache. Aus dem Kopf beantwortet das niemand belastbar.
+   */
+  const ansprechen = mittelBilanz(imZeitraum, tage, {
+    heute: bis,
+    gruppeVon: (name) => {
+      const g = wissenZu(name);
+      return g ? g.id : null;
+    },
+  }).filter((m) => m.genug);
+  if (ansprechen.length) {
+    sag('HAT ES ETWAS BEWIRKT?');
+    ansprechen.slice(0, 4).forEach((m) => {
+      sag(`  ${m.name} – ${mehrzahl(m.einnahmeTage, 'Einnahmetag', 'Einnahmetage')}, `
+        + `seit ${fmtDatum(m.seit, true)}`);
+      umbrochen(befund(m)).forEach((z) => sag(`     ${z}`));
+    });
+    sag();
+  }
+
+  const v = zustand.versuch;
+  if (v) {
+    const e = ergebnis(v, eintraege, tage, bis);
+    sag('AUSLASSVERSUCH');
+    sag(`  Weggelassen: ${v.art === 'klasse' ? v.ziel : ausloeserName(v.ziel, zustand.eigeneAusloeser)}, `
+      + `ab ${fmtDatum(v.start, true)} für ${mehrzahl(v.tage, 'Tag', 'Tage')}`);
+    sag(`  Ergebnis: ${e.wort}`);
+    sag(`  Davor ${fmtZahl(e.vorher.schnitt)} (${e.vorher.notierte} Tage), `
+      + `ohne ${fmtZahl(e.auslass.schnitt)} (${e.auslass.notierte} Tage)`
+      + (e.nachher ? `, nach der Wiedereinführung ${fmtZahl(e.nachher.schnitt)} `
+        + `(${e.nachher.notierte} Tage)` : ', Wiedereinführung steht noch aus'));
+    umbrochen(e.satz).forEach((z) => sag(`  ${z}`));
+    sag('  (Ein Versuch an einem einzigen Menschen, ohne Verblindung.)');
     sag();
   }
 
@@ -146,20 +244,97 @@ export function arztBericht(zustand, von, bis) {
     sag();
   }
 
+  /*
+   * Die Kriterien.
+   *
+   * Sie stehen bewusst *nach* den Zahlen und vor den Fragen: Wer den Zettel
+   * liest, soll erst sehen, worauf sie beruhen. Und sie stehen nur da, wenn sie
+   * geprüft werden konnten – „nicht prüfbar" als „nicht erfüllt" auszugeben
+   * wäre die häufigste Art, mit Kriterien zu lügen.
+   */
+  const k = kriterien({
+    eintraege,
+    tage,
+    heute: bis,
+    beschwerdenSeit: zustand.beschwerdenSeit,
+    istSaeuremittel: (name) => {
+      const g = wissenZu(name);
+      return !!g && ['ppi', 'h2', 'antazida', 'alginat'].includes(g.id);
+    },
+  });
+  const kZeilen = [];
+  /*
+   * Auch das Nichtprüfbare kommt mit.
+   *
+   * Ein Regelwerk stillschweigend wegzulassen, weil die Daten nicht reichen,
+   * sieht auf dem Papier aus wie „trifft nicht zu" – und das ist etwas ganz
+   * anderes. Steht dort stattdessen, *warum* es nicht ging, weiß die Praxis
+   * sofort, welche Frage noch offen ist.
+   */
+  if (k.reizdarm.pruefbar) {
+    kZeilen.push(`  Rom IV, Reizdarmsyndrom       ${k.reizdarm.erfuellt ? 'Kriterien erfüllt' : 'nicht erfüllt'}`);
+    kZeilen.push(`    Bauchschmerz an ${k.reizdarm.schmerzTage} Tagen `
+      + `(${fmtZahl(k.reizdarm.proWoche)} je Woche der notierten Tage),`);
+    kZeilen.push(`    ${k.reizdarm.erfuellteMerkmale} von 3 Merkmalen erfüllt`);
+    k.reizdarm.merkmale.filter((m) => m.erfuellt)
+      .forEach((m) => umbrochen(`${m.name}: ${m.text}`, 62).forEach((z) => kZeilen.push(`      - ${z}`)));
+    if (k.reizdarm.typ.typ) kZeilen.push(`    Stuhlform: ${k.reizdarm.typ.name}`);
+  } else {
+    kZeilen.push('  Rom IV, Reizdarmsyndrom       nicht prüfbar');
+    kZeilen.push('    Dafür fehlen Tage ohne Bauchschmerz oder Stuhlgangseinträge,');
+    kZeilen.push('    mit denen sich die Schmerztage vergleichen ließen.');
+  }
+  if (k.dyspepsie.pruefbar) {
+    kZeilen.push(`  Rom IV, funktionelle Dyspepsie ${k.dyspepsie.erfuellt ? 'Kriterien erfüllt' : 'nicht erfüllt'}`);
+    [k.dyspepsie.pds, k.dyspepsie.eps].forEach((f) => {
+      kZeilen.push(`    ${f.erfuellt ? '[x]' : '[ ]'} ${f.name}:`);
+      kZeilen.push(`        an ${f.tage} Tagen, ${fmtZahl(f.proWoche)} je Woche der notierten Tage`);
+    });
+  } else {
+    kZeilen.push('  Rom IV, funktionelle Dyspepsie nicht prüfbar (zu wenige notierte Tage)');
+  }
+  if (k.gerdq.belastbar) {
+    kZeilen.push(`  GerdQ (letzte 7 Tage)         ${k.gerdq.punkte} von 18 Punkten`);
+    kZeilen.push('    (ab 8 gilt eine Refluxkrankheit als wahrscheinlich)');
+  } else {
+    kZeilen.push(`  GerdQ (letzte 7 Tage)         nicht belastbar – nur `
+      + `${k.gerdq.erfasst} der 7 Tage notiert`);
+  }
+  if (kZeilen.length) {
+    sag('KRITERIEN');
+    kZeilen.forEach(sag);
+    if (k.dauer.erfuellt === null) {
+      sag('    Beginn der Beschwerden nicht angegeben – die Rom-Bedingung');
+      sag('    „Beginn vor mindestens sechs Monaten" ist damit ungeprüft.');
+    } else {
+      sag(`    Beschwerden seit ${k.dauer.seit} (${mehrzahl(k.dauer.monate, 'Monat', 'Monaten')}); `
+        + `Rom-Zeitbedingung ${k.dauer.erfuellt ? 'erfüllt' : 'nicht erfüllt'}.`);
+    }
+    // Formulierung mit Absicht ohne Doppelpunkt nach „Diagnose" – der
+    // Berichtstest sucht nach genau diesem Muster, weil es sonst niemandem
+    // auffiele, wenn hier eines Tages doch eine zugeschrieben würde.
+    sag('  Erfüllte Kriterien sind KEINE Diagnose. Beide Regelwerke setzen');
+    sag('  voraus, dass nichts Organisches dahintersteckt. Grundlage sind');
+    sag(`  ${k.zeitraum.notierteTage} notierte Tage der letzten 90; ein Tagebuch untererfasst,`);
+    sag('  die Zahlen sind daher eher zu niedrig als zu hoch.');
+    sag();
+  }
+
   if (bild.muster.length) {
     sag('WORAUF DAS MUSTER HINDEUTET');
     sag('  (Beschreibung des Verlaufs, keine Diagnose – siehe unten.)');
     bild.muster.slice(0, 2).forEach((m, i) => {
       sag(`  ${i + 1}. ${m.name}`);
-      m.belege.forEach((x) => sag(`     - ${x}`));
-      sag(`     Abzuklären wäre: ${m.ursachen.map((u) => u.name).join(', ')}`);
+      m.belege.forEach((x) => umbrochen(x, 62).forEach((z, j) => sag(`     ${j ? '  ' : '- '}${z}`)));
+      umbrochen(`Abzuklären wäre: ${m.ursachen.map((u) => u.name).join(', ')}`, 64)
+        .forEach((z) => sag(`     ${z}`));
     });
     sag();
   }
 
   if (bild.fragen.length) {
     sag('FRAGEN');
-    bild.fragen.forEach((f) => sag(`  - ${f}`));
+    bild.fragen.forEach((f) => umbrochen(f, 64).forEach((z, j) => sag(`  ${j ? '  ' : '- '}${z}`)));
     sag();
   }
 

@@ -67,6 +67,70 @@ check(
   `nirgends eine zugeschriebene Ursache${behauptet.length ? `: ${behauptet.join(', ')}` : ''}`,
 );
 
+/* ---------- Was neu dazugekommen ist, steht auch auf dem Zettel ---------- */
+
+/*
+ * Ein Verlauf, an dem sich alles Neue zeigt – und zwar so gebaut, dass jede
+ * Rechnung ihre Vergleichsgruppe hat. Daran scheitert es sonst still:
+ *
+ *   * Schmerz an drei von vier Tagen, nicht an allen. Ohne schmerzfreie Tage
+ *     lassen sich die Rom-Merkmale „ändert sich die Häufigkeit/Form dabei?"
+ *     gegen nichts vergleichen, und die Kriterien bleiben ungeprüft.
+ *   * An Schmerztagen weicher Stuhl, sonst unauffälliger – das ist das
+ *     Merkmal, das hier erfüllt sein soll.
+ *   * Pantoprazol erst in der zweiten Hälfte, damit es eine Zeit davor gibt.
+ *     Die Beschwerden bleiben gleich: der ausgereizte Säureblockerversuch.
+ */
+const lang = [];
+for (let t = 90; t >= 1; t--) {
+  const am = vorTagen(t);
+  const schmerz = t % 4 !== 0;
+  if (schmerz) {
+    lang.push({ id: `lb${t}`, am, um: '11:00', art: 'beschwerde', staerke: 6,
+      arten: ['krampf', 'oberbauch'], stuhlbezug: 'besser' });
+  }
+  lang.push({ id: `ls${t}`, am, um: '09:00', art: 'stuhl', form: schmerz ? 6 : 4 });
+  if (t <= 45) lang.push({ id: `lm${t}`, am, um: '07:00', art: 'medikament', mittel: 'Pantoprazol' });
+  lang.push({ id: `le${t}`, am, um: '12:00', art: 'essen', was: 'Mittag', portion: 'normal',
+    zutaten: t % 2 ? [{ id: 'milch', rolle: 'haupt' }] : [] });
+}
+await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)),
+  [KEY, { eintraege: lang, tage: {}, fenster: 4, mindestFaelle: 5, begruesst: true,
+    tab: 'mehr', beschwerdenSeit: '2023-01' }]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.locator('[data-act="bericht"][data-n="90"]').click();
+await page.waitForTimeout(400);
+const voll = await page.locator('.bericht').inputValue();
+
+check(voll.includes('STUHLGANG (BRISTOL)'), 'der Stuhlgang steht als eigener Abschnitt drin');
+check(/Typ 6-7 \(weich\)\s+\d+/.test(voll), 'mit den Anteilen nach Bristol-Gruppe');
+check(voll.includes('KRITERIEN'), 'die Kriterien stehen auf dem Zettel');
+check(
+  voll.includes('Rom IV, Reizdarmsyndrom'),
+  'mit dem Regelwerk beim Namen – so heißt es auch in der Praxis',
+);
+check(
+  voll.includes('GerdQ') && voll.includes('von 18 Punkten'),
+  'und der GerdQ mit seiner Punktzahl',
+);
+check(
+  voll.includes('Erfüllte Kriterien sind KEINE Diagnose'),
+  'unmittelbar gefolgt von dem Satz, dass das keine Diagnose ist',
+);
+check(
+  voll.includes('Beschwerden seit 2023-01'),
+  'die Dauer der Beschwerden, ohne die eine Rom-Bedingung ungeprüft bliebe',
+);
+check(voll.includes('HAT ES ETWAS BEWIRKT?'), 'das Ansprechen auf die Mittel steht drin');
+check(
+  voll.includes('Das ist selbst ein Befund'),
+  'und der Säureblocker ohne Wirkung wird als Befund benannt – das ist die nützlichste Zeile',
+);
+check(
+  !/^.{80,}$/m.test(voll),
+  'keine Zeile länger als achtzig Zeichen – der Zettel wird ausgedruckt',
+);
+
 /* ---------- Ein leerer Zeitraum sagt das ---------- */
 
 await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'mehr' })), KEY);

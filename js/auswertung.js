@@ -21,7 +21,7 @@
  *      ein Anhaltspunkt fürs Gespräch beim Arzt, keine Diagnose.
  */
 import { plusTage, tageDazwischen, tageszeit, TAGESZEIT_NAME, zeitpunkt, stundenDazwischen } from './datum.js';
-import { ALLE_AUSLOESER, ROLLEN, ROLLE_VORGABE } from './daten.js';
+import { ALLE_AUSLOESER, KLASSEN, ROLLEN, ROLLE_VORGABE, klassenVon } from './daten.js';
 
 /** Späte Mahlzeit ab dieser Stunde – siehe UMSTAENDE in js/daten.js. */
 const SPAET_AB = 20;
@@ -150,6 +150,92 @@ export function ausloeserBilanz(eintraege, opt = {}) {
 }
 
 /**
+ * Dieselbe Bilanz, aber nach Klassen statt nach einzelnen Zutaten.
+ *
+ * Der Grund ist die Fallzahl. „Zwiebel" kommt in einem halben Jahr vielleicht
+ * zwölfmal vor – daraus wird nie eine belastbare Zahl, und die nächste Frage
+ * („und Knoblauch? und Weizen?") fängt wieder bei null an. Die Klasse fasst
+ * zusammen, was denselben Weg nimmt: Über alle FODMAP-reichen Mahlzeiten
+ * kommen statt zwölf Fällen achtzig zusammen.
+ *
+ * Deshalb ist die Schwelle hier nicht dieselbe. Bei mehr Fällen fällt ein
+ * kleinerer Unterschied auf, und ein halber Punkt über achtzig Mahlzeiten sagt
+ * mehr als ein ganzer über zwölf. Gefordert werden trotzdem Fälle auf beiden
+ * Seiten – wer *jede* Mahlzeit mit FODMAP isst, hat keine Vergleichsgruppe und
+ * bekommt hier keine Zeile.
+ *
+ * Eine Zutat zählt für jede ihrer Klassen. Kaffee steht damit gleichzeitig bei
+ * Koffein, Säure und Schließmuskel, und das ist richtig so: Er wirkt auf allen
+ * drei Wegen, und welcher davon der entscheidende ist, sagt keine Statistik,
+ * sondern der Auslassversuch.
+ */
+export function klassenBilanz(eintraege, opt = {}) {
+  const fenster = opt.fenster || 4;
+  // Klassen brauchen mehr Fälle, weil sie mehr hergeben – und weil eine Klasse,
+  // die in fast jeder Mahlzeit steckt, sonst mit acht Gegenfällen „auffällig"
+  // hieße.
+  const mindest = opt.mindestFaelle || 8;
+  const mahlzeiten = eintraege.filter((e) => e.art === 'essen');
+  if (!mahlzeiten.length) return [];
+
+  const bewertet = mahlzeiten.map((m) => ({
+    klassen: new Set(zutatenVon(m).flatMap((z) => klassenVon(z.id))),
+    wert: wertNach(eintraege, m, fenster),
+  }));
+
+  const zeilen = [];
+  KLASSEN.forEach((k) => {
+    const mit = bewertet.filter((b) => b.klassen.has(k.id));
+    if (!mit.length) return;
+    const ohne = bewertet.filter((b) => !b.klassen.has(k.id));
+    const schnitt = (liste) => (liste.length
+      ? liste.reduce((s, b) => s + b.wert, 0) / liste.length : 0);
+    const quote = (liste) => (liste.length
+      ? liste.filter((b) => b.wert > 0).length / liste.length : 0);
+    const schnittMit = schnitt(mit);
+    const schnittOhne = schnitt(ohne);
+    zeilen.push({
+      id: k.id,
+      name: k.name,
+      kurz: k.kurz,
+      was: k.was,
+      faelle: mit.length,
+      gegenFaelle: ohne.length,
+      schnittMit,
+      schnittOhne,
+      differenz: schnittMit - schnittOhne,
+      quoteMit: quote(mit),
+      quoteOhne: quote(ohne),
+      genug: mit.length >= mindest && ohne.length >= mindest,
+      fehlt: Math.max(0, mindest - mit.length),
+      fehltGegen: Math.max(0, mindest - ohne.length),
+    });
+  });
+
+  return zeilen.sort((a, b) => (b.differenz - a.differenz) || (b.faelle - a.faelle));
+}
+
+/**
+ * Welche Zutaten eine Klasse in *diesem* Tagebuch trägt.
+ *
+ * Ohne diese Aufschlüsselung wäre „FODMAP ist auffällig" eine Sackgasse: Man
+ * kann FODMAP nicht weglassen, man kann Zwiebeln weglassen. Zurück kommt, was
+ * tatsächlich gegessen wurde, das Häufigste zuerst.
+ */
+export function klasseZutaten(eintraege, klasseId) {
+  const zaehler = new Map();
+  eintraege.filter((e) => e.art === 'essen').forEach((e) => {
+    zutatenVon(e).forEach((z) => {
+      if (klassenVon(z.id).includes(klasseId)) {
+        zaehler.set(z.id, (zaehler.get(z.id) || 0) + 1);
+      }
+    });
+  });
+  return [...zaehler.entries()].map(([id, anzahl]) => ({ id, anzahl }))
+    .sort((a, b) => b.anzahl - a.anzahl);
+}
+
+/**
  * Wie ein Ergebnis zu lesen ist. Eine halbe Stufe Unterschied ist Rauschen,
  * und es als Fund darzustellen wäre die eine Art, mit der so eine App
  * tatsächlich schaden kann: Wer daraufhin ein Lebensmittel streicht, isst
@@ -160,6 +246,21 @@ export function einstufung(zeile) {
   if (zeile.differenz >= 2) return 'auffaellig';
   if (zeile.differenz >= 1) return 'moeglich';
   if (zeile.differenz <= -1) return 'unauffaellig';
+  return 'neutral';
+}
+
+/**
+ * Dieselbe Einordnung für Klassen – mit niedrigeren Schwellen.
+ *
+ * Nicht aus Großzügigkeit: Eine Klasse steckt in vielen Mahlzeiten, oft auch in
+ * kleinen Mengen, und das verdünnt den Unterschied. Ein halber Punkt über
+ * achtzig Mahlzeiten ist ein stabileres Ergebnis als zwei Punkte über zwölf.
+ */
+export function klassenEinstufung(zeile) {
+  if (!zeile.genug) return 'zuwenig';
+  if (zeile.differenz >= 1) return 'auffaellig';
+  if (zeile.differenz >= 0.5) return 'moeglich';
+  if (zeile.differenz <= -0.5) return 'unauffaellig';
   return 'neutral';
 }
 

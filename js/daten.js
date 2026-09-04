@@ -17,23 +17,131 @@
  * alle bereits gemachten Eintragungen. Namen dürfen sich ändern.
  */
 
+/*
+ * Die Klassen: warum etwas stören könnte, nicht bloß dass es stört.
+ *
+ * „Zwiebel" ist als Antwort schwach – nicht weil sie falsch wäre, sondern weil
+ * sie zu selten vorkommt. Zwölf Mahlzeiten mit Zwiebel im ganzen Tagebuch
+ * ergeben eine wackelige Zahl, und die nächste Frage („und Knoblauch? und
+ * Weizen?") fängt wieder bei null an. Die Klasse fasst zusammen, was im Körper
+ * denselben Weg nimmt: Zwiebel, Hülsenfrüchte, Weizen und Rohkost sind alle
+ * FODMAP-reich, und über sie zusammen kommen statt zwölf Fällen achtzig
+ * zusammen. Das ist der Unterschied zwischen einer Ahnung und einer Zahl.
+ *
+ * Und es ist die brauchbarere Auskunft: „Fruktane" beantwortet auch die Frage
+ * nach dem Lebensmittel, das noch gar nicht im Tagebuch steht.
+ *
+ * Ehrlich dazu: Die Zuordnung unten ist grob. Ein Apfel ist FODMAP-reich, eine
+ * Banane kaum, und beide wären hier „Obst". Sie taugt, um eine Spur zu finden,
+ * und nicht, um eine Diagnose darauf zu bauen – deshalb steht neben jedem
+ * Ergebnis, aus wie vielen Mahlzeiten es kommt, und deshalb gibt es den
+ * Auslassversuch (js/versuch.js), der eine Spur zur Probe stellt.
+ */
+export const KLASSEN = [
+  {
+    id: 'fodmap',
+    name: 'FODMAP – vergärbare Kohlenhydrate',
+    kurz: 'FODMAP',
+    was: 'Zuckerarten und Ballaststoffe, die im Dünndarm nicht aufgenommen '
+      + 'werden und im Dickdarm von Bakterien vergoren werden. Das macht Gas '
+      + 'und zieht Wasser – Blähung und Krampf, meist Stunden nach dem Essen.',
+  },
+  {
+    id: 'laktose',
+    name: 'Laktose – Milchzucker',
+    kurz: 'Laktose',
+    was: 'Ein FODMAP für sich, weil es dafür einen einfachen Test gibt: Fehlt '
+      + 'das spaltende Enzym, bleibt der Milchzucker liegen und wird vergoren.',
+  },
+  {
+    id: 'fett',
+    name: 'Fett',
+    kurz: 'Fett',
+    was: 'Verlangsamt die Magenentleerung. Was länger liegt, drückt länger – '
+      + 'das ist der typische Weg zu Völlegefühl statt zu Brennen.',
+  },
+  {
+    id: 'saeure',
+    name: 'Säure und Säurelocker',
+    kurz: 'Säure',
+    was: 'Entweder selbst sauer oder anregend für die eigene Säurebildung. '
+      + 'Auf einer gereizten Schleimhaut brennt beides.',
+  },
+  {
+    id: 'schliessmuskel',
+    name: 'Senkt den Schließmuskel',
+    kurz: 'Schließmuskel',
+    was: 'Lockert den Muskelring zwischen Speiseröhre und Magen, sodass '
+      + 'Mageninhalt leichter hochkommt. Der klassische Weg zu Sodbrennen.',
+  },
+  {
+    id: 'koffein',
+    name: 'Koffein',
+    kurz: 'Koffein',
+    was: 'Regt die Säurebildung an und beschleunigt den Darm – und wirkt '
+      + 'obendrein auf den Schlaf, der hier ein eigener Faktor ist.',
+  },
+  {
+    id: 'histamin',
+    name: 'Histamin',
+    kurz: 'Histamin',
+    was: 'Steckt in Gereiftem, Gegorenem und lange Gelagertem. Bei einer '
+      + 'Unverträglichkeit kommen Kopfschmerz, Flush oder Herzklopfen dazu – '
+      + 'im Bauch allein sieht es aus wie alles andere auch.',
+  },
+  {
+    id: 'gluten',
+    name: 'Weizen und Gluten',
+    kurz: 'Gluten',
+    was: 'Bei Zöliakie ein Auslöser, bei anderen eher die Fruktane im selben '
+      + 'Korn. Wichtig: Ein Bluttest auf Zöliakie geht nur, solange noch '
+      + 'Gluten gegessen wird.',
+  },
+  {
+    id: 'scharf',
+    name: 'Scharfstoffe',
+    kurz: 'Schärfe',
+    was: 'Capsaicin reizt dieselben Nervenenden, die Schmerz melden. Auf '
+      + 'gesunder Schleimhaut harmlos, auf gereizter nicht.',
+  },
+  {
+    id: 'gas',
+    name: 'Gas von außen',
+    kurz: 'Gas',
+    was: 'Kohlensäure bringt Gas mit, das wieder heraus muss – nach oben als '
+      + 'Aufstoßen, und dabei kommt Säure mit.',
+  },
+];
+
+const KLASSEN_MAP = Object.fromEntries(KLASSEN.map((k) => [k.id, k]));
+
+export function klasseVon(id) {
+  return KLASSEN_MAP[id] || null;
+}
+
+export function klasseName(id, kurz) {
+  const k = KLASSEN_MAP[id];
+  if (!k) return id;
+  return kurz ? k.kurz : k.name;
+}
+
 export const AUSLOESER = [
-  { id: 'kaffee', name: 'Kaffee', icon: '☕' },
-  { id: 'alkohol', name: 'Alkohol', icon: '🍷' },
-  { id: 'scharf', name: 'Scharf gewürzt', icon: '🌶️' },
-  { id: 'fett', name: 'Fettig, frittiert', icon: '🍟' },
-  { id: 'zitrus', name: 'Zitrus, Saures', icon: '🍋' },
-  { id: 'tomate', name: 'Tomate', icon: '🍅' },
-  { id: 'zwiebel', name: 'Zwiebel, Knoblauch', icon: '🧅' },
-  { id: 'kohlensaeure', name: 'Kohlensäure', icon: '🥤' },
-  { id: 'suess', name: 'Süßes, Schokolade', icon: '🍫' },
-  { id: 'milch', name: 'Milchprodukte', icon: '🥛' },
-  { id: 'rohkost', name: 'Rohkost, Salat', icon: '🥗' },
-  { id: 'huelsen', name: 'Hülsenfrüchte, Kohl', icon: '🫘' },
-  { id: 'vollkorn', name: 'Vollkorn', icon: '🌾' },
-  { id: 'geraeuchert', name: 'Geräuchert, gepökelt', icon: '🥓' },
-  { id: 'minze', name: 'Pfefferminze', icon: '🌿' },
-  { id: 'nikotin', name: 'Nikotin', icon: '🚬' },
+  { id: 'kaffee', name: 'Kaffee', icon: '☕', klassen: ['koffein', 'saeure', 'schliessmuskel'] },
+  { id: 'alkohol', name: 'Alkohol', icon: '🍷', klassen: ['saeure', 'schliessmuskel', 'histamin'] },
+  { id: 'scharf', name: 'Scharf gewürzt', icon: '🌶️', klassen: ['scharf'] },
+  { id: 'fett', name: 'Fettig, frittiert', icon: '🍟', klassen: ['fett', 'schliessmuskel'] },
+  { id: 'zitrus', name: 'Zitrus, Saures', icon: '🍋', klassen: ['saeure', 'histamin'] },
+  { id: 'tomate', name: 'Tomate', icon: '🍅', klassen: ['saeure', 'histamin'] },
+  { id: 'zwiebel', name: 'Zwiebel, Knoblauch', icon: '🧅', klassen: ['fodmap'] },
+  { id: 'kohlensaeure', name: 'Kohlensäure', icon: '🥤', klassen: ['gas'] },
+  { id: 'suess', name: 'Süßes, Schokolade', icon: '🍫', klassen: ['fodmap', 'fett', 'schliessmuskel'] },
+  { id: 'milch', name: 'Milchprodukte', icon: '🥛', klassen: ['laktose', 'fodmap', 'fett'] },
+  { id: 'rohkost', name: 'Rohkost, Salat', icon: '🥗', klassen: ['fodmap'] },
+  { id: 'huelsen', name: 'Hülsenfrüchte, Kohl', icon: '🫘', klassen: ['fodmap'] },
+  { id: 'vollkorn', name: 'Vollkorn', icon: '🌾', klassen: ['fodmap', 'gluten'] },
+  { id: 'geraeuchert', name: 'Geräuchert, gepökelt', icon: '🥓', klassen: ['histamin', 'fett'] },
+  { id: 'minze', name: 'Pfefferminze', icon: '🌿', klassen: ['schliessmuskel'] },
+  { id: 'nikotin', name: 'Nikotin', icon: '🚬', klassen: ['schliessmuskel', 'saeure'] },
 ];
 
 /**
@@ -51,15 +159,83 @@ export const UMSTAENDE = [
 /** Alles, was die Auswertung als möglichen Auslöser kennt. */
 export const ALLE_AUSLOESER = [...AUSLOESER, ...UMSTAENDE];
 
+/*
+ * Zwei Einträge stehen hier, weil ohne sie ganze Fragen unbeantwortbar bleiben:
+ *
+ *   `oberbauch`   Schmerz im Oberbauch – die eine Angabe, die den
+ *                 Schmerz-Typ der funktionellen Dyspepsie vom Völlegefühl
+ *                 trennt, und im GerdQ das Gegengewicht zum Sodbrennen.
+ *   `saettigung`  Früh satt. Klingt wie „kein Appetit" und ist etwas anderes:
+ *                 Man fängt an zu essen und kann nicht aufessen. Genau so
+ *                 steht es in den Rom-Kriterien, und genau dafür gibt es die
+ *                 Zeile.
+ *
+ * Ohne die beiden könnte js/kriterien.js die Hälfte seiner Prüfungen nur raten.
+ * Eine Auswahlliste um zwei Zeilen zu verlängern ist der billigere Preis.
+ */
 export const BESCHWERDEN = [
   { id: 'brennen', name: 'Brennen', icon: '🔥' },
   { id: 'druck', name: 'Druck, Völlegefühl', icon: '🪨' },
+  { id: 'oberbauch', name: 'Schmerz im Oberbauch', icon: '📍' },
   { id: 'uebelkeit', name: 'Übelkeit', icon: '🤢' },
   { id: 'sodbrennen', name: 'Sodbrennen', icon: '🌋' },
   { id: 'aufstossen', name: 'Aufstoßen', icon: '💨' },
   { id: 'blaehung', name: 'Blähungen', icon: '🎈' },
-  { id: 'krampf', name: 'Krämpfe', icon: '⚡' },
+  { id: 'krampf', name: 'Bauchschmerz, Krämpfe', icon: '⚡' },
+  { id: 'saettigung', name: 'Früh satt', icon: '🥄' },
   { id: 'appetit', name: 'Kein Appetit', icon: '🍽️' },
+];
+
+/*
+ * Die Bristol-Stuhlformenskala.
+ *
+ * Sieben Bilder statt einer Frage, die niemand beantworten mag. Sie ist seit
+ * den Neunzigern das Maß, mit dem in der Sprechstunde über Stuhlgang geredet
+ * wird – 1 und 2 heißen zu lange gelegen, 6 und 7 zu kurz, dazwischen ist es
+ * in Ordnung.
+ *
+ * Warum das hier steht, obwohl es um den Magen ging: Ohne Stuhlform lassen
+ * sich Reizdarm und funktionelle Dyspepsie im Tagebuch überhaupt nicht
+ * trennen, und der Reizdarm-Typ – Verstopfung, Durchfall oder gemischt –
+ * entscheidet in der Praxis über die Behandlung. Es ist die größte Lücke, die
+ * dieses Tagebuch hatte.
+ */
+export const BRISTOL = [
+  { id: 1, name: 'Einzelne harte Klümpchen', kurz: 'harte Klümpchen', gruppe: 'hart', bild: '●●●' },
+  { id: 2, name: 'Wurstförmig, klumpig', kurz: 'klumpig', gruppe: 'hart', bild: '▰▰' },
+  { id: 3, name: 'Wurstförmig mit Rissen', kurz: 'mit Rissen', gruppe: 'normal', bild: '▬▬' },
+  { id: 4, name: 'Wurstförmig, glatt und weich', kurz: 'glatt und weich', gruppe: 'normal', bild: '━━' },
+  { id: 5, name: 'Weiche Klümpchen mit klarem Rand', kurz: 'weiche Klümpchen', gruppe: 'normal', bild: '◍◍' },
+  { id: 6, name: 'Breiig, mit unregelmäßigem Rand', kurz: 'breiig', gruppe: 'weich', bild: '≈≈' },
+  { id: 7, name: 'Flüssig, ohne feste Bestandteile', kurz: 'flüssig', gruppe: 'weich', bild: '～～' },
+];
+
+const BRISTOL_MAP = Object.fromEntries(BRISTOL.map((b) => [b.id, b]));
+
+export function bristolVon(form) {
+  return BRISTOL_MAP[Number(form)] || null;
+}
+
+export function bristolName(form, kurz) {
+  const b = BRISTOL_MAP[Number(form)];
+  if (!b) return String(form);
+  return kurz ? b.kurz : b.name;
+}
+
+/**
+ * Wie sich eine Beschwerde zum Stuhlgang verhält – die Rom-Frage im Wortlaut.
+ *
+ * Ob der Schmerz mit dem Stuhlgang zusammenhängt, ist eines der drei Merkmale,
+ * an denen ein Reizdarmsyndrom festgemacht wird, und es ist das einzige, das
+ * sich nicht aus den Zahlen ableiten lässt: Dass an einem Tag Schmerz und
+ * Stuhlgang beide vorkamen, sagt nichts darüber, ob das eine das andere
+ * verändert hat. Also wird gefragt – einmal, freiwillig, im Beschwerdebogen.
+ */
+export const STUHLBEZUG = [
+  { id: 'besser', name: 'Danach besser' },
+  { id: 'schlechter', name: 'Danach schlechter' },
+  { id: 'gleich', name: 'Unverändert' },
+  { id: 'keiner', name: 'Kein Stuhlgang dabei' },
 ];
 
 /*
@@ -123,6 +299,10 @@ export const TAGESFRAGEN = [
   { id: 'bewegung', name: 'Bewegung', menge: true, worte: ['keine', 'leicht', 'moderat', 'intensiv', 'sehr intensiv'] },
   { id: 'blutung', name: 'Periode', menge: true, worte: ['keine', 'Schmierblutung', 'leicht', 'mittel', 'stark'] },
   { id: 'sex', name: 'Sex', menge: true, worte: ['nein', 'ja'] },
+  // Nachts von Beschwerden geweckt zu werden, ist im GerdQ eine eigene Frage
+  // und in der Sprechstunde eine der ersten. `menge: true`, weil „ja" hier
+  // keine Note ist – es zählt die Zahl der Nächte, nicht eine Schwere.
+  { id: 'nachtwach', name: 'Nachts davon wach', menge: true, worte: ['nein', 'ja'] },
 ];
 
 const FRAGEN_MAP = Object.fromEntries(TAGESFRAGEN.map((f) => [f.id, f]));
@@ -179,6 +359,19 @@ export function ausloeserVon(id, eigene = []) {
 export function ausloeserName(id, eigene = []) {
   const a = ausloeserVon(id, eigene);
   return a ? a.name : id;
+}
+
+/**
+ * Die Klassen eines Auslösers.
+ *
+ * Eigene Auslöser haben keine. Das ist Absicht und keine Lücke: Welche Klassen
+ * in „Fenchelknolle" stecken, weiß diese App nicht, und sie zu raten wäre
+ * schlimmer als sie wegzulassen – eine falsche Zuordnung würde in einer
+ * Klassenbilanz mit achtzig Fällen nicht auffallen, sondern sie verfälschen.
+ */
+export function klassenVon(id) {
+  const a = AUSLOESER_MAP[id];
+  return (a && a.klassen) || [];
 }
 
 export function beschwerdeVon(id) {

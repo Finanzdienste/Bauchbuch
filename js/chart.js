@@ -66,14 +66,18 @@ export function verlaufTafel(punkte, opt = {}) {
  * Zwei Balken übereinander statt einer Differenzzahl, weil die Differenz allein
  * täuscht – „2 Punkte mehr" heißt bei einem Grundpegel von 1 etwas anderes als
  * bei einem von 7.
+ *
+ * Die Beschriftungen lassen sich überschreiben. Beim Auslöser heißt es „danach"
+ * und „sonst", beim Medikament „darunter" und „davor" – dieselbe Zeichnung,
+ * aber ein falsches Wort daneben macht aus einer Auskunft eine Irreführung.
  */
-export function vergleichBalken(mit, ohne) {
+export function vergleichBalken(mit, ohne, worte = {}) {
   const anteil = (v) => `${Math.max(1.5, Math.min(100, (v / TAFEL_MAX) * 100)).toFixed(1)}%`;
   return `<div class="vgl">
-    <div class="vgl-zeile"><span class="vgl-mark">danach</span>
+    <div class="vgl-zeile"><span class="vgl-mark">${worte.mit || 'danach'}</span>
       <span class="vgl-spur"><i style="width:${anteil(mit)};background:var(--warn)"></i></span>
       <b>${mit.toFixed(1).replace('.', ',')}</b></div>
-    <div class="vgl-zeile"><span class="vgl-mark">sonst</span>
+    <div class="vgl-zeile"><span class="vgl-mark">${worte.ohne || 'sonst'}</span>
       <span class="vgl-spur"><i style="width:${anteil(ohne)};background:var(--muted)"></i></span>
       <b>${ohne.toFixed(1).replace('.', ',')}</b></div>
   </div>`;

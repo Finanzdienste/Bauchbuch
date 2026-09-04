@@ -121,10 +121,15 @@ export function warnzeichenVon(id) {
  * Ohne Zeitgrenze und ohne Schwelle: Ein einziges Mal Blut erbrochen ist ein
  * einziges Mal zu viel, und ein Eintrag von vor drei Monaten, der nie
  * abgeklärt wurde, ist keine alte Nachricht.
+ *
+ * Gesucht wird in *allen* Eintragungen, nicht nur in den Beschwerden. Seit es
+ * den Stuhlgang als eigene Art gibt, stehen die zwei wichtigsten Warnzeichen
+ * überhaupt – schwarzer Stuhl und frisches Blut – genau dort. Sie nur im
+ * Beschwerdebogen zu suchen, hieße sie da zu suchen, wo sie nicht sind.
  */
 export function warnungen(eintraege) {
   const zaehler = new Map();
-  eintraege.filter((e) => e.art === 'beschwerde').forEach((e) => {
+  eintraege.filter((e) => Array.isArray(e.warnzeichen)).forEach((e) => {
     (e.warnzeichen || []).forEach((id) => {
       const w = WARN_MAP[id];
       if (!w) return;
