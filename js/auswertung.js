@@ -300,26 +300,40 @@ export function haeufigeZutaten(eintraege) {
 }
 
 /**
- * Die häufigsten Mahlzeiten im Klartext, als Vorschlag fürs Textfeld.
+ * Frühere Mahlzeiten als *vollständige* Vorlage: Text, Zutaten samt Rollen,
+ * Portion.
  *
- * Verglichen wird kleingeschrieben und ohne Randleerzeichen, angezeigt wird
- * die zuletzt benutzte Schreibweise – sonst stünde „haferbrei" neben
- * „Haferbrei" und beide wären halb so häufig.
+ * Vorher gab es hier nur den Text, und der Vorschlag füllte allein das
+ * Textfeld – Zutaten, Rollen und Portion musste man danach von Hand nachbauen.
+ * Das ist der Unterschied zwischen drei Sekunden und fünfzehn, und er
+ * entscheidet mehr als jede Rechnung in dieser Datei: Das größte Risiko für
+ * ein Tagebuch ist nicht ein Fehler in der Auswertung, sondern dass nach drei
+ * Wochen niemand mehr etwas einträgt.
+ *
+ * Zusammengefasst wird über den kleingeschriebenen Text ohne Randleerzeichen –
+ * sonst stünde „haferbrei" neben „Haferbrei" und beide wären halb so häufig.
+ * Die Vorlage kommt vom **jüngsten** Vorkommen: Wer seinen Haferbrei zuletzt
+ * ohne Milch gegessen hat, will ihn vermutlich wieder so.
+ *
+ * Auch einmalige Mahlzeiten kommen mit. „Nochmal wie gestern" ist ein
+ * genauso guter Grund wie „das esse ich immer".
  */
-export function haeufigeGerichte(eintraege, anzahl = 6) {
+export function haeufigeMahlzeiten(eintraege, anzahl = 6) {
   const zaehler = new Map();
   eintraege.filter((e) => e.art === 'essen').forEach((e) => {
     const roh = String(e.was || '').trim();
     if (!roh) return;
     const schluessel = roh.toLowerCase();
-    const v = zaehler.get(schluessel) || { text: roh, anzahl: 0 };
+    const v = zaehler.get(schluessel) || { anzahl: 0 };
     v.text = roh;
+    v.zutaten = zutatenVon(e);
+    v.portion = e.portion || 'normal';
+    v.zuletzt = e.am;
     v.anzahl += 1;
     zaehler.set(schluessel, v);
   });
   return [...zaehler.values()]
-    .filter((g) => g.anzahl > 1)
-    .sort((a, b) => b.anzahl - a.anzahl)
+    .sort((a, b) => (b.anzahl - a.anzahl) || (a.zuletzt < b.zuletzt ? 1 : -1))
     .slice(0, anzahl);
 }
 

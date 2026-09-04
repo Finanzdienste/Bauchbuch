@@ -52,6 +52,10 @@ const VORGABE = {
   begruesst: false,
   tab: 'heute',
   lastBackup: null,      // { on, anzahl } – wann zuletzt gesichert wurde
+  // Bis wann nicht mehr an die Sicherung erinnert wird (ISO-Datum). „Später"
+  // heißt sieben Tage, nicht „nie" – wer einmal wegtippt, hat das Tagebuch
+  // deshalb nicht aufgegeben.
+  sicherungSpaeter: null,
 };
 
 const klon = (o) => JSON.parse(JSON.stringify(o));
@@ -363,8 +367,62 @@ export function alsJSON() {
   return JSON.stringify(zustand, null, 2);
 }
 
+/**
+ * Ist eine Sicherung fällig?
+ *
+ * Es gibt schon einen Hinweis unter „Mehr", der sagt, wann zuletzt gesichert
+ * wurde. Nur liest den niemand – Hinweise an Stellen, die man selten aufmacht,
+ * sind Dekoration. Deshalb fragt die App von sich aus, und zwar nach der
+ * Anzahl *oder* nach der Zeit: Wer zwei Wochen lang nichts einträgt, hat
+ * genauso viel zu verlieren wie jemand mit dreißig neuen Einträgen.
+ *
+ * Zurück kommt `null` oder `{ grund, seit, neue }` – die Anzeige entscheidet,
+ * was sie daraus macht.
+ */
+export function sicherungFaellig() {
+  const heute = heuteISO();
+  if (zustand.sicherungSpaeter && zustand.sicherungSpaeter > heute) return null;
+  if (!zustand.eintraege.length) return null;
+
+  const b = zustand.lastBackup;
+  if (!b) {
+    // Noch nie gesichert: erst fragen, wenn wirklich etwas zu verlieren ist.
+    // Nach dem dritten Eintrag zu betteln, treibt Leute aus der App.
+    return zustand.eintraege.length >= 15
+      ? { grund: 'nie', neue: zustand.eintraege.length, seit: null }
+      : null;
+  }
+  const neue = zustand.eintraege.length - (b.anzahl || 0);
+  const seit = tageSeit(b.on, heute);
+  if (neue >= 30) return { grund: 'anzahl', neue, seit };
+  if (seit >= 14 && neue > 0) return { grund: 'zeit', neue, seit };
+  return null;
+}
+
+/** Ganze Tage zwischen zwei ISO-Daten. Klein gehalten, damit js/store.js
+ *  nicht wegen einer Subtraktion an der Datumsschicht hängt. */
+function tageSeit(vonISO, bisISO) {
+  const t = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d).getTime();
+  };
+  return Math.round((t(bisISO) - t(vonISO)) / 86400000);
+}
+
+/** „Später": sieben Tage Ruhe, dann wird wieder gefragt. */
+export function sicherungVerschieben() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  const p = (x) => String(x).padStart(2, '0');
+  zustand.sicherungSpaeter = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  merke();
+  melde();
+}
+
 export function sicherungNotiert() {
   zustand.lastBackup = { on: heuteISO(), anzahl: zustand.eintraege.length };
+  // Ein aufgeschobenes „später" ist mit der Sicherung erledigt.
+  zustand.sicherungSpaeter = null;
   merke();
   melde();
 }

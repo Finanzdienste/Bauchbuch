@@ -37,6 +37,14 @@ Oszillator: keine Datei, kein Download, läuft offline. Bei jeder Übung ist das
 Ausatmen mindestens so lang wie das Einatmen; umgekehrt täte die Übung das
 Gegenteil.
 
+**Noch mal wie letztes Mal.** Beim Eintragen einer Mahlzeit stehen frühere
+Mahlzeiten als antippbare Vorlage bereit – und zwar vollständig: Text, Zutaten
+samt Rollen, Portion. Die Vorlage kommt vom jüngsten Vorkommen. Das ist der
+Unterschied zwischen drei Sekunden und fünfzehn, und er entscheidet mehr als
+jede Rechnung im Programm: Das größte Risiko für ein Tagebuch ist nicht ein
+Fehler in der Auswertung, sondern dass nach drei Wochen niemand mehr etwas
+einträgt.
+
 **Ideen.** Ein Zettel für Verbesserungsvorschläge zur App selbst. Wer die App
 benutzt, sitzt selten neben dem, der sie baut – deshalb ist der eigentliche
 Knopf nicht „Eintragen", sondern „Alle kopieren": die Liste als Text, zum
@@ -186,7 +194,50 @@ es führt.
 
 **Sicherung.** Was nur in einem Browser liegt, ist mit dem Browser weg:
 gelöschte Website-Daten, ein neues Handy, ein privates Fenster. Unter „Mehr"
-gibt es eine Sicherungsdatei, gewöhnliches JSON, auch ohne diese App lesbar.
+gibt es eine Sicherungsdatei, gewöhnliches JSON, auch ohne diese App lesbar –
+und dieselbe Sicherung zusätzlich als Text zum Kopieren, weil Herunterladen
+nicht überall geht.
+
+Die App fragt von sich aus danach: nach 30 neuen Eintragungen oder nach 14
+Tagen, und zwar auf dem Tagesreiter statt in den Einstellungen. Ein Hinweis an
+einer Stelle, die man selten aufmacht, ist Dekoration. Erst ab 15 Eintragungen
+überhaupt – nach dem dritten Eintrag zu betteln, treibt Leute aus der App. Und
+„Später" heißt sieben Tage, nicht „nie".
+
+**Aufs Papier.** „Drucken" unter „Mehr" nimmt den Reiter *Muster* mit: die
+Einordnung, die Warnzeichen und den Verlauf als Bild. Für den Druck wird die
+Farbgebung umgedreht – weiß statt schwarz, denn ein dunkler Bildschirm ist auf
+Papier eine halbe Patrone und schlecht lesbar dazu. Aufklappbare Abschnitte
+werden vorher geöffnet, sonst fehlten sie stillschweigend.
+
+## Als App, nicht als Lesezeichen
+
+Bauchbuch ist eine installierbare App: Manifest, Symbole in allen Größen (auch
+maskierbar, sonst schneidet Android schief zu), Service Worker, `standalone`.
+Auf dem Startbildschirm liegt sie als eigenes Symbol, öffnet ohne
+Browserleiste und startet ohne Netz.
+
+Damit man das auch findet, bietet die App es unter „Mehr" von sich aus an:
+Wo der Browser die Installation meldet (Android/Chrome), steht ein Knopf; wo
+nicht (Safari), die Anleitung dafür. Läuft sie bereits als App, sagt sie das
+und schweigt ansonsten.
+
+Langes Drücken auf das Symbol führt direkt weiter – **Mahlzeit eintragen**,
+**Beschwerden eintragen**, **Atemübung**. Die Verknüpfungen sind Startparameter
+derselben Datei (`?neu=essen`, `?tab=ruhe`); die Adresse wird danach wieder
+sauber gemacht, damit ein Neuladen nicht denselben Bogen ein zweites Mal
+aufreißt.
+
+Zwei Wege, ein Unterschied:
+
+| | Startbildschirm | Ohne Browserleiste |
+| --- | --- | --- |
+| **Über die Adresse (Pages)** | ja | ja – volle App |
+| **Aus der einen Datei (`file://`)** | ja, mit Symbol | nein, öffnet im Browser |
+
+Der Grund ist keine Nachlässigkeit: Browser installieren nur von einer
+gesicherten Adresse. Wer die App als *App* will, nimmt die Adresse; wer gar
+keine Adresse im Netz will, nimmt die Datei und lebt mit der Browserleiste.
 
 ## Entwickeln
 
@@ -234,7 +285,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Sechzehn Dateien, über 320 Prüfungen, alle in einem echten Chromium. Kein
+Siebzehn Dateien, über 360 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -255,6 +306,7 @@ den Rückgabewert.
 | `test-bild.mjs` | Warnzeichen kommen durch; Nüchternschmerz wird nicht mit Völlegefühl verwechselt |
 | `test-rat.mjs` | jeder Vorschlag mit Grund, und keine Medikamentenempfehlung |
 | `test-atem.mjs` | Phasenlängen, Ablauf, Abbruch beim Reiterwechsel, stummer Betrieb |
+| `test-app.mjs` | Installieren, Verknüpfungen des Symbols, Druckansicht |
 | `test-still.mjs` | die App schickt nichts |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,
