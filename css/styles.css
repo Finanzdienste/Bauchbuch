@@ -271,6 +271,10 @@ p { margin: 0 0 8px; }
 /* ---------- Zutaten mit ihrer Rolle ---------- */
 .marken-eng { margin-top: 6px; }
 .marken-eng .marke { font-size: 13px; padding: 6px 10px; min-height: 34px; color: var(--muted); }
+.marke-zahl { color: var(--accent); font-size: 11px; margin-left: 3px; }
+/* Die Karte, die um etwas bittet – auffälliger als eine gewöhnliche,
+   aber nicht so laut wie eine Warnung. */
+.karte-merk { border-color: var(--accent); background: var(--accent-weich); }
 .zutaten { display: flex; flex-direction: column; gap: 6px; }
 .zutat {
   display: flex; align-items: center; gap: 8px;
@@ -589,4 +593,68 @@ p { margin: 0 0 8px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+}
+
+/* ---------- Aufs Papier ----------
+ *
+ * Gedacht für den Reiter „Muster": die Einordnung, die Warnzeichen und der
+ * Verlauf als Bild, zum Mitnehmen in die Sprechstunde.
+ *
+ * Umgefärbt statt eingefärbt: Der Bildschirm ist dunkel, weil man nachts
+ * hineinsieht – auf Papier wäre das eine halbe Druckerpatrone und schlecht
+ * lesbar dazu. Die Ampel bleibt farbig, aber gedeckt, damit sie auch in
+ * Graustufen noch verschiedene Helligkeiten hat.
+ */
+@media print {
+  :root {
+    color-scheme: light;
+    --bg: #fff;
+    --bg-elev: #fff;
+    --bg-elev-2: #fff;
+    --line: #bbb;
+    --text: #000;
+    --muted: #444;
+    --accent: #a03060;
+    --accent-weich: #fff;
+    --ok: #2e7d4f;
+    --leicht: #8a7f1e;
+    --warn: #b06a10;
+    --bad: #b3261e;
+  }
+  html, body { background: #fff; color: #000; font-size: 11pt; }
+
+  /* Alles, was man auf Papier nicht antippen kann. */
+  .tabbar, .toast, .anlegen, .bogen, .bogen-hg, .topbar, .wahl,
+  .btn, .strang-weg, .idee-haken, .tag-datum, .rat-quelle { display: none !important; }
+
+  .view { max-width: none; padding: 0; }
+  .karte {
+    border: 1px solid #bbb;
+    padding: 8pt 10pt;
+    margin-bottom: 8pt;
+    /* Eine Einordnung, die mitten im Satz auf die nächste Seite umbricht,
+       liest in der Sprechstunde niemand zu Ende. */
+    break-inside: avoid;
+  }
+  .karte-warn { border: 2pt solid #b3261e; }
+  .muster, .fund, .strang-zeile { break-inside: avoid; }
+
+  /* Aufklappbares steht offen – js/app.js öffnet es vor dem Drucken, hier
+     wird nur noch der Pfeil ausgeblendet. */
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+
+  .tafel svg { height: 90pt; }
+  .atem-kreis { display: none; }
+
+  /* Ein Fuß, der auf jedem Ausdruck sagt, woher das Blatt kommt. */
+  .view::after {
+    content: "Selbst geführtes Tagebuch (Bauchbuch). Gezählt, nicht gedeutet – keine Diagnose.";
+    display: block;
+    margin-top: 10pt;
+    padding-top: 6pt;
+    border-top: 1px solid #bbb;
+    font-size: 8pt;
+    color: #444;
+  }
 }

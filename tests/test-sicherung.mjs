@@ -147,6 +147,73 @@ check(
   'und die vorhandenen Eintragungen bleiben unangetastet',
 );
 
+/* ---------- Die App fragt von selbst nach einer Sicherung ---------- */
+// Ein Hinweis unter „Mehr" liest niemand – wer macht schon Einstellungen auf,
+// um sich Sorgen zu holen. Die Frage gehört auf den Reiter, den man täglich
+// sieht. Und sie darf nicht zu früh kommen: Nach dem dritten Eintrag zu
+// betteln, treibt Leute aus der App.
+
+const vieleEintraege = [];
+for (let i = 0; i < 10; i++) {
+  vieleEintraege.push({
+    id: `v${i}`, am: vorTagen(i), um: '12:00', art: 'essen',
+    was: 'Essen', portion: 'normal', zutaten: [],
+  });
+}
+await page.evaluate(([k, e]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true, tab: 'heute', eintraege: e, tage: {},
+})), [KEY, vieleEintraege]);
+await page.reload({ waitUntil: 'networkidle' });
+check(
+  await page.locator('.karte-merk').count() === 0,
+  'bei zehn Einträgen und ohne Sicherung wird noch nicht gefragt',
+);
+
+for (let i = 10; i < 20; i++) {
+  vieleEintraege.push({
+    id: `v${i}`, am: vorTagen(i), um: '13:00', art: 'essen',
+    was: 'Essen', portion: 'normal', zutaten: [],
+  });
+}
+await page.evaluate(([k, e]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true, tab: 'heute', eintraege: e, tage: {},
+})), [KEY, vieleEintraege]);
+await page.reload({ waitUntil: 'networkidle' });
+const merk = page.locator('.karte-merk');
+check(await merk.count() === 1, 'bei zwanzig steht die Frage da');
+const merkText = await merk.textContent();
+check(merkText.includes('Zeit für eine Sicherung'), 'mit klarer Ansage');
+check(merkText.includes('noch nie gesichert'), 'und dem Grund');
+check(merkText.includes('einzige Kopie') || merkText.includes('nur in diesem Browser'),
+  'und warum es darauf ankommt');
+
+// „Später" heißt sieben Tage, nicht „nie".
+await page.locator('[data-act="sicherung-spaeter"]').click();
+await page.waitForTimeout(300);
+check(await page.locator('.karte-merk').count() === 0, '„Später" nimmt die Frage weg');
+const verschoben = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).sicherungSpaeter, KEY);
+check(!!verschoben, 'und merkt sich, bis wann');
+const tageHin = Math.round(
+  (new Date(verschoben) - new Date(new Date().toISOString().slice(0, 10))) / 86400000,
+);
+check(tageHin === 7, `nämlich sieben Tage (${tageHin})`);
+await page.reload({ waitUntil: 'networkidle' });
+check(await page.locator('.karte-merk').count() === 0, 'auch nach dem Neuladen bleibt sie weg');
+
+// Nach einer echten Sicherung ist die Frage endgültig erledigt.
+await page.evaluate(([k, e]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true, tab: 'mehr', eintraege: e, tage: {},
+})), [KEY, vieleEintraege]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.locator('[data-act="sicherung-text"]').click();
+await page.waitForTimeout(300);
+await page.locator('[data-act="tab"][data-tab="heute"]').click();
+await page.waitForTimeout(300);
+check(
+  await page.locator('.karte-merk').count() === 0,
+  'nach dem Sichern ist die Frage weg – und zwar ohne Aufschub',
+);
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();
 ende();

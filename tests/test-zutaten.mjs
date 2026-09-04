@@ -23,14 +23,16 @@ const page = await browser.newPage({ viewport: HANDY });
 const fehler = [];
 page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
 
-const essen = (t, zutaten, was) => ({
-  id: `e${t}`, am: vorTagen(t), um: '12:00', art: 'essen', was, portion: 'normal', zutaten,
+const essen = (t, zutaten, was, portion = 'normal') => ({
+  id: `e${t}`, am: vorTagen(t), um: '12:00', art: 'essen', was, portion, zutaten,
 });
 
 const eintraege = [
   essen(5, [{ id: 'milch', rolle: 'haupt' }], 'Haferbrei'),
   essen(4, [{ id: 'milch', rolle: 'haupt' }], 'Haferbrei'),
-  essen(3, [{ id: 'milch', rolle: 'topping' }], 'Haferbrei'),
+  // Das jüngste Haferbrei-Vorkommen ist die Vorlage: Topping statt Hauptzutat,
+  // kleine Portion. Genau das muss der Vorschlag mitbringen.
+  essen(3, [{ id: 'milch', rolle: 'topping' }], 'Haferbrei', 'klein'),
   essen(2, [{ id: 'zwiebel', rolle: 'haupt' }], 'Zwiebelsuppe'),
 ];
 
@@ -57,20 +59,43 @@ check(
   'danach der Katalog in seiner eigenen Reihenfolge – nie benutzt heißt nicht ganz unten',
 );
 
+/* ---------- „Noch mal wie letztes Mal" ---------- */
+
+check(await page.locator('.zutat').count() === 0, 'im frischen Bogen kein Rollenmenü');
+const vorlagen = page.locator('[data-act="vorlage"]');
+check(await vorlagen.count() === 2, `beide früheren Mahlzeiten stehen als Vorlage da (${await vorlagen.count()})`);
 check(
-  await page.locator('[data-act="gericht"]').count() === 1,
-  'was mehr als einmal gegessen wurde, steht als Vorschlag da',
+  (await vorlagen.first().textContent()).includes('Haferbrei'),
+  'die häufigste zuerst',
 );
-await page.locator('[data-act="gericht"]').click();
+check(
+  (await vorlagen.first().textContent()).includes('3×'),
+  'mit der Anzahl, damit man sie wiedererkennt',
+);
+
+await vorlagen.first().click();
+await page.waitForTimeout(250);
+check(await page.locator('#bogenWas').inputValue() === 'Haferbrei', 'der Text ist da');
+// Der eigentliche Punkt: nicht nur der Text, sondern die ganze Mahlzeit.
+check(await page.locator('.zutat').count() === 1, 'und die Zutat gleich mit');
+check(
+  await page.locator('.zutat-rolle').inputValue() === 'topping',
+  'in der Rolle des jüngsten Vorkommens, nicht in der Vorgabe',
+);
+check(
+  await page.locator('[data-act="portion"][data-id="klein"]').getAttribute('aria-pressed') !== null
+    || (await page.locator('.wahl-btn.an').first().textContent()).trim() === 'klein',
+  'und mit der Portion von damals',
+);
+
+// Für den Rest des Tests wieder abwählen – hier geht es gleich um eine
+// einzelne Zutat.
+await page.locator('.marke[data-id="milch"]').click();
 await page.waitForTimeout(200);
-check(
-  await page.locator('#bogenWas').inputValue() === 'Haferbrei',
-  'und füllt das Textfeld mit einem Tippen',
-);
+check(await page.locator('.zutat').count() === 0, 'abwählen nimmt die Zutat wieder heraus');
 
 /* ---------- Die Rolle ---------- */
 
-check(await page.locator('.zutat').count() === 0, 'ohne Zutat kein Rollenmenü');
 await page.locator('.marke[data-id="zwiebel"]').click();
 await page.waitForTimeout(200);
 check(await page.locator('.zutat').count() === 1, 'die gewählte Zutat bekommt eine Zeile');
@@ -90,6 +115,8 @@ check(
 );
 
 await page.locator('.zutat-rolle').selectOption('wuerze');
+await page.waitForTimeout(150);
+await page.locator('[data-act="portion"][data-id="normal"]').click();
 await page.waitForTimeout(150);
 await page.locator('#bogenWas').fill('Bratkartoffeln');
 await page.locator('[data-act="bogen-speichern"]').click();

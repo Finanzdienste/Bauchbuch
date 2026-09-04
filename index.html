@@ -4,10 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#141013">
-<meta name="description" content="Ernährungs- und Beschwerdetagebuch für den Magen. Alles bleibt auf dem Gerät.">
+<meta name="description" content="Tagebuch für Magen und Verdauung: Essen, Beschwerden, Zyklus, Stimmung. Alles bleibt auf dem Gerät.">
 <!-- Kein Robots-Eintrag nötig: Die Seite enthält keine Daten. Die stehen im
      Browser dessen, der sie benutzt, und kommen dort nie heraus. -->
 <title>Bauchbuch</title>
+<!-- Ohne diese drei behandelt iOS die Seite auch dann als Lesezeichen, wenn
+     sie auf dem Startbildschirm liegt: mit Adressleiste und Browserleiste.
+     Safari liest das Manifest dafür nicht. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bauchbuch">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">

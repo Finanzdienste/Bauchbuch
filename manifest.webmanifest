@@ -1,5 +1,5 @@
 {
-  "name": "Bauchbuch – Magentagebuch",
+  "name": "Bauchbuch – Gesundheitstagebuch",
   "short_name": "Bauchbuch",
   "id": "/Bauchbuch/",
   "start_url": ".",
@@ -7,11 +7,80 @@
   "background_color": "#141013",
   "theme_color": "#141013",
   "lang": "de",
-  "description": "Ernährungs- und Beschwerdetagebuch für den Magen. Alles bleibt auf dem Gerät.",
+  "description": "Tagebuch für Magen und Verdauung: Essen, Beschwerden, Zyklus, Stimmung. Alles bleibt auf dem Gerät.",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "scope": ".",
+  "orientation": "portrait",
+  "categories": [
+    "health",
+    "lifestyle",
+    "medical"
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "shortcuts": [
+    {
+      "name": "Mahlzeit eintragen",
+      "short_name": "Mahlzeit",
+      "url": "./?neu=essen",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Beschwerden eintragen",
+      "short_name": "Beschwerden",
+      "url": "./?neu=beschwerde",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Atemübung",
+      "short_name": "Atmen",
+      "url": "./?tab=ruhe",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

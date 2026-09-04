@@ -23,7 +23,7 @@ import {
 } from './daten.js';
 import {
   ausloeserBilanz, einstufung, EINSTUFUNG_WORT, faktorBilanz, gesamtZahlen,
-  haeufigeGerichte, haeufigeZutaten, nachArt, nachTageszeit, rollenBilanz,
+  haeufigeMahlzeiten, haeufigeZutaten, nachArt, nachTageszeit, rollenBilanz,
   serieOhne, stundenSeitEssen, tagesWert, verlaufReihe, zutatenVon,
 } from './auswertung.js';
 import { vergleichBalken, verlaufTafel } from './chart.js';
@@ -79,6 +79,57 @@ const ui = {
   // Speicher – eine Übung, die beim nächsten Öffnen weiterliefe, wäre keine.
   atem: null,
 };
+
+/*
+ * Auf den Startbildschirm – als App, nicht als Lesezeichen.
+ *
+ * Android meldet über 'beforeinstallprompt', dass die Seite installierbar ist,
+ * und lässt den Dialog *einmal* über dieses Ereignis auslösen. Ohne das liegt
+ * die Installation im Browsermenü unter einem Punkt, den niemand sucht – und
+ * eine App, die man nicht findet, wird nicht benutzt.
+ *
+ * Safari kennt das Ereignis nicht; dort geht es nur von Hand über „Teilen".
+ * Deshalb steht dort ein Satz statt eines Knopfes.
+ */
+let installEreignis = null;
+
+function laeuftAlsApp() {
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+  } catch {
+    return false;
+  }
+}
+
+const istApfel = () => /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+
+function installKarte() {
+  if (laeuftAlsApp()) {
+    return `<div class="karte">
+      <h3>Läuft als App</h3>
+      <p class="klein">Du hast Bauchbuch auf dem Startbildschirm. Es öffnet
+      sich ohne Browserleiste und läuft ohne Netz.</p>
+    </div>`;
+  }
+  if (installEreignis) {
+    return `<div class="karte karte-merk">
+      <h3>Auf den Startbildschirm</h3>
+      <p class="klein">Dann liegt Bauchbuch als eigenes Symbol zwischen deinen
+      Apps, öffnet sich ohne Browserleiste und startet auch ohne Netz.</p>
+      ${knopf('installieren', 'Installieren', 'btn-primary btn-block')}
+    </div>`;
+  }
+  return `<div class="karte">
+    <h3>Auf den Startbildschirm</h3>
+    <p class="klein">${istApfel()
+    ? 'Unten auf <b>Teilen</b> tippen, dann <b>Zum Home-Bildschirm</b>. '
+      + 'Danach liegt Bauchbuch als eigenes Symbol zwischen deinen Apps.'
+    : 'Im Browsermenü (die drei Punkte) auf <b>App installieren</b> oder '
+      + '<b>Zum Startbildschirm hinzufügen</b>. Danach liegt Bauchbuch als '
+      + 'eigenes Symbol zwischen deinen Apps.'}</p>
+  </div>`;
+}
 
 let toastUhr = null;
 function melden(text) {
@@ -217,8 +268,39 @@ function tagAnsicht(s) {
     ${stand.laenge ? ` · deine Zyklen dauern im Mittel ${stand.laenge} Tage` : ''}
   </p>` : '';
 
-  return kopf + bilanz + zyklusZeile + (iso === heuteISO() ? ratKarte(s) : '')
-    + anlegen + zeilen + umstaende;
+  return kopf + sicherungKarte(iso) + bilanz + zyklusZeile
+    + (iso === heuteISO() ? ratKarte(s) : '') + anlegen + zeilen + umstaende;
+}
+
+/**
+ * Die Erinnerung an die Sicherung – dort, wo sie jemand sieht.
+ *
+ * Unter „Mehr" steht seit jeher, wann zuletzt gesichert wurde. Nur macht
+ * niemand „Mehr" auf, um sich Sorgen zu holen. Diese Karte steht auf dem
+ * Reiter, den man täglich sieht, und sie geht mit einem Tipp wieder weg –
+ * für sieben Tage, nicht für immer. Es ist die einzige Kopie, die es von
+ * diesem Tagebuch je geben wird.
+ */
+function sicherungKarte(iso) {
+  if (iso !== heuteISO()) return '';
+  const f = store.sicherungFaellig();
+  if (!f) return '';
+  const satz = {
+    nie: `Du hast ${mehrzahl(f.neue, 'Eintrag', 'Einträge')} und noch nie gesichert.`,
+    anzahl: `Seit der letzten Sicherung sind ${mehrzahl(f.neue, 'Eintrag', 'Einträge')} dazugekommen.`,
+    zeit: `Die letzte Sicherung ist ${mehrzahl(f.seit, 'Tag', 'Tage')} her, seitdem `
+      + `${mehrzahl(f.neue, 'neuer Eintrag', 'neue Einträge')}.`,
+  }[f.grund];
+  return `<div class="karte karte-merk">
+    <h3>Zeit für eine Sicherung</h3>
+    <p class="klein">${satz} Alles liegt nur in diesem Browser – wird sein
+    Speicher gelöscht, ist das Tagebuch weg. Dauert zehn Sekunden.</p>
+    <div class="reihe">
+      ${knopf('export', 'Als Datei', 'btn-primary')}
+      ${knopf('sicherung-text', 'Als Text')}
+      ${knopf('sicherung-spaeter', 'Später', 'btn-ghost')}
+    </div>
+  </div>`;
 }
 
 /**
@@ -706,6 +788,8 @@ function mehrAnsicht(s) {
   </div>` : '';
 
   return `
+  ${installKarte()}
+
   <div class="karte">
     <h3>Sicherung</h3>
     <p class="klein">Alles steht ausschließlich in diesem Browser. Wird der
@@ -737,7 +821,11 @@ function mehrAnsicht(s) {
     <div class="reihe">
       ${knopf('bericht', 'Letzte 30 Tage', 'btn-primary', 'data-n="30"')}
       ${knopf('bericht', '90 Tage', '', 'data-n="90"')}
+      ${knopf('drucken', 'Drucken')}
     </div>
+    <p class="klein">„Drucken" nimmt den Reiter <b>Muster</b> mit aufs Papier –
+    also die Einordnung, die Warnzeichen und den Verlauf als Bild. Das sagt in
+    der Sprechstunde mehr als eine Textspalte.</p>
   </div>
   ${bericht}
 
@@ -899,7 +987,7 @@ function bogenHTML(s) {
       .map((x) => x.m);
 
     const gewaehlt = (e.zutaten || []).map((z) => z.id);
-    const gerichte = haeufigeGerichte(s.eintraege, 6);
+    const vorlagen = haeufigeMahlzeiten(s.eintraege, 6);
 
     const zutatZeile = (z) => `<div class="zutat">
       <span class="zutat-name">${esc(ausloeserName(z.id, s.eigeneAusloeser))}</span>
@@ -913,9 +1001,11 @@ function bogenHTML(s) {
       <label class="feld-name" for="bogenWas">Was?</label>
       <input type="text" class="feld feld-breit" id="bogenWas" data-act="was"
              value="${esc(e.was || '')}" placeholder="Haferbrei mit Banane" autocomplete="off">
-      ${gerichte.length ? `<div class="marken marken-eng">${gerichte.map((g) => `
-        <button type="button" class="marke" data-act="gericht" data-text="${esc(g.text)}">
-          ${esc(kuerze(g.text, 28))}</button>`).join('')}</div>` : ''}
+      ${vorlagen.length ? `<p class="feld-name">Noch mal wie letztes Mal</p>
+      <div class="marken marken-eng">${vorlagen.map((g, i) => `
+        <button type="button" class="marke" data-act="vorlage" data-i="${i}">
+          ${esc(kuerze(g.text, 24))}${g.anzahl > 1 ? ` <span class="marke-zahl">${g.anzahl}×</span>` : ''}
+        </button>`).join('')}</div>` : ''}
 
       <p class="feld-name">Portion</p>
       <div class="wahl">${PORTIONEN.map((p) => `
@@ -1202,7 +1292,18 @@ const AKTION = {
         : [...liste, { id, rolle: ROLLE_VORGABE }],
     });
   },
-  gericht: (el) => entwurf({ was: el.dataset.text }),
+  /*
+   * Eine frühere Mahlzeit vollständig übernehmen – Text, Zutaten samt Rollen,
+   * Portion. Die Liste wird hier neu gerechnet statt beim Zeichnen gemerkt:
+   * gleiche Eingabe, gleiche Reihenfolge, und das Zeichnen bleibt frei von
+   * Nebenwirkungen.
+   */
+  vorlage: (el) => {
+    const liste = haeufigeMahlzeiten(store.zustandLesen().eintraege, 6);
+    const v = liste[Number(el.dataset.i)];
+    if (!v) return;
+    entwurf({ was: v.text, zutaten: v.zutaten.map((z) => ({ ...z })), portion: v.portion });
+  },
   beschwerdeart: (el) => umschalten('arten', el.dataset.id),
   warnzeichen: (el) => umschalten('warnzeichen', el.dataset.id),
   'mittel-vorschlag': (el) => entwurf({ mittel: el.dataset.id }),
@@ -1261,6 +1362,15 @@ const AKTION = {
   },
   'ausloeser-weg': (el) => { store.ausloeserLoeschen(el.dataset.id); zeichne(); },
 
+  installieren: async () => {
+    if (!installEreignis) return;
+    installEreignis.prompt();
+    try { await installEreignis.userChoice; } catch { /* abgebrochen */ }
+    // Das Ereignis lässt sich nur einmal auslösen; danach ist es verbraucht.
+    installEreignis = null;
+    zeichne();
+  },
+
   mittel: () => { ui.mittel = !ui.mittel; zeichne(); },
 
   'idee-neu': () => {
@@ -1297,6 +1407,11 @@ const AKTION = {
     zeichne();
   },
   import: sicherungLaden,
+  'sicherung-spaeter': () => {
+    store.sicherungVerschieben();
+    melden('In einer Woche frage ich wieder.');
+    zeichne();
+  },
   'sicherung-text': () => {
     ui.sicherung = store.alsJSON();
     store.sicherungNotiert();
@@ -1312,6 +1427,13 @@ const AKTION = {
     zeichne();
   },
   'bericht-zu': () => { ui.bericht = null; zeichne(); },
+  drucken: () => {
+    store.einstellen('tab', 'muster');
+    zeichne();
+    // Erst zeichnen lassen, dann drucken – window.print() hält das Programm
+    // an, und ein noch nicht gezeichneter Reiter käme leer aufs Papier.
+    setTimeout(() => window.print(), 120);
+  },
   'bericht-kopieren': () => kopiere(ui.bericht, '.bericht'),
   'bericht-laden': () => {
     const bis = heuteISO();
@@ -1392,6 +1514,47 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') store.sofortSchreiben();
 });
 window.addEventListener('pagehide', () => store.sofortSchreiben());
+
+window.addEventListener('beforeinstallprompt', (ev) => {
+  // Ohne preventDefault zeigt der Browser seinen eigenen Streifen und das
+  // Ereignis ist verbraucht, bevor der Knopf in der App überhaupt dasteht.
+  ev.preventDefault();
+  installEreignis = ev;
+  zeichne();
+});
+window.addEventListener('appinstalled', () => { installEreignis = null; zeichne(); });
+
+/*
+ * Vor dem Drucken alle aufklappbaren Abschnitte öffnen.
+ *
+ * Was zugeklappt ist, druckt der Browser nicht mit – und ausgerechnet die
+ * Mittelübersicht und die Warnzeichen stehen in solchen Abschnitten. Auf dem
+ * Papier wären sie dann weg, ohne dass es jemand merkt.
+ */
+window.addEventListener('beforeprint', () => {
+  document.querySelectorAll('details').forEach((d) => { d.open = true; });
+});
+
+/*
+ * Startparameter – dahin zeigen die Verknüpfungen des Startbildschirms.
+ *
+ * Wer das Symbol lange gedrückt hält, bekommt „Mahlzeit eintragen" und
+ * „Beschwerden eintragen" (siehe shortcuts in manifest.webmanifest) und landet
+ * mit einem Tipp im offenen Bogen statt auf der Startseite.
+ */
+try {
+  const start = new URLSearchParams(location.search);
+  const wohin = start.get('tab');
+  const neuArt = start.get('neu');
+  if (wohin && REITER.some((r) => r.id === wohin)) store.einstellen('tab', wohin);
+  if (neuArt && ART_NAME[neuArt]) {
+    store.einstellen('tab', 'heute');
+    bogenOeffnen(neuArt);
+  }
+  // Die Adresse wieder sauber machen: Ein Neuladen soll nicht denselben Bogen
+  // ein zweites Mal aufreißen.
+  if (wohin || neuArt) window.history.replaceState(null, '', location.pathname);
+} catch { /* file:// erlaubt kein replaceState – dann eben nicht */ }
 
 // Auch Änderungen, die keine Aktion ausgelöst hat, müssen ankommen – allen
 // voran der Wechsel auf „kann nicht mehr speichern", den der Schreibvorgang
