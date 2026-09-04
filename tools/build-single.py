@@ -31,8 +31,9 @@ OUT = ROOT / 'dist' / 'bauchbuch.html'
 # zuerst: Im Buendel gibt es keine Importe, die eine Reihenfolge erzwingen.
 MODULES = ['js/datum.js', 'js/text.js', 'js/daten.js', 'js/mittel.js',
            'js/klang.js', 'js/atem.js', 'js/zyklus.js', 'js/chart.js',
-           'js/store.js', 'js/auswertung.js', 'js/bild.js', 'js/rat.js',
-           'js/bericht.js', 'js/app.js']
+           'js/store.js', 'js/auswertung.js', 'js/stuhl.js', 'js/kriterien.js',
+           'js/versuch.js', 'js/ansprechen.js', 'js/luecken.js', 'js/bild.js',
+           'js/rat.js', 'js/bericht.js', 'js/app.js']
 
 IMPORT_RE = re.compile(r'^\s*import\s.+?;\s*$', re.MULTILINE | re.DOTALL)
 IMPORT_BLOCK_RE = re.compile(r'^\s*import\s+\{[^}]*\}\s+from\s+\'[^\']+\';\s*$',

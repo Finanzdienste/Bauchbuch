@@ -16,20 +16,27 @@ Das ist keine Absichtserklärung, sondern eine geprüfte Eigenschaft – siehe
 
 ## Was die App kann
 
-**Tag.** Vier Knöpfe: Mahlzeit, Beschwerden, Medikament, Notiz. Eine Mahlzeit
-bekommt einen freien Text, eine Portionsgröße und angekreuzte Merkmale aus
-einer kurzen Liste (Kaffee, Fettiges, Scharfes, Zwiebeln, Kohlensäure …).
-Beschwerden bekommen eine Stärke von 0 bis 10, eine oder mehrere Arten und
-eine Notiz. Dazu für den ganzen Tag: Anspannung und Schlaf.
+**Tag.** Fünf Knöpfe: Mahlzeit, Beschwerden, Stuhlgang, Medikament, Notiz.
+Eine Mahlzeit bekommt einen freien Text, eine Portionsgröße und angekreuzte
+Merkmale aus einer kurzen Liste (Kaffee, Fettiges, Scharfes, Zwiebeln,
+Kohlensäure …). Beschwerden bekommen eine Stärke von 0 bis 10, eine oder
+mehrere Arten, die Frage nach dem Stuhlgang („danach besser, schlechter,
+unverändert?") und eine Notiz. Der Stuhlgang wird über die
+**Bristol-Skala** eingetragen – sieben Stufen mit Bild, von harten Klümpchen
+bis flüssig. Dazu für den ganzen Tag: Anspannung, Schlaf, Zyklus, und ob die
+Beschwerden nachts geweckt haben.
 
 **Verlauf.** Ein Balken je Tag über 14, 30 oder 90 Tage, ein Monatskalender
 und vier Zahlen: notierte Tage, Anteil mit Beschwerden, mittlere Stärke,
 beschwerdefreie Tage in Folge.
 
-**Muster.** Die eigentliche Auskunft. Ganz oben Warnzeichen, darunter die
-Einordnung des Bildes (siehe unten), dann: Geht es nach Mahlzeiten mit einem
-bestimmten Merkmal schlechter als nach den übrigen? Dazu Tageszeit, Art der
-Beschwerden und die Auswertung nach Zyklusphase.
+**Muster.** Die eigentliche Auskunft, in dieser Reihenfolge – und die
+Reihenfolge ist eine Aussage: Warnzeichen, die Einordnung des Bildes, die
+**Kriterien** (Rom IV und GerdQ, siehe unten), der **Auslassversuch**, die
+Bilanz **nach Wirkweise**, dann die nach einzelnen Zutaten, das **Ansprechen
+auf die Mittel**, Tageszeit, Beschwerdeart, Stuhlgang, **was noch fehlt** und
+die Zyklusphase. Wer nur die ersten beiden Karten liest, hat trotzdem das
+Wichtigste.
 
 **Ruhe.** Vier Atemübungen – 4–7–8, Quadrat, Gleichmaß, Bauchatmung – mit Ton,
 damit man die Augen zumachen kann. Der Ton entsteht im Browser aus einem
@@ -52,8 +59,9 @@ Einfügen in eine Nachricht. Ideen stehen neben den Eintragungen, nicht in
 ihnen, und tauchen in keiner Auswertung auf.
 
 **Mehr.** Sicherung als JSON-Datei und zurück, der Bericht für den Arzttermin,
-die Übersicht „Was die Mittel bewirken", die Einstellungen der Auswertung,
-welche Tagesfragen erscheinen sollen, eigene Auslöser, Ton, vier Farbvarianten.
+die Übersicht „Was die Mittel bewirken", seit wann die Beschwerden bestehen,
+die Einstellungen der Auswertung, welche Tagesfragen erscheinen sollen, eigene
+Auslöser, Ton, vier Farbvarianten.
 
 ### Vorschläge für heute
 
@@ -90,7 +98,8 @@ Was `js/bild.js` stattdessen liefert:
 
 1. **Warnzeichen.** Blut erbrochen, schwarzer Stuhl, Schluckstörung,
    ungewollter Gewichtsverlust, nächtliches Aufwachen, Schmerz mit Ausstrahlung
-   in Arm oder Kiefer. Sie werden im Beschwerdebogen angekreuzt, tauchen in
+   in Arm oder Kiefer. Sie werden im Beschwerde- *und* im Stuhlbogen
+   angekreuzt – die zwei wichtigsten stehen dort, nicht hier –, tauchen in
    keiner Statistik auf und stehen im Reiter „Muster" wie im Bericht ganz oben,
    mit `sofort` oder `zeitnah`. Ohne Schwelle: Ein einziges Mal ist ein
    einziges Mal zu viel.
@@ -103,6 +112,117 @@ Was `js/bild.js` stattdessen liefert:
    Untersuchung welche Frage beantwortet – die nützlichste Zeile des
    Programms.
 4. **Fertige Fragen für den Termin.**
+
+#### Die Kriterien: Rom IV und GerdQ
+
+`js/kriterien.js` geht einen Schritt weiter als eine Beschreibung und rechnet
+die Regelwerke nach, mit denen in der Sprechstunde tatsächlich eingeordnet
+wird. Sie bestehen aus nichts als Beschwerden und Zeiträumen – also genau aus
+dem, was in einem Tagebuch steht.
+
+* **Rom IV, Reizdarmsyndrom.** Bauchschmerz im Mittel mindestens einmal pro
+  Woche, verbunden mit mindestens zwei von drei Merkmalen: Zusammenhang mit dem
+  Stuhlgang, Änderung der Häufigkeit, Änderung der Form. Dazu der Typ –
+  Verstopfung, Durchfall, gemischt – aus der Verteilung der Bristol-Stufen.
+* **Rom IV, funktionelle Dyspepsie**, getrennt nach ihren beiden Formen: PDS
+  (Völlegefühl und frühes Sattsein, mindestens drei Tage die Woche) und EPS
+  (Schmerz oder Brennen im Oberbauch, mindestens einen Tag die Woche). Sie
+  werden verschieden behandelt.
+* **GerdQ.** Sechs Fragen zu den letzten sieben Tagen, 0 bis 18 Punkte, ab 8
+  gilt eine Refluxkrankheit als wahrscheinlich. Zwei der sechs zählen
+  *umgekehrt*: Oberbauchschmerz und Übelkeit sprechen eher gegen Reflux. Das
+  ist kein Fehler, das ist der Trick des Fragebogens – er misst nicht, wie
+  schlecht es jemandem geht, sondern wie typisch das Muster ist.
+
+Drei Dinge stehen dabei, jedes Mal:
+
+1. **Erfüllte Kriterien sind keine Diagnose.** Beide Regelwerke setzen
+   ausdrücklich voraus, dass nichts Organisches dahintersteckt – und das weiß
+   nur eine Untersuchung. „Erfüllt" heißt: Wenn Spiegelung und Blutbild
+   unauffällig sind, passt dieser Name. Weniger als eine Diagnose, mehr als ein
+   Gefühl – und genau der Satz, mit dem sich ein Termin anfangen lässt.
+2. **Ein Tagebuch untererfasst.** Der GerdQ wird sonst gefragt, hier wird
+   gezählt; wer einen Tag nicht einträgt, hat laut Tagebuch nichts gehabt. Jede
+   Punktzahl ist eher zu niedrig als zu hoch – sie ist eine Untergrenze.
+3. **Was nicht prüfbar ist, wird nicht behauptet.** Reicht der Zeitraum nicht
+   oder fehlen die Vergleichstage, steht „noch nicht prüfbar" da und daneben,
+   was fehlt. Auch im Bericht: Ein Regelwerk stillschweigend wegzulassen sieht
+   auf Papier aus wie „trifft nicht zu", und das ist etwas anderes.
+
+Die eine Angabe, die aus dem Tagebuch grundsätzlich nicht hervorgeht, wird
+gefragt: **seit wann** die Beschwerden bestehen. Ein Tagebuch beginnt an dem
+Tag, an dem jemand anfängt zu schreiben, und das ist fast nie der Tag, an dem
+es angefangen hat.
+
+#### Der Auslassversuch
+
+Alles andere in dieser App zählt, was ohnehin passiert. Das hat eine harte
+Grenze: Wer an schlechten Tagen anders isst, findet sein Essen auffällig, ohne
+dass es damit zu tun hätte. Aus Beobachtung wird kein Beweis, egal wie lange
+man beobachtet.
+
+`js/versuch.js` dreht das um. Man lässt etwas weg – und isst es danach
+**bewusst wieder**. Erst diese zweite Hälfte entscheidet: Nach zwei Wochen ohne
+irgendwas geht es fast jedem besser, weil der Sommer kommt oder der Stress
+nachlässt. Kommen die Beschwerden mit der Wiedereinführung zurück, ist das
+schwer anders zu erklären.
+
+Vorgeschlagen wird, was in der Bilanz auffällt, **Klassen vor einzelnen
+Zutaten**: Hinter „Zwiebel" steckt fast immer die ganze Klasse, und wer nur die
+Zwiebel weglässt, isst die übrigen Fruktane weiter und lernt nichts. Der Stand
+steht täglich auf dem Tagesreiter, samt dem Knopf für die Wiedereinführung –
+hier versandet so ein Versuch sonst.
+
+Das Ergebnis nennt drei Zahlen (davor, ohne, danach) und ist zurückhaltend:
+
+* Nur besser, aber nicht zurückgekommen → **unklar**, mit den möglichen
+  Erklärungen, statt eine davon zu wählen.
+* Steht das Weggelassene in der Auslasszeit doch im Tagebuch → **nicht
+  auswertbar**. Ohne Vorwurf, aber auch ohne günstiges Ergebnis.
+* Unter fünf notierten Tagen je Seite → **zu wenige Tage**.
+
+Dabei steht jedes Mal der Vorbehalt: ein einziger Mensch, keine Verblindung,
+keine Kontrolle. Wer weiß, dass er heute die Milch weglässt, erwartet auch,
+dass es besser wird. Der stärkste Hinweis, den ein Tagebuch hergibt – und kein
+Nachweis.
+
+#### Ob die Mittel etwas bewirken
+
+Sie trägt ein, was sie nimmt, und niemand rechnet nach. `js/ansprechen.js`
+vergleicht die Beschwerdestärke unter einem Mittel gegen einen gleich langen
+Zeitraum davor.
+
+Der interessante Fall ist nicht die Besserung, sondern ihr Ausbleiben: Ein
+Säureblocker, der nach vier bis acht Wochen nichts geändert hat, spricht gegen
+die Säure als Ursache – und damit für eine funktionelle Störung oder für etwas,
+das noch nicht gefunden wurde. Das ist eine der wenigen Stellen, an denen ein
+Tagebuch eine Untersuchung ersetzt.
+
+Was hier trotzdem nicht passiert: kein „nimm mehr", kein „setz es ab", kein
+„wechsle das Präparat". Ein Säureblocker wird nach längerer Einnahme nicht von
+einem Tag auf den anderen weggelassen – der Magen antwortet dann mit mehr Säure
+als vorher. Und eine Besserung wird nicht als Beweis verkauft: Man fängt ein
+Mittel meistens an, *weil* es gerade besonders schlecht ist.
+
+#### Was noch fehlt
+
+`js/luecken.js` sagt, was die App **nicht** sieht – bei einem Tagebuch die
+nützlichere Hälfte. Zwei Sorten, streng getrennt, weil sie verschiedene
+Schlüsse verlangen:
+
+1. **Lücken im Tagebuch.** Offen, weil etwas nicht eingetragen wurde: kein
+   Stuhlgang, kein „seit wann", zu wenige notierte Tage, eine abgeschaltete
+   Tagesfrage, Mahlzeiten ohne angekreuzte Zutat. Mit der Angabe, wie viel noch
+   fehlt, das Gewichtigste zuerst. Was erledigt ist, verschwindet.
+2. **Lücken, die keine App schließt.** Zehn Möglichkeiten – Helicobacter,
+   Geschwür, Reflux, funktionelle Dyspepsie, Reizdarm, Laktose/Fruktose,
+   Zöliakie, Gallensteine, Schmerzmittelschaden, Blutarmut –, je mit dem, was
+   im Tagebuch dafür spricht, was dagegen, was offen bleibt, der Untersuchung,
+   die es entscheidet, und einem **fertigen Satz zum Vorlesen**.
+
+Keine Reihenfolge nach Wahrscheinlichkeit. Oben steht, wozu das Tagebuch am
+meisten zu sagen hat, nicht, was am ehesten zutrifft – ein Unterschied, dessen
+Verwischung Leute in die falsche Sprechstunde schickt.
 
 Der Zyklus wird aus den eingetragenen Blutungstagen gerechnet, nicht
 vorhergesagt. Ohne abgeschlossenen Zyklus gibt es keine mittlere Länge und
@@ -149,6 +269,33 @@ Drei Regeln halten das davon ab, Kaffeesatzleserei zu werden:
 Was dabei herauskommt, ist eine Häufigkeit. Wer an einem ohnehin schlechten Tag
 anders isst, findet sich hier wieder, ohne dass das Essen schuld wäre. Die App
 stellt keine Diagnose und ersetzt keine ärztliche Beratung.
+
+### Nach Wirkweise statt nach Zutat
+
+„Zwiebel" ist als Antwort schwach – nicht weil sie falsch wäre, sondern weil
+sie zu selten vorkommt. Zwölf Mahlzeiten mit Zwiebel im ganzen Tagebuch ergeben
+eine wackelige Zahl, und die nächste Frage („und Knoblauch? und Weizen?") fängt
+wieder bei null an.
+
+Jede Zutat trägt deshalb ihre **Klassen** – FODMAP, Laktose, Fett, Säure,
+Schließmuskel, Koffein, Histamin, Gluten, Schärfe, Gas –, und `klassenBilanz()`
+rechnet dieselbe Bilanz eine Ebene höher. Über alle FODMAP-reichen Mahlzeiten
+kommen statt zwölf Fällen achtzig zusammen: der Unterschied zwischen einer
+Ahnung und einer Zahl. Und es ist die brauchbarere Auskunft, weil sie auch für
+das Lebensmittel gilt, das noch gar nicht im Tagebuch steht.
+
+Weil eine Klasse in mehr Mahlzeiten steckt und oft in kleinen Mengen, sind ihre
+Schwellen andere: acht Fälle je Seite statt fünf, und ab einem halben Punkt
+Unterschied „möglicherweise" statt ab einem. Ein halber Punkt über achtzig
+Mahlzeiten ist ein stabileres Ergebnis als zwei Punkte über zwölf.
+
+Zwei Ehrlichkeiten gehören dazu, und sie stehen in der App: Die Zuordnung ist
+**grob** – ein Apfel ist FODMAP-reich, eine Banane kaum, und beide wären hier
+Obst. Und eine Klasse allein ist eine Sackgasse, denn weglassen kann man keine
+Klasse, sondern nur Zutaten; deshalb steht unter jeder, welche eigenen Zutaten
+sie in *diesem* Tagebuch trägt, mit ihrer Häufigkeit. Eigene Auslöser bekommen
+keine Klasse: Was in „Fenchelknolle" steckt, weiß die App nicht, und es zu
+raten wäre schlimmer als es wegzulassen.
 
 Eine Unterscheidung trägt das Ganze: **Ein Tag ohne Beschwerden ist etwas
 anderes als ein Tag ohne Eintragung.** Beide sind „null", und sie sind das
@@ -269,6 +416,11 @@ js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten
 js/klang.js         Töne aus einem Oszillator, keine Dateien
 js/atem.js          die Atemübungen – Daten, nicht der Ablauf
 js/zyklus.js        Zyklen und Phasen aus Blutungstagen
+js/stuhl.js         Bristol-Form, Anteile, Reizdarm-Typ
+js/kriterien.js     Rom IV und GerdQ, nachgerechnet
+js/versuch.js       der Auslassversuch mit Wiedereinführung
+js/ansprechen.js    ob ein Mittel etwas bewirkt – und was Ausbleiben heißt
+js/luecken.js       was noch fehlt und was keine App beantwortet
 js/bild.js          Warnzeichen, Muster, Differentialdiagnosen, Fragen
 js/rat.js           Vorschläge für heute, jeder mit seinem Grund
 js/bericht.js       der Zettel für den Arzttermin, als reiner Text
@@ -285,7 +437,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Siebzehn Dateien, über 360 Prüfungen, alle in einem echten Chromium. Kein
+Dreiundzwanzig Dateien, über 470 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -307,6 +459,12 @@ den Rückgabewert.
 | `test-rat.mjs` | jeder Vorschlag mit Grund, und keine Medikamentenempfehlung |
 | `test-atem.mjs` | Phasenlängen, Ablauf, Abbruch beim Reiterwechsel, stummer Betrieb |
 | `test-app.mjs` | Installieren, Verknüpfungen des Symbols, Druckansicht |
+| `test-stuhl.mjs` | Bristol eintragen, die Anteile, und das Warnzeichen aus dem Stuhlbogen |
+| `test-kriterien.mjs` | Rom IV und GerdQ in beide Richtungen – erfüllt *und* nicht erfüllt |
+| `test-klassen.mjs` | die Klasse trägt, wo die Zutat noch zählt – und schweigt ohne Vergleichsgruppe |
+| `test-versuch.mjs` | vor allem, wann *nicht* „spricht dafür" herauskommt |
+| `test-ansprechen.mjs` | der ausgereizte Säureblocker, und kein Rat zum Absetzen |
+| `test-luecken.mjs` | die zwei Sorten Lücken bleiben getrennt |
 | `test-still.mjs` | die App schickt nichts |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,

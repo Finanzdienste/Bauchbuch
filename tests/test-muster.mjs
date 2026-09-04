@@ -34,8 +34,8 @@ await page.goto(URL, { waitUntil: 'networkidle' });
 await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, stand]);
 await page.reload({ waitUntil: 'networkidle' });
 
-check(await page.locator('.funde .fund').count() > 0, 'es gibt Funde');
-const erster = page.locator('.funde .fund').first();
+check(await page.locator('.funde-zutaten .fund').count() > 0, 'es gibt Funde');
+const erster = page.locator('.funde-zutaten .fund').first();
 check((await erster.textContent()).includes('Kaffee'), 'der Kaffee steht oben');
 check(
   (await erster.getAttribute('class')).includes('f-auffaellig'),
@@ -55,7 +55,7 @@ check(
 const sonst = Number((await erster.locator('.vgl-zeile b').nth(1).textContent()).trim().replace(',', '.'));
 check(sonst > 0 && sonst < 1, `die übrigen Mahlzeiten liegen bei ${sonst} – deutlich darunter`);
 
-const alleFunde = await page.locator('.funde .fund').allTextContents();
+const alleFunde = await page.locator('.funde-zutaten .fund').allTextContents();
 const milchZeile = alleFunde.find((t) => t.includes('Milchprodukte'));
 check(!!milchZeile, 'die Milch steht ebenfalls in der Liste');
 check(
@@ -102,7 +102,7 @@ check(
   'das Fenster steht in der Erklärung und lässt sich umstellen',
 );
 check(
-  (await page.locator('.funde .fund').first().textContent()).includes('Kaffee'),
+  (await page.locator('.funde-zutaten .fund').first().textContent()).includes('Kaffee'),
   'bei zwei Stunden bleibt der Zusammenhang bestehen – 90 Minuten passen hinein',
 );
 
@@ -110,7 +110,7 @@ check(
 
 await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'muster' })), KEY);
 await page.reload({ waitUntil: 'networkidle' });
-check(await page.locator('.funde').count() === 0, 'ohne Eintragungen gibt es keine Funde');
+check(await page.locator('.funde-zutaten').count() === 0, 'ohne Eintragungen gibt es keine Funde');
 check(
   (await page.locator('#view').textContent()).includes('Noch keine Mahlzeit'),
   'sondern einen Satz, der das erklärt',

@@ -198,7 +198,7 @@ await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)),
   [KEY, { eintraege: viele, tage: {}, fenster: 4, mindestFaelle: 5, begruesst: true, tab: 'muster' }]);
 await page.reload({ waitUntil: 'networkidle' });
 
-const fund = page.locator('.funde .fund').first();
+const fund = page.locator('.funde-zutaten .fund').first();
 check((await fund.textContent()).includes('Zwiebel'), 'die Zwiebel ist auffällig');
 const aufschluesselung = await fund.locator('.rollen li').allTextContents();
 check(aufschluesselung.length === 2, `beide Rollen aufgeschlüsselt (${aufschluesselung.length})`);

@@ -20,13 +20,14 @@ const VORGABE = {
   // Alle Eintragungen in einer Liste, nach Zeitpunkt sortiert gehalten.
   // Ein Eintrag ist immer { id, am, um, art } plus die Felder seiner Art:
   //   essen       { was, zutaten: [{ id, rolle }], portion: 'klein'|'normal'|'gross' }
-  //   beschwerde  { staerke: 0..10, arten: [beschwerdeId], notiz }
+  //   beschwerde  { staerke: 0..10, arten: [beschwerdeId], notiz, stuhlbezug }
+  //   stuhl       { form: 1..7, dringend, unvollstaendig, warnzeichen: [id] }
   //   medikament  { mittel, dosis }
   //   notiz       { text }
   eintraege: [],
   // Was für einen ganzen Tag gilt, nicht für einen Zeitpunkt. Welche Angaben
   // es gibt, steht in TAGESFRAGEN (js/daten.js):
-  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, blutung, sex, notiz } }
+  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, blutung, sex, nachtwach, notiz } }
   tage: {},
   // In wie vielen Stunden nach einer Mahlzeit eine Beschwerde ihr noch
   // zugerechnet wird. Vier Stunden sind der Vorschlag, nicht das Gesetz –
@@ -44,7 +45,26 @@ const VORGABE = {
   zuletztMittel: [],     // zuletzt eingetragene Medikamente, als Vorschlag
   // Welche Tagesfragen erscheinen. Im Auslieferungszustand alle – wer eine
   // davon nicht beantworten will, schaltet sie unter Mehr ab.
-  tagesfragen: ['stimmung', 'stress', 'schlaf', 'bewegung', 'blutung', 'sex'],
+  tagesfragen: ['stimmung', 'stress', 'schlaf', 'bewegung', 'blutung', 'sex', 'nachtwach'],
+  /*
+   * Seit wann die Beschwerden bestehen, als 'YYYY-MM'.
+   *
+   * Die eine Angabe, die aus dem Tagebuch grundsätzlich nicht hervorgeht: Es
+   * beginnt an dem Tag, an dem jemand anfängt zu schreiben, und das ist fast
+   * nie der Tag, an dem es angefangen hat. Die Rom-Kriterien verlangen aber
+   * genau das – Beginn mindestens ein halbes Jahr her, Beschwerden in den
+   * letzten drei Monaten. Ohne diese Zeile könnte js/kriterien.js die
+   * Zeitbedingung nur behaupten.
+   */
+  beschwerdenSeit: null,
+  /*
+   * Der laufende oder letzte Auslassversuch – siehe js/versuch.js:
+   * { id, art: 'ausloeser'|'klasse', ziel, start, tage, provokation, beendet }
+   *
+   * Einer zur Zeit. Zwei gleichzeitig wären zwei Versuche, die sich gegenseitig
+   * die Aussage nehmen: Wird es besser, weiß hinterher niemand, wovon.
+   */
+  versuch: null,
   atemUebung: '478',     // zuletzt gewählte Atemübung
   atemRunden: null,      // eigene Rundenzahl; null = Vorschlag der Übung
   ton: true,             // Ton bei der Atemübung – der einzige der App
@@ -332,6 +352,57 @@ export function mittelMerken(name) {
   merke();
 }
 
+/* ---------- Auslassversuch ---------- */
+
+/**
+ * Einen Auslassversuch beginnen.
+ *
+ * Nur einer zur Zeit, und ein laufender wird nicht stillschweigend ersetzt –
+ * wer einen neuen anfängt, verwirft den alten sichtbar (die Anzeige fragt
+ * vorher). Alles Weitere rechnet js/versuch.js aus den Daten; hier steht nur,
+ * was sich nicht ausrechnen lässt: was, ab wann, wie lange.
+ */
+export function versuchStarten(art, ziel, tage = 14) {
+  zustand.versuch = {
+    id: neueId(),
+    art,
+    ziel,
+    start: heuteISO(),
+    tage: Math.max(7, Math.min(28, Number(tage) || 14)),
+    provokation: null,   // ISO-Tag der bewussten Wiedereinführung
+    beendet: null,       // ISO-Tag des Abbruchs, falls abgebrochen
+  };
+  merke();
+  melde();
+  return zustand.versuch.id;
+}
+
+/** Der Tag der Provokation – ab hier wird wieder gegessen und weiter gezählt. */
+export function versuchProvozieren(iso) {
+  if (!zustand.versuch) return;
+  zustand.versuch = { ...zustand.versuch, provokation: iso || heuteISO() };
+  merke();
+  melde();
+}
+
+/**
+ * Abbrechen. Der Versuch bleibt stehen statt zu verschwinden: Ein abgebrochener
+ * Versuch ist selbst eine Auskunft („zwei Tage durchgehalten"), und ihn zu
+ * löschen hieße, das Tagebuch schönzumachen.
+ */
+export function versuchBeenden() {
+  if (!zustand.versuch) return;
+  zustand.versuch = { ...zustand.versuch, beendet: heuteISO() };
+  merke();
+  melde();
+}
+
+export function versuchVerwerfen() {
+  zustand.versuch = null;
+  merke();
+  melde();
+}
+
 /* ---------- Ideen zur App ---------- */
 
 export function ideeAnlegen(text) {
@@ -457,6 +528,13 @@ export function ausJSON(text) {
   frisch.ideen = frisch.ideen.filter((x) => x && typeof x === 'object' && typeof x.text === 'string')
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
+  // Ein halb gelesener Versuch würde die Tagesansicht mit „Tag NaN von
+  // undefined" begrüßen. Was nicht vollständig ist, gilt als keiner.
+  const v = frisch.versuch;
+  if (!v || typeof v !== 'object' || typeof v.start !== 'string'
+      || typeof v.ziel !== 'string' || !Number.isFinite(Number(v.tage))) {
+    frisch.versuch = null;
+  }
   zustand = frisch;
   merke();
   melde();

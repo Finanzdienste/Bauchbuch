@@ -179,7 +179,10 @@ p { margin: 0 0 8px; }
 .gross.schlecht { color: var(--bad); }
 
 /* ---------- Anlegen ---------- */
-.anlegen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+/* Fünf Knöpfe nebeneinander wären auf einem schmalen Handy je 68 Pixel breit
+ * und die Beschriftung dreizeilig. Zwei Reihen zu drei und zwei sind ruhiger,
+ * und die beiden, die täglich gebraucht werden, stehen oben links. */
+.anlegen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
 .anlegen-btn {
   background: var(--bg-elev);
   border: 1px solid var(--line);
@@ -192,6 +195,26 @@ p { margin: 0 0 8px; }
 .anlegen-i { font-size: 21px; line-height: 1; }
 .a-essen { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .a-beschwerde { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+.a-stuhl { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+
+/* ---------- Bristol-Skala ---------- */
+/* Sieben Zeilen mit Zahl, Zeichnung und Namen. Untereinander statt als Raster:
+ * Die Skala ist eine Reihenfolge von hart nach flüssig, und die soll man
+ * sehen – als Kacheln wäre sie eine Auswahl unter Gleichen. */
+.bristol { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.bristol-btn {
+  display: grid; grid-template-columns: 26px 46px 1fr; align-items: center; gap: 10px;
+  background: var(--bg-elev); border: 1px solid var(--line);
+  border-left-width: 3px; border-radius: var(--radius);
+  padding: 9px 10px; text-align: left; cursor: pointer; color: inherit;
+}
+.bristol-btn.g-hart { border-left-color: color-mix(in srgb, var(--warn) 60%, var(--line)); }
+.bristol-btn.g-normal { border-left-color: color-mix(in srgb, var(--ok) 60%, var(--line)); }
+.bristol-btn.g-weich { border-left-color: color-mix(in srgb, var(--warn) 60%, var(--line)); }
+.bristol-btn.an { background: var(--accent-weich); border-color: var(--accent); }
+.bristol-n { font-size: 17px; font-weight: 600; text-align: center; }
+.bristol-bild { font-size: 15px; letter-spacing: 1px; color: var(--muted); text-align: center; }
+.bristol-name { font-size: 13px; }
 
 /* ---------- Der Strang des Tages ---------- */
 .strang { list-style: none; margin: 0 0 14px; padding: 0; }
@@ -443,6 +466,76 @@ p { margin: 0 0 8px; }
 .ursachen li { margin-bottom: 8px; }
 .ursachen b { font-size: 14px; }
 
+/* ---------- Kriterien ---------- */
+/* Der Haken links ist die ganze Auskunft: erfüllt, nicht erfüllt, oder gar
+ * nicht prüfbar. Drei Zustände und nicht zwei – „nicht prüfbar" als „nein"
+ * darzustellen wäre die häufigste Art, mit Kriterien zu lügen. */
+.krit-liste { list-style: none; margin: 12px 0 8px; padding: 0; }
+.krit {
+  border: 1px solid var(--line); border-radius: 11px;
+  padding: 12px; margin-bottom: 10px; background: var(--bg-elev-2);
+}
+.krit.erfuellt { border-color: var(--accent); }
+.krit-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.kritliste { list-style: none; margin: 0 0 8px; padding: 0; }
+.kritliste li { display: flex; gap: 9px; align-items: flex-start; margin-bottom: 7px; font-size: 13px; }
+.kritliste-eng li { margin-bottom: 4px; }
+.kritliste b { font-size: 13px; }
+.kritliste i { color: var(--muted); font-style: normal; font-size: 12px; }
+.haken {
+  flex: none; width: 21px; height: 21px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; border: 1px solid var(--line);
+}
+.haken.ja { background: color-mix(in srgb, var(--accent) 35%, transparent); border-color: var(--accent); }
+.haken.nein { color: var(--muted); }
+.haken.offen { color: var(--muted); border-style: dashed; }
+
+/* ---------- Auslassversuch ---------- */
+.versuch-zeile { border-left: 3px solid var(--accent); }
+.versuch { border-left: 3px solid var(--line); }
+.versuch.v-dafuer { border-left-color: var(--bad); }
+.versuch.v-dagegen { border-left-color: var(--ok); }
+.versuch.v-unsauber, .versuch.v-zuwenig { border-left-color: var(--warn); }
+.versuch-zahlen {
+  list-style: none; margin: 10px 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;
+}
+.versuch-zahlen li {
+  background: var(--bg-elev-2); border-radius: var(--radius); padding: 8px 4px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.versuch-zahlen b { font-size: 20px; }
+.versuch-zahlen > li > span:first-child { font-size: 12px; color: var(--muted); }
+.versuch-wahl { list-style: none; margin: 10px 0; padding: 0; }
+.versuch-wahl li {
+  border-top: 1px solid var(--line); padding: 10px 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.versuch-wahl li:first-child { border-top: none; }
+
+/* ---------- Was noch fehlt ---------- */
+.luecken { margin: 10px 0 0; padding-left: 20px; }
+.luecken li { margin-bottom: 10px; font-size: 14px; }
+.verdaechte { list-style: none; margin: 12px 0 8px; padding: 0; }
+.verdacht {
+  border: 1px solid var(--line); border-left-width: 3px; border-radius: 11px;
+  padding: 12px; margin-bottom: 10px; background: var(--bg-elev-2);
+}
+.verdacht.s-gestuetzt { border-left-color: var(--bad); }
+.verdacht.s-moeglich { border-left-color: var(--warn); }
+.verdacht.s-offen { border-left-color: var(--line); }
+.verdacht.s-unwahrscheinlich { border-left-color: var(--ok); }
+/* Der Satz zum Vorlesen. Er sieht anders aus als alles andere, weil er
+ * etwas anderes ist: keine Auskunft, sondern eine fertige Frage. */
+.frage-zeile {
+  margin: 10px 0 0; padding: 9px 11px;
+  background: var(--bg-elev); border-radius: var(--radius);
+  font-size: 14px; font-style: italic;
+}
+.verdachtbogen > summary { cursor: pointer; list-style-position: inside; }
+.verdachtbogen > summary > h3 { display: inline; }
+
 /* ---------- Atemübung ---------- */
 .atem {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -637,7 +730,15 @@ p { margin: 0 0 8px; }
     break-inside: avoid;
   }
   .karte-warn { border: 2pt solid #b3261e; }
-  .muster, .fund, .strang-zeile { break-inside: avoid; }
+  .muster, .fund, .strang-zeile, .krit, .verdacht, .versuch-zahlen li,
+  .luecken li { break-inside: avoid; }
+
+  /* Auf Papier trägt das Zeichen die Aussage, nicht die Füllfarbe: Ein blasses
+     Rosa auf Weiß ist am Kopierer nicht mehr von leer zu unterscheiden, und
+     ein Haken, den man nicht sieht, ist schlimmer als keiner. */
+  .haken { border: 1px solid #444; background: none !important; }
+  .haken.ja { border-color: #000; font-weight: 700; }
+  .frage-zeile { border: 1px solid #bbb; background: none; }
 
   /* Aufklappbares steht offen – js/app.js öffnet es vor dem Drucken, hier
      wird nur noch der Pfeil ausgeblendet. */

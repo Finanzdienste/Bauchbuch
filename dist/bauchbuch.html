@@ -199,7 +199,10 @@ p { margin: 0 0 8px; }
 .gross.schlecht { color: var(--bad); }
 
 /* ---------- Anlegen ---------- */
-.anlegen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+/* Fünf Knöpfe nebeneinander wären auf einem schmalen Handy je 68 Pixel breit
+ * und die Beschriftung dreizeilig. Zwei Reihen zu drei und zwei sind ruhiger,
+ * und die beiden, die täglich gebraucht werden, stehen oben links. */
+.anlegen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
 .anlegen-btn {
   background: var(--bg-elev);
   border: 1px solid var(--line);
@@ -212,6 +215,26 @@ p { margin: 0 0 8px; }
 .anlegen-i { font-size: 21px; line-height: 1; }
 .a-essen { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .a-beschwerde { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+.a-stuhl { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+
+/* ---------- Bristol-Skala ---------- */
+/* Sieben Zeilen mit Zahl, Zeichnung und Namen. Untereinander statt als Raster:
+ * Die Skala ist eine Reihenfolge von hart nach flüssig, und die soll man
+ * sehen – als Kacheln wäre sie eine Auswahl unter Gleichen. */
+.bristol { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.bristol-btn {
+  display: grid; grid-template-columns: 26px 46px 1fr; align-items: center; gap: 10px;
+  background: var(--bg-elev); border: 1px solid var(--line);
+  border-left-width: 3px; border-radius: var(--radius);
+  padding: 9px 10px; text-align: left; cursor: pointer; color: inherit;
+}
+.bristol-btn.g-hart { border-left-color: color-mix(in srgb, var(--warn) 60%, var(--line)); }
+.bristol-btn.g-normal { border-left-color: color-mix(in srgb, var(--ok) 60%, var(--line)); }
+.bristol-btn.g-weich { border-left-color: color-mix(in srgb, var(--warn) 60%, var(--line)); }
+.bristol-btn.an { background: var(--accent-weich); border-color: var(--accent); }
+.bristol-n { font-size: 17px; font-weight: 600; text-align: center; }
+.bristol-bild { font-size: 15px; letter-spacing: 1px; color: var(--muted); text-align: center; }
+.bristol-name { font-size: 13px; }
 
 /* ---------- Der Strang des Tages ---------- */
 .strang { list-style: none; margin: 0 0 14px; padding: 0; }
@@ -463,6 +486,76 @@ p { margin: 0 0 8px; }
 .ursachen li { margin-bottom: 8px; }
 .ursachen b { font-size: 14px; }
 
+/* ---------- Kriterien ---------- */
+/* Der Haken links ist die ganze Auskunft: erfüllt, nicht erfüllt, oder gar
+ * nicht prüfbar. Drei Zustände und nicht zwei – „nicht prüfbar" als „nein"
+ * darzustellen wäre die häufigste Art, mit Kriterien zu lügen. */
+.krit-liste { list-style: none; margin: 12px 0 8px; padding: 0; }
+.krit {
+  border: 1px solid var(--line); border-radius: 11px;
+  padding: 12px; margin-bottom: 10px; background: var(--bg-elev-2);
+}
+.krit.erfuellt { border-color: var(--accent); }
+.krit-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.kritliste { list-style: none; margin: 0 0 8px; padding: 0; }
+.kritliste li { display: flex; gap: 9px; align-items: flex-start; margin-bottom: 7px; font-size: 13px; }
+.kritliste-eng li { margin-bottom: 4px; }
+.kritliste b { font-size: 13px; }
+.kritliste i { color: var(--muted); font-style: normal; font-size: 12px; }
+.haken {
+  flex: none; width: 21px; height: 21px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; border: 1px solid var(--line);
+}
+.haken.ja { background: color-mix(in srgb, var(--accent) 35%, transparent); border-color: var(--accent); }
+.haken.nein { color: var(--muted); }
+.haken.offen { color: var(--muted); border-style: dashed; }
+
+/* ---------- Auslassversuch ---------- */
+.versuch-zeile { border-left: 3px solid var(--accent); }
+.versuch { border-left: 3px solid var(--line); }
+.versuch.v-dafuer { border-left-color: var(--bad); }
+.versuch.v-dagegen { border-left-color: var(--ok); }
+.versuch.v-unsauber, .versuch.v-zuwenig { border-left-color: var(--warn); }
+.versuch-zahlen {
+  list-style: none; margin: 10px 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;
+}
+.versuch-zahlen li {
+  background: var(--bg-elev-2); border-radius: var(--radius); padding: 8px 4px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.versuch-zahlen b { font-size: 20px; }
+.versuch-zahlen > li > span:first-child { font-size: 12px; color: var(--muted); }
+.versuch-wahl { list-style: none; margin: 10px 0; padding: 0; }
+.versuch-wahl li {
+  border-top: 1px solid var(--line); padding: 10px 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.versuch-wahl li:first-child { border-top: none; }
+
+/* ---------- Was noch fehlt ---------- */
+.luecken { margin: 10px 0 0; padding-left: 20px; }
+.luecken li { margin-bottom: 10px; font-size: 14px; }
+.verdaechte { list-style: none; margin: 12px 0 8px; padding: 0; }
+.verdacht {
+  border: 1px solid var(--line); border-left-width: 3px; border-radius: 11px;
+  padding: 12px; margin-bottom: 10px; background: var(--bg-elev-2);
+}
+.verdacht.s-gestuetzt { border-left-color: var(--bad); }
+.verdacht.s-moeglich { border-left-color: var(--warn); }
+.verdacht.s-offen { border-left-color: var(--line); }
+.verdacht.s-unwahrscheinlich { border-left-color: var(--ok); }
+/* Der Satz zum Vorlesen. Er sieht anders aus als alles andere, weil er
+ * etwas anderes ist: keine Auskunft, sondern eine fertige Frage. */
+.frage-zeile {
+  margin: 10px 0 0; padding: 9px 11px;
+  background: var(--bg-elev); border-radius: var(--radius);
+  font-size: 14px; font-style: italic;
+}
+.verdachtbogen > summary { cursor: pointer; list-style-position: inside; }
+.verdachtbogen > summary > h3 { display: inline; }
+
 /* ---------- Atemübung ---------- */
 .atem {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -657,7 +750,15 @@ p { margin: 0 0 8px; }
     break-inside: avoid;
   }
   .karte-warn { border: 2pt solid #b3261e; }
-  .muster, .fund, .strang-zeile { break-inside: avoid; }
+  .muster, .fund, .strang-zeile, .krit, .verdacht, .versuch-zahlen li,
+  .luecken li { break-inside: avoid; }
+
+  /* Auf Papier trägt das Zeichen die Aussage, nicht die Füllfarbe: Ein blasses
+     Rosa auf Weiß ist am Kopierer nicht mehr von leer zu unterscheiden, und
+     ein Haken, den man nicht sieht, ist schlimmer als keiner. */
+  .haken { border: 1px solid #444; background: none !important; }
+  .haken.ja { border-color: #000; font-weight: 700; }
+  .frage-zeile { border: 1px solid #bbb; background: none; }
 
   /* Aufklappbares steht offen – js/app.js öffnet es vor dem Drucken, hier
      wird nur noch der Pfeil ausgeblendet. */
@@ -916,23 +1017,131 @@ function kuerze(s, max = 60) {
  * alle bereits gemachten Eintragungen. Namen dürfen sich ändern.
  */
 
+/*
+ * Die Klassen: warum etwas stören könnte, nicht bloß dass es stört.
+ *
+ * „Zwiebel" ist als Antwort schwach – nicht weil sie falsch wäre, sondern weil
+ * sie zu selten vorkommt. Zwölf Mahlzeiten mit Zwiebel im ganzen Tagebuch
+ * ergeben eine wackelige Zahl, und die nächste Frage („und Knoblauch? und
+ * Weizen?") fängt wieder bei null an. Die Klasse fasst zusammen, was im Körper
+ * denselben Weg nimmt: Zwiebel, Hülsenfrüchte, Weizen und Rohkost sind alle
+ * FODMAP-reich, und über sie zusammen kommen statt zwölf Fällen achtzig
+ * zusammen. Das ist der Unterschied zwischen einer Ahnung und einer Zahl.
+ *
+ * Und es ist die brauchbarere Auskunft: „Fruktane" beantwortet auch die Frage
+ * nach dem Lebensmittel, das noch gar nicht im Tagebuch steht.
+ *
+ * Ehrlich dazu: Die Zuordnung unten ist grob. Ein Apfel ist FODMAP-reich, eine
+ * Banane kaum, und beide wären hier „Obst". Sie taugt, um eine Spur zu finden,
+ * und nicht, um eine Diagnose darauf zu bauen – deshalb steht neben jedem
+ * Ergebnis, aus wie vielen Mahlzeiten es kommt, und deshalb gibt es den
+ * Auslassversuch (js/versuch.js), der eine Spur zur Probe stellt.
+ */
+const KLASSEN = [
+  {
+    id: 'fodmap',
+    name: 'FODMAP – vergärbare Kohlenhydrate',
+    kurz: 'FODMAP',
+    was: 'Zuckerarten und Ballaststoffe, die im Dünndarm nicht aufgenommen '
+      + 'werden und im Dickdarm von Bakterien vergoren werden. Das macht Gas '
+      + 'und zieht Wasser – Blähung und Krampf, meist Stunden nach dem Essen.',
+  },
+  {
+    id: 'laktose',
+    name: 'Laktose – Milchzucker',
+    kurz: 'Laktose',
+    was: 'Ein FODMAP für sich, weil es dafür einen einfachen Test gibt: Fehlt '
+      + 'das spaltende Enzym, bleibt der Milchzucker liegen und wird vergoren.',
+  },
+  {
+    id: 'fett',
+    name: 'Fett',
+    kurz: 'Fett',
+    was: 'Verlangsamt die Magenentleerung. Was länger liegt, drückt länger – '
+      + 'das ist der typische Weg zu Völlegefühl statt zu Brennen.',
+  },
+  {
+    id: 'saeure',
+    name: 'Säure und Säurelocker',
+    kurz: 'Säure',
+    was: 'Entweder selbst sauer oder anregend für die eigene Säurebildung. '
+      + 'Auf einer gereizten Schleimhaut brennt beides.',
+  },
+  {
+    id: 'schliessmuskel',
+    name: 'Senkt den Schließmuskel',
+    kurz: 'Schließmuskel',
+    was: 'Lockert den Muskelring zwischen Speiseröhre und Magen, sodass '
+      + 'Mageninhalt leichter hochkommt. Der klassische Weg zu Sodbrennen.',
+  },
+  {
+    id: 'koffein',
+    name: 'Koffein',
+    kurz: 'Koffein',
+    was: 'Regt die Säurebildung an und beschleunigt den Darm – und wirkt '
+      + 'obendrein auf den Schlaf, der hier ein eigener Faktor ist.',
+  },
+  {
+    id: 'histamin',
+    name: 'Histamin',
+    kurz: 'Histamin',
+    was: 'Steckt in Gereiftem, Gegorenem und lange Gelagertem. Bei einer '
+      + 'Unverträglichkeit kommen Kopfschmerz, Flush oder Herzklopfen dazu – '
+      + 'im Bauch allein sieht es aus wie alles andere auch.',
+  },
+  {
+    id: 'gluten',
+    name: 'Weizen und Gluten',
+    kurz: 'Gluten',
+    was: 'Bei Zöliakie ein Auslöser, bei anderen eher die Fruktane im selben '
+      + 'Korn. Wichtig: Ein Bluttest auf Zöliakie geht nur, solange noch '
+      + 'Gluten gegessen wird.',
+  },
+  {
+    id: 'scharf',
+    name: 'Scharfstoffe',
+    kurz: 'Schärfe',
+    was: 'Capsaicin reizt dieselben Nervenenden, die Schmerz melden. Auf '
+      + 'gesunder Schleimhaut harmlos, auf gereizter nicht.',
+  },
+  {
+    id: 'gas',
+    name: 'Gas von außen',
+    kurz: 'Gas',
+    was: 'Kohlensäure bringt Gas mit, das wieder heraus muss – nach oben als '
+      + 'Aufstoßen, und dabei kommt Säure mit.',
+  },
+];
+
+const KLASSEN_MAP = Object.fromEntries(KLASSEN.map((k) => [k.id, k]));
+
+function klasseVon(id) {
+  return KLASSEN_MAP[id] || null;
+}
+
+function klasseName(id, kurz) {
+  const k = KLASSEN_MAP[id];
+  if (!k) return id;
+  return kurz ? k.kurz : k.name;
+}
+
 const AUSLOESER = [
-  { id: 'kaffee', name: 'Kaffee', icon: '☕' },
-  { id: 'alkohol', name: 'Alkohol', icon: '🍷' },
-  { id: 'scharf', name: 'Scharf gewürzt', icon: '🌶️' },
-  { id: 'fett', name: 'Fettig, frittiert', icon: '🍟' },
-  { id: 'zitrus', name: 'Zitrus, Saures', icon: '🍋' },
-  { id: 'tomate', name: 'Tomate', icon: '🍅' },
-  { id: 'zwiebel', name: 'Zwiebel, Knoblauch', icon: '🧅' },
-  { id: 'kohlensaeure', name: 'Kohlensäure', icon: '🥤' },
-  { id: 'suess', name: 'Süßes, Schokolade', icon: '🍫' },
-  { id: 'milch', name: 'Milchprodukte', icon: '🥛' },
-  { id: 'rohkost', name: 'Rohkost, Salat', icon: '🥗' },
-  { id: 'huelsen', name: 'Hülsenfrüchte, Kohl', icon: '🫘' },
-  { id: 'vollkorn', name: 'Vollkorn', icon: '🌾' },
-  { id: 'geraeuchert', name: 'Geräuchert, gepökelt', icon: '🥓' },
-  { id: 'minze', name: 'Pfefferminze', icon: '🌿' },
-  { id: 'nikotin', name: 'Nikotin', icon: '🚬' },
+  { id: 'kaffee', name: 'Kaffee', icon: '☕', klassen: ['koffein', 'saeure', 'schliessmuskel'] },
+  { id: 'alkohol', name: 'Alkohol', icon: '🍷', klassen: ['saeure', 'schliessmuskel', 'histamin'] },
+  { id: 'scharf', name: 'Scharf gewürzt', icon: '🌶️', klassen: ['scharf'] },
+  { id: 'fett', name: 'Fettig, frittiert', icon: '🍟', klassen: ['fett', 'schliessmuskel'] },
+  { id: 'zitrus', name: 'Zitrus, Saures', icon: '🍋', klassen: ['saeure', 'histamin'] },
+  { id: 'tomate', name: 'Tomate', icon: '🍅', klassen: ['saeure', 'histamin'] },
+  { id: 'zwiebel', name: 'Zwiebel, Knoblauch', icon: '🧅', klassen: ['fodmap'] },
+  { id: 'kohlensaeure', name: 'Kohlensäure', icon: '🥤', klassen: ['gas'] },
+  { id: 'suess', name: 'Süßes, Schokolade', icon: '🍫', klassen: ['fodmap', 'fett', 'schliessmuskel'] },
+  { id: 'milch', name: 'Milchprodukte', icon: '🥛', klassen: ['laktose', 'fodmap', 'fett'] },
+  { id: 'rohkost', name: 'Rohkost, Salat', icon: '🥗', klassen: ['fodmap'] },
+  { id: 'huelsen', name: 'Hülsenfrüchte, Kohl', icon: '🫘', klassen: ['fodmap'] },
+  { id: 'vollkorn', name: 'Vollkorn', icon: '🌾', klassen: ['fodmap', 'gluten'] },
+  { id: 'geraeuchert', name: 'Geräuchert, gepökelt', icon: '🥓', klassen: ['histamin', 'fett'] },
+  { id: 'minze', name: 'Pfefferminze', icon: '🌿', klassen: ['schliessmuskel'] },
+  { id: 'nikotin', name: 'Nikotin', icon: '🚬', klassen: ['schliessmuskel', 'saeure'] },
 ];
 
 /**
@@ -950,15 +1159,83 @@ const UMSTAENDE = [
 /** Alles, was die Auswertung als möglichen Auslöser kennt. */
 const ALLE_AUSLOESER = [...AUSLOESER, ...UMSTAENDE];
 
+/*
+ * Zwei Einträge stehen hier, weil ohne sie ganze Fragen unbeantwortbar bleiben:
+ *
+ *   `oberbauch`   Schmerz im Oberbauch – die eine Angabe, die den
+ *                 Schmerz-Typ der funktionellen Dyspepsie vom Völlegefühl
+ *                 trennt, und im GerdQ das Gegengewicht zum Sodbrennen.
+ *   `saettigung`  Früh satt. Klingt wie „kein Appetit" und ist etwas anderes:
+ *                 Man fängt an zu essen und kann nicht aufessen. Genau so
+ *                 steht es in den Rom-Kriterien, und genau dafür gibt es die
+ *                 Zeile.
+ *
+ * Ohne die beiden könnte js/kriterien.js die Hälfte seiner Prüfungen nur raten.
+ * Eine Auswahlliste um zwei Zeilen zu verlängern ist der billigere Preis.
+ */
 const BESCHWERDEN = [
   { id: 'brennen', name: 'Brennen', icon: '🔥' },
   { id: 'druck', name: 'Druck, Völlegefühl', icon: '🪨' },
+  { id: 'oberbauch', name: 'Schmerz im Oberbauch', icon: '📍' },
   { id: 'uebelkeit', name: 'Übelkeit', icon: '🤢' },
   { id: 'sodbrennen', name: 'Sodbrennen', icon: '🌋' },
   { id: 'aufstossen', name: 'Aufstoßen', icon: '💨' },
   { id: 'blaehung', name: 'Blähungen', icon: '🎈' },
-  { id: 'krampf', name: 'Krämpfe', icon: '⚡' },
+  { id: 'krampf', name: 'Bauchschmerz, Krämpfe', icon: '⚡' },
+  { id: 'saettigung', name: 'Früh satt', icon: '🥄' },
   { id: 'appetit', name: 'Kein Appetit', icon: '🍽️' },
+];
+
+/*
+ * Die Bristol-Stuhlformenskala.
+ *
+ * Sieben Bilder statt einer Frage, die niemand beantworten mag. Sie ist seit
+ * den Neunzigern das Maß, mit dem in der Sprechstunde über Stuhlgang geredet
+ * wird – 1 und 2 heißen zu lange gelegen, 6 und 7 zu kurz, dazwischen ist es
+ * in Ordnung.
+ *
+ * Warum das hier steht, obwohl es um den Magen ging: Ohne Stuhlform lassen
+ * sich Reizdarm und funktionelle Dyspepsie im Tagebuch überhaupt nicht
+ * trennen, und der Reizdarm-Typ – Verstopfung, Durchfall oder gemischt –
+ * entscheidet in der Praxis über die Behandlung. Es ist die größte Lücke, die
+ * dieses Tagebuch hatte.
+ */
+const BRISTOL = [
+  { id: 1, name: 'Einzelne harte Klümpchen', kurz: 'harte Klümpchen', gruppe: 'hart', bild: '●●●' },
+  { id: 2, name: 'Wurstförmig, klumpig', kurz: 'klumpig', gruppe: 'hart', bild: '▰▰' },
+  { id: 3, name: 'Wurstförmig mit Rissen', kurz: 'mit Rissen', gruppe: 'normal', bild: '▬▬' },
+  { id: 4, name: 'Wurstförmig, glatt und weich', kurz: 'glatt und weich', gruppe: 'normal', bild: '━━' },
+  { id: 5, name: 'Weiche Klümpchen mit klarem Rand', kurz: 'weiche Klümpchen', gruppe: 'normal', bild: '◍◍' },
+  { id: 6, name: 'Breiig, mit unregelmäßigem Rand', kurz: 'breiig', gruppe: 'weich', bild: '≈≈' },
+  { id: 7, name: 'Flüssig, ohne feste Bestandteile', kurz: 'flüssig', gruppe: 'weich', bild: '～～' },
+];
+
+const BRISTOL_MAP = Object.fromEntries(BRISTOL.map((b) => [b.id, b]));
+
+function bristolVon(form) {
+  return BRISTOL_MAP[Number(form)] || null;
+}
+
+function bristolName(form, kurz) {
+  const b = BRISTOL_MAP[Number(form)];
+  if (!b) return String(form);
+  return kurz ? b.kurz : b.name;
+}
+
+/**
+ * Wie sich eine Beschwerde zum Stuhlgang verhält – die Rom-Frage im Wortlaut.
+ *
+ * Ob der Schmerz mit dem Stuhlgang zusammenhängt, ist eines der drei Merkmale,
+ * an denen ein Reizdarmsyndrom festgemacht wird, und es ist das einzige, das
+ * sich nicht aus den Zahlen ableiten lässt: Dass an einem Tag Schmerz und
+ * Stuhlgang beide vorkamen, sagt nichts darüber, ob das eine das andere
+ * verändert hat. Also wird gefragt – einmal, freiwillig, im Beschwerdebogen.
+ */
+const STUHLBEZUG = [
+  { id: 'besser', name: 'Danach besser' },
+  { id: 'schlechter', name: 'Danach schlechter' },
+  { id: 'gleich', name: 'Unverändert' },
+  { id: 'keiner', name: 'Kein Stuhlgang dabei' },
 ];
 
 /*
@@ -1022,6 +1299,10 @@ const TAGESFRAGEN = [
   { id: 'bewegung', name: 'Bewegung', menge: true, worte: ['keine', 'leicht', 'moderat', 'intensiv', 'sehr intensiv'] },
   { id: 'blutung', name: 'Periode', menge: true, worte: ['keine', 'Schmierblutung', 'leicht', 'mittel', 'stark'] },
   { id: 'sex', name: 'Sex', menge: true, worte: ['nein', 'ja'] },
+  // Nachts von Beschwerden geweckt zu werden, ist im GerdQ eine eigene Frage
+  // und in der Sprechstunde eine der ersten. `menge: true`, weil „ja" hier
+  // keine Note ist – es zählt die Zahl der Nächte, nicht eine Schwere.
+  { id: 'nachtwach', name: 'Nachts davon wach', menge: true, worte: ['nein', 'ja'] },
 ];
 
 const FRAGEN_MAP = Object.fromEntries(TAGESFRAGEN.map((f) => [f.id, f]));
@@ -1078,6 +1359,19 @@ function ausloeserVon(id, eigene = []) {
 function ausloeserName(id, eigene = []) {
   const a = ausloeserVon(id, eigene);
   return a ? a.name : id;
+}
+
+/**
+ * Die Klassen eines Auslösers.
+ *
+ * Eigene Auslöser haben keine. Das ist Absicht und keine Lücke: Welche Klassen
+ * in „Fenchelknolle" stecken, weiß diese App nicht, und sie zu raten wäre
+ * schlimmer als sie wegzulassen – eine falsche Zuordnung würde in einer
+ * Klassenbilanz mit achtzig Fällen nicht auffallen, sondern sie verfälschen.
+ */
+function klassenVon(id) {
+  const a = AUSLOESER_MAP[id];
+  return (a && a.klassen) || [];
 }
 
 function beschwerdeVon(id) {
@@ -1801,14 +2095,18 @@ function verlaufTafel(punkte, opt = {}) {
  * Zwei Balken übereinander statt einer Differenzzahl, weil die Differenz allein
  * täuscht – „2 Punkte mehr" heißt bei einem Grundpegel von 1 etwas anderes als
  * bei einem von 7.
+ *
+ * Die Beschriftungen lassen sich überschreiben. Beim Auslöser heißt es „danach"
+ * und „sonst", beim Medikament „darunter" und „davor" – dieselbe Zeichnung,
+ * aber ein falsches Wort daneben macht aus einer Auskunft eine Irreführung.
  */
-function vergleichBalken(mit, ohne) {
+function vergleichBalken(mit, ohne, worte = {}) {
   const anteil = (v) => `${Math.max(1.5, Math.min(100, (v / TAFEL_MAX) * 100)).toFixed(1)}%`;
   return `<div class="vgl">
-    <div class="vgl-zeile"><span class="vgl-mark">danach</span>
+    <div class="vgl-zeile"><span class="vgl-mark">${worte.mit || 'danach'}</span>
       <span class="vgl-spur"><i style="width:${anteil(mit)};background:var(--warn)"></i></span>
       <b>${mit.toFixed(1).replace('.', ',')}</b></div>
-    <div class="vgl-zeile"><span class="vgl-mark">sonst</span>
+    <div class="vgl-zeile"><span class="vgl-mark">${worte.ohne || 'sonst'}</span>
       <span class="vgl-spur"><i style="width:${anteil(ohne)};background:var(--muted)"></i></span>
       <b>${ohne.toFixed(1).replace('.', ',')}</b></div>
   </div>`;
@@ -1836,13 +2134,14 @@ const VORGABE = {
   // Alle Eintragungen in einer Liste, nach Zeitpunkt sortiert gehalten.
   // Ein Eintrag ist immer { id, am, um, art } plus die Felder seiner Art:
   //   essen       { was, zutaten: [{ id, rolle }], portion: 'klein'|'normal'|'gross' }
-  //   beschwerde  { staerke: 0..10, arten: [beschwerdeId], notiz }
+  //   beschwerde  { staerke: 0..10, arten: [beschwerdeId], notiz, stuhlbezug }
+  //   stuhl       { form: 1..7, dringend, unvollstaendig, warnzeichen: [id] }
   //   medikament  { mittel, dosis }
   //   notiz       { text }
   eintraege: [],
   // Was für einen ganzen Tag gilt, nicht für einen Zeitpunkt. Welche Angaben
   // es gibt, steht in TAGESFRAGEN (js/daten.js):
-  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, blutung, sex, notiz } }
+  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, blutung, sex, nachtwach, notiz } }
   tage: {},
   // In wie vielen Stunden nach einer Mahlzeit eine Beschwerde ihr noch
   // zugerechnet wird. Vier Stunden sind der Vorschlag, nicht das Gesetz –
@@ -1860,7 +2159,26 @@ const VORGABE = {
   zuletztMittel: [],     // zuletzt eingetragene Medikamente, als Vorschlag
   // Welche Tagesfragen erscheinen. Im Auslieferungszustand alle – wer eine
   // davon nicht beantworten will, schaltet sie unter Mehr ab.
-  tagesfragen: ['stimmung', 'stress', 'schlaf', 'bewegung', 'blutung', 'sex'],
+  tagesfragen: ['stimmung', 'stress', 'schlaf', 'bewegung', 'blutung', 'sex', 'nachtwach'],
+  /*
+   * Seit wann die Beschwerden bestehen, als 'YYYY-MM'.
+   *
+   * Die eine Angabe, die aus dem Tagebuch grundsätzlich nicht hervorgeht: Es
+   * beginnt an dem Tag, an dem jemand anfängt zu schreiben, und das ist fast
+   * nie der Tag, an dem es angefangen hat. Die Rom-Kriterien verlangen aber
+   * genau das – Beginn mindestens ein halbes Jahr her, Beschwerden in den
+   * letzten drei Monaten. Ohne diese Zeile könnte js/kriterien.js die
+   * Zeitbedingung nur behaupten.
+   */
+  beschwerdenSeit: null,
+  /*
+   * Der laufende oder letzte Auslassversuch – siehe js/versuch.js:
+   * { id, art: 'ausloeser'|'klasse', ziel, start, tage, provokation, beendet }
+   *
+   * Einer zur Zeit. Zwei gleichzeitig wären zwei Versuche, die sich gegenseitig
+   * die Aussage nehmen: Wird es besser, weiß hinterher niemand, wovon.
+   */
+  versuch: null,
   atemUebung: '478',     // zuletzt gewählte Atemübung
   atemRunden: null,      // eigene Rundenzahl; null = Vorschlag der Übung
   ton: true,             // Ton bei der Atemübung – der einzige der App
@@ -2148,6 +2466,57 @@ function mittelMerken(name) {
   merke();
 }
 
+/* ---------- Auslassversuch ---------- */
+
+/**
+ * Einen Auslassversuch beginnen.
+ *
+ * Nur einer zur Zeit, und ein laufender wird nicht stillschweigend ersetzt –
+ * wer einen neuen anfängt, verwirft den alten sichtbar (die Anzeige fragt
+ * vorher). Alles Weitere rechnet js/versuch.js aus den Daten; hier steht nur,
+ * was sich nicht ausrechnen lässt: was, ab wann, wie lange.
+ */
+function versuchStarten(art, ziel, tage = 14) {
+  zustand.versuch = {
+    id: neueId(),
+    art,
+    ziel,
+    start: heuteISO(),
+    tage: Math.max(7, Math.min(28, Number(tage) || 14)),
+    provokation: null,   // ISO-Tag der bewussten Wiedereinführung
+    beendet: null,       // ISO-Tag des Abbruchs, falls abgebrochen
+  };
+  merke();
+  melde();
+  return zustand.versuch.id;
+}
+
+/** Der Tag der Provokation – ab hier wird wieder gegessen und weiter gezählt. */
+function versuchProvozieren(iso) {
+  if (!zustand.versuch) return;
+  zustand.versuch = { ...zustand.versuch, provokation: iso || heuteISO() };
+  merke();
+  melde();
+}
+
+/**
+ * Abbrechen. Der Versuch bleibt stehen statt zu verschwinden: Ein abgebrochener
+ * Versuch ist selbst eine Auskunft („zwei Tage durchgehalten"), und ihn zu
+ * löschen hieße, das Tagebuch schönzumachen.
+ */
+function versuchBeenden() {
+  if (!zustand.versuch) return;
+  zustand.versuch = { ...zustand.versuch, beendet: heuteISO() };
+  merke();
+  melde();
+}
+
+function versuchVerwerfen() {
+  zustand.versuch = null;
+  merke();
+  melde();
+}
+
 /* ---------- Ideen zur App ---------- */
 
 function ideeAnlegen(text) {
@@ -2273,6 +2642,13 @@ function ausJSON(text) {
   frisch.ideen = frisch.ideen.filter((x) => x && typeof x === 'object' && typeof x.text === 'string')
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
+  // Ein halb gelesener Versuch würde die Tagesansicht mit „Tag NaN von
+  // undefined" begrüßen. Was nicht vollständig ist, gilt als keiner.
+  const v = frisch.versuch;
+  if (!v || typeof v !== 'object' || typeof v.start !== 'string'
+      || typeof v.ziel !== 'string' || !Number.isFinite(Number(v.tage))) {
+    frisch.versuch = null;
+  }
   zustand = frisch;
   merke();
   melde();
@@ -2289,7 +2665,7 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, kannSpeichern, letzterTag, letzterZeitpunkt, mittelMerken, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, zustandLesen };
+const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, kannSpeichern, letzterTag, letzterZeitpunkt, mittelMerken, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, versuchBeenden, versuchProvozieren, versuchStarten, versuchVerwerfen, zustandLesen };
 
 /* ===== js/auswertung.js ===== */
 /*
@@ -2443,6 +2819,92 @@ function ausloeserBilanz(eintraege, opt = {}) {
 }
 
 /**
+ * Dieselbe Bilanz, aber nach Klassen statt nach einzelnen Zutaten.
+ *
+ * Der Grund ist die Fallzahl. „Zwiebel" kommt in einem halben Jahr vielleicht
+ * zwölfmal vor – daraus wird nie eine belastbare Zahl, und die nächste Frage
+ * („und Knoblauch? und Weizen?") fängt wieder bei null an. Die Klasse fasst
+ * zusammen, was denselben Weg nimmt: Über alle FODMAP-reichen Mahlzeiten
+ * kommen statt zwölf Fällen achtzig zusammen.
+ *
+ * Deshalb ist die Schwelle hier nicht dieselbe. Bei mehr Fällen fällt ein
+ * kleinerer Unterschied auf, und ein halber Punkt über achtzig Mahlzeiten sagt
+ * mehr als ein ganzer über zwölf. Gefordert werden trotzdem Fälle auf beiden
+ * Seiten – wer *jede* Mahlzeit mit FODMAP isst, hat keine Vergleichsgruppe und
+ * bekommt hier keine Zeile.
+ *
+ * Eine Zutat zählt für jede ihrer Klassen. Kaffee steht damit gleichzeitig bei
+ * Koffein, Säure und Schließmuskel, und das ist richtig so: Er wirkt auf allen
+ * drei Wegen, und welcher davon der entscheidende ist, sagt keine Statistik,
+ * sondern der Auslassversuch.
+ */
+function klassenBilanz(eintraege, opt = {}) {
+  const fenster = opt.fenster || 4;
+  // Klassen brauchen mehr Fälle, weil sie mehr hergeben – und weil eine Klasse,
+  // die in fast jeder Mahlzeit steckt, sonst mit acht Gegenfällen „auffällig"
+  // hieße.
+  const mindest = opt.mindestFaelle || 8;
+  const mahlzeiten = eintraege.filter((e) => e.art === 'essen');
+  if (!mahlzeiten.length) return [];
+
+  const bewertet = mahlzeiten.map((m) => ({
+    klassen: new Set(zutatenVon(m).flatMap((z) => klassenVon(z.id))),
+    wert: wertNach(eintraege, m, fenster),
+  }));
+
+  const zeilen = [];
+  KLASSEN.forEach((k) => {
+    const mit = bewertet.filter((b) => b.klassen.has(k.id));
+    if (!mit.length) return;
+    const ohne = bewertet.filter((b) => !b.klassen.has(k.id));
+    const schnitt = (liste) => (liste.length
+      ? liste.reduce((s, b) => s + b.wert, 0) / liste.length : 0);
+    const quote = (liste) => (liste.length
+      ? liste.filter((b) => b.wert > 0).length / liste.length : 0);
+    const schnittMit = schnitt(mit);
+    const schnittOhne = schnitt(ohne);
+    zeilen.push({
+      id: k.id,
+      name: k.name,
+      kurz: k.kurz,
+      was: k.was,
+      faelle: mit.length,
+      gegenFaelle: ohne.length,
+      schnittMit,
+      schnittOhne,
+      differenz: schnittMit - schnittOhne,
+      quoteMit: quote(mit),
+      quoteOhne: quote(ohne),
+      genug: mit.length >= mindest && ohne.length >= mindest,
+      fehlt: Math.max(0, mindest - mit.length),
+      fehltGegen: Math.max(0, mindest - ohne.length),
+    });
+  });
+
+  return zeilen.sort((a, b) => (b.differenz - a.differenz) || (b.faelle - a.faelle));
+}
+
+/**
+ * Welche Zutaten eine Klasse in *diesem* Tagebuch trägt.
+ *
+ * Ohne diese Aufschlüsselung wäre „FODMAP ist auffällig" eine Sackgasse: Man
+ * kann FODMAP nicht weglassen, man kann Zwiebeln weglassen. Zurück kommt, was
+ * tatsächlich gegessen wurde, das Häufigste zuerst.
+ */
+function klasseZutaten(eintraege, klasseId) {
+  const zaehler = new Map();
+  eintraege.filter((e) => e.art === 'essen').forEach((e) => {
+    zutatenVon(e).forEach((z) => {
+      if (klassenVon(z.id).includes(klasseId)) {
+        zaehler.set(z.id, (zaehler.get(z.id) || 0) + 1);
+      }
+    });
+  });
+  return [...zaehler.entries()].map(([id, anzahl]) => ({ id, anzahl }))
+    .sort((a, b) => b.anzahl - a.anzahl);
+}
+
+/**
  * Wie ein Ergebnis zu lesen ist. Eine halbe Stufe Unterschied ist Rauschen,
  * und es als Fund darzustellen wäre die eine Art, mit der so eine App
  * tatsächlich schaden kann: Wer daraufhin ein Lebensmittel streicht, isst
@@ -2453,6 +2915,21 @@ function einstufung(zeile) {
   if (zeile.differenz >= 2) return 'auffaellig';
   if (zeile.differenz >= 1) return 'moeglich';
   if (zeile.differenz <= -1) return 'unauffaellig';
+  return 'neutral';
+}
+
+/**
+ * Dieselbe Einordnung für Klassen – mit niedrigeren Schwellen.
+ *
+ * Nicht aus Großzügigkeit: Eine Klasse steckt in vielen Mahlzeiten, oft auch in
+ * kleinen Mengen, und das verdünnt den Unterschied. Ein halber Punkt über
+ * achtzig Mahlzeiten ist ein stabileres Ergebnis als zwei Punkte über zwölf.
+ */
+function klassenEinstufung(zeile) {
+  if (!zeile.genug) return 'zuwenig';
+  if (zeile.differenz >= 1) return 'auffaellig';
+  if (zeile.differenz >= 0.5) return 'moeglich';
+  if (zeile.differenz <= -0.5) return 'unauffaellig';
   return 'neutral';
 }
 
@@ -2733,6 +3210,1429 @@ function gesamtZahlen(eintraege, tage, von, bis) {
   };
 }
 
+/* ===== js/stuhl.js ===== */
+/*
+ * Der Stuhlgang: die Angabe, ohne die der halbe Bauch unsichtbar bleibt.
+ *
+ * Dieses Tagebuch hat lange nur nach oben geschaut – Brennen, Druck, Übelkeit.
+ * Das reicht für die Magenfragen und für die Darmfragen überhaupt nicht: Ein
+ * Reizdarmsyndrom wird an drei Dingen festgemacht, und zwei davon sind
+ * Häufigkeit und Form des Stuhlgangs. Ohne sie lässt sich ein Reizdarm von
+ * einer funktionellen Dyspepsie im Tagebuch grundsätzlich nicht trennen, und
+ * der Typ – Verstopfung, Durchfall, gemischt – entscheidet in der Praxis über
+ * die Behandlung.
+ *
+ * Gerechnet wird hier nur, gefragt wird woanders. Wie überall in dieser
+ * Schicht: reine Funktionen, alles kommt als Argument herein.
+ *
+ * Zur Einordnung der Zahlen: Die Anteile unten sind über *alle* eingetragenen
+ * Stuhlgänge gerechnet, nicht über Tage. Die Rom-Kriterien rechnen ähnlich,
+ * aber nicht identisch – dort geht es um Tage mit mindestens einem auffälligen
+ * Stuhlgang. Der Unterschied ist klein und die Zahl hier nachvollziehbar;
+ * beides steht in der Anzeige dabei.
+ */
+
+/** Alle Stuhl-Eintragungen mit gültiger Bristol-Form. */
+function stuhlgaenge(eintraege) {
+  return (eintraege || []).filter((e) => e.art === 'stuhl' && bristolVon(e.form));
+}
+
+/**
+ * Wie die Formen verteilt sind.
+ *
+ * `hart` sind Bristol 1–2 (zu lange gelegen), `weich` 6–7 (zu kurz), der Rest
+ * gilt als unauffällig. Das ist die Einteilung, mit der auch in der
+ * Sprechstunde gearbeitet wird.
+ */
+function formBilanz(eintraege) {
+  const alle = stuhlgaenge(eintraege);
+  const zaehl = { hart: 0, normal: 0, weich: 0 };
+  alle.forEach((e) => { zaehl[bristolVon(e.form).gruppe] += 1; });
+  const teil = (n) => (alle.length ? n / alle.length : 0);
+  return {
+    gesamt: alle.length,
+    ...zaehl,
+    anteilHart: teil(zaehl.hart),
+    anteilWeich: teil(zaehl.weich),
+    anteilNormal: teil(zaehl.normal),
+  };
+}
+
+/**
+ * Der Reizdarm-Typ nach der Verteilung der Stuhlform.
+ *
+ * Die Schwelle von einem Viertel steht so in den Rom-Kriterien: Über einem
+ * Viertel harter Stühle und unter einem Viertel weicher heißt „Verstopfungstyp"
+ * und umgekehrt; beides über einem Viertel heißt „gemischt".
+ *
+ * Wichtig und deshalb im Rückgabewert: Das hier ist eine *Beschreibung der
+ * Stuhlform*, keine Diagnose. Der Typ sagt nur, wie es aussähe, *wenn* ein
+ * Reizdarm vorläge – ob einer vorliegt, entscheidet er nicht. Unter 15
+ * eingetragenen Stuhlgängen kommt gar nichts zurück; darunter kippt der Anteil
+ * mit jedem einzelnen Eintrag.
+ */
+const TYP_NAME = {
+  verstopfung: 'Verstopfungstyp (IBS-C)',
+  durchfall: 'Durchfalltyp (IBS-D)',
+  gemischt: 'Gemischter Typ (IBS-M)',
+  unbestimmt: 'Nicht zuzuordnen (IBS-U)',
+};
+
+function stuhlTyp(eintraege, mindest = 15) {
+  const b = formBilanz(eintraege);
+  if (b.gesamt < mindest) {
+    return { typ: null, fehlt: mindest - b.gesamt, bilanz: b };
+  }
+  const vielHart = b.anteilHart > 0.25;
+  const vielWeich = b.anteilWeich > 0.25;
+  let typ = 'unbestimmt';
+  if (vielHart && vielWeich) typ = 'gemischt';
+  else if (vielHart) typ = 'verstopfung';
+  else if (vielWeich) typ = 'durchfall';
+  return { typ, name: TYP_NAME[typ], fehlt: 0, bilanz: b };
+}
+
+/** Wie viele Stuhlgänge an einem Tag eingetragen sind. */
+function anzahlAm(eintraege, iso) {
+  return stuhlgaenge(eintraege).filter((e) => e.am === iso).length;
+}
+
+/**
+ * Bauchschmerz-Tage gegen die übrigen – bei Häufigkeit und bei Form.
+ *
+ * Das sind zwei der drei Rom-Merkmale für ein Reizdarmsyndrom. Dort werden sie
+ * *gefragt* („ändert sich dabei die Häufigkeit?"), hier werden sie gerechnet.
+ * Das ist nicht dasselbe, und es steht in der Anzeige dabei: Wer sich nicht
+ * erinnert, antwortet auf die Frage schlechter als das Tagebuch – wer an
+ * schlechten Tagen seltener einträgt, besser.
+ *
+ * Verglichen wird nur über Tage, an denen überhaupt etwas notiert wurde. Eine
+ * Lücke im Tagebuch ist kein schmerzfreier Tag.
+ */
+function schmerzVergleich(eintraege, tage, schmerzArten = ['krampf']) {
+  const alle = eintraege || [];
+  const notierte = [...new Set([...alle.map((e) => e.am), ...Object.keys(tage || {})])].sort();
+  const mitSchmerz = new Set(alle
+    .filter((e) => e.art === 'beschwerde' && (e.arten || []).some((a) => schmerzArten.includes(a)))
+    .map((e) => e.am));
+
+  const gruppe = (wollen) => {
+    const isos = notierte.filter((iso) => mitSchmerz.has(iso) === wollen);
+    const stuhl = stuhlgaenge(alle).filter((e) => isos.includes(e.am));
+    const auffaellig = stuhl.filter((e) => bristolVon(e.form).gruppe !== 'normal');
+    return {
+      tage: isos.length,
+      stuhlgaenge: stuhl.length,
+      proTag: isos.length ? stuhl.length / isos.length : 0,
+      auffaellig: auffaellig.length,
+      anteilAuffaellig: stuhl.length ? auffaellig.length / stuhl.length : 0,
+    };
+  };
+
+  const mit = gruppe(true);
+  const ohne = gruppe(false);
+  return {
+    mit,
+    ohne,
+    // Genug heißt hier: auf beiden Seiten fünf Tage und fünf Stuhlgänge. Eine
+    // Formverteilung aus zwei Einträgen ist keine Verteilung.
+    genugTage: mit.tage >= 5 && ohne.tage >= 5,
+    genugStuhl: mit.stuhlgaenge >= 5 && ohne.stuhlgaenge >= 5,
+    haeufigkeitAnders: Math.abs(mit.proTag - ohne.proTag) >= 0.5,
+    formAnders: Math.abs(mit.anteilAuffaellig - ohne.anteilAuffaellig) >= 0.2,
+  };
+}
+
+/**
+ * Wie oft eine Beschwerde sich mit dem Stuhlgang geändert hat.
+ *
+ * Das dritte Rom-Merkmal, und das einzige, das sich nicht rechnen lässt:
+ * Dass an einem Tag Schmerz und Stuhlgang beide vorkamen, sagt nichts darüber,
+ * ob das eine das andere verändert hat. Also wird gefragt (STUHLBEZUG in
+ * js/daten.js) und hier nur ausgezählt. Unbeantwortete Beschwerden zählen
+ * nirgends mit – weder dafür noch dagegen.
+ */
+function bezugBilanz(eintraege) {
+  const beantwortet = (eintraege || []).filter((e) => e.art === 'beschwerde'
+    && e.stuhlbezug && e.stuhlbezug !== 'keiner');
+  const geaendert = beantwortet.filter((e) => e.stuhlbezug === 'besser' || e.stuhlbezug === 'schlechter');
+  return {
+    beantwortet: beantwortet.length,
+    geaendert: geaendert.length,
+    besser: beantwortet.filter((e) => e.stuhlbezug === 'besser').length,
+    schlechter: beantwortet.filter((e) => e.stuhlbezug === 'schlechter').length,
+    anteil: beantwortet.length ? geaendert.length / beantwortet.length : 0,
+    genug: beantwortet.length >= 4,
+  };
+}
+
+/** Die Zahlen für die Übersicht: wie oft, wie oft auffällig, wie oft dringend. */
+function stuhlZahlen(eintraege, tage) {
+  const alle = stuhlgaenge(eintraege);
+  const notierte = [...new Set([...(eintraege || []).map((e) => e.am),
+    ...Object.keys(tage || {})])];
+  const b = formBilanz(eintraege);
+  return {
+    gesamt: alle.length,
+    proTag: notierte.length ? alle.length / notierte.length : 0,
+    dringend: alle.filter((e) => e.dringend).length,
+    unvollstaendig: alle.filter((e) => e.unvollstaendig).length,
+    ...b,
+  };
+}
+
+/* ===== js/kriterien.js ===== */
+/*
+ * Die Kriterien: dieselben Regeln, nach denen in der Sprechstunde eingeordnet
+ * wird – auf die eigenen Eintragungen angewandt.
+ *
+ * Bis hierher hat diese App beschrieben („säuretypisches Bild"). Diese Datei
+ * geht einen Schritt weiter und rechnet zwei anerkannte Regelwerke nach:
+ *
+ *   * **Rom IV** für das Reizdarmsyndrom und die funktionelle Dyspepsie. Das
+ *     sind die Kriterien, mit denen diese beiden Diagnosen tatsächlich gestellt
+ *     werden – sie bestehen aus nichts als Beschwerden und Zeiträumen, also
+ *     genau aus dem, was in einem Tagebuch steht.
+ *   * **GerdQ** für die Refluxkrankheit. Sechs Fragen, eine veröffentlichte
+ *     Schwelle, und in Studien ungefähr so treffsicher wie die Einschätzung
+ *     einer Hausärztin.
+ *
+ * DREI DINGE, DIE DAZUGEHÖREN, UND ZWAR JEDES MAL:
+ *
+ * 1. **Erfüllte Kriterien sind keine Diagnose.** Beide Regelwerke setzen
+ *    ausdrücklich voraus, dass nichts Organisches dahintersteckt – und das
+ *    weiß nur eine Untersuchung. „Erfüllt die Kriterien" heißt: Wenn Spiegelung
+ *    und Blutbild unauffällig sind, passt der Name. Nicht mehr, und das ist
+ *    schon viel.
+ *
+ * 2. **Ein Tagebuch untererfasst.** Der GerdQ wird sonst gefragt („an wie
+ *    vielen Tagen hatten Sie …?"); hier wird gezählt. Wer einen Tag nicht
+ *    einträgt, hat an diesem Tag laut Tagebuch nichts gehabt. Jede Punktzahl
+ *    hier ist deshalb eher zu niedrig als zu hoch – sie ist eine Untergrenze.
+ *
+ * 3. **Ohne genug Zeitraum kein Ergebnis.** Rom IV verlangt drei Monate
+ *    Beschwerden und einen Beginn vor mindestens einem halben Jahr. Was diese
+ *    Datei nicht prüfen kann, behauptet sie nicht: Dann steht `pruefbar: false`
+ *    und daneben, was noch fehlt.
+ */
+
+
+/*
+ * Ab welcher Stärke eine Beschwerde als „belastend" gilt.
+ *
+ * Die Rom-Kriterien sagen „bothersome" – belastend genug, um davon zu
+ * erzählen. Auf der Skala dieser App ist das die 4, das Wort dazu heißt
+ * „merklich". Eine 2 („sehr leicht") mitzuzählen würde die Kriterien bei fast
+ * jedem erfüllen und sie damit wertlos machen.
+ */
+const BELASTEND = 4;
+
+/** Rom IV rechnet in den letzten drei Monaten. */
+const FENSTER_TAGE = 90;
+
+/** Und verlangt einen Beginn vor mindestens einem halben Jahr. */
+const BEGINN_MONATE = 6;
+
+/** GerdQ fragt nach den letzten sieben Tagen. */
+const GERDQ_TAGE = 7;
+
+const inFenster = (iso, von, bis) => iso >= von && iso <= bis;
+
+/** Tage im Zeitraum, an denen überhaupt etwas notiert wurde. */
+function notierteTage(eintraege, tage, von, bis) {
+  const isos = new Set();
+  (eintraege || []).forEach((e) => { if (inFenster(e.am, von, bis)) isos.add(e.am); });
+  Object.keys(tage || {}).forEach((iso) => { if (inFenster(iso, von, bis)) isos.add(iso); });
+  return [...isos].sort();
+}
+
+/** Tage, an denen eine dieser Beschwerdearten mindestens `ab` stark war. */
+function tageMit(eintraege, arten, von, bis, ab = BELASTEND) {
+  const isos = new Set();
+  (eintraege || []).forEach((e) => {
+    if (e.art !== 'beschwerde' || !inFenster(e.am, von, bis)) return;
+    if ((Number(e.staerke) || 0) < ab) return;
+    if ((e.arten || []).some((a) => arten.includes(a))) isos.add(e.am);
+  });
+  return [...isos].sort();
+}
+
+/**
+ * Wie viele Tage je Woche – gerechnet über die *notierten* Tage, nicht über den
+ * Kalender.
+ *
+ * Der Unterschied ist der ganze Punkt: Wer in drei Monaten an dreißig Tagen
+ * schreibt und an zehn davon Schmerz hat, hat nicht „0,8 Tage die Woche",
+ * sondern ein Drittel seiner erfassten Tage. Auf den Kalender hochgerechnet
+ * wäre die Zahl erfunden; über die notierten Tage ist sie ehrlich und steht
+ * mit ihrer Grundlage daneben.
+ */
+function proWoche(trefferTage, notierte) {
+  if (!notierte) return 0;
+  return (trefferTage / notierte) * 7;
+}
+
+/**
+ * Wie lange die Beschwerden schon bestehen.
+ *
+ * `seit` ist 'YYYY-MM' aus den Einstellungen – die eine Angabe, die aus dem
+ * Tagebuch nicht hervorgeht, weil es an dem Tag beginnt, an dem jemand anfängt
+ * zu schreiben. Ohne sie bleibt die Zeitbedingung offen statt erfüllt.
+ */
+function dauerStand(seit, heute) {
+  if (!seit || !/^\d{4}-\d{2}$/.test(seit)) {
+    return { seit: null, monate: null, erfuellt: null };
+  }
+  const [jy, jm] = seit.split('-').map(Number);
+  const [hy, hm] = heute.split('-').map(Number);
+  const monate = (hy - jy) * 12 + (hm - jm);
+  return { seit, monate, erfuellt: monate >= BEGINN_MONATE };
+}
+
+/* ---------------------------------------------------------------------------
+ * Rom IV: Reizdarmsyndrom
+ * ---------------------------------------------------------------------------
+ *
+ * Wiederkehrender Bauchschmerz, im Mittel an mindestens einem Tag pro Woche in
+ * den letzten drei Monaten, verbunden mit mindestens zwei von drei Merkmalen:
+ * Zusammenhang mit dem Stuhlgang, Änderung der Häufigkeit, Änderung der Form.
+ *
+ * Alle drei Merkmale werden hier aus dem Tagebuch gerechnet statt gefragt –
+ * beim ersten aus der ausdrücklichen Angabe im Beschwerdebogen, bei den beiden
+ * anderen aus dem Vergleich von Schmerztagen mit den übrigen. Das ist nicht
+ * dasselbe wie die Frage, und es steht überall dabei.
+ */
+function reizdarm(d) {
+  const schmerzTage = tageMit(d.eintraege, ['krampf'], d.von, d.bis);
+  const proW = proWoche(schmerzTage.length, d.notierte.length);
+  const v = schmerzVergleich(d.eintraege, d.tage, ['krampf']);
+  const bez = bezugBilanz(d.eintraege);
+  const typ = stuhlTyp(d.eintraege);
+
+  const merkmale = [
+    {
+      id: 'stuhlgang',
+      name: 'Hängt mit dem Stuhlgang zusammen',
+      erfuellt: bez.genug && bez.anteil >= 0.5,
+      pruefbar: bez.genug,
+      text: bez.genug
+        ? `Bei ${bez.geaendert} von ${bez.beantwortet} Beschwerden mit Angabe war es `
+          + `nach dem Stuhlgang anders (${bez.besser}× besser, ${bez.schlechter}× schlechter).`
+        : `Erst ${bez.beantwortet} von 4 Beschwerden mit Angabe dazu. Die Frage steht `
+          + 'im Beschwerdebogen unten.',
+    },
+    {
+      id: 'haeufigkeit',
+      name: 'Die Häufigkeit ändert sich dabei',
+      erfuellt: v.genugTage && v.haeufigkeitAnders,
+      pruefbar: v.genugTage,
+      text: v.genugTage
+        ? `An Schmerztagen ${v.mit.proTag.toFixed(1).replace('.', ',')} Stuhlgänge am Tag `
+          + `(${v.mit.tage} Tage), sonst ${v.ohne.proTag.toFixed(1).replace('.', ',')} `
+          + `(${v.ohne.tage} Tage).`
+        : `Dafür braucht es je 5 Tage mit und ohne Bauchschmerz – bisher `
+          + `${v.mit.tage} und ${v.ohne.tage}.`,
+    },
+    {
+      id: 'form',
+      name: 'Die Form ändert sich dabei',
+      erfuellt: v.genugStuhl && v.formAnders,
+      pruefbar: v.genugStuhl,
+      text: v.genugStuhl
+        ? `An Schmerztagen waren ${Math.round(v.mit.anteilAuffaellig * 100)} % der `
+          + `Stuhlgänge auffällig geformt (${v.mit.stuhlgaenge} Stück), sonst `
+          + `${Math.round(v.ohne.anteilAuffaellig * 100)} % (${v.ohne.stuhlgaenge} Stück).`
+        : `Dafür braucht es je 5 Stuhlgänge an Tagen mit und ohne Bauchschmerz – `
+          + `bisher ${v.mit.stuhlgaenge} und ${v.ohne.stuhlgaenge}.`,
+    },
+  ];
+
+  const erfuellteMerkmale = merkmale.filter((m) => m.erfuellt).length;
+  const schmerzErfuellt = proW >= 1;
+  // Prüfbar heißt: genug notierte Tage für eine Aussage über Wochen, und
+  // mindestens zwei der drei Merkmale überhaupt beurteilbar. Sonst hinge das
+  // Ergebnis daran, was *nicht* eingetragen wurde.
+  const pruefbar = d.notierte.length >= 30
+    && merkmale.filter((m) => m.pruefbar).length >= 2;
+
+  return {
+    pruefbar,
+    erfuellt: pruefbar && schmerzErfuellt && erfuellteMerkmale >= 2,
+    schmerzTage: schmerzTage.length,
+    proWoche: proW,
+    schmerzErfuellt,
+    merkmale,
+    erfuellteMerkmale,
+    typ,
+  };
+}
+
+/* ---------------------------------------------------------------------------
+ * Rom IV: Funktionelle Dyspepsie
+ * ---------------------------------------------------------------------------
+ *
+ * Mindestens eines von vier belastenden Beschwerdebildern in den letzten drei
+ * Monaten. Unterteilt in zwei Formen, die verschieden behandelt werden:
+ *
+ *   PDS  Völlegefühl nach dem Essen oder frühes Sattsein, an mindestens
+ *        drei Tagen pro Woche.
+ *   EPS  Schmerz oder Brennen im Oberbauch, an mindestens einem Tag pro Woche.
+ *
+ * Beides zugleich kommt vor und ist kein Widerspruch.
+ */
+function dyspepsie(d) {
+  const pdsTage = tageMit(d.eintraege, ['druck', 'saettigung'], d.von, d.bis);
+  const epsTage = tageMit(d.eintraege, ['oberbauch', 'brennen'], d.von, d.bis);
+  const pdsW = proWoche(pdsTage.length, d.notierte.length);
+  const epsW = proWoche(epsTage.length, d.notierte.length);
+  const pruefbar = d.notierte.length >= 30;
+
+  return {
+    pruefbar,
+    pds: {
+      tage: pdsTage.length,
+      proWoche: pdsW,
+      erfuellt: pruefbar && pdsW >= 3,
+      name: 'Postprandiales Distress-Syndrom (PDS)',
+      satz: 'Völlegefühl nach dem Essen und frühes Sattsein stehen im Vordergrund.',
+    },
+    eps: {
+      tage: epsTage.length,
+      proWoche: epsW,
+      erfuellt: pruefbar && epsW >= 1,
+      name: 'Epigastrisches Schmerzsyndrom (EPS)',
+      satz: 'Schmerz oder Brennen im Oberbauch stehen im Vordergrund, unabhängig '
+        + 'vom Essen.',
+    },
+    erfuellt: pruefbar && (pdsW >= 3 || epsW >= 1),
+  };
+}
+
+/* ---------------------------------------------------------------------------
+ * GerdQ
+ * ---------------------------------------------------------------------------
+ *
+ * Sechs Fragen nach den letzten sieben Tagen, jede 0 bis 3 Punkte, zusammen 0
+ * bis 18. Ab 8 Punkten gilt eine Refluxkrankheit als wahrscheinlich.
+ *
+ * Zwei der sechs zählen *umgekehrt*: Oberbauchschmerz und Übelkeit sprechen
+ * eher gegen Reflux und für etwas anderes im Magen. Das ist keine Marotte des
+ * Fragebogens, sondern sein eigentlicher Trick – er misst nicht, wie schlecht
+ * es jemandem geht, sondern wie typisch das Muster ist.
+ */
+const GERDQ_POSTEN = [
+  { id: 'sodbrennen', frage: 'Brennen hinter dem Brustbein', arten: ['sodbrennen', 'brennen'], richtung: 1 },
+  { id: 'aufstossen', frage: 'Aufstoßen, Rückfluss in den Mund', arten: ['aufstossen'], richtung: 1 },
+  { id: 'oberbauch', frage: 'Schmerz in der Magengrube', arten: ['oberbauch'], richtung: -1 },
+  { id: 'uebelkeit', frage: 'Übelkeit', arten: ['uebelkeit'], richtung: -1 },
+];
+
+/** 0 Tage → 0, 1 Tag → 1, 2–3 Tage → 2, 4–7 Tage → 3. */
+function gerdqPunkt(tage) {
+  if (tage <= 0) return 0;
+  if (tage === 1) return 1;
+  if (tage <= 3) return 2;
+  return 3;
+}
+
+function gerdq(d) {
+  const von = plusTage(d.bis, -(GERDQ_TAGE - 1));
+  const erfasst = notierteTage(d.eintraege, d.tage, von, d.bis).length;
+
+  const posten = GERDQ_POSTEN.map((p) => {
+    // Ohne Stärkeschwelle: Der GerdQ fragt, ob es da war, nicht wie schlimm.
+    const tage = tageMit(d.eintraege, p.arten, von, d.bis, 1).length;
+    const roh = gerdqPunkt(tage);
+    return {
+      ...p,
+      tage,
+      punkte: p.richtung === 1 ? roh : 3 - roh,
+      umgekehrt: p.richtung === -1,
+    };
+  });
+
+  // Nächte, in denen die Beschwerden geweckt haben – aus der Tagesfrage.
+  const naechte = Object.keys(d.tage || {})
+    .filter((iso) => inFenster(iso, von, d.bis) && Number(d.tage[iso].nachtwach) >= 1).length;
+  posten.push({
+    id: 'nachtwach',
+    frage: 'Nachts davon wach geworden',
+    tage: naechte,
+    punkte: gerdqPunkt(naechte),
+    umgekehrt: false,
+  });
+
+  // Tage mit einem säurewirksamen Mittel. Der Fragebogen zielt auf die frei
+  // gekaufte Tablette gegen die Beschwerden – eine dauerhaft verordnete zählt
+  // dort genauso, und unterscheiden kann das Tagebuch beides nicht.
+  const mittelTage = [...new Set((d.eintraege || [])
+    .filter((e) => e.art === 'medikament' && inFenster(e.am, von, d.bis)
+      && d.istSaeuremittel(e.mittel))
+    .map((e) => e.am))].length;
+  posten.push({
+    id: 'mittel',
+    frage: 'Ein Mittel gegen die Beschwerden genommen',
+    tage: mittelTage,
+    punkte: gerdqPunkt(mittelTage),
+    umgekehrt: false,
+  });
+
+  const punkte = posten.reduce((s, p) => s + p.punkte, 0);
+  return {
+    punkte,
+    max: 18,
+    schwelle: 8,
+    wahrscheinlich: punkte >= 8,
+    posten,
+    erfasst,
+    von,
+    bis: d.bis,
+    // Unter vier erfassten Tagen der letzten sieben ist die Zahl nicht mehr
+    // eine Untergrenze, sondern Zufall.
+    belastbar: erfasst >= 4,
+  };
+}
+
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Alle Kriterien auf einmal.
+ *
+ * @param {object} d
+ *   eintraege, tage, heute (ISO), beschwerdenSeit ('YYYY-MM' oder null),
+ *   istSaeuremittel(name) – Prüfung, ob ein Mittel auf die Säure wirkt; kommt
+ *   von außen herein, damit diese Datei nichts über die Mittelliste weiß.
+ */
+function kriterien(d) {
+  const bis = d.heute;
+  const von = plusTage(bis, -(FENSTER_TAGE - 1));
+  const notierte = notierteTage(d.eintraege, d.tage, von, bis);
+  const basis = {
+    eintraege: d.eintraege || [],
+    tage: d.tage || {},
+    istSaeuremittel: d.istSaeuremittel || (() => false),
+    von,
+    bis,
+    notierte,
+  };
+
+  const erste = (d.eintraege || []).length ? d.eintraege[0].am : null;
+  return {
+    zeitraum: {
+      von,
+      bis,
+      tage: FENSTER_TAGE,
+      notierteTage: notierte.length,
+      // Wie lange überhaupt geschrieben wird. Nicht dasselbe wie die Dauer der
+      // Beschwerden, und der Unterschied ist genau das, was `dauer` festhält.
+      tagebuchTage: erste ? tageDazwischen(erste, bis) + 1 : 0,
+    },
+    dauer: dauerStand(d.beschwerdenSeit, bis),
+    reizdarm: reizdarm(basis),
+    dyspepsie: dyspepsie(basis),
+    gerdq: gerdq(basis),
+  };
+}
+
+/**
+ * Lohnt es sich überhaupt, die Kriterien anzuzeigen?
+ *
+ * Unter zwei Wochen Tagebuch steht dort nur, was alles noch nicht geht. Das ist
+ * richtig, aber es entmutigt genau die, die gerade angefangen haben.
+ */
+function genugFuerKriterien(k) {
+  return k.zeitraum.notierteTage >= 14;
+}
+
+/* ===== js/versuch.js ===== */
+/*
+ * Der Auslassversuch: aus einem Zusammenhang einen Beleg machen.
+ *
+ * Alles andere in dieser App zählt, was ohnehin passiert. Das hat eine harte
+ * Grenze: Wer an schlechten Tagen anders isst, findet sein Essen auffällig,
+ * ohne dass es etwas damit zu tun hätte. Aus Beobachtung wird kein Beweis,
+ * egal wie viele Monate man beobachtet.
+ *
+ * Ein Versuch dreht das um. Man lässt etwas weg und schaut, ob es besser wird –
+ * und dann, und darauf kommt es an, isst man es *bewusst wieder*. Erst diese
+ * zweite Hälfte macht den Unterschied: Nach zwei Wochen ohne irgendwas geht es
+ * fast jedem besser, weil der Sommer kommt, der Stress nachlässt oder man
+ * einfach aufmerksamer isst. Kommen die Beschwerden mit der Wiedereinführung
+ * zurück, ist das schwer anders zu erklären. Genau so wird in der
+ * Ernährungsmedizin gearbeitet.
+ *
+ * WAS DIESER VERSUCH NICHT IST: keine Verblindung, keine Kontrollgruppe, ein
+ * einziger Mensch. Wer weiß, dass er heute die Milch weglässt, erwartet auch,
+ * dass es besser wird. Das Ergebnis ist ein starker Hinweis und kein Nachweis –
+ * und es steht in jeder Ausgabe dabei.
+ *
+ * Reine Rechnung. Was gestartet und abgebrochen wird, steht in js/store.js.
+ */
+
+
+
+/** So lange wird nach der Wiedereinführung noch beobachtet. */
+const PROVOKATION_TAGE = 3;
+
+/** Kürzer als eine Woche ist kein Versuch, länger als vier hält niemand durch. */
+const DAUER_VORSCHLAEGE = [7, 14, 21];
+
+/**
+ * Enthält diese Mahlzeit das, was weggelassen werden soll?
+ *
+ * Bei einem einzelnen Auslöser ist das eine Frage an die Zutatenliste, bei
+ * einer Klasse eine an alle Zutaten und ihre Klassen. Die Umstände – große
+ * Portion, spät gegessen – zählen mit, denn auch die kann man weglassen.
+ */
+function betrifft(eintrag, art, ziel) {
+  if (eintrag.art !== 'essen') return false;
+  if (art === 'klasse') {
+    return zutatenVon(eintrag).some((z) => klassenVon(z.id).includes(ziel));
+  }
+  return merkmale(eintrag).includes(ziel);
+}
+
+/**
+ * In welcher Phase der Versuch gerade steckt.
+ *
+ *   'auslass'      Die Tage ohne. Läuft.
+ *   'reif'         Die Auslasszeit ist um – jetzt kommt die Wiedereinführung.
+ *   'provokation'  Wieder gegessen, es wird noch beobachtet.
+ *   'fertig'       Vorbei, das Ergebnis steht.
+ *   'abgebrochen'  Von Hand beendet.
+ */
+function phase(v, heute) {
+  if (!v) return null;
+  if (v.beendet) return 'abgebrochen';
+  if (v.provokation) {
+    return tageDazwischen(v.provokation, heute) >= PROVOKATION_TAGE ? 'fertig' : 'provokation';
+  }
+  return tageDazwischen(v.start, heute) >= v.tage ? 'reif' : 'auslass';
+}
+
+/** Der wievielte Tag von wie vielen – für die Zeile auf dem Tagesreiter. */
+function versuchStand(v, heute) {
+  if (!v) return null;
+  const p = phase(v, heute);
+  const tag = Math.min(v.tage, tageDazwischen(v.start, heute) + 1);
+  return {
+    phase: p,
+    tag: Math.max(1, tag),
+    von: v.tage,
+    // Wie viele Tage noch – nach der Provokation zählt das Beobachtungsfenster.
+    rest: p === 'auslass' ? Math.max(0, v.tage - tag)
+      : (p === 'provokation'
+        ? Math.max(0, PROVOKATION_TAGE - tageDazwischen(v.provokation, heute)) : 0),
+  };
+}
+
+/** Der Durchschnitt der Tageswerte in einem Zeitraum, über notierte Tage. */
+function abschnitt(eintraege, tage, von, bis) {
+  const werte = [];
+  const n = Math.max(0, tageDazwischen(von, bis));
+  for (let i = 0; i <= n; i++) {
+    const t = tagesWert(eintraege, plusTage(von, i), tage);
+    if (t.notiert) werte.push(t.wert);
+  }
+  return {
+    von,
+    bis,
+    tage: n + 1,
+    notierte: werte.length,
+    schnitt: werte.length ? werte.reduce((a, b) => a + b, 0) / werte.length : 0,
+    frei: werte.filter((w) => w === 0).length,
+  };
+}
+
+/**
+ * Wie sauber der Versuch gelaufen ist.
+ *
+ * Das Tagebuch weiß es besser als die Erinnerung: Wenn in der Auslasszeit an
+ * vier Tagen Milch eingetragen ist, war es keine Auslasszeit – und das gehört
+ * ins Ergebnis, nicht unter den Tisch. Ein unsauberer Versuch ist kein
+ * Misserfolg, er ist nur keine Antwort.
+ */
+function treue(eintraege, v, von, bis) {
+  const mahlzeiten = eintraege.filter((e) => e.art === 'essen' && e.am >= von && e.am <= bis);
+  const verstoesse = mahlzeiten.filter((e) => betrifft(e, v.art, v.ziel));
+  const tage = [...new Set(verstoesse.map((e) => e.am))];
+  return {
+    mahlzeiten: mahlzeiten.length,
+    verstoesse: verstoesse.length,
+    tage: tage.length,
+    // Zwei Ausrutscher in vierzehn Tagen sind menschlich; ab da wird die
+    // Aussage dünn.
+    sauber: tage.length <= 2,
+  };
+}
+
+const VERSUCH_URTEIL = {
+  dafuer: 'spricht dafür',
+  unklar: 'unklar',
+  dagegen: 'spricht dagegen',
+  offen: 'noch offen',
+  unsauber: 'nicht auswertbar',
+  zuwenig: 'zu wenige Tage',
+};
+
+/**
+ * Das Ergebnis.
+ *
+ * Drei Zahlen tragen es: der eigene Durchschnitt *vor* dem Versuch, der
+ * *während* der Auslasszeit und der *nach* der Wiedereinführung. Verglichen
+ * wird gegen den eigenen Ausgangswert und nicht gegen null – dieselbe Regel wie
+ * überall in dieser App, und aus demselben Grund.
+ *
+ * Eine ganze Stufe auf der Zehnerskala ist die Schwelle. Darunter ist es
+ * Rauschen, und Rauschen als Ergebnis auszugeben wäre die eine Art, mit der so
+ * ein Versuch schadet: Wer daraufhin ein Lebensmittel für immer streicht, isst
+ * einseitiger, ohne dass es ihm besser geht.
+ */
+function ergebnis(v, eintraege, tage, heute) {
+  if (!v) return null;
+  const p = phase(v, heute);
+  const eintr = eintraege || [];
+
+  const auslassBis = plusTage(v.start, v.tage - 1);
+  const vorher = abschnitt(eintr, tage, plusTage(v.start, -v.tage), plusTage(v.start, -1));
+  const auslass = abschnitt(eintr, tage,
+    v.start, p === 'auslass' ? heute : auslassBis);
+  const nachher = v.provokation
+    ? abschnitt(eintr, tage, v.provokation,
+      plusTage(v.provokation, PROVOKATION_TAGE - 1))
+    : null;
+  const t = treue(eintr, v, v.start, p === 'auslass' ? heute : auslassBis);
+
+  const besserung = vorher.schnitt - auslass.schnitt;
+  const rueckkehr = nachher ? nachher.schnitt - auslass.schnitt : null;
+
+  let urteil = 'offen';
+  let satz = '';
+  if (vorher.notierte < 5 || auslass.notierte < 5) {
+    urteil = 'zuwenig';
+    satz = `Für einen Vergleich braucht es auf beiden Seiten mindestens fünf notierte `
+      + `Tage – bisher ${vorher.notierte} davor und ${auslass.notierte} währenddessen. `
+      + `Eine Lücke im Tagebuch ist kein beschwerdefreier Tag.`;
+  } else if (!t.sauber) {
+    urteil = 'unsauber';
+    satz = `An ${t.tage} Tagen der Auslasszeit steht es doch im Tagebuch. Das ist `
+      + `kein Vorwurf, aber es ist keine Antwort: Was in der Auslasszeit vorkam, `
+      + `kann man nicht als weggelassen rechnen.`;
+  } else if (p === 'auslass' || p === 'reif') {
+    urteil = 'offen';
+    satz = besserung >= 1
+      ? `Bisher ${besserung.toFixed(1).replace('.', ',')} Stufen besser als davor. `
+        + `Das allein beweist nichts – nach zwei Wochen ohne irgendetwas geht es `
+        + `den meisten besser. Die Antwort bringt erst die Wiedereinführung.`
+      : `Bisher kein deutlicher Unterschied zu den ${vorher.notierte} Tagen davor. `
+        + `Der Versuch läuft weiter.`;
+  } else if (nachher && nachher.notierte < 2) {
+    urteil = 'offen';
+    satz = 'Nach der Wiedereinführung ist noch zu wenig eingetragen. Zwei, drei Tage '
+      + 'notieren, dann steht das Ergebnis hier.';
+  } else if (besserung >= 1 && rueckkehr >= 1) {
+    urteil = 'dafuer';
+    satz = `Ohne war es ${besserung.toFixed(1).replace('.', ',')} Stufen besser, und `
+      + `mit der Wiedereinführung kam es um ${rueckkehr.toFixed(1).replace('.', ',')} `
+      + `Stufen zurück. Beides zusammen ist schwer anders zu erklären – das ist der `
+      + `stärkste Hinweis, den ein Tagebuch hergibt.`;
+  } else if (besserung >= 1) {
+    urteil = 'unklar';
+    satz = `Ohne war es ${besserung.toFixed(1).replace('.', ',')} Stufen besser, aber `
+      + `mit der Wiedereinführung kam es nicht zurück. Das kann Zufall sein, `
+      + `Gewöhnung, oder es lag an etwas anderem, das sich gleichzeitig geändert `
+      + `hat. Ein zweiter Durchgang würde es klären.`;
+  } else {
+    urteil = 'dagegen';
+    satz = `Ohne war es nicht besser (${vorher.schnitt.toFixed(1).replace('.', ',')} `
+      + `davor, ${auslass.schnitt.toFixed(1).replace('.', ',')} während). Das ist ein `
+      + `gutes Ergebnis: Es ist eine Sache weniger, auf die du verzichten musst.`;
+  }
+
+  return {
+    phase: p,
+    urteil,
+    wort: VERSUCH_URTEIL[urteil],
+    satz,
+    vorher,
+    auslass,
+    nachher,
+    besserung,
+    rueckkehr,
+    treue: t,
+  };
+}
+
+/**
+ * Was sich als nächstes zu prüfen lohnt.
+ *
+ * Vorgeschlagen wird, was in der Bilanz auffällt und oft genug vorkommt, um es
+ * überhaupt weglassen zu können – Klassen vor einzelnen Zutaten, weil sich
+ * hinter „Zwiebel" fast immer die ganze Klasse verbirgt und man beim Weglassen
+ * einer einzelnen Zutat die übrigen weiter isst.
+ */
+function vorschlaege(nachKlassen, nachAusloesern, anzahl = 4) {
+  const raus = [];
+  (nachKlassen || []).filter((b) => b.genug && b.differenz >= 0.8)
+    .slice(0, 2).forEach((b) => raus.push({ art: 'klasse', ziel: b.id, differenz: b.differenz, faelle: b.faelle }));
+  (nachAusloesern || []).filter((b) => b.genug && b.differenz >= 1
+    && !['gross', 'spaet'].includes(b.id))
+    .slice(0, 3).forEach((b) => raus.push({ art: 'ausloeser', ziel: b.id, differenz: b.differenz, faelle: b.faelle }));
+  return raus.sort((a, b) => b.differenz - a.differenz).slice(0, anzahl);
+}
+
+/* ===== js/ansprechen.js ===== */
+/*
+ * Ob ein Mittel etwas bewirkt – und was es heißt, wenn nicht.
+ *
+ * Diese App schlägt kein Medikament vor; das steht in js/rat.js und bleibt so.
+ * Hier geht es um etwas anderes: Sie *nimmt* schon etwas, sie trägt es ein, und
+ * niemand rechnet nach, ob es wirkt. Genau diese Rechnung ist in der
+ * Sprechstunde eine eigene Auskunft.
+ *
+ * Denn ausbleibendes Ansprechen ist selbst ein Befund. Ein Säureblocker, der
+ * nach vier bis acht Wochen nichts geändert hat, spricht gegen die Säure als
+ * Ursache – und damit für eine funktionelle Störung oder für etwas, das noch
+ * nicht gefunden wurde. Das ist eine der wenigen Stellen, an denen ein
+ * Tagebuch eine Untersuchung ersetzen kann: Der „PPI-Versuch" ist genau das,
+ * ein Versuch mit Beobachtung, und beobachtet wird hier ohnehin.
+ *
+ * WAS HIER TROTZDEM NICHT PASSIERT: kein „nimm mehr", kein „setz es ab", kein
+ * „wechsle das Präparat". Ein Säureblocker wird nach längerer Einnahme nicht
+ * von einem Tag auf den anderen weggelassen – der Magen antwortet dann mit mehr
+ * Säure als vorher. Was hier steht, ist die Zahl und die Frage dazu.
+ *
+ * Reine Rechnung, alles kommt als Argument herein.
+ */
+
+
+/** Ab so vielen Einnahmetagen lohnt der Vergleich überhaupt. */
+const MINDEST_TAGE = 8;
+
+/** Ab so vielen Wochen ist ein Säureblocker-Versuch ausgereizt. */
+const PPI_WOCHEN = 4;
+
+/** Gruppen, bei denen ausbleibendes Ansprechen eine eigene Aussage ist. */
+const SAEURE_GRUPPEN = ['ppi', 'h2'];
+
+function schnittUeber(eintraege, tage, von, bis) {
+  const werte = [];
+  const n = Math.max(0, tageDazwischen(von, bis));
+  for (let i = 0; i <= n; i++) {
+    const t = tagesWert(eintraege, plusTage(von, i), tage);
+    if (t.notiert) werte.push(t.wert);
+  }
+  return {
+    notierte: werte.length,
+    schnitt: werte.length ? werte.reduce((a, b) => a + b, 0) / werte.length : 0,
+    frei: werte.filter((w) => w === 0).length,
+  };
+}
+
+/**
+ * Ein Mittel gegen die Zeit davor.
+ *
+ * Der Vergleichszeitraum ist genauso lang wie die Einnahmezeit und liegt
+ * unmittelbar davor. Das ist die ehrlichste Zuordnung, die aus einem Tagebuch
+ * herauszuholen ist – und sie hat eine bekannte Schwäche, die dabeisteht: Man
+ * fängt ein Mittel meistens an, *weil* es gerade besonders schlecht ist.
+ * Danach wird es oft von selbst wieder besser, Mittel hin oder her. Deshalb
+ * sagt eine Besserung hier weniger als ein Ausbleiben.
+ */
+function mittelBilanz(eintraege, tage, opt = {}) {
+  const gruppeVon = opt.gruppeVon || (() => null);
+  const heute = opt.heute;
+  const alle = eintraege || [];
+
+  const nachName = new Map();
+  alle.filter((e) => e.art === 'medikament').forEach((e) => {
+    const name = String(e.mittel || '').trim();
+    if (!name) return;
+    // Groß- und Kleinschreibung zusammenfassen, sonst stehen „Pantoprazol" und
+    // „pantoprazol" als zwei Mittel da, jedes mit der halben Fallzahl.
+    const schluessel = name.toLowerCase();
+    const v = nachName.get(schluessel) || { name, tage: new Set() };
+    v.name = name;
+    v.tage.add(e.am);
+    nachName.set(schluessel, v);
+  });
+
+  const raus = [];
+  nachName.forEach((v) => {
+    const tageListe = [...v.tage].sort();
+    const von = tageListe[0];
+    const bis = tageListe[tageListe.length - 1];
+    const gruppe = gruppeVon(v.name);
+    const spanne = tageDazwischen(von, bis) + 1;
+    const laeuft = heute ? tageDazwischen(bis, heute) <= 3 : false;
+
+    if (tageListe.length < MINDEST_TAGE) {
+      raus.push({
+        name: v.name,
+        gruppe,
+        einnahmeTage: tageListe.length,
+        genug: false,
+        fehlt: MINDEST_TAGE - tageListe.length,
+        seit: von,
+        zuletzt: bis,
+        laeuft,
+      });
+      return;
+    }
+
+    // Der Zeitraum der Einnahme, nicht nur die Tage mit Eintrag: Wer ein Mittel
+    // täglich nimmt, trägt es nicht täglich ein.
+    const unter = schnittUeber(alle, tage, von, bis);
+    const davor = schnittUeber(alle, tage, plusTage(von, -spanne), plusTage(von, -1));
+    const differenz = davor.schnitt - unter.schnitt;
+    const vergleichbar = davor.notierte >= 5 && unter.notierte >= 5;
+    const wochen = spanne / 7;
+
+    let urteil = 'offen';
+    if (!vergleichbar) urteil = 'zuwenig';
+    else if (differenz >= 1) urteil = 'besser';
+    else if (differenz <= -1) urteil = 'schlechter';
+    else urteil = 'unveraendert';
+
+    raus.push({
+      name: v.name,
+      gruppe,
+      einnahmeTage: tageListe.length,
+      genug: true,
+      seit: von,
+      zuletzt: bis,
+      spanne,
+      wochen,
+      laeuft,
+      davor,
+      unter,
+      differenz,
+      vergleichbar,
+      urteil,
+      // Der Fall, für den es diese Datei gibt: ein Säureblocker, lange genug
+      // genommen, ohne dass sich etwas geändert hat.
+      saeureVersuchAusgereizt: SAEURE_GRUPPEN.includes(gruppe)
+        && wochen >= PPI_WOCHEN && vergleichbar && differenz < 1,
+    });
+  });
+
+  return raus.sort((a, b) => (b.einnahmeTage - a.einnahmeTage));
+}
+
+const ANSPRECHEN_URTEIL = {
+  besser: 'darunter besser',
+  schlechter: 'darunter schlechter',
+  unveraendert: 'kein Unterschied',
+  zuwenig: 'zu wenige notierte Tage',
+  offen: 'noch offen',
+};
+
+/**
+ * Der Satz, der in die Sprechstunde gehört.
+ *
+ * Für jedes Mittel mit genug Tagen einer – und für den ausgereizten
+ * Säureblocker der eine, der etwas verändert: Er beendet eine Frage, statt eine
+ * neue aufzumachen.
+ */
+function befund(m) {
+  if (!m.genug) {
+    return `Noch ${m.fehlt} Einnahmetage, dann lässt sich vergleichen.`;
+  }
+  if (!m.vergleichbar) {
+    return 'Vor der Einnahme sind zu wenige Tage notiert, um zu vergleichen.';
+  }
+  const zahlen = `${m.davor.schnitt.toFixed(1).replace('.', ',')} davor gegen `
+    + `${m.unter.schnitt.toFixed(1).replace('.', ',')} darunter `
+    + `(${m.davor.notierte} gegen ${m.unter.notierte} notierte Tage).`;
+
+  if (m.saeureVersuchAusgereizt) {
+    return `Seit ${Math.round(m.wochen)} Wochen im Gebrauch, ohne dass sich die `
+      + `Beschwerdestärke geändert hätte: ${zahlen} Das ist selbst ein Befund. `
+      + `Wenn Säure die Ursache wäre, wäre nach vier bis acht Wochen etwas zu `
+      + `sehen. Frage für den Termin: Was heißt es, dass es darunter nicht besser `
+      + `geworden ist – und wie geht es weiter? Nicht von selbst absetzen: Nach `
+      + `längerer Einnahme antwortet der Magen kurzzeitig mit mehr Säure als vorher.`;
+  }
+  if (m.urteil === 'besser') {
+    return `Darunter ${m.differenz.toFixed(1).replace('.', ',')} Stufen besser: ${zahlen} `
+      + `Vorsicht bei der Deutung: Ein Mittel fängt man meist an, wenn es gerade `
+      + `besonders schlecht ist – danach wird es oft von selbst wieder besser.`;
+  }
+  if (m.urteil === 'schlechter') {
+    return `Darunter schlechter als davor: ${zahlen} Das heißt nicht, dass das `
+      + `Mittel schadet – eher, dass es angefangen wurde, als es schlechter wurde. `
+      + `Wenn es dabei bleibt, gehört es angesprochen.`;
+  }
+  return `Kein Unterschied zur Zeit davor: ${zahlen} Ob das gegen das Mittel `
+    + `spricht, hängt daran, wie lange es schon läuft – ${Math.round(m.wochen)} `
+    + `${m.wochen < 2 ? 'Woche' : 'Wochen'} bisher.`;
+}
+
+/* ===== js/luecken.js ===== */
+/*
+ * Was noch fehlt – und was nur eine Untersuchung beantworten kann.
+ *
+ * Bis hierher sagt die App, was sie sieht. Diese Datei sagt, was sie *nicht*
+ * sieht, und das ist bei einem Tagebuch die nützlichere Hälfte. Zwei Sorten
+ * Lücken, sauber getrennt, weil sie verschiedene Schlüsse verlangen:
+ *
+ *   1. **Lücken im Tagebuch.** Fragen, die offen sind, weil etwas nicht
+ *      eingetragen wurde. Die kann sie selbst schließen, und hier steht, womit
+ *      und wie viel es noch braucht. Das ist der Unterschied zwischen einer App,
+ *      die mitschreibt, und einer, die weiterfragt.
+ *
+ *   2. **Lücken, die keine App schließt.** Helicobacter, Gewebe, Blutwerte,
+ *      Atemtest. Dort steht nicht „unbekannt", sondern welche Untersuchung die
+ *      Frage beantwortet – die eine Zeile, für die sich der ganze Aufwand
+ *      lohnt, weil man sie beim Termin vorlesen kann.
+ *
+ * Kein Ranking von Diagnosen nach Wahrscheinlichkeit. Was hier je Verdacht
+ * steht, ist: was dafür spricht, was dagegen, und was es entscheidet. Die
+ * Entscheidung selbst fällt woanders.
+ */
+
+/** Wie weit ein Verdacht aus dem Tagebuch heraus gestützt ist. */
+const STAND_WORT = {
+  gestuetzt: 'passt zum Verlauf',
+  moeglich: 'kommt in Frage',
+  unwahrscheinlich: 'spricht eher dagegen',
+  offen: 'nicht beurteilbar',
+};
+
+/* ---------------------------------------------------------------------------
+ * 1. Was sie selbst schließen kann
+ * ---------------------------------------------------------------------------
+ *
+ * Sortiert nach Gewicht: Was die meisten Fragen auf einmal aufmacht, steht
+ * oben. Eine Liste mit fünfzehn Punkten liest niemand – die Anzeige nimmt die
+ * ersten paar.
+ */
+function tagebuchLuecken(d) {
+  const raus = [];
+  const k = d.kriterien;
+  const s = d.stuhl;
+  const nimm = (id, gewicht, titel, text) => raus.push({ id, gewicht, titel, text });
+
+  if (s.gesamt === 0) {
+    nimm('stuhl', 10, 'Stuhlgang eintragen',
+      'Die größte Lücke. Ohne Häufigkeit und Form lässt sich ein Reizdarm '
+      + 'im Tagebuch überhaupt nicht prüfen, und der Typ – Verstopfung, '
+      + 'Durchfall, gemischt – entscheidet in der Praxis über die Behandlung. '
+      + 'Zwei Tipper am Tag, mit Bildchen statt Text.');
+  } else if (s.gesamt < 15) {
+    nimm('stuhl', 8, 'Weiter Stuhlgang eintragen',
+      `${s.gesamt} von 15 Eintragungen. Ab fünfzehn lässt sich der Typ `
+      + 'bestimmen; darunter kippt der Anteil mit jedem einzelnen Eintrag.');
+  }
+
+  if (!k.dauer.seit) {
+    nimm('seit', 9, 'Seit wann hast du das?',
+      'Die eine Angabe, die aus dem Tagebuch grundsätzlich nicht hervorgeht – '
+      + 'es beginnt an dem Tag, an dem du anfängst zu schreiben. Die '
+      + 'Rom-Kriterien verlangen einen Beginn vor mindestens einem halben '
+      + 'Jahr. Steht unter „Mehr", dauert fünf Sekunden.');
+  }
+
+  const bez = d.bezug;
+  if (bez && !bez.genug) {
+    nimm('stuhlbezug', 7, 'Die Frage nach dem Stuhlgang beantworten',
+      `Unten im Beschwerdebogen: „Danach besser, schlechter, unverändert?" `
+      + `Bisher ${bez.beantwortet} von 4 Malen beantwortet. Das ist eines der `
+      + 'drei Merkmale, an denen ein Reizdarmsyndrom festgemacht wird, und das '
+      + 'einzige, das sich nicht aus Zahlen ableiten lässt.');
+  }
+
+  if (!d.benutzt.oberbauch || !d.benutzt.saettigung) {
+    nimm('arten', 6, 'Zwei neue Beschwerdezeilen benutzen',
+      'Im Beschwerdebogen stehen jetzt „Schmerz im Oberbauch" und „Früh satt". '
+      + 'Sie klingen wie „Brennen" und „kein Appetit" und sind etwas anderes: '
+      + 'An ihnen hängt, ob sich das Bild eher als Schmerz- oder als '
+      + 'Völlegefühl-Typ einordnen lässt – zwei Formen, die verschieden '
+      + 'behandelt werden.');
+  }
+
+  if (k.zeitraum.notierteTage < 30) {
+    nimm('tage', 8, 'Regelmäßiger eintragen',
+      `In den letzten drei Monaten sind ${k.zeitraum.notierteTage} Tage notiert. `
+      + 'Ab dreißig lassen sich die Rom-Kriterien rechnen. Wichtig ist nicht die '
+      + 'Menge je Tag, sondern dass kein Tag fehlt – eine Lücke ist kein guter '
+      + 'Tag, und Lücken häufen sich genau in den schlechten Wochen.');
+  } else if (k.zeitraum.tagebuchTage < 90) {
+    nimm('tage', 4, 'Weiterschreiben',
+      `Das Tagebuch läuft seit ${k.zeitraum.tagebuchTage} Tagen. Die `
+      + 'Rom-Kriterien schauen auf drei Monate – bis dahin ist jede Aussage '
+      + 'dazu vorläufig.');
+  }
+
+  if (!k.gerdq.belastbar) {
+    nimm('gerdq', 5, 'Die letzte Woche vollständig eintragen',
+      `Der GerdQ schaut auf sieben Tage; erfasst sind davon ${k.gerdq.erfasst}. `
+      + 'Was nicht eingetragen ist, zählt als „nicht gehabt" – die Punktzahl ist '
+      + 'dann zu niedrig statt falsch, aber eben auch nicht zu gebrauchen.');
+  }
+
+  if (!d.nachtwachAn) {
+    nimm('nachtwach', 4, 'Die Frage „Nachts davon wach" anschalten',
+      'Sie steht unter „Mehr" bei den Tagesfragen. Im GerdQ ist sie eine eigene '
+      + 'Frage, und in der Sprechstunde eine der ersten – Beschwerden, die aus '
+      + 'dem Schlaf reißen, sind etwas anderes als solche am Tag.');
+  }
+
+  if (d.versuchMoeglich && !d.versuchLaeuft) {
+    nimm('versuch', 7, 'Einen Auslassversuch machen',
+      'In deiner Bilanz steht etwas Auffälliges. Zählen allein macht daraus nie '
+      + 'einen Beleg – wer an schlechten Tagen anders isst, findet sein Essen '
+      + 'auffällig, ohne dass es damit zu tun hat. Zwei Wochen weglassen, dann '
+      + 'bewusst wieder essen: Das ist der einzige Weg von „fällt zusammen" zu '
+      + '„liegt daran". Steht unter „Muster".');
+  }
+
+  const ohneZutaten = d.mahlzeitenOhneZutaten;
+  if (ohneZutaten >= 5) {
+    nimm('zutaten', 3, 'Bei Mahlzeiten ankreuzen, was drin war',
+      `${ohneZutaten} Mahlzeiten stehen ohne angekreuzte Zutat da. Sie zählen `
+      + 'für den Verlauf, aber für keine einzige Auslöserfrage.');
+  }
+
+  return raus.sort((a, b) => b.gewicht - a.gewicht);
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. Was keine App schließt
+ * ---------------------------------------------------------------------------
+ *
+ * Je Verdacht: was im Tagebuch dafür spricht, was dagegen, was offen bleibt –
+ * und die Untersuchung, die es entscheidet. Die letzte Zeile ist die, für die
+ * es diese Liste gibt.
+ */
+const VERDAECHTE = [
+  {
+    id: 'hpylori',
+    name: 'Helicobacter pylori',
+    was: 'Ein Bakterium in der Magenschleimhaut. Häufigste Ursache von Gastritis '
+      + 'und Magengeschwür – und die einzige Möglichkeit auf dieser Liste, die '
+      + 'sich in zwei Wochen behandeln und danach abhaken lässt.',
+    untersuchung: 'Atemtest, Stuhltest oder Gewebeprobe bei der Spiegelung. '
+      + 'Wichtig: Säureblocker zwei Wochen vorher absetzen (nach Absprache), '
+      + 'sonst wird der Test falsch negativ.',
+    frage: 'Wäre ein Test auf Helicobacter pylori sinnvoll?',
+    pruefe: (d) => {
+      const dafuer = [];
+      const m = d.musterIds;
+      if (m.includes('nuechtern')) dafuer.push('Der Nüchternschmerz ist das klassische Muster dafür.');
+      if (m.includes('saeure')) dafuer.push('Das säuretypische Bild passt dazu.');
+      return {
+        stand: 'offen',
+        dafuer,
+        dagegen: [],
+        offen: 'Aus einem Tagebuch grundsätzlich nicht zu sehen. Ein Bakterium '
+          + 'macht kein eigenes Muster – es macht die Entzündung, die dann alles '
+          + 'andere macht.',
+      };
+    },
+  },
+  {
+    id: 'ulkus',
+    name: 'Magen- oder Zwölffingerdarmgeschwür',
+    was: 'Ein Defekt in der Schleimhaut. Tut typischerweise nüchtern weh und wird '
+      + 'nach dem Essen kurz besser.',
+    untersuchung: 'Magenspiegelung. Sie ist auch die einzige, die eine Blutung '
+      + 'gleich mitbehandeln kann.',
+    frage: 'Der Schmerz kommt nüchtern und bessert sich nach dem Essen – ist eine '
+      + 'Magenspiegelung angezeigt?',
+    pruefe: (d) => {
+      const dafuer = [];
+      const dagegen = [];
+      if (d.musterIds.includes('nuechtern')) {
+        dafuer.push(`${d.essen.nuechtern} von ${d.essen.bewertbar} zuordenbaren `
+          + 'Beschwerden kamen erst vier Stunden oder länger nach dem Essen.');
+      }
+      if (d.nsarTage >= 3) dafuer.push(`An ${d.nsarTage} Tagen ein entzündungshemmendes Schmerzmittel.`);
+      if (d.essen.bewertbar >= 8 && d.essen.anteilNachDemEssen >= 0.6) {
+        dagegen.push('Die Beschwerden kommen überwiegend kurz *nach* dem Essen, '
+          + 'nicht nüchtern.');
+      }
+      return {
+        stand: dafuer.length ? 'moeglich' : 'offen',
+        dafuer,
+        dagegen,
+        offen: 'Ein Geschwür sieht man, man errechnet es nicht. Warnzeichen wie '
+          + 'schwarzer Stuhl oder Blutarmut würden es dringend machen.',
+      };
+    },
+  },
+  {
+    id: 'reflux',
+    name: 'Refluxkrankheit',
+    was: 'Mageninhalt kommt in die Speiseröhre zurück. Brennen hinter dem '
+      + 'Brustbein, oft im Liegen und nach spätem Essen.',
+    untersuchung: 'Meist zuerst ein befristeter Versuch mit einem Säureblocker; '
+      + 'bleibt es dabei oder kommt es wieder, Spiegelung und gegebenenfalls eine '
+      + 'Messung des Säurerückflusses über 24 Stunden.',
+    frage: 'Spricht etwas für oder gegen einen befristeten Versuch mit einem '
+      + 'Säureblocker – und was, wenn er nichts ändert?',
+    pruefe: (d) => {
+      const dafuer = [];
+      const dagegen = [];
+      const g = d.kriterien.gerdq;
+      if (g.belastbar && g.wahrscheinlich) {
+        dafuer.push(`GerdQ ${g.punkte} von 18 Punkten – ab 8 gilt Reflux als wahrscheinlich.`);
+      }
+      if (g.belastbar && !g.wahrscheinlich) {
+        dagegen.push(`GerdQ ${g.punkte} von 18 Punkten, unter der Schwelle von 8.`);
+      }
+      if (d.musterIds.includes('saeure')) dafuer.push('Das Muster ist säuretypisch.');
+      const ppi = (d.mittel || []).find((m) => m.saeureVersuchAusgereizt);
+      if (ppi) {
+        dagegen.push(`${ppi.name} läuft seit ${Math.round(ppi.wochen)} Wochen, ohne dass `
+          + 'sich die Beschwerdestärke geändert hätte. Wäre Säure die Ursache, wäre '
+          + 'nach vier bis acht Wochen etwas zu sehen.');
+      }
+      let stand = 'offen';
+      if (dafuer.length && !dagegen.length) stand = 'gestuetzt';
+      else if (dafuer.length) stand = 'moeglich';
+      else if (dagegen.length) stand = 'unwahrscheinlich';
+      return {
+        stand,
+        dafuer,
+        dagegen,
+        offen: 'Ob die Speiseröhre Schaden genommen hat, zeigt nur die Spiegelung. '
+          + 'Der GerdQ sagt etwas über das Muster, nichts über den Zustand.',
+      };
+    },
+  },
+  {
+    id: 'dyspepsie',
+    name: 'Funktionelle Dyspepsie',
+    was: 'Beschwerden ohne fassbaren Befund. Kein Restposten und keine '
+      + 'Einbildung – eine eigene Störung mit eigener Behandlung, und die '
+      + 'häufigste Erklärung überhaupt.',
+    untersuchung: 'Die Diagnose steht, wenn die Kriterien erfüllt sind *und* eine '
+      + 'Spiegelung nichts zeigt. Ohne die Spiegelung bleibt sie eine Vermutung.',
+    frage: 'Passt das Bild zu einer funktionellen Dyspepsie – und wenn ja, welche '
+      + 'Form, PDS oder EPS?',
+    pruefe: (d) => {
+      const dafuer = [];
+      const dy = d.kriterien.dyspepsie;
+      if (dy.pruefbar && dy.pds.erfuellt) {
+        dafuer.push(`Die PDS-Kriterien sind erfüllt: an ${dy.pds.tage} Tagen `
+          + `Völlegefühl oder frühes Sattsein, ${dy.pds.proWoche.toFixed(1).replace('.', ',')} `
+          + 'je Woche der notierten Tage (verlangt sind 3).');
+      }
+      if (dy.pruefbar && dy.eps.erfuellt) {
+        dafuer.push(`Die EPS-Kriterien sind erfüllt: an ${dy.eps.tage} Tagen `
+          + `Schmerz oder Brennen im Oberbauch, ${dy.eps.proWoche.toFixed(1).replace('.', ',')} `
+          + 'je Woche der notierten Tage (verlangt ist 1).');
+      }
+      return {
+        stand: dafuer.length ? 'gestuetzt' : (dy.pruefbar ? 'unwahrscheinlich' : 'offen'),
+        dafuer,
+        dagegen: [],
+        offen: dy.pruefbar ? 'Die Kriterien setzen voraus, dass nichts Organisches '
+          + 'dahintersteckt. Das entscheidet die Spiegelung, nicht dieses Tagebuch.'
+          : 'Für die Kriterien fehlen noch notierte Tage.',
+      };
+    },
+  },
+  {
+    id: 'reizdarm',
+    name: 'Reizdarmsyndrom',
+    was: 'Bauchschmerz, der mit dem Stuhlgang zusammenhängt. Wie die funktionelle '
+      + 'Dyspepsie eine eigene Diagnose mit eigener Behandlung – und oft beides '
+      + 'zusammen.',
+    untersuchung: 'Vor der Diagnose gehören Zöliakie (Bluttest) und eine '
+      + 'Entzündung im Darm (Calprotectin im Stuhl) ausgeschlossen. Beides ist '
+      + 'einfach und wird oft vergessen.',
+    frage: 'Die Rom-Kriterien für ein Reizdarmsyndrom sind erfüllt – sind Zöliakie '
+      + 'und Calprotectin schon geprüft worden?',
+    pruefe: (d) => {
+      const r = d.kriterien.reizdarm;
+      const dafuer = [];
+      const dagegen = [];
+      if (r.pruefbar && r.schmerzErfuellt) {
+        dafuer.push(`Bauchschmerz an ${r.schmerzTage} Tagen, `
+          + `${r.proWoche.toFixed(1).replace('.', ',')} je Woche der notierten Tage `
+          + '(verlangt ist 1).');
+      }
+      r.merkmale.filter((m) => m.erfuellt).forEach((m) => dafuer.push(`${m.name}: ${m.text}`));
+      if (r.pruefbar && !r.schmerzErfuellt) {
+        dagegen.push(`Bauchschmerz nur an ${r.schmerzTage} Tagen – das ist seltener `
+          + 'als einmal pro Woche.');
+      }
+      if (r.typ.typ) dafuer.push(`Stuhlform: ${r.typ.name}.`);
+      let stand = 'offen';
+      if (r.erfuellt) stand = 'gestuetzt';
+      else if (r.pruefbar && dafuer.length) stand = 'moeglich';
+      else if (r.pruefbar) stand = 'unwahrscheinlich';
+      return {
+        stand,
+        dafuer,
+        dagegen,
+        offen: r.typ.typ ? 'Ein Reizdarm ist eine Diagnose nach Ausschluss – das '
+          + 'Tagebuch liefert dafür das Material, den Ausschluss macht das Labor.'
+          : `Für den Typ fehlen noch ${r.typ.fehlt} eingetragene Stuhlgänge.`,
+      };
+    },
+  },
+  {
+    id: 'unvertraeglich',
+    name: 'Laktose- oder Fruktoseunverträglichkeit',
+    was: 'Ein Zucker wird im Dünndarm nicht aufgenommen und im Dickdarm vergoren. '
+      + 'Gas, Krämpfe, Durchfall – meist Stunden nach dem Essen.',
+    untersuchung: 'H2-Atemtest, dauert einen Vormittag. Je Zucker ein Termin.',
+    frage: 'Wäre ein Atemtest auf Laktose oder Fruktose sinnvoll?',
+    pruefe: (d) => {
+      const dafuer = [];
+      (d.klassen || []).filter((k) => k.genug && k.differenz >= 0.5
+        && ['laktose', 'fodmap'].includes(k.id))
+        .forEach((k) => dafuer.push(`${k.name}: danach im Mittel `
+          + `${k.schnittMit.toFixed(1).replace('.', ',')} statt `
+          + `${k.schnittOhne.toFixed(1).replace('.', ',')} `
+          + `(${k.faelle} Mahlzeiten damit, ${k.gegenFaelle} ohne).`));
+      return {
+        stand: dafuer.length ? 'moeglich' : 'offen',
+        dafuer,
+        dagegen: [],
+        offen: 'Ein Auslassversuch (unter „Muster") bringt hier fast so viel wie '
+          + 'der Test und geht sofort – der Test sagt dafür, *welcher* Zucker es ist.',
+      };
+    },
+  },
+  {
+    id: 'zoeliakie',
+    name: 'Zöliakie',
+    was: 'Eine Abwehrreaktion auf Gluten, die die Dünndarmschleimhaut zerstört. '
+      + 'Kann sich als Reizdarm tarnen und bleibt oft jahrelang unentdeckt.',
+    untersuchung: 'Bluttest auf Antikörper (Transglutaminase-IgA plus '
+      + 'Gesamt-IgA). **Nur aussagekräftig, solange noch Gluten gegessen wird** – '
+      + 'wer vorher weglässt, bekommt ein falsch unauffälliges Ergebnis.',
+    frage: 'Ist Zöliakie schon einmal ausgeschlossen worden?',
+    pruefe: (d) => {
+      const dafuer = [];
+      const g = (d.klassen || []).find((k) => k.id === 'gluten');
+      if (g && g.genug && g.differenz >= 0.5) {
+        dafuer.push(`Weizen und Gluten: danach im Mittel `
+          + `${g.schnittMit.toFixed(1).replace('.', ',')} statt `
+          + `${g.schnittOhne.toFixed(1).replace('.', ',')} (${g.faelle} Mahlzeiten damit).`);
+      }
+      return {
+        stand: 'offen',
+        dafuer,
+        dagegen: [],
+        offen: 'Aus dem Tagebuch nicht zu unterscheiden von einer '
+          + 'Fruktan-Unverträglichkeit – im selben Korn steckt beides. Nur der '
+          + 'Bluttest trennt sie. Deshalb: erst testen, dann weglassen.',
+      };
+    },
+  },
+  {
+    id: 'galle',
+    name: 'Gallensteine',
+    was: 'Krampfartiger Schmerz im rechten Oberbauch, klassisch nach fettem Essen '
+      + 'und oft abends oder nachts. Häufig, und im Tagebuch leicht mit einer '
+      + 'Gastritis zu verwechseln.',
+    untersuchung: 'Ultraschall des Oberbauchs. Zehn Minuten, keine Vorbereitung '
+      + 'außer nüchtern sein.',
+    frage: 'Der Schmerz kommt nach fettem Essen – wäre ein Ultraschall der '
+      + 'Gallenblase sinnvoll?',
+    pruefe: (d) => {
+      const dafuer = [];
+      const f = (d.klassen || []).find((k) => k.id === 'fett');
+      if (f && f.genug && f.differenz >= 0.5) {
+        dafuer.push(`Fett: danach im Mittel ${f.schnittMit.toFixed(1).replace('.', ',')} `
+          + `statt ${f.schnittOhne.toFixed(1).replace('.', ',')} (${f.faelle} Mahlzeiten damit).`);
+      }
+      if (d.krampfAnteil >= 0.3) {
+        dafuer.push(`In ${Math.round(d.krampfAnteil * 100)} % der Eintragungen ging es `
+          + 'um Krämpfe oder Bauchschmerz.');
+      }
+      return {
+        stand: dafuer.length >= 2 ? 'moeglich' : 'offen',
+        dafuer,
+        dagegen: [],
+        offen: 'Ob der Schmerz rechts sitzt, weiß dieses Tagebuch nicht – es fragt '
+          + 'nicht nach der Stelle. Für die Unterscheidung ist genau das die erste '
+          + 'Frage.',
+      };
+    },
+  },
+  {
+    id: 'nsar',
+    name: 'Schaden durch Schmerzmittel',
+    was: 'Ibuprofen, Diclofenac und ASS greifen die Magenschleimhaut direkt an. '
+      + 'Die häufigste vermeidbare Ursache – und die einzige auf dieser Liste, '
+      + 'bei der das Tagebuch die Antwort schon hat.',
+    untersuchung: 'Keine nötig, um die Frage zu stellen. Es geht um eine '
+      + 'Alternative oder um einen Magenschutz – beides gehört besprochen, nicht '
+      + 'selbst entschieden.',
+    frage: 'Ich nehme regelmäßig ein entzündungshemmendes Schmerzmittel – gibt es '
+      + 'eine magenfreundlichere Alternative, oder ist ein Magenschutz angezeigt?',
+    pruefe: (d) => {
+      const dafuer = [];
+      if (d.nsarTage >= 3) {
+        dafuer.push(`An ${d.nsarTage} Tagen steht ein entzündungshemmendes `
+          + 'Schmerzmittel im Tagebuch.');
+      }
+      return {
+        stand: d.nsarTage >= 3 ? 'gestuetzt' : 'unwahrscheinlich',
+        dafuer,
+        dagegen: d.nsarTage === 0 ? ['Kein solches Schmerzmittel eingetragen.'] : [],
+        offen: d.nsarTage >= 3 ? 'Ob die Schleimhaut schon Schaden genommen hat, '
+          + 'zeigt nur die Spiegelung. Die Frage nach der Alternative lohnt sich '
+          + 'trotzdem sofort.' : '',
+      };
+    },
+  },
+  {
+    id: 'blut',
+    name: 'Blutarmut, Eisenmangel',
+    was: 'Kein Verdauungsproblem, aber seine häufigste stille Folge – eine '
+      + 'Blutung, die man nicht sieht, oder eine Aufnahmestörung.',
+    untersuchung: 'Blutbild und Ferritin. Eine Viertelstunde, und es beantwortet '
+      + 'zwei Fragen auf einmal: ob Blut verlorengeht und ob eine Zöliakie '
+      + 'schon Spuren hinterlassen hat.',
+    frage: 'Wären ein Blutbild und Ferritin sinnvoll?',
+    pruefe: (d) => ({
+      stand: 'offen',
+      dafuer: d.warnIds.includes('blaesse') || d.warnIds.includes('teerstuhl')
+        ? ['Im Tagebuch steht ein Warnzeichen, das dazu passt.'] : [],
+      dagegen: [],
+      offen: 'Aus einem Tagebuch nie zu sehen. Steht hier, weil es die billigste '
+        + 'Untersuchung auf dieser Liste ist und am meisten auf einmal ausschließt.',
+    }),
+  },
+];
+
+/**
+ * Der ganze Zettel.
+ *
+ * @param {object} d
+ *   kriterien (aus js/kriterien.js), stuhl (stuhlZahlen), bezug (bezugBilanz),
+ *   klassen (klassenBilanz), mittel (mittelBilanz), musterIds, essen
+ *   (essensbezug), nsarTage, warnIds, krampfAnteil, benutzt, nachtwachAn,
+ *   versuchMoeglich, versuchLaeuft, mahlzeitenOhneZutaten
+ */
+function luecken(d) {
+  return {
+    tagebuch: tagebuchLuecken(d),
+    verdaechte: VERDAECHTE.map((v) => {
+      const p = v.pruefe(d);
+      return {
+        id: v.id,
+        name: v.name,
+        was: v.was,
+        untersuchung: v.untersuchung,
+        frage: v.frage,
+        ...p,
+        wort: STAND_WORT[p.stand],
+      };
+    }).sort((a, b) => {
+      const rang = { gestuetzt: 0, moeglich: 1, offen: 2, unwahrscheinlich: 3 };
+      return (rang[a.stand] - rang[b.stand]) || (b.dafuer.length - a.dafuer.length);
+    }),
+  };
+}
+
 /* ===== js/bild.js ===== */
 /*
  * Das Bild: so weit Richtung Diagnose, wie ein Tagebuch ehrlich kommt.
@@ -2856,10 +4756,15 @@ function warnzeichenVon(id) {
  * Ohne Zeitgrenze und ohne Schwelle: Ein einziges Mal Blut erbrochen ist ein
  * einziges Mal zu viel, und ein Eintrag von vor drei Monaten, der nie
  * abgeklärt wurde, ist keine alte Nachricht.
+ *
+ * Gesucht wird in *allen* Eintragungen, nicht nur in den Beschwerden. Seit es
+ * den Stuhlgang als eigene Art gibt, stehen die zwei wichtigsten Warnzeichen
+ * überhaupt – schwarzer Stuhl und frisches Blut – genau dort. Sie nur im
+ * Beschwerdebogen zu suchen, hieße sie da zu suchen, wo sie nicht sind.
  */
 function warnungen(eintraege) {
   const zaehler = new Map();
-  eintraege.filter((e) => e.art === 'beschwerde').forEach((e) => {
+  eintraege.filter((e) => Array.isArray(e.warnzeichen)).forEach((e) => {
     (e.warnzeichen || []).forEach((id) => {
       const w = WARN_MAP[id];
       if (!w) return;
@@ -3480,7 +5385,33 @@ const BEREICH_ICON = {
 
 
 
+
+
+
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
+
+/**
+ * Einen langen Satz auf Zeilenbreite umbrechen.
+ *
+ * Der Bericht ist reiner Text und wird ausgedruckt oder in eine Mail geklebt.
+ * Eine 400 Zeichen lange Zeile ist dort entweder abgeschnitten oder unlesbar –
+ * und die Sätze aus js/ansprechen.js und js/versuch.js sind genau das.
+ */
+function umbrochen(satz, breite = 68) {
+  const zeilen = [];
+  let zeile = '';
+  String(satz).split(/\s+/).forEach((wort) => {
+    if (zeile && (zeile.length + wort.length + 1) > breite) {
+      zeilen.push(zeile);
+      zeile = wort;
+    } else {
+      zeile = zeile ? `${zeile} ${wort}` : wort;
+    }
+  });
+  if (zeile) zeilen.push(zeile);
+  return zeilen;
+}
 
 /**
  * @param {object} zustand  der gesamte Speicherzustand
@@ -3574,6 +5505,34 @@ function arztBericht(zustand, von, bis) {
     sag();
   }
 
+  /*
+   * Nach Wirkweise – vor den einzelnen Zutaten wäre falsch herum, danach ist
+   * richtig: Wer den Zettel liest, kennt dann schon die Beispiele und sieht
+   * hier, was sie gemeinsam haben.
+   */
+  const klassen = klassenBilanz(imZeitraum, { fenster: zustand.fenster })
+    .filter((k) => k.genug && ['auffaellig', 'moeglich'].includes(klassenEinstufung(k)));
+  if (klassen.length) {
+    sag('NACH WIRKWEISE ZUSAMMENGEFASST');
+    sag('  (Mehr Fälle je Vergleich als eine einzelne Zutat; die Zuordnung ist grob.)');
+    klassen.slice(0, 6).forEach((k) => {
+      sag(`  ${k.kurz.padEnd(24)} ${fmtZahl(k.schnittMit)} gegen ${fmtZahl(k.schnittOhne)} `
+        + `(${k.faelle} Mahlzeiten damit, ${k.gegenFaelle} ohne)`);
+    });
+    sag();
+  }
+
+  const s = stuhlZahlen(imZeitraum, tage);
+  if (s.gesamt) {
+    sag('STUHLGANG (BRISTOL)');
+    sag(`  Eingetragen                ${s.gesamt} Mal, ${fmtZahl(s.proTag)} je notiertem Tag`);
+    sag(`  Typ 1-2 (hart)             ${s.hart} (${prozent(s.anteilHart)})`);
+    sag(`  Typ 3-5 (unauffällig)      ${s.normal} (${prozent(s.anteilNormal)})`);
+    sag(`  Typ 6-7 (weich)            ${s.weich} (${prozent(s.anteilWeich)})`);
+    if (s.dringend) sag(`  davon dringend             ${s.dringend}`);
+    sag();
+  }
+
   const mittel = new Map();
   imZeitraum.filter((e) => e.art === 'medikament').forEach((e) => {
     const name = (e.mittel || 'ohne Angabe').trim();
@@ -3584,6 +5543,47 @@ function arztBericht(zustand, von, bis) {
     [...mittel.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, n]) => {
       sag(`  ${name.padEnd(24)} ${mehrzahl(n, 'Mal', 'Mal')}`);
     });
+    sag();
+  }
+
+  /*
+   * Ob die Mittel etwas bewirkt haben.
+   *
+   * Für die Sprechstunde ist das oft die nützlichste Zeile des Zettels –
+   * besonders, wenn nichts passiert ist: Ein Säureblocker ohne Wirkung nach
+   * vier bis acht Wochen ist selbst ein Befund und spricht gegen die Säure als
+   * Ursache. Aus dem Kopf beantwortet das niemand belastbar.
+   */
+  const ansprechen = mittelBilanz(imZeitraum, tage, {
+    heute: bis,
+    gruppeVon: (name) => {
+      const g = wissenZu(name);
+      return g ? g.id : null;
+    },
+  }).filter((m) => m.genug);
+  if (ansprechen.length) {
+    sag('HAT ES ETWAS BEWIRKT?');
+    ansprechen.slice(0, 4).forEach((m) => {
+      sag(`  ${m.name} – ${mehrzahl(m.einnahmeTage, 'Einnahmetag', 'Einnahmetage')}, `
+        + `seit ${fmtDatum(m.seit, true)}`);
+      umbrochen(befund(m)).forEach((z) => sag(`     ${z}`));
+    });
+    sag();
+  }
+
+  const v = zustand.versuch;
+  if (v) {
+    const e = ergebnis(v, eintraege, tage, bis);
+    sag('AUSLASSVERSUCH');
+    sag(`  Weggelassen: ${v.art === 'klasse' ? v.ziel : ausloeserName(v.ziel, zustand.eigeneAusloeser)}, `
+      + `ab ${fmtDatum(v.start, true)} für ${mehrzahl(v.tage, 'Tag', 'Tage')}`);
+    sag(`  Ergebnis: ${e.wort}`);
+    sag(`  Davor ${fmtZahl(e.vorher.schnitt)} (${e.vorher.notierte} Tage), `
+      + `ohne ${fmtZahl(e.auslass.schnitt)} (${e.auslass.notierte} Tage)`
+      + (e.nachher ? `, nach der Wiedereinführung ${fmtZahl(e.nachher.schnitt)} `
+        + `(${e.nachher.notierte} Tage)` : ', Wiedereinführung steht noch aus'));
+    umbrochen(e.satz).forEach((z) => sag(`  ${z}`));
+    sag('  (Ein Versuch an einem einzigen Menschen, ohne Verblindung.)');
     sag();
   }
 
@@ -3605,20 +5605,97 @@ function arztBericht(zustand, von, bis) {
     sag();
   }
 
+  /*
+   * Die Kriterien.
+   *
+   * Sie stehen bewusst *nach* den Zahlen und vor den Fragen: Wer den Zettel
+   * liest, soll erst sehen, worauf sie beruhen. Und sie stehen nur da, wenn sie
+   * geprüft werden konnten – „nicht prüfbar" als „nicht erfüllt" auszugeben
+   * wäre die häufigste Art, mit Kriterien zu lügen.
+   */
+  const k = kriterien({
+    eintraege,
+    tage,
+    heute: bis,
+    beschwerdenSeit: zustand.beschwerdenSeit,
+    istSaeuremittel: (name) => {
+      const g = wissenZu(name);
+      return !!g && ['ppi', 'h2', 'antazida', 'alginat'].includes(g.id);
+    },
+  });
+  const kZeilen = [];
+  /*
+   * Auch das Nichtprüfbare kommt mit.
+   *
+   * Ein Regelwerk stillschweigend wegzulassen, weil die Daten nicht reichen,
+   * sieht auf dem Papier aus wie „trifft nicht zu" – und das ist etwas ganz
+   * anderes. Steht dort stattdessen, *warum* es nicht ging, weiß die Praxis
+   * sofort, welche Frage noch offen ist.
+   */
+  if (k.reizdarm.pruefbar) {
+    kZeilen.push(`  Rom IV, Reizdarmsyndrom       ${k.reizdarm.erfuellt ? 'Kriterien erfüllt' : 'nicht erfüllt'}`);
+    kZeilen.push(`    Bauchschmerz an ${k.reizdarm.schmerzTage} Tagen `
+      + `(${fmtZahl(k.reizdarm.proWoche)} je Woche der notierten Tage),`);
+    kZeilen.push(`    ${k.reizdarm.erfuellteMerkmale} von 3 Merkmalen erfüllt`);
+    k.reizdarm.merkmale.filter((m) => m.erfuellt)
+      .forEach((m) => umbrochen(`${m.name}: ${m.text}`, 62).forEach((z) => kZeilen.push(`      - ${z}`)));
+    if (k.reizdarm.typ.typ) kZeilen.push(`    Stuhlform: ${k.reizdarm.typ.name}`);
+  } else {
+    kZeilen.push('  Rom IV, Reizdarmsyndrom       nicht prüfbar');
+    kZeilen.push('    Dafür fehlen Tage ohne Bauchschmerz oder Stuhlgangseinträge,');
+    kZeilen.push('    mit denen sich die Schmerztage vergleichen ließen.');
+  }
+  if (k.dyspepsie.pruefbar) {
+    kZeilen.push(`  Rom IV, funktionelle Dyspepsie ${k.dyspepsie.erfuellt ? 'Kriterien erfüllt' : 'nicht erfüllt'}`);
+    [k.dyspepsie.pds, k.dyspepsie.eps].forEach((f) => {
+      kZeilen.push(`    ${f.erfuellt ? '[x]' : '[ ]'} ${f.name}:`);
+      kZeilen.push(`        an ${f.tage} Tagen, ${fmtZahl(f.proWoche)} je Woche der notierten Tage`);
+    });
+  } else {
+    kZeilen.push('  Rom IV, funktionelle Dyspepsie nicht prüfbar (zu wenige notierte Tage)');
+  }
+  if (k.gerdq.belastbar) {
+    kZeilen.push(`  GerdQ (letzte 7 Tage)         ${k.gerdq.punkte} von 18 Punkten`);
+    kZeilen.push('    (ab 8 gilt eine Refluxkrankheit als wahrscheinlich)');
+  } else {
+    kZeilen.push(`  GerdQ (letzte 7 Tage)         nicht belastbar – nur `
+      + `${k.gerdq.erfasst} der 7 Tage notiert`);
+  }
+  if (kZeilen.length) {
+    sag('KRITERIEN');
+    kZeilen.forEach(sag);
+    if (k.dauer.erfuellt === null) {
+      sag('    Beginn der Beschwerden nicht angegeben – die Rom-Bedingung');
+      sag('    „Beginn vor mindestens sechs Monaten" ist damit ungeprüft.');
+    } else {
+      sag(`    Beschwerden seit ${k.dauer.seit} (${mehrzahl(k.dauer.monate, 'Monat', 'Monaten')}); `
+        + `Rom-Zeitbedingung ${k.dauer.erfuellt ? 'erfüllt' : 'nicht erfüllt'}.`);
+    }
+    // Formulierung mit Absicht ohne Doppelpunkt nach „Diagnose" – der
+    // Berichtstest sucht nach genau diesem Muster, weil es sonst niemandem
+    // auffiele, wenn hier eines Tages doch eine zugeschrieben würde.
+    sag('  Erfüllte Kriterien sind KEINE Diagnose. Beide Regelwerke setzen');
+    sag('  voraus, dass nichts Organisches dahintersteckt. Grundlage sind');
+    sag(`  ${k.zeitraum.notierteTage} notierte Tage der letzten 90; ein Tagebuch untererfasst,`);
+    sag('  die Zahlen sind daher eher zu niedrig als zu hoch.');
+    sag();
+  }
+
   if (bild.muster.length) {
     sag('WORAUF DAS MUSTER HINDEUTET');
     sag('  (Beschreibung des Verlaufs, keine Diagnose – siehe unten.)');
     bild.muster.slice(0, 2).forEach((m, i) => {
       sag(`  ${i + 1}. ${m.name}`);
-      m.belege.forEach((x) => sag(`     - ${x}`));
-      sag(`     Abzuklären wäre: ${m.ursachen.map((u) => u.name).join(', ')}`);
+      m.belege.forEach((x) => umbrochen(x, 62).forEach((z, j) => sag(`     ${j ? '  ' : '- '}${z}`)));
+      umbrochen(`Abzuklären wäre: ${m.ursachen.map((u) => u.name).join(', ')}`, 64)
+        .forEach((z) => sag(`     ${z}`));
     });
     sag();
   }
 
   if (bild.fragen.length) {
     sag('FRAGEN');
-    bild.fragen.forEach((f) => sag(`  - ${f}`));
+    bild.fragen.forEach((f) => umbrochen(f, 64).forEach((z, j) => sag(`  ${j ? '  ' : '- '}${z}`)));
     sag();
   }
 
@@ -3797,9 +5874,12 @@ function tagesFrage(frage, wert) {
 /* ==================== Reiter: Tag ==================== */
 
 const ART_NAME = {
-  essen: 'Mahlzeit', beschwerde: 'Beschwerden', medikament: 'Medikament', notiz: 'Notiz',
+  essen: 'Mahlzeit', beschwerde: 'Beschwerden', stuhl: 'Stuhlgang',
+  medikament: 'Medikament', notiz: 'Notiz',
 };
-const ART_ICON = { essen: '🍽️', beschwerde: '🔥', medikament: '💊', notiz: '✏️' };
+const ART_ICON = {
+  essen: '🍽️', beschwerde: '🔥', stuhl: '🚽', medikament: '💊', notiz: '✏️',
+};
 
 function zeileText(e, eigene) {
   if (e.art === 'essen') {
@@ -3813,9 +5893,17 @@ function zeileText(e, eigene) {
   }
   if (e.art === 'beschwerde') {
     const arten = (e.arten || []).map(beschwerdeName).join(', ');
+    const bezug = STUHLBEZUG.find((b) => b.id === e.stuhlbezug);
     return `<b>Stärke ${e.staerke} – ${STAERKE_WORT[e.staerke] || ''}</b>`
       + (arten ? `<span class="zeile-tags">${esc(arten)}</span>` : '')
+      + (bezug && e.stuhlbezug !== 'keiner' ? `<span class="zeile-tags">Stuhlgang: ${esc(bezug.name.toLowerCase())}</span>` : '')
       + (e.notiz ? `<span class="zeile-tags">${esc(kuerze(e.notiz))}</span>` : '');
+  }
+  if (e.art === 'stuhl') {
+    const zusatz = [e.dringend ? 'dringend' : '', e.unvollstaendig ? 'Gefühl, nicht fertig' : '']
+      .filter(Boolean).join(', ');
+    return `<b>Typ ${e.form} – ${esc(bristolName(e.form, true))}</b>`
+      + (zusatz ? `<span class="zeile-tags">${esc(zusatz)}</span>` : '');
   }
   if (e.art === 'medikament') {
     return `<b>${esc(e.mittel || 'Medikament')}</b>`
@@ -3842,7 +5930,7 @@ function tagAnsicht(s) {
   </div>`;
 
   const anlegen = `<div class="anlegen">
-    ${['essen', 'beschwerde', 'medikament', 'notiz'].map((a) => `
+    ${['essen', 'beschwerde', 'stuhl', 'medikament', 'notiz'].map((a) => `
       <button type="button" class="anlegen-btn a-${a}" data-act="neu" data-art="${a}">
         <span class="anlegen-i">${ART_ICON[a]}</span>${ART_NAME[a]}
       </button>`).join('')}
@@ -3881,8 +5969,48 @@ function tagAnsicht(s) {
     ${stand.laenge ? ` · deine Zyklen dauern im Mittel ${stand.laenge} Tage` : ''}
   </p>` : '';
 
-  return kopf + sicherungKarte(iso) + bilanz + zyklusZeile
+  return kopf + sicherungKarte(iso) + versuchZeile(s, iso) + bilanz + zyklusZeile
     + (iso === heuteISO() ? ratKarte(s) : '') + anlegen + zeilen + umstaende;
+}
+
+/**
+ * Der laufende Auslassversuch, auf dem Reiter, den man täglich sieht.
+ *
+ * Ein Versuch, an den man sich nicht erinnert, ist keiner. Deshalb steht hier
+ * jeden Tag, was heute gilt und der wievielte Tag es ist – und wenn die
+ * Auslasszeit um ist, der Knopf für die Wiedereinführung. Das ist der Moment,
+ * an dem der Versuch sonst versandet: Zwei Wochen durchgehalten, dann nie
+ * bewusst wieder gegessen, und damit war alles umsonst.
+ */
+function versuchZeile(s, iso) {
+  const v = s.versuch;
+  if (!v || iso !== heuteISO()) return '';
+  const st = versuchStand(v, heuteISO());
+  if (st.phase === 'abgebrochen' || st.phase === 'fertig') return '';
+  const was = v.art === 'klasse' ? klasseName(v.ziel) : ausloeserName(v.ziel, s.eigeneAusloeser);
+
+  if (st.phase === 'reif') {
+    return `<div class="karte karte-merk versuch-zeile">
+      <h3>Der Versuch ist reif</h3>
+      <p class="klein">${st.von} Tage ohne ${esc(was)} sind um. Jetzt kommt der
+      Teil, auf den es ankommt: einmal bewusst wieder essen. Kommen die
+      Beschwerden zurück, ist das der Beleg – bleibt es ruhig, war es nicht das.</p>
+      <div class="reihe">
+        ${knopf('versuch-provokation', 'Heute wieder gegessen', 'btn-primary')}
+        ${knopf('versuch-beenden', 'Abbrechen', 'btn-ghost')}
+      </div>
+    </div>`;
+  }
+  const heutigeVerstoesse = s.eintraege
+    .filter((e) => e.am === iso && betrifft(e, v.art, v.ziel)).length;
+  return `<div class="karte versuch-zeile">
+    <h3>${st.phase === 'provokation' ? 'Wiedereinführung' : 'Auslassversuch'}</h3>
+    <p class="klein">${st.phase === 'provokation'
+    ? `Noch ${mehrzahl(st.rest, 'Tag', 'Tage')} beobachten. Einfach weiter eintragen wie sonst.`
+    : `Tag ${st.tag} von ${st.von} – heute ohne <b>${esc(was)}</b>.`
+      + (heutigeVerstoesse ? ` Heute steht es ${heutigeVerstoesse}× im Tagebuch; das ist kein Vorwurf, es geht nur in die Auswertung ein.` : '')}</p>
+    ${knopf('versuch-beenden', 'Abbrechen', 'btn-ghost')}
+  </div>`;
 }
 
 /**
@@ -4020,12 +6148,412 @@ function verlaufAnsicht(s) {
 
 /* ==================== Reiter: Muster ==================== */
 
-function musterAnsicht(s) {
+/**
+ * Alles einmal rechnen, dann herumreichen.
+ *
+ * Der Reiter „Muster" zeigt inzwischen sechs Abschnitte, und vier davon
+ * brauchen dieselben Grundlagen – die Auslöserbilanz, die Kriterien, die
+ * Mittel. Jeder für sich gerechnet wäre bei einem Jahr Tagebuch spürbar, und
+ * schlimmer: Zwei Abschnitte könnten verschiedene Zahlen zeigen, wenn einer
+ * andere Voreinstellungen mitgibt als der andere.
+ */
+function musterDaten(s) {
+  const heute = heuteISO();
+  const istNsar = (name) => {
+    const g = wissenZu(name);
+    return !!g && g.id === 'nsar';
+  };
   const bilanz = ausloeserBilanz(s.eintraege, {
-    fenster: s.fenster,
-    mindestFaelle: s.mindestFaelle,
-    eigene: s.eigeneAusloeser,
+    fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
   });
+  const klassen = klassenBilanz(s.eintraege, { fenster: s.fenster });
+  const k = kriterien({
+    eintraege: s.eintraege,
+    tage: s.tage,
+    heute,
+    beschwerdenSeit: s.beschwerdenSeit,
+    istSaeuremittel: (name) => {
+      const g = wissenZu(name);
+      return !!g && ['ppi', 'h2', 'antazida', 'alginat'].includes(g.id);
+    },
+  });
+  const mittel = mittelBilanz(s.eintraege, s.tage, {
+    heute,
+    gruppeVon: (name) => {
+      const g = wissenZu(name);
+      return g ? g.id : null;
+    },
+  });
+  return { heute, istNsar, bilanz, klassen, kriterien: k, mittel };
+}
+
+/**
+ * Nach Klassen statt nach Zutaten.
+ *
+ * Steht *vor* der Zutatenliste, weil es die belastbarere Zahl ist: „Zwiebel"
+ * kommt zwölfmal vor, „FODMAP" achtzigmal. Und weil es die brauchbarere
+ * Auskunft ist – wer weiß, dass es an den Fruktanen liegt, weiß auch etwas
+ * über das Lebensmittel, das noch gar nicht im Tagebuch steht.
+ */
+function klassenTeil(s, d) {
+  const fertig = d.klassen.filter((k) => k.genug);
+  if (!fertig.length) {
+    const naechste = d.klassen.filter((k) => !k.genug).sort((a, b) => a.fehlt - b.fehlt)[0];
+    if (!naechste) return '';
+    return `<div class="karte zaehlt">
+      <h3>Nach Wirkweise</h3>
+      <p class="klein">Noch keine Klasse mit genug Fällen. Am nächsten dran:
+      ${esc(naechste.kurz)} – ${naechste.faelle} Mahlzeiten damit,
+      ${naechste.gegenFaelle} ohne, gebraucht werden je acht.</p>
+    </div>`;
+  }
+  const zeile = (k) => {
+    const art = klassenEinstufung(k);
+    const zutaten = klasseZutaten(s.eintraege, k.id).slice(0, 5);
+    return `<li class="fund fund-klasse f-${art}">
+      <div class="fund-kopf">
+        <b>${esc(k.name)}</b>
+        <span class="fund-urteil">${EINSTUFUNG_WORT[art]}</span>
+      </div>
+      ${vergleichBalken(k.schnittMit, k.schnittOhne)}
+      <p class="klein">${mehrzahl(k.faelle, 'Mahlzeit', 'Mahlzeiten')} damit,
+        ${k.gegenFaelle} ohne · danach ${Math.round(k.quoteMit * 100)} % mit
+        Beschwerden, sonst ${Math.round(k.quoteOhne * 100)} %</p>
+      <p class="zeile-tags">${esc(k.was)}</p>
+      ${zutaten.length ? `<p class="klein">Bei dir steckt das in:
+        ${zutaten.map((z) => `${esc(ausloeserName(z.id, s.eigeneAusloeser))} (${z.anzahl}×)`).join(', ')}</p>` : ''}
+    </li>`;
+  };
+  return `<div class="karte">
+    <h3>Nach Wirkweise</h3>
+    <p class="klein">Zusammengefasst, was im Körper denselben Weg nimmt. Das gibt
+    mehr Fälle je Vergleich als eine einzelne Zutat – und die brauchbarere
+    Antwort, weil sie auch für das gilt, was noch nicht im Tagebuch steht. Die
+    Zuordnung ist grob: Ein Apfel ist FODMAP-reich, eine Banane kaum, und beide
+    wären hier Obst.</p>
+    <ul class="funde funde-klassen">${fertig.map(zeile).join('')}</ul>
+  </div>`;
+}
+
+/**
+ * Die Kriterien – der Teil, der am nächsten an eine Diagnose herankommt.
+ *
+ * Und deshalb der Teil mit den meisten Vorbehalten. Sie stehen nicht im
+ * Kleingedruckten, sondern im ersten Absatz: Erfüllte Kriterien heißen, dass
+ * der Name passt, *wenn* nichts Organisches dahintersteckt – und das
+ * entscheidet eine Untersuchung, nicht diese App.
+ */
+function kriterienTeil(s, d) {
+  const k = d.kriterien;
+  if (!genugFuerKriterien(k)) {
+    return `<div class="karte">
+      <h3>Kriterien</h3>
+      <p class="klein">Ab etwa zwei Wochen Tagebuch stehen hier die Regelwerke,
+      mit denen in der Sprechstunde eingeordnet wird – Rom IV für Reizdarm und
+      funktionelle Dyspepsie, GerdQ für Reflux. Bisher sind
+      ${mehrzahl(k.zeitraum.notierteTage, 'Tag', 'Tage')} notiert.</p>
+    </div>`;
+  }
+
+  const r = k.reizdarm;
+  const dy = k.dyspepsie;
+  const g = k.gerdq;
+  const zahl = (x) => x.toFixed(1).replace('.', ',');
+
+  const haken = (erfuellt, pruefbar = true) => (pruefbar
+    ? `<span class="haken ${erfuellt ? 'ja' : 'nein'}">${erfuellt ? '✓' : '–'}</span>`
+    : '<span class="haken offen">?</span>');
+
+  const reizdarmKasten = `<li class="krit ${r.erfuellt ? 'erfuellt' : ''}">
+    <div class="krit-kopf">
+      <b>Reizdarmsyndrom (Rom IV)</b>
+      <span class="fund-urteil">${r.pruefbar
+    ? (r.erfuellt ? 'Kriterien erfüllt' : 'Kriterien nicht erfüllt') : 'noch nicht prüfbar'}</span>
+    </div>
+    <ul class="kritliste">
+      <li>${haken(r.schmerzErfuellt, r.pruefbar)}
+        <span><b>Bauchschmerz mindestens 1× je Woche.</b>
+        An ${mehrzahl(r.schmerzTage, 'Tag', 'Tagen')} eingetragen, das sind
+        ${zahl(r.proWoche)} je Woche der notierten Tage.</span></li>
+      ${r.merkmale.map((m) => `<li>${haken(m.erfuellt, m.pruefbar)}
+        <span><b>${esc(m.name)}.</b> ${esc(m.text)}</span></li>`).join('')}
+    </ul>
+    <p class="klein">Verlangt sind der Schmerz und mindestens zwei der drei
+    Merkmale; erfüllt sind ${r.erfuellteMerkmale} von 3.
+    ${r.typ.typ ? `Stuhlform: <b>${esc(r.typ.name)}</b> –
+      ${Math.round(r.typ.bilanz.anteilHart * 100)} % hart,
+      ${Math.round(r.typ.bilanz.anteilWeich * 100)} % weich, aus
+      ${mehrzahl(r.typ.bilanz.gesamt, 'Stuhlgang', 'Stuhlgängen')}.`
+    : `Für den Typ fehlen noch ${mehrzahl(r.typ.fehlt, 'Stuhlgang', 'Stuhlgänge')}.`}</p>
+  </li>`;
+
+  const dyspepsieKasten = `<li class="krit ${dy.erfuellt ? 'erfuellt' : ''}">
+    <div class="krit-kopf">
+      <b>Funktionelle Dyspepsie (Rom IV)</b>
+      <span class="fund-urteil">${dy.pruefbar
+    ? (dy.erfuellt ? 'Kriterien erfüllt' : 'Kriterien nicht erfüllt') : 'noch nicht prüfbar'}</span>
+    </div>
+    <ul class="kritliste">
+      ${[dy.pds, dy.eps].map((f) => `<li>${haken(f.erfuellt, dy.pruefbar)}
+        <span><b>${esc(f.name)}.</b> ${esc(f.satz)}
+        An ${mehrzahl(f.tage, 'Tag', 'Tagen')}, ${zahl(f.proWoche)} je Woche der
+        notierten Tage.</span></li>`).join('')}
+    </ul>
+    <p class="klein">Gezählt werden nur Eintragungen ab Stärke 4 („merklich") –
+    die Kriterien sagen „belastend", und eine 2 mitzuzählen würde sie bei fast
+    jedem erfüllen.</p>
+  </li>`;
+
+  const gerdqKasten = `<li class="krit ${g.wahrscheinlich && g.belastbar ? 'erfuellt' : ''}">
+    <div class="krit-kopf">
+      <b>GerdQ – Reflux</b>
+      <span class="fund-urteil">${g.belastbar
+    ? `${g.punkte} von 18` : 'zu wenig erfasst'}</span>
+    </div>
+    <ul class="kritliste kritliste-eng">
+      ${g.posten.map((p) => `<li>
+        <span class="haken ${p.punkte >= 2 ? 'ja' : 'nein'}">${p.punkte}</span>
+        <span>${esc(p.frage)} – an ${mehrzahl(p.tage, 'Tag', 'Tagen')}${p.umgekehrt
+    ? ' <i>(zählt umgekehrt)</i>' : ''}</span></li>`).join('')}
+    </ul>
+    <p class="klein">${g.belastbar
+    ? `Ab 8 Punkten gilt eine Refluxkrankheit als wahrscheinlich – du liegst bei
+       <b>${g.punkte}</b>. Zwei der sechs Fragen zählen umgekehrt: Oberbauchschmerz
+       und Übelkeit sprechen eher gegen Reflux und für etwas anderes im Magen.
+       Das ist kein Fehler, das ist der Trick des Fragebogens.`
+    : `Von den letzten sieben Tagen sind nur ${g.erfasst} notiert. Was nicht
+       eingetragen ist, zählt hier als „nicht gehabt" – die Punktzahl wäre zu
+       niedrig statt falsch, und damit nicht zu gebrauchen.`}</p>
+  </li>`;
+
+  const dauer = k.dauer.erfuellt === null
+    ? `<p class="klein warnend">Seit wann die Beschwerden bestehen, ist nicht
+       eingetragen – unter „Mehr". Rom IV verlangt einen Beginn vor mindestens
+       einem halben Jahr; ohne diese Angabe fehlt beiden Kästen oben eine
+       Bedingung.</p>`
+    : `<p class="klein">Beschwerden seit ${esc(k.dauer.seit)}, also seit
+       ${mehrzahl(k.dauer.monate, 'Monat', 'Monaten')}. Die Rom-Bedingung „Beginn
+       vor mindestens sechs Monaten" ist damit
+       ${k.dauer.erfuellt ? 'erfüllt' : '<b>noch nicht</b> erfüllt'}.</p>`;
+
+  return `<div class="karte">
+    <h3>Kriterien</h3>
+    <p class="klein"><b>Erfüllte Kriterien sind keine Diagnose.</b> Beide
+    Regelwerke setzen ausdrücklich voraus, dass nichts Organisches
+    dahintersteckt – und das weiß nur eine Untersuchung. „Erfüllt" heißt hier:
+    Wenn Spiegelung und Blutbild unauffällig sind, passt dieser Name. Das ist
+    weniger als eine Diagnose und mehr als ein Gefühl, und es ist genau der
+    Satz, mit dem sich ein Termin anfangen lässt.</p>
+    ${dauer}
+    <ul class="krit-liste">${reizdarmKasten}${dyspepsieKasten}${gerdqKasten}</ul>
+    <p class="klein">Grundlage: ${mehrzahl(k.zeitraum.notierteTage, 'notierter Tag', 'notierte Tage')}
+    in den letzten 90. Ein Tagebuch untererfasst – wer einen Tag nicht einträgt,
+    hat an diesem Tag laut Tagebuch nichts gehabt. Jede Zahl hier ist eher zu
+    niedrig als zu hoch.</p>
+  </div>`;
+}
+
+/**
+ * Der Auslassversuch: laufend, fertig, oder noch nicht angefangen.
+ *
+ * Das ist der einzige Teil der App, der aus Beobachtung einen Beleg machen
+ * kann – und der einzige, der etwas von ihr verlangt. Deshalb steht der
+ * Vorschlag nicht als Text da, sondern als Knopf mit dem Namen des
+ * Verdächtigen darauf.
+ */
+function versuchTeil(s, d) {
+  const v = s.versuch;
+  if (v) {
+    const p = phase(v, d.heute);
+    const erg = ergebnis(v, s.eintraege, s.tage, d.heute);
+    const was = v.art === 'klasse' ? klasseName(v.ziel) : ausloeserName(v.ziel, s.eigeneAusloeser);
+    const zahl = (x) => x.toFixed(1).replace('.', ',');
+    return `<div class="karte versuch v-${erg.urteil}">
+      <div class="fund-kopf">
+        <b>Auslassversuch: ${esc(was)}</b>
+        <span class="fund-urteil">${erg.wort}</span>
+      </div>
+      <ul class="versuch-zahlen">
+        <li><span>Davor</span><b>${zahl(erg.vorher.schnitt)}</b>
+          <span class="klein">${erg.vorher.notierte} Tage</span></li>
+        <li><span>Ohne</span><b>${zahl(erg.auslass.schnitt)}</b>
+          <span class="klein">${erg.auslass.notierte} Tage</span></li>
+        <li><span>Danach</span><b>${erg.nachher ? zahl(erg.nachher.schnitt) : '–'}</b>
+          <span class="klein">${erg.nachher ? `${erg.nachher.notierte} Tage` : 'noch nicht'}</span></li>
+      </ul>
+      <p>${esc(erg.satz)}</p>
+      <p class="klein">Ein Versuch an einem einzigen Menschen, ohne Verblindung:
+      Wer weiß, dass er heute die Milch weglässt, erwartet auch, dass es besser
+      wird. Das Ergebnis ist der stärkste Hinweis, den ein Tagebuch hergibt, und
+      kein Nachweis.</p>
+      <div class="reihe">
+        ${p === 'reif' ? knopf('versuch-provokation', 'Heute wieder gegessen', 'btn-primary') : ''}
+        ${p === 'auslass' || p === 'provokation' || p === 'reif'
+    ? knopf('versuch-beenden', 'Abbrechen', 'btn-ghost')
+    : knopf('versuch-weg', 'Wegräumen', 'btn-ghost')}
+      </div>
+    </div>`;
+  }
+
+  const kandidaten = vorschlaege(d.klassen, d.bilanz);
+  if (!kandidaten.length) return '';
+  const name = (x) => (x.art === 'klasse' ? klasseName(x.ziel) : ausloeserName(x.ziel, s.eigeneAusloeser));
+  return `<div class="karte karte-merk">
+    <h3>Einen Auslassversuch machen</h3>
+    <p class="klein">Alles andere hier zählt, was ohnehin passiert – daraus wird
+    nie ein Beleg: Wer an schlechten Tagen anders isst, findet sein Essen
+    auffällig, ohne dass es damit zu tun hat. Ein Versuch dreht das um. Zwei
+    Wochen weglassen und dann <b>bewusst wieder essen</b>; erst diese zweite
+    Hälfte entscheidet. Genau so wird in der Ernährungsmedizin gearbeitet.</p>
+    <ul class="versuch-wahl">${kandidaten.map((x) => `<li>
+      <div><b>${esc(name(x))}</b>
+        <span class="klein">${x.art === 'klasse' ? 'Klasse' : 'einzelne Zutat'} ·
+        ${mehrzahl(x.faelle, 'Mahlzeit', 'Mahlzeiten')} damit ·
+        ${x.differenz.toFixed(1).replace('.', ',')} Stufen Unterschied</span></div>
+      <div class="wahl">${DAUER_VORSCHLAEGE.map((n) => `
+        <button type="button" class="wahl-btn" data-act="versuch-start"
+                data-art="${x.art}" data-id="${esc(x.ziel)}" data-n="${n}">${n} Tage</button>`).join('')}</div>
+    </li>`).join('')}</ul>
+    <p class="klein">Klassen stehen vor einzelnen Zutaten: Hinter „Zwiebel"
+    steckt fast immer die ganze Klasse, und wer nur die Zwiebel weglässt, isst
+    die übrigen Fruktane weiter und lernt nichts.</p>
+  </div>`;
+}
+
+/**
+ * Was die Mittel bewirken – gemessen, nicht behauptet.
+ *
+ * Sie trägt ein, was sie nimmt, und niemand rechnet nach. Ausbleibendes
+ * Ansprechen ist selbst ein Befund: Ein Säureblocker, der nach vier bis acht
+ * Wochen nichts geändert hat, spricht gegen die Säure als Ursache.
+ */
+function ansprechenTeil(s, d) {
+  const liste = d.mittel.filter((m) => m.genug);
+  if (!liste.length) return '';
+  return `<div class="karte">
+    <h3>Ob es etwas bewirkt</h3>
+    <ul class="funde funde-mittel">${liste.map((m) => `<li class="fund fund-mittel f-${m.urteil === 'besser' ? 'unauffaellig' : (m.saeureVersuchAusgereizt ? 'auffaellig' : 'neutral')}">
+      <div class="fund-kopf">
+        <b>${esc(m.name)}</b>
+        <span class="fund-urteil">${ANSPRECHEN_URTEIL[m.urteil]}</span>
+      </div>
+      ${m.vergleichbar ? vergleichBalken(m.unter.schnitt, m.davor.schnitt,
+    { mit: 'darunter', ohne: 'davor' }) : ''}
+      <p class="klein">${mehrzahl(m.einnahmeTage, 'Einnahmetag', 'Einnahmetage')},
+        seit ${esc(fmtDatum(m.seit, true))}</p>
+      <p>${esc(befund(m))}</p>
+    </li>`).join('')}</ul>
+    <p class="klein">Der Balken vergleicht die Zeit davor mit der Zeit darunter,
+    gleich lang. Diese App schlägt weiterhin kein Medikament vor und rät zu
+    keinem Absetzen – ein Säureblocker wird nach längerer Einnahme nicht von
+    einem Tag auf den anderen weggelassen.</p>
+  </div>`;
+}
+
+/**
+ * Was noch fehlt – und was keine App beantwortet.
+ *
+ * Der Abschnitt, der aus einem Tagebuch etwas macht, das weiterfragt. Zwei
+ * Listen, streng getrennt: Was sie selbst schließen kann, und was eine
+ * Untersuchung entscheidet. Die zweite Liste ist die, die man beim Termin
+ * vorliest.
+ */
+function brauchtTeil(s, d) {
+  const k = d.kriterien;
+  const b = bildLesen({
+    eintraege: s.eintraege,
+    tage: s.tage,
+    bilanz: d.bilanz,
+    name: (id) => ausloeserName(id, s.eigeneAusloeser),
+    istNsar: d.istNsar,
+  });
+  const benutzt = {};
+  ['oberbauch', 'saettigung'].forEach((id) => {
+    benutzt[id] = s.eintraege.some((e) => (e.arten || []).includes(id));
+  });
+  const nsarTage = [...new Set(s.eintraege
+    .filter((e) => e.art === 'medikament' && d.istNsar(e.mittel)).map((e) => e.am))].length;
+
+  const l = luecken({
+    kriterien: k,
+    stuhl: stuhlZahlen(s.eintraege, s.tage),
+    bezug: bezugBilanz(s.eintraege),
+    klassen: d.klassen,
+    mittel: d.mittel,
+    musterIds: b.muster.map((m) => m.id),
+    essen: essensbezugVon(s),
+    nsarTage,
+    warnIds: b.warnungen.map((w) => w.id),
+    krampfAnteil: artAnteilVon(s, ['krampf']),
+    benutzt,
+    nachtwachAn: (s.tagesfragen || []).includes('nachtwach'),
+    versuchMoeglich: vorschlaege(d.klassen, d.bilanz).length > 0,
+    versuchLaeuft: !!s.versuch && !s.versuch.beendet,
+    mahlzeitenOhneZutaten: s.eintraege
+      .filter((e) => e.art === 'essen' && !zutatenVon(e).length).length,
+  });
+
+  const offen = `<div class="karte">
+    <h3>Was noch fehlt</h3>
+    <p class="klein">Fragen, die offen sind, weil etwas nicht eingetragen wurde –
+    die kannst du selbst schließen. Das Oberste bringt am meisten.</p>
+    ${l.tagebuch.length ? `<ol class="luecken">${l.tagebuch.slice(0, 5).map((x) => `<li>
+      <b>${esc(x.titel)}</b><span class="zeile-tags">${esc(x.text)}</span>
+    </li>`).join('')}</ol>`
+    : '<p class="klein">Nichts Offenes – das Tagebuch gibt gerade alles her, '
+      + 'was es hergeben kann. Weiterschreiben ist trotzdem das Beste, was du '
+      + 'tun kannst: Jede Woche macht jede Zahl hier belastbarer.</p>'}
+  </div>`;
+
+  const zeile = (v) => `<li class="verdacht s-${v.stand}">
+    <div class="fund-kopf">
+      <b>${esc(v.name)}</b>
+      <span class="fund-urteil">${esc(v.wort)}</span>
+    </div>
+    <p class="zeile-tags">${esc(v.was)}</p>
+    ${v.dafuer.length ? `<p class="feld-name">Dafür spricht</p>
+      <ul class="belege">${v.dafuer.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${v.dagegen.length ? `<p class="feld-name">Dagegen spricht</p>
+      <ul class="belege">${v.dagegen.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${v.offen ? `<p class="klein">${esc(v.offen)}</p>` : ''}
+    <p class="feld-name">Was es entscheidet</p>
+    <p class="klein">${v.untersuchung.replace(/\*\*(.+?)\*\*/g, (m, t) => `<b>${esc(t)}</b>`)}</p>
+    <p class="frage-zeile">„${esc(v.frage)}"</p>
+  </li>`;
+
+  /*
+   * Zehn Möglichkeiten mit je vier Absätzen sind zugeklappt richtig aufgehoben.
+   * Das ist Nachschlagestoff für den Termin, kein Text zum täglichen Lesen –
+   * und beim Drucken macht die App alle Klappen ohnehin auf (siehe
+   * 'beforeprint' weiter unten), sodass er auf dem Zettel vollständig steht.
+   */
+  return `${offen}<div class="karte">
+    <details class="verdachtbogen">
+      <summary><h3>Was keine App beantwortet</h3></summary>
+      <p class="klein">Je Möglichkeit: was im Tagebuch dafür spricht, was dagegen,
+      und die Untersuchung, die es entscheidet. Die letzte Zeile ist jeweils der
+      Satz zum Vorlesen – dafür ist der ganze Aufwand gut.</p>
+      <ul class="verdaechte">${l.verdaechte.map(zeile).join('')}</ul>
+      <p class="klein">Keine Reihenfolge nach Wahrscheinlichkeit. Oben steht, wozu
+      das Tagebuch am meisten zu sagen hat, nicht, was am ehesten zutrifft – das
+      ist ein Unterschied, und ihn zu verwischen wäre genau die Art von Rat, die
+      Leute in die falsche Sprechstunde schickt.</p>
+    </details>
+  </div>`;
+}
+
+/* Zwei kleine Umwege, damit brauchtTeil() nicht selbst rechnen muss – die
+ * Rechnung steht in js/auswertung.js und wird hier nur abgeholt. */
+function essensbezugVon(s) {
+  return essensbezug(s.eintraege);
+}
+function artAnteilVon(s, arten) {
+  return artAnteil(s.eintraege, arten).anteil;
+}
+
+function musterAnsicht(s) {
+  const d = musterDaten(s);
+  const bilanz = d.bilanz;
   const mahlzeiten = s.eintraege.filter((e) => e.art === 'essen').length;
 
   const erklaerung = `<div class="karte hinweis">
@@ -4044,9 +6572,18 @@ function musterAnsicht(s) {
   // einträgt, aber keine Mahlzeiten, hat trotzdem ein Tagebuch – und wenn
   // darin ein Warnzeichen steht, ist das Fehlen von Mahlzeiten der falsche
   // Grund, es nicht anzuzeigen. Genau das war es einmal.
+  /*
+   * Ohne Mahlzeiten fällt nur die Auslöserrechnung weg – sonst nichts.
+   *
+   * Alles andere auf diesem Reiter hängt an Beschwerden, Stuhlgang und
+   * Medikamenten und wäre auch ohne eine einzige Mahlzeit vollständig. Diese
+   * Abkürzung hat schon einmal die Warnzeichen verschluckt; sie darf nicht
+   * auch noch die Kriterien und den Stuhlgang verschlucken.
+   */
   if (!mahlzeiten) {
-    return `${bildTeil(s)}<p class="leer">Noch keine Mahlzeit eingetragen. Sobald ein paar
-      Tage beisammen sind, steht hier, was auffällt.</p>${zyklusTeil(s)}${erklaerung}`;
+    return `${bildTeil(s)}${kriterienTeil(s, d)}<p class="leer">Noch keine Mahlzeit
+      eingetragen. Sobald ein paar Tage beisammen sind, steht hier, was
+      auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
   }
 
   const fertig = bilanz.filter((b) => b.genug);
@@ -4076,7 +6613,7 @@ function musterAnsicht(s) {
   };
 
   const gefunden = fertig.length
-    ? `<ul class="funde">${fertig.map(zeile).join('')}</ul>`
+    ? `<ul class="funde funde-zutaten">${fertig.map(zeile).join('')}</ul>`
     : `<p class="leer">Noch reicht es für keine Aussage. Nach
        ${mehrzahl(mahlzeiten, 'Mahlzeit', 'Mahlzeiten')} braucht es je Merkmal
        ${s.mindestFaelle} Fälle mit und ${s.mindestFaelle} ohne.</p>`;
@@ -4107,7 +6644,38 @@ function musterAnsicht(s) {
     </li>`).join('')}</ul>
   </div>` : '';
 
-  return bildTeil(s) + gefunden + wartet + wann + wie + zyklusTeil(s) + erklaerung;
+  /*
+   * Die Reihenfolge ist eine Aussage.
+   *
+   * Warnzeichen und Einordnung zuerst (bildTeil), dann die Kriterien – das
+   * Nächste an einer Diagnose. Dann der Auslassversuch, weil er das Einzige
+   * ist, was aus all dem einen Beleg macht. Danach erst die Zahlen: Klassen vor
+   * einzelnen Zutaten, weil sie belastbarer sind. Und zum Schluss, was noch
+   * fehlt – die Liste für den Termin. Wer nur die ersten beiden Karten liest,
+   * hat trotzdem das Wichtigste.
+   */
+  return bildTeil(s) + kriterienTeil(s, d) + versuchTeil(s, d)
+    + klassenTeil(s, d) + gefunden + wartet + ansprechenTeil(s, d)
+    + wann + wie + stuhlTeil(s) + brauchtTeil(s, d) + zyklusTeil(s) + erklaerung;
+}
+
+/** Der Stuhlgang in Zahlen, sobald überhaupt etwas eingetragen ist. */
+function stuhlTeil(s) {
+  const z = stuhlZahlen(s.eintraege, s.tage);
+  if (!z.gesamt) return '';
+  const anteil = (n) => (z.gesamt ? `${Math.round((n / z.gesamt) * 100)} %` : '–');
+  return `<div class="karte karte-stuhl">
+    <h3>Stuhlgang</h3>
+    <ul class="wartend">
+      <li><span>Eingetragen</span><span class="klein">${mehrzahl(z.gesamt, 'Mal', 'Mal')},
+        ${fmtZahl(z.proTag)} je notiertem Tag</span></li>
+      <li><span>Hart (Typ 1–2)</span><span class="klein">${z.hart}× · ${anteil(z.hart)}</span></li>
+      <li><span>Unauffällig (3–5)</span><span class="klein">${z.normal}× · ${anteil(z.normal)}</span></li>
+      <li><span>Weich (6–7)</span><span class="klein">${z.weich}× · ${anteil(z.weich)}</span></li>
+      ${z.dringend ? `<li><span>Musste dringend</span><span class="klein">${z.dringend}×</span></li>` : ''}
+      ${z.unvollstaendig ? `<li><span>Gefühl, nicht fertig</span><span class="klein">${z.unvollstaendig}×</span></li>` : ''}
+    </ul>
+  </div>`;
 }
 
 /* ==================== Reiter: Ruhe ==================== */
@@ -4471,6 +7039,19 @@ function mehrAnsicht(s) {
   </div>
 
   <div class="karte">
+    <h3>Seit wann hast du das?</h3>
+    <p class="klein">Die eine Angabe, die aus dem Tagebuch nicht hervorgeht – es
+    beginnt an dem Tag, an dem du anfängst zu schreiben, und das ist fast nie
+    der Tag, an dem es angefangen hat. Die Rom-Kriterien unter „Muster"
+    verlangen einen Beginn vor mindestens einem halben Jahr; ohne diese Zeile
+    bleibt dort eine Bedingung offen. Ungefähr genügt.</p>
+    <input type="month" class="feld" data-act="seit" max="${heuteISO().slice(0, 7)}"
+           value="${esc(s.beschwerdenSeit || '')}" aria-label="Monat, seit dem die Beschwerden bestehen">
+    ${s.beschwerdenSeit ? `<p class="klein">Notiert: seit ${esc(s.beschwerdenSeit)}.
+      ${knopf('seit-weg', 'Löschen', 'btn-ghost')}</p>` : ''}
+  </div>
+
+  <div class="karte">
     <h3>Welche Fragen stellt der Tag?</h3>
     <p class="klein">Nicht jede Frage will jeder beantworten. Was hier aus ist,
     erscheint nicht in der Tagesansicht – schon Eingetragenes bleibt erhalten
@@ -4637,6 +7218,13 @@ function bogenHTML(s) {
       ${skala(e.staerke)}
       <p class="feld-name">Wie fühlt es sich an?</p>
       ${marken(BESCHWERDEN, e.arten || [], 'beschwerdeart')}
+      <p class="feld-name">Und nach dem Stuhlgang?</p>
+      <div class="wahl wahl-vier">${STUHLBEZUG.map((x) => `
+        <button type="button" class="wahl-btn${e.stuhlbezug === x.id ? ' an' : ''}"
+                data-act="stuhlbezug" data-id="${x.id}">${esc(x.name)}</button>`).join('')}</div>
+      <p class="klein">Eine der drei Fragen, an denen ein Reizdarmsyndrom
+      festgemacht wird – und die einzige, die sich nicht ausrechnen lässt.
+      Freiwillig; wer sie überspringt, verliert nur diese eine Auswertung.</p>
       <label class="feld-name" for="bogenNotiz">Notiz</label>
       <input type="text" class="feld feld-breit" id="bogenNotiz" data-act="notiz"
              value="${esc(e.notiz || '')}" placeholder="optional" autocomplete="off">
@@ -4646,6 +7234,44 @@ function bogenHTML(s) {
         nicht in der Statistik auf, sondern ganz oben unter „Muster" – mit dem
         Hinweis, wie eilig es ist.</p>
         ${marken(WARNZEICHEN, e.warnzeichen || [], 'warnzeichen')}
+      </details>`;
+  } else if (b.art === 'stuhl') {
+    /*
+     * Die Bristol-Skala als sieben Knöpfe mit Zeichnung.
+     *
+     * Ohne Bild wird das nicht ausgefüllt: „Wurstförmig mit Rissen" ist keine
+     * Beschreibung, die jemand auf sein eigenes Klo überträgt, und eine Frage,
+     * die peinlich *und* umständlich ist, wird gar nicht beantwortet. Die
+     * Striche rechts sind grob, aber sie tun, was ein Bild tun soll: Man
+     * erkennt in zwei Sekunden die Zeile, die passt.
+     */
+    mitte = `
+      <p class="feld-name">Wie sah es aus?</p>
+      <div class="bristol">${BRISTOL.map((x) => `
+        <button type="button" class="bristol-btn g-${x.gruppe}${e.form === x.id ? ' an' : ''}"
+                data-act="bristol" data-n="${x.id}" aria-pressed="${e.form === x.id}">
+          <span class="bristol-n">${x.id}</span>
+          <span class="bristol-bild" aria-hidden="true">${x.bild}</span>
+          <span class="bristol-name">${esc(x.name)}</span>
+        </button>`).join('')}</div>
+      <p class="klein">1 und 2 heißen zu lange gelegen, 6 und 7 zu kurz,
+      3 bis 5 sind unauffällig. Die Skala ist seit dreißig Jahren das Maß, mit
+      dem in der Sprechstunde darüber geredet wird – die Zahl allein sagt dort
+      genug.</p>
+      <p class="feld-name">War sonst etwas?</p>
+      <div class="wahl">
+        <button type="button" class="wahl-btn${e.dringend ? ' an' : ''}"
+                data-act="stuhl-dringend">Musste dringend</button>
+        <button type="button" class="wahl-btn${e.unvollstaendig ? ' an' : ''}"
+                data-act="stuhl-unfertig">Gefühl, nicht fertig</button>
+      </div>
+      <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
+        <summary>War Blut dabei oder war es schwarz?</summary>
+        <p class="klein">Die zwei wichtigsten Warnzeichen überhaupt stehen hier
+        und nicht im Beschwerdebogen. Was hier angekreuzt wird, taucht in keiner
+        Statistik auf, sondern ganz oben unter „Muster".</p>
+        ${marken(WARNZEICHEN.filter((w) => ['teerstuhl', 'blutstuhl'].includes(w.id)),
+    e.warnzeichen || [], 'warnzeichen')}
       </details>`;
   } else if (b.art === 'medikament') {
     const vorschlaege = [...new Set([...s.zuletztMittel, ...MITTEL_VORSCHLAEGE])].slice(0, 8);
@@ -4760,7 +7386,11 @@ function zeichne() {
 function bogenOeffnen(art, id) {
   const vorlage = {
     essen: { was: '', zutaten: [], portion: 'normal' },
-    beschwerde: { staerke: 4, arten: [], notiz: '' },
+    beschwerde: { staerke: 4, arten: [], notiz: '', stuhlbezug: null },
+    // Keine Vorgabe für die Form: Eine vorausgewählte 4 wäre die bequemste
+    // Antwort und würde als eingetragen zählen. Ein Stuhlgang ohne Form ist
+    // für jede Auswertung wertlos, also wird er gar nicht erst gespeichert.
+    stuhl: { form: null, dringend: false, unvollstaendig: false, warnzeichen: [] },
     medikament: { mittel: '', dosis: '' },
     notiz: { text: '' },
   }[art];
@@ -4785,6 +7415,10 @@ function bogenSpeichern() {
   }
   if (b.art === 'medikament' && !String(e.mittel || '').trim()) {
     melden('Welches Mittel?');
+    return;
+  }
+  if (b.art === 'stuhl' && !e.form) {
+    melden('Bitte eine Form von 1 bis 7 wählen.');
     return;
   }
   if (b.art === 'notiz' && !String(e.text || '').trim()) {
@@ -4921,6 +7555,37 @@ const AKTION = {
   warnzeichen: (el) => umschalten('warnzeichen', el.dataset.id),
   'mittel-vorschlag': (el) => entwurf({ mittel: el.dataset.id }),
 
+  bristol: (el) => entwurf({ form: Number(el.dataset.n) }),
+  'stuhl-dringend': () => entwurf({ dringend: !ui.bogen.entwurf.dringend }),
+  'stuhl-unfertig': () => entwurf({ unvollstaendig: !ui.bogen.entwurf.unvollstaendig }),
+  // Ein zweites Tippen nimmt die Antwort zurück: „nicht beantwortet" und
+  // „unverändert" sind verschiedene Dinge, und nur das zweite zählt in der
+  // Rom-Prüfung als Antwort.
+  stuhlbezug: (el) => entwurf({
+    stuhlbezug: ui.bogen.entwurf.stuhlbezug === el.dataset.id ? null : el.dataset.id,
+  }),
+
+  'versuch-start': (el) => {
+    const s = store.zustandLesen();
+    if (s.versuch && !s.versuch.beendet && phase(s.versuch, heuteISO()) !== 'fertig'
+        && !window.confirm('Es läuft schon ein Versuch. Der neue ersetzt ihn – das Ergebnis des alten ist dann weg. Trotzdem?')) return;
+    store.versuchStarten(el.dataset.art, el.dataset.id, Number(el.dataset.n) || 14);
+    store.einstellen('tab', 'heute');
+    melden('Versuch gestartet. Er steht ab jetzt auf dem Tagesreiter.');
+    zeichne();
+  },
+  'versuch-provokation': () => {
+    store.versuchProvozieren(heuteISO());
+    melden('Notiert. Jetzt drei Tage weiter eintragen wie sonst.');
+    zeichne();
+  },
+  'versuch-beenden': () => {
+    if (!window.confirm('Versuch abbrechen? Er bleibt mit dem stehen, was bis jetzt zusammengekommen ist.')) return;
+    store.versuchBeenden();
+    zeichne();
+  },
+  'versuch-weg': () => { store.versuchVerwerfen(); zeichne(); },
+
   'tag-blaettern': (el) => {
     ui.tag = plusTage(ui.tag, Number(el.dataset.d));
     zeichne();
@@ -4943,6 +7608,7 @@ const AKTION = {
     store.tagSetzen(ui.tag, { [id]: jetzt === n ? null : n });
     zeichne();
   },
+  'seit-weg': () => { store.einstellen('beschwerdenSeit', null); zeichne(); },
   frageAn: (el) => {
     const gewaehlt = store.zustandLesen().tagesfragen || [];
     const id = el.dataset.id;
@@ -5100,6 +7766,13 @@ function eingabe(ev) {
     case 'bogen-datum': entwurf({ am: wert }, false); break;
     case 'tag-datum':
       if (/^\d{4}-\d{2}-\d{2}$/.test(wert)) { ui.tag = wert; zeichne(); }
+      break;
+    // Der Monatsregler meldet sich bei jedem halben Tippen; erst ein
+    // vollständiges 'YYYY-MM' wird übernommen, sonst stünde zwischendurch
+    // „seit 0002".
+    case 'seit':
+      if (!wert) store.einstellen('beschwerdenSeit', null);
+      else if (/^\d{4}-\d{2}$/.test(wert)) store.einstellen('beschwerdenSeit', wert);
       break;
     default: break;
   }
