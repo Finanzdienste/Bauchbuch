@@ -25,7 +25,8 @@ import {
   artAnteil, ausloeserBilanz, einstufung, EINSTUFUNG_WORT, essensbezug,
   faktorBilanz, gesamtZahlen, haeufigeMahlzeiten, haeufigeZutaten,
   klasseZutaten, klassenBilanz, klassenEinstufung, nachArt, nachTageszeit,
-  rollenBilanz, serieOhne, stundenSeitEssen, tagesWert, trend, TREND_WORT,
+  bewerteteMahlzeiten, rollenBilanz, serieOhne, stundenSeitEssen, tagesWert,
+  trend, TREND_WORT,
   verlaufReihe, zutatenVon,
 } from './auswertung.js';
 import { entschluesseln, istTresor, tresorMoeglich, verschluesseln } from './tresor.js';
@@ -45,6 +46,7 @@ import {
 } from './zyklus.js';
 import { WARNZEICHEN, bildLesen, genugFuerBild } from './bild.js';
 import { fragenVorschlagen } from './unterleib.js';
+import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
@@ -92,6 +94,9 @@ const ui = {
   // als läge die Sicherung wieder offen da.
   schloss: false,
   tresorWort: '',
+  // Hat der Browser zugesagt, diesen Speicher nicht wegzuräumen? null heißt
+  // „weiß man nicht", und das wird auch so angezeigt statt beruhigt.
+  speicher: null,
   mittel: false,    // steht die ganze Mittelübersicht offen?
   // Die laufende Atemübung: { schritte, i, bisMs, uhr, wecker }. Nicht im
   // Speicher – eine Übung, die beim nächsten Öffnen weiterliefe, wäre keine.
@@ -585,6 +590,32 @@ function unterleibVorschlag(s) {
   </div>`;
 }
 
+/*
+ * Was von einem Verdacht übrig bleibt, wenn man die Umstände gleich hält.
+ *
+ * Der wichtigste Teil dieser Anzeige ist nicht das Urteil, sondern die Liste
+ * darunter: Wer sehen kann, in welcher Schicht wie viele Fälle steckten,
+ * kann selbst einschätzen, wie viel das Urteil wiegt. Ein Urteil ohne seine
+ * Grundlage ist ein Orakel.
+ */
+function schichtBlock(stand) {
+  const geprueft = stand.schichten.filter((x) => x.pruefbar);
+  const liste = geprueft.length ? `<ul class="schichten">${geprueft.map((x) => `<li>
+    <span>${esc(x.name)}</span>
+    <span class="klein">${fmtZahl(x.schnittMit)} gegen ${fmtZahl(x.schnittOhne)}
+      · ${x.faelle}/${x.gegenFaelle} Mahlzeiten</span>
+  </li>`).join('')}</ul>` : '';
+
+  return `<details class="stand s-${stand.urteil}">
+    <summary>Liegt es wirklich daran? <b>${SCHICHT_WORT[stand.urteil]}</b></summary>
+    <p class="klein">${esc(stand.satz)}</p>
+    ${liste}
+    <p class="klein">Verglichen wird jeweils <b>innerhalb</b> gleicher
+    Umstände: Wer an angespannten Tagen anders isst, findet sonst das Essen
+    auffällig, obwohl es an der Anspannung liegt.</p>
+  </details>`;
+}
+
 /**
  * Alles einmal rechnen, dann herumreichen.
  *
@@ -604,6 +635,9 @@ function musterDaten(s) {
     fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
   });
   const klassen = klassenBilanz(s.eintraege, { fenster: s.fenster });
+  // Einmal für alle: Die Schichtung unten braucht dieselbe Liste wie die
+  // Bilanz, und zweimal gerechnet wäre sie bei einem Jahr Tagebuch spürbar.
+  const bewertet = bewerteteMahlzeiten(s.eintraege, s.fenster);
   const k = kriterien({
     eintraege: s.eintraege,
     tage: s.tage,
@@ -621,7 +655,7 @@ function musterDaten(s) {
       return g ? g.id : null;
     },
   });
-  return { heute, istNsar, bilanz, klassen, kriterien: k, mittel };
+  return { heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel };
 }
 
 /**
@@ -1076,6 +1110,11 @@ function musterAnsicht(s) {
 
   const zeile = (b) => {
     const art = einstufung(b);
+    // Der Störfaktorentest – nur für das, was ohnehin auffällig ist. Für
+    // Unauffälliges gäbe es nichts zu entkräften, und jede zusätzliche
+    // Rechnung ist eine zusätzliche Gelegenheit für einen Zufallstreffer.
+    const stand = ['auffaellig', 'moeglich'].includes(art)
+      ? haeltStand(d.bewertet, b.id, s.tage) : null;
     // Die Aufschlüsselung nach Rolle nur, wenn es überhaupt etwas zu
     // unterscheiden gibt: Bei einer einzigen Rolle wiederholte sie die
     // Hauptzahl mit anderen Worten.
@@ -1094,6 +1133,7 @@ function musterAnsicht(s) {
         ${b.gegenFaelle} ohne · danach ${Math.round(b.quoteMit * 100)} % mit
         Beschwerden, sonst ${Math.round(b.quoteOhne * 100)} %</p>
       ${nachRolle}
+      ${stand ? schichtBlock(stand) : ''}
     </li>`;
   };
 
@@ -1568,6 +1608,19 @@ function mehrAnsicht(s) {
     <p class="klein">Alles steht ausschließlich in diesem Browser. Wird der
     Speicher der Website gelöscht, ist das Tagebuch weg – eine andere Kopie
     gibt es nirgends. Die Sicherung ist eine gewöhnliche JSON-Datei.</p>
+    <p class="klein">${ui.speicher === true
+    ? '<b>Dauerhafter Speicher: zugesagt.</b> Der Browser hat zugesichert, '
+      + 'diesen Speicher nicht von selbst aufzuräumen. Sichern solltest du '
+      + 'trotzdem – eine Zusage ist kein Gerät, das nicht kaputtgeht.'
+    : ui.speicher === false
+      ? '<b>Dauerhafter Speicher: nicht zugesagt.</b> Der Browser darf diesen '
+        + 'Speicher bei Platzmangel oder längerer Nichtbenutzung räumen. Meist '
+        + 'gibt er die Zusage, sobald die App auf dem Startbildschirm liegt und '
+        + 'ein paar Mal benutzt wurde. Bis dahin ist die Sicherung das Einzige, '
+        + 'worauf Verlass ist.'
+      : '<b>Dauerhafter Speicher: unbekannt.</b> Dieser Browser sagt nicht, ob '
+        + 'er den Speicher verschont – auf iOS ist das der Normalfall. Dort '
+        + 'kann er nach längerer Nichtbenutzung geräumt werden. Sichern.'}</p>
     <p class="klein ${alt > 30 ? 'warnend' : ''}">Gesichert: ${gesichert}</p>
     <div class="reihe">
       ${knopf('export', 'Als Datei sichern', 'btn-primary')}
@@ -2579,6 +2632,38 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') store.sofortSchreiben();
 });
 window.addEventListener('pagehide', () => store.sofortSchreiben());
+
+/*
+ * Dauerhaften Speicher anfordern.
+ *
+ * Ohne das darf ein Browser den localStorage jederzeit wegräumen: bei
+ * Platzmangel, beim „Browserdaten löschen", und auf iOS schon dann, wenn eine
+ * Seite sieben Tage lang nicht besucht wurde. Für ein Lesezeichen ist das
+ * verschmerzbar. Für ein Tagebuch, das über Monate entsteht und von dem es nur
+ * diese eine Kopie gibt, wäre es das Ende – und zwar eines, das niemand
+ * kommen sieht.
+ *
+ * `persist()` bittet den Browser, diesen Speicher davon auszunehmen. Chrome
+ * gewährt das stillschweigend, sobald eine Seite installiert ist oder
+ * regelmäßig benutzt wird; Safari kennt es nicht und ignoriert es. Deshalb
+ * ist die Bitte kein Ersatz für die Sicherung, sondern eine zweite Sicherung –
+ * und was dabei herauskam, steht unter „Mehr", damit niemand sich auf etwas
+ * verlässt, das gar nicht zugesagt wurde.
+ */
+async function speicherFestnageln() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) return;
+    ui.speicher = await navigator.storage.persisted();
+    if (!ui.speicher) ui.speicher = await navigator.storage.persist();
+  } catch {
+    // Manche Browser werfen hier statt abzulehnen. Dann bleibt es bei null,
+    // und die Anzeige sagt „unbekannt" statt etwas zu behaupten.
+    ui.speicher = null;
+  }
+  zeichne();
+}
+
+speicherFestnageln();
 
 window.addEventListener('beforeinstallprompt', (ev) => {
   // Ohne preventDefault zeigt der Browser seinen eigenen Streifen und das

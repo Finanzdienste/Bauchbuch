@@ -406,6 +406,24 @@ p { margin: 0 0 8px; }
 .geprueft.g-unklar, .geprueft.g-offen { border-left-color: var(--warn); }
 .geprueft.g-unsauber, .geprueft.g-zuwenig { border-left-color: var(--line); }
 
+/* Der Störfaktorentest unter einem Fund. Zugeklappt, weil er die Begründung
+   ist und nicht die Auskunft – wer sie will, tippt drauf. */
+.stand { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.stand summary {
+  cursor: pointer; font-size: 13px; color: var(--muted);
+  min-height: 32px; display: flex; align-items: center;
+}
+.stand summary b { color: var(--text); margin-left: 4px; }
+.stand.s-haelt summary b { color: var(--bad); }
+.stand.s-verschwindet summary b { color: var(--ok); }
+.stand.s-nur-dann summary b { color: var(--warn); }
+.schichten { list-style: none; margin: 8px 0; padding: 0; }
+.schichten li {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.schichten li:last-child { border-bottom: none; }
+
 .schloss { margin-top: 10px; }
 .schloss .reihe { margin-top: 10px; }
 

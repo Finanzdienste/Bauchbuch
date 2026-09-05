@@ -426,6 +426,24 @@ p { margin: 0 0 8px; }
 .geprueft.g-unklar, .geprueft.g-offen { border-left-color: var(--warn); }
 .geprueft.g-unsauber, .geprueft.g-zuwenig { border-left-color: var(--line); }
 
+/* Der Störfaktorentest unter einem Fund. Zugeklappt, weil er die Begründung
+   ist und nicht die Auskunft – wer sie will, tippt drauf. */
+.stand { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.stand summary {
+  cursor: pointer; font-size: 13px; color: var(--muted);
+  min-height: 32px; display: flex; align-items: center;
+}
+.stand summary b { color: var(--text); margin-left: 4px; }
+.stand.s-haelt summary b { color: var(--bad); }
+.stand.s-verschwindet summary b { color: var(--ok); }
+.stand.s-nur-dann summary b { color: var(--warn); }
+.schichten { list-style: none; margin: 8px 0; padding: 0; }
+.schichten li {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.schichten li:last-child { border-bottom: none; }
+
 .schloss { margin-top: 10px; }
 .schloss .reihe { margin-top: 10px; }
 
@@ -2919,19 +2937,31 @@ function wertNach(eintraege, mahlzeit, fensterStunden) {
  * @param {object[]} eintraege  alle Eintragungen
  * @param {{fenster: number, mindestFaelle: number, eigene: object[]}} opt
  */
-function ausloeserBilanz(eintraege, opt = {}) {
-  const fenster = opt.fenster || 4;
-  const mindest = opt.mindestFaelle || 5;
-  const mahlzeiten = eintraege.filter((e) => e.art === 'essen');
-  if (!mahlzeiten.length) return [];
-
-  // Einmal für alle Mahlzeiten rechnen, nicht je Auslöser neu: Bei einem Jahr
-  // Tagebuch und zwei Dutzend Auslösern wäre das sonst das Quadrat davon.
-  const bewertet = mahlzeiten.map((m) => ({
+/**
+ * Jede Mahlzeit mit ihren Merkmalen und dem, was danach kam.
+ *
+ * Einmal gerechnet und dann herumgereicht: Bei einem Jahr Tagebuch und zwei
+ * Dutzend Auslösern wäre das je Auslöser neu das Quadrat der Arbeit. Seit die
+ * Schichtung dazugekommen ist, braucht auch js/schichten.js genau diese Liste
+ * – deshalb steht sie hier für sich und nicht mehr eingebacken in die Bilanz.
+ *
+ * `am` liegt bewusst obenauf: Die Schichtung schlägt damit den Tag nach, an
+ * dem die Mahlzeit war, ohne den ganzen Eintrag auseinandernehmen zu müssen.
+ */
+function bewerteteMahlzeiten(eintraege, fenster = 4) {
+  return eintraege.filter((e) => e.art === 'essen').map((m) => ({
     m,
+    am: m.am,
     merkmale: new Set(merkmale(m)),
     wert: wertNach(eintraege, m, fenster),
   }));
+}
+
+function ausloeserBilanz(eintraege, opt = {}) {
+  const fenster = opt.fenster || 4;
+  const mindest = opt.mindestFaelle || 5;
+  const bewertet = bewerteteMahlzeiten(eintraege, fenster);
+  if (!bewertet.length) return [];
 
   const bekannt = new Set(ALLE_AUSLOESER.map((a) => a.id));
   (opt.eigene || []).forEach((a) => bekannt.add(a.id));
@@ -4859,6 +4889,237 @@ function luecken(d) {
   };
 }
 
+/* ===== js/schichten.js ===== */
+/*
+ * Störfaktoren herausrechnen – oder: liegt es wirklich am Kaffee?
+ *
+ * DAS PROBLEM, DAS DIESE DATEI LÖST
+ *
+ * Bisher wurde jeder Auslöser für sich verglichen: Mahlzeiten mit Kaffee gegen
+ * Mahlzeiten ohne. Kommt dabei ein Unterschied heraus, stand da „auffällig".
+ *
+ * Nur trinkt niemand Kaffee zufällig verteilt. Kaffee gibt es an
+ * Arbeitstagen, und Arbeitstage sind die angespannten. Wenn Anspannung den
+ * Bauch verschlechtert, sieht der Kaffee schuldig aus, ohne es zu sein – und
+ * jemand streicht ihn, isst fortan einseitiger und hat nichts gewonnen.
+ *
+ * Der Ausweg ist alt und heißt Schichtung: Man vergleicht nicht mehr alles
+ * mit allem, sondern **innerhalb** vergleichbarer Gruppen. Hält der
+ * Kaffee-Unterschied auch, wenn man nur die ruhigen Tage ansieht? Und auch,
+ * wenn man nur die angespannten ansieht? Dann ist es der Kaffee. Zeigt er
+ * sich nur in einer Schicht, war es der Störfaktor.
+ *
+ * DAS IST NICHT NUR EINE ABSCHWÄCHUNG
+ *
+ * Die Schichtung kann einen Befund auch *erzeugen*. Wenn jemand an ruhigen
+ * Tagen selten Kaffee trinkt und an Stresstagen viel, kann sich der
+ * Kaffee-Effekt im Gesamtschnitt fast aufheben und erst innerhalb der
+ * Schichten sichtbar werden. Beides ist derselbe Rechenfehler – das
+ * Simpson-Paradox – nur in verschiedene Richtungen.
+ *
+ * WAS DAS KOSTET, UND WARUM DIE SCHWELLEN STEIGEN
+ *
+ * Jede Schicht halbiert die Fallzahl ungefähr, und drei Schichtmerkmale mal
+ * zwanzig Auslöser sind schnell hundert Vergleiche. Bei hundert Vergleichen
+ * ist ein „auffälliger" Zufallstreffer nicht unwahrscheinlich, sondern zu
+ * erwarten. Deshalb gilt hier strenger als sonst:
+ *
+ *   * Jede Schicht braucht auf **beiden** Seiten genug Fälle, sonst zählt sie
+ *     gar nicht mit.
+ *   * Mindestens **zwei** Schichten müssen prüfbar sein. Aus einer einzigen
+ *     Schicht lässt sich nichts über Störfaktoren sagen.
+ *   * Der Befund muss in **allen** prüfbaren Schichten dieselbe Richtung
+ *     zeigen. Einmal dafür und einmal dagegen heißt: es liegt am Störfaktor,
+ *     nicht am Auslöser.
+ *
+ * Und wenn das nicht reicht, kommt kein abgeschwächtes Urteil heraus, sondern
+ * „dafür reichen die Daten nicht". Das ist die einzige ehrliche Antwort und
+ * die einzige, die niemanden in die Irre führt.
+ */
+
+/**
+ * Die Schichtmerkmale.
+ *
+ * Alles Dinge, die den Bauch nachweislich beeinflussen und die gleichzeitig
+ * beeinflussen, *was* jemand isst – genau die Kombination, die einen
+ * Störfaktor ausmacht. Wetter oder Wochentag stehen nicht hier: Sie ändern
+ * zwar das Essen, aber nicht den Bauch.
+ */
+const SCHICHTEN = [
+  {
+    id: 'stress',
+    name: 'Anspannung',
+    // Die Tagesfragen laufen von 0 (ruhig) bis 4 (sehr viel).
+    teile: [
+      { id: 'ruhig', name: 'an ruhigen Tagen', passt: (v) => v !== null && v <= 1 },
+      { id: 'angespannt', name: 'an angespannten Tagen', passt: (v) => v !== null && v >= 3 },
+    ],
+  },
+  {
+    id: 'schlaf',
+    name: 'Schlaf',
+    teile: [
+      { id: 'gut', name: 'nach guten Nächten', passt: (v) => v !== null && v <= 1 },
+      { id: 'schlecht', name: 'nach schlechten Nächten', passt: (v) => v !== null && v >= 3 },
+    ],
+  },
+  {
+    id: 'blutung',
+    name: 'Zyklus',
+    teile: [
+      { id: 'ohne', name: 'außerhalb der Blutung', passt: (v) => !v },
+      { id: 'mit', name: 'während der Blutung', passt: (v) => v > 0 },
+    ],
+  },
+];
+
+/*
+ * Die mittlere Zone bleibt bewusst außen vor.
+ *
+ * „Geht so" ist weder ruhig noch angespannt; Mahlzeiten von solchen Tagen in
+ * eine der beiden Schichten zu stecken, würde den Vergleich verwässern, den
+ * er schärfen soll. Sie fehlen dann in der Rechnung – das kostet Fälle und
+ * ist der Preis dafür, dass die beiden Schichten wirklich verschieden sind.
+ */
+
+/** Ab wie vielen Mahlzeiten je Seite eine Schicht überhaupt zählt. */
+const MINDEST_JE_SCHICHT = 4;
+
+/** So viele Schichten müssen prüfbar sein, damit ein Urteil möglich ist. */
+const MINDEST_SCHICHTEN = 2;
+
+const schnitt = (liste) => (liste.length
+  ? liste.reduce((s, x) => s + x, 0) / liste.length : 0);
+
+/**
+ * Einen einzelnen Auslöser gegen die Störfaktoren halten.
+ *
+ * @param {object[]} bewertet  [{ merkmale:Set, wert:number, am:string }]
+ * @param {string} id          der Auslöser
+ * @param {object} tage        der Tagesspeicher
+ * @returns {object} das Urteil samt allen Schichten, auch den nicht prüfbaren
+ */
+function haeltStand(bewertet, id, tage) {
+  const schichten = [];
+
+  SCHICHTEN.forEach((s) => {
+    const paar = [];
+    s.teile.forEach((teil) => {
+      const drin = bewertet.filter((b) => {
+        const tag = (tage || {})[b.am];
+        if (!tag || !tag.notiert) return false;
+        const v = tag[s.id];
+        return teil.passt(v === undefined ? null : v);
+      });
+      const mit = drin.filter((b) => b.merkmale.has(id));
+      const ohne = drin.filter((b) => !b.merkmale.has(id));
+      const pruefbar = mit.length >= MINDEST_JE_SCHICHT && ohne.length >= MINDEST_JE_SCHICHT;
+      const schnittMit = schnitt(mit.map((b) => b.wert));
+      const schnittOhne = schnitt(ohne.map((b) => b.wert));
+
+      paar.push({
+        merkmal: s.id,
+        merkmalName: s.name,
+        id: `${s.id}:${teil.id}`,
+        name: teil.name,
+        pruefbar,
+        faelle: mit.length,
+        gegenFaelle: ohne.length,
+        schnittMit,
+        schnittOhne,
+        differenz: pruefbar ? schnittMit - schnittOhne : 0,
+        fehlt: Math.max(0, MINDEST_JE_SCHICHT - Math.min(mit.length, ohne.length)),
+      });
+    });
+
+    /*
+     * Eine Schicht zählt nur, wenn ihre Gegenschicht auch etwas hergibt.
+     *
+     * Das ist keine Feinheit, sondern der Kern der Sache – und es war im
+     * ersten Entwurf falsch. Wer nie eine Blutung einträgt, dessen Mahlzeiten
+     * fallen restlos in „außerhalb der Blutung". Diese eine Schicht enthält
+     * dann *alles* und wiederholt damit genau den ungeschichteten Vergleich,
+     * den sie prüfen soll – samt seiner Verzerrung. Sie stimmte die echten
+     * Schichten nieder, und der Scheinbefund kam durch.
+     *
+     * Schichten gibt es deshalb nur im Paar: „ruhig" ist nur dann eine
+     * Auskunft, wenn es auch „angespannt" gibt, mit dem man sie vergleichen
+     * kann. Fehlt die Gegenseite, fehlt der Kontrast, und dann ist die Frage
+     * nach dem Störfaktor gar nicht gestellt.
+     */
+    const beideDa = paar.every((x) => x.pruefbar);
+    paar.forEach((x) => schichten.push({ ...x, pruefbar: x.pruefbar && beideDa }));
+  });
+
+  const pruefbare = schichten.filter((s) => s.pruefbar);
+
+  if (pruefbare.length < MINDEST_SCHICHTEN) {
+    return {
+      urteil: 'unklar',
+      schichten,
+      pruefbare: pruefbare.length,
+      satz: pruefbare.length === 0
+        ? 'Für einen Vergleich unter gleichen Umständen fehlen die Angaben zu '
+          + 'Anspannung, Schlaf oder Zyklus – ohne die lässt sich nicht sagen, '
+          + 'ob es am Essen liegt oder an den Umständen.'
+        : 'Bisher lässt sich das nur unter einem einzigen Umstand vergleichen. '
+          + 'Aus einer einzigen Schicht folgt nichts über Störfaktoren.',
+    };
+  }
+
+  /*
+   * Zeigen alle prüfbaren Schichten in dieselbe Richtung? „Dieselbe Richtung"
+   * heißt hier: nennenswert, nicht bloß dasselbe Vorzeichen. Ein Unterschied
+   * von 0,05 ist kein Beleg dafür, dass etwas hält.
+   */
+  const SCHWELLE = 0.5;
+  const dafuer = pruefbare.filter((s) => s.differenz >= SCHWELLE);
+  const dagegen = pruefbare.filter((s) => s.differenz <= -SCHWELLE);
+  const neutral = pruefbare.filter((s) => Math.abs(s.differenz) < SCHWELLE);
+
+  if (dafuer.length === pruefbare.length) {
+    return {
+      urteil: 'haelt',
+      schichten,
+      pruefbare: pruefbare.length,
+      satz: `Der Unterschied bleibt ${pruefbare.map((s) => s.name).join(' und ')} `
+        + 'bestehen. Das spricht dafür, dass es am Essen liegt und nicht an den '
+        + 'Umständen.',
+    };
+  }
+
+  if (dafuer.length && (dagegen.length || neutral.length)) {
+    const nur = dafuer.map((s) => s.name).join(' und ');
+    const nicht = [...dagegen, ...neutral].map((s) => s.name).join(' und ');
+    return {
+      urteil: 'nur-dann',
+      schichten,
+      pruefbare: pruefbare.length,
+      wo: dafuer.map((s) => s.name),
+      satz: `Auffällig ist es ${nur}, ${nicht} dagegen nicht. Das deutet eher `
+        + 'auf die Umstände als auf das Essen selbst – oder darauf, dass beides '
+        + 'zusammenkommen muss.',
+    };
+  }
+
+  return {
+    urteil: 'verschwindet',
+    schichten,
+    pruefbare: pruefbare.length,
+    satz: 'Unter gleichen Umständen verglichen bleibt kein Unterschied übrig. '
+      + 'Der Verdacht kam vermutlich daher, dass dieses Essen und die schlechten '
+      + 'Tage zusammenfallen, ohne dass eins das andere macht.',
+  };
+}
+
+/** Für die Anzeige: kurzes Wort zum Urteil. */
+const SCHICHT_WORT = {
+  haelt: 'hält stand',
+  'nur-dann': 'nur unter Umständen',
+  verschwindet: 'verschwindet',
+  unklar: 'nicht prüfbar',
+};
+
 /* ===== js/unterleib.js ===== */
 /*
  * Der Unterleib – und warum ein Magentagebuch danach fragt.
@@ -6219,6 +6480,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -6353,13 +6615,52 @@ function arztBericht(zustand, von, bis) {
     eigene: zustand.eigeneAusloeser,
   }).filter((b) => b.genug && einstufung(b) !== 'neutral' && einstufung(b) !== 'unauffaellig');
 
-  if (bilanz.length) {
+  /*
+   * Bevor ein Auslöser auf dem Zettel steht, wird er gegen die Umstände
+   * gehalten.
+   *
+   * Der rohe Vergleich fragt nur: war es nach diesen Mahlzeiten schlimmer? Er
+   * kann nicht wissen, dass es Kaffee vor allem an Arbeitstagen gibt und
+   * Arbeitstage die angespannten sind. Wer das ungeprüft als „auffällig" in
+   * eine Sprechstunde trägt, streicht am Ende ein Lebensmittel und hat nichts
+   * gewonnen. Deshalb wird jeder Fund innerhalb gleicher Anspannung, gleichen
+   * Schlafs und gleicher Zyklusphase nachgerechnet – und was dabei
+   * verschwindet, steht weiter unten und nicht hier oben.
+   */
+  const bewertet = bewerteteMahlzeiten(imZeitraum, zustand.fenster);
+  const gehalten = bilanz.map((b) => ({ b, stand: haeltStand(bewertet, b.id, tage) }));
+  const bleibt = gehalten.filter((x) => x.stand.urteil !== 'verschwindet');
+  const zerfallen = gehalten.filter((x) => x.stand.urteil === 'verschwindet');
+
+  const zahlen = (b) => `${fmtZahl(b.schnittMit)} gegen ${fmtZahl(b.schnittOhne)} `
+    + `(${b.faelle} Mahlzeiten damit, ${b.gegenFaelle} ohne)`;
+
+  if (bleibt.length) {
     sag(`AUFFÄLLIG IM ZEITRAUM VON ${zustand.fenster} STUNDEN NACH DEM ESSEN`);
     sag('  (Vergleich: mittlere Beschwerdestärke danach gegen alle übrigen Mahlzeiten)');
-    bilanz.slice(0, 8).forEach((b) => {
-      sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} `
-        + `${fmtZahl(b.schnittMit)} gegen ${fmtZahl(b.schnittOhne)} `
-        + `(${b.faelle} Mahlzeiten damit, ${b.gegenFaelle} ohne)`);
+    bleibt.slice(0, 8).forEach(({ b, stand }) => {
+      sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
+      const wo = stand.urteil === 'nur-dann' ? ` (${(stand.wo || []).join(', ')})` : '';
+      sag(`    unter gleichen Umständen: ${SCHICHT_WORT[stand.urteil]}${wo}`
+        + (stand.urteil === 'unklar' ? ' – zu wenige Tage mit Angaben zu'
+          + ' Anspannung, Schlaf oder Zyklus' : ''));
+    });
+    sag();
+  }
+
+  /*
+   * Was den Vergleich nicht überstanden hat, wird trotzdem genannt.
+   *
+   * Es einfach wegzulassen wäre bequem und falsch: In der Sprechstunde kommt
+   * derselbe Verdacht sonst beim nächsten Mal wieder, und diesmal ungeprüft.
+   */
+  if (zerfallen.length) {
+    sag('IM ROHEN VERGLEICH AUFFÄLLIG, UNTER GLEICHEN UMSTÄNDEN NICHT MEHR');
+    sag('  (Innerhalb gleicher Anspannung, gleichen Schlafs und gleicher');
+    sag('  Zyklusphase nachgerechnet bleibt kein Unterschied übrig – der');
+    sag('  Verdacht kam vermutlich daher, dass beides zusammenfällt.)');
+    zerfallen.slice(0, 6).forEach(({ b }) => {
+      sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
     });
     sag();
   }
@@ -6583,7 +6884,11 @@ function arztBericht(zustand, von, bis) {
   sag('---');
   sag('Selbst geführtes Tagebuch. Die Zahlen sind gezählt, nicht gedeutet;');
   sag('„auffällig" heißt hier nur: nach diesen Mahlzeiten stand im Mittel ein');
-  sag('höherer Wert als nach den übrigen. Der Abschnitt zum Muster ordnet den');
+  sag('höherer Wert als nach den übrigen – und der Unterschied blieb auch dann');
+  sag('bestehen, als nur Tage mit gleicher Anspannung, gleichem Schlaf und');
+  sag('gleicher Zyklusphase miteinander verglichen wurden. Das ist kein');
+  sag('Wirkungsnachweis: Es bleiben alle Umstände, die niemand einträgt.');
+  sag('Der Abschnitt zum Muster ordnet den');
   sag('Verlauf in gebräuchliche Begriffe ein und stellt keine Diagnose – die');
   sag('genannten Möglichkeiten unterscheidet eine Untersuchung, nicht ein Tagebuch.');
   return zeilen.join('\n');
@@ -6650,6 +6955,9 @@ const ui = {
   // als läge die Sicherung wieder offen da.
   schloss: false,
   tresorWort: '',
+  // Hat der Browser zugesagt, diesen Speicher nicht wegzuräumen? null heißt
+  // „weiß man nicht", und das wird auch so angezeigt statt beruhigt.
+  speicher: null,
   mittel: false,    // steht die ganze Mittelübersicht offen?
   // Die laufende Atemübung: { schritte, i, bisMs, uhr, wecker }. Nicht im
   // Speicher – eine Übung, die beim nächsten Öffnen weiterliefe, wäre keine.
@@ -7143,6 +7451,32 @@ function unterleibVorschlag(s) {
   </div>`;
 }
 
+/*
+ * Was von einem Verdacht übrig bleibt, wenn man die Umstände gleich hält.
+ *
+ * Der wichtigste Teil dieser Anzeige ist nicht das Urteil, sondern die Liste
+ * darunter: Wer sehen kann, in welcher Schicht wie viele Fälle steckten,
+ * kann selbst einschätzen, wie viel das Urteil wiegt. Ein Urteil ohne seine
+ * Grundlage ist ein Orakel.
+ */
+function schichtBlock(stand) {
+  const geprueft = stand.schichten.filter((x) => x.pruefbar);
+  const liste = geprueft.length ? `<ul class="schichten">${geprueft.map((x) => `<li>
+    <span>${esc(x.name)}</span>
+    <span class="klein">${fmtZahl(x.schnittMit)} gegen ${fmtZahl(x.schnittOhne)}
+      · ${x.faelle}/${x.gegenFaelle} Mahlzeiten</span>
+  </li>`).join('')}</ul>` : '';
+
+  return `<details class="stand s-${stand.urteil}">
+    <summary>Liegt es wirklich daran? <b>${SCHICHT_WORT[stand.urteil]}</b></summary>
+    <p class="klein">${esc(stand.satz)}</p>
+    ${liste}
+    <p class="klein">Verglichen wird jeweils <b>innerhalb</b> gleicher
+    Umstände: Wer an angespannten Tagen anders isst, findet sonst das Essen
+    auffällig, obwohl es an der Anspannung liegt.</p>
+  </details>`;
+}
+
 /**
  * Alles einmal rechnen, dann herumreichen.
  *
@@ -7162,6 +7496,9 @@ function musterDaten(s) {
     fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
   });
   const klassen = klassenBilanz(s.eintraege, { fenster: s.fenster });
+  // Einmal für alle: Die Schichtung unten braucht dieselbe Liste wie die
+  // Bilanz, und zweimal gerechnet wäre sie bei einem Jahr Tagebuch spürbar.
+  const bewertet = bewerteteMahlzeiten(s.eintraege, s.fenster);
   const k = kriterien({
     eintraege: s.eintraege,
     tage: s.tage,
@@ -7179,7 +7516,7 @@ function musterDaten(s) {
       return g ? g.id : null;
     },
   });
-  return { heute, istNsar, bilanz, klassen, kriterien: k, mittel };
+  return { heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel };
 }
 
 /**
@@ -7634,6 +7971,11 @@ function musterAnsicht(s) {
 
   const zeile = (b) => {
     const art = einstufung(b);
+    // Der Störfaktorentest – nur für das, was ohnehin auffällig ist. Für
+    // Unauffälliges gäbe es nichts zu entkräften, und jede zusätzliche
+    // Rechnung ist eine zusätzliche Gelegenheit für einen Zufallstreffer.
+    const stand = ['auffaellig', 'moeglich'].includes(art)
+      ? haeltStand(d.bewertet, b.id, s.tage) : null;
     // Die Aufschlüsselung nach Rolle nur, wenn es überhaupt etwas zu
     // unterscheiden gibt: Bei einer einzigen Rolle wiederholte sie die
     // Hauptzahl mit anderen Worten.
@@ -7652,6 +7994,7 @@ function musterAnsicht(s) {
         ${b.gegenFaelle} ohne · danach ${Math.round(b.quoteMit * 100)} % mit
         Beschwerden, sonst ${Math.round(b.quoteOhne * 100)} %</p>
       ${nachRolle}
+      ${stand ? schichtBlock(stand) : ''}
     </li>`;
   };
 
@@ -8126,6 +8469,19 @@ function mehrAnsicht(s) {
     <p class="klein">Alles steht ausschließlich in diesem Browser. Wird der
     Speicher der Website gelöscht, ist das Tagebuch weg – eine andere Kopie
     gibt es nirgends. Die Sicherung ist eine gewöhnliche JSON-Datei.</p>
+    <p class="klein">${ui.speicher === true
+    ? '<b>Dauerhafter Speicher: zugesagt.</b> Der Browser hat zugesichert, '
+      + 'diesen Speicher nicht von selbst aufzuräumen. Sichern solltest du '
+      + 'trotzdem – eine Zusage ist kein Gerät, das nicht kaputtgeht.'
+    : ui.speicher === false
+      ? '<b>Dauerhafter Speicher: nicht zugesagt.</b> Der Browser darf diesen '
+        + 'Speicher bei Platzmangel oder längerer Nichtbenutzung räumen. Meist '
+        + 'gibt er die Zusage, sobald die App auf dem Startbildschirm liegt und '
+        + 'ein paar Mal benutzt wurde. Bis dahin ist die Sicherung das Einzige, '
+        + 'worauf Verlass ist.'
+      : '<b>Dauerhafter Speicher: unbekannt.</b> Dieser Browser sagt nicht, ob '
+        + 'er den Speicher verschont – auf iOS ist das der Normalfall. Dort '
+        + 'kann er nach längerer Nichtbenutzung geräumt werden. Sichern.'}</p>
     <p class="klein ${alt > 30 ? 'warnend' : ''}">Gesichert: ${gesichert}</p>
     <div class="reihe">
       ${knopf('export', 'Als Datei sichern', 'btn-primary')}
@@ -9137,6 +9493,38 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') store.sofortSchreiben();
 });
 window.addEventListener('pagehide', () => store.sofortSchreiben());
+
+/*
+ * Dauerhaften Speicher anfordern.
+ *
+ * Ohne das darf ein Browser den localStorage jederzeit wegräumen: bei
+ * Platzmangel, beim „Browserdaten löschen", und auf iOS schon dann, wenn eine
+ * Seite sieben Tage lang nicht besucht wurde. Für ein Lesezeichen ist das
+ * verschmerzbar. Für ein Tagebuch, das über Monate entsteht und von dem es nur
+ * diese eine Kopie gibt, wäre es das Ende – und zwar eines, das niemand
+ * kommen sieht.
+ *
+ * `persist()` bittet den Browser, diesen Speicher davon auszunehmen. Chrome
+ * gewährt das stillschweigend, sobald eine Seite installiert ist oder
+ * regelmäßig benutzt wird; Safari kennt es nicht und ignoriert es. Deshalb
+ * ist die Bitte kein Ersatz für die Sicherung, sondern eine zweite Sicherung –
+ * und was dabei herauskam, steht unter „Mehr", damit niemand sich auf etwas
+ * verlässt, das gar nicht zugesagt wurde.
+ */
+async function speicherFestnageln() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) return;
+    ui.speicher = await navigator.storage.persisted();
+    if (!ui.speicher) ui.speicher = await navigator.storage.persist();
+  } catch {
+    // Manche Browser werfen hier statt abzulehnen. Dann bleibt es bei null,
+    // und die Anzeige sagt „unbekannt" statt etwas zu behaupten.
+    ui.speicher = null;
+  }
+  zeichne();
+}
+
+speicherFestnageln();
 
 window.addEventListener('beforeinstallprompt', (ev) => {
   // Ohne preventDefault zeigt der Browser seinen eigenen Streifen und das
