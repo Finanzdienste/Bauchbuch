@@ -18,7 +18,7 @@ import { fmtZahl, mehrzahl } from './text.js';
 import { ausloeserName, beschwerdeName, STAERKE_WORT } from './daten.js';
 import {
   ausloeserBilanz, einstufung, gesamtZahlen, klassenBilanz, klassenEinstufung,
-  nachArt, nachTageszeit, tagesWert,
+  nachArt, nachTageszeit, tagesWert, trend, TREND_WORT,
 } from './auswertung.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
@@ -66,6 +66,12 @@ export function arztBericht(zustand, von, bis) {
   sag('Magen-Tagebuch');
   sag(`Zeitraum: ${fmtDatum(von, true)} bis ${fmtDatum(bis, true)} `
     + `(${mehrzahl(tageDazwischen(von, bis) + 1, 'Tag', 'Tage')})`);
+  // Beginnt der Bericht genau an einem eingetragenen Termin, gehört das in
+  // den Kopf: Dann liest niemand die 47 Tage als eine runde Zahl, die eine
+  // App sich ausgesucht hat.
+  if ((zustand.termine || []).includes(von)) {
+    sag('Das ist die Zeit seit dem letzten Termin.');
+  }
   sag();
 
   if (!z.notierteTage) {
@@ -107,6 +113,29 @@ export function arztBericht(zustand, von, bis) {
   sag(`  Mahlzeiten eingetragen     ${z.mahlzeiten}`);
   sag(`  Medikamenteneinnahmen      ${z.medikamente}`);
   sag();
+
+  /*
+   * Wird es besser oder schlechter?
+   *
+   * Die eine Frage, die in der Sprechstunde immer kommt und die aus dem Kopf
+   * niemand beantwortet – „mal so, mal so" ist die ehrliche Antwort und die
+   * nutzloseste. Verglichen wird nur innerhalb des Berichtszeitraums: Eine
+   * Richtung, die heimlich Tage von vor dem letzten Termin mitzählt, stünde
+   * unter einer Überschrift, die etwas anderes verspricht.
+   */
+  const t = trend(imZeitraum, tage, bis, 14, von);
+  if (t.pruefbar) {
+    sag('RICHTUNG');
+    sag(`  Die letzten ${t.jetzt.tage} notierten Tage gegen die ${t.davor.tage} davor:`);
+    sag(`  ${TREND_WORT[t.richtung]}`);
+    sag(`  Stärke im Mittel  ${fmtZahl(t.jetzt.schnitt)} zuletzt gegen `
+      + `${fmtZahl(t.davor.schnitt)} davor`);
+    sag(`  Beschwerdefreie Tage  ${t.jetzt.frei} zuletzt gegen ${t.davor.frei} davor`);
+    sag('  (Verglichen werden notierte Tage, nicht Kalendertage – eine Lücke im');
+    sag('  Tagebuch ist kein guter Tag. Schwelle für eine Richtung: eine ganze');
+    sag('  Stufe Unterschied.)');
+    sag();
+  }
 
   const arten = nachArt(imZeitraum);
   if (arten.length) {
@@ -223,6 +252,28 @@ export function arztBericht(zustand, von, bis) {
         + `(${e.nachher.notierte} Tage)` : ', Wiedereinführung steht noch aus'));
     umbrochen(e.satz).forEach((z) => sag(`  ${z}`));
     sag('  (Ein Versuch an einem einzigen Menschen, ohne Verblindung.)');
+    sag();
+  }
+
+  /*
+   * Was schon geprüft wurde – auch und gerade, was nichts ergab.
+   *
+   * Ohne diesen Abschnitt schickt jede Sprechstunde denselben Verdacht noch
+   * einmal los. Ein Auslassversuch, der dagegen sprach, hat genauso Arbeit
+   * gekostet wie einer, der dafür sprach, und ist für die nächste Überlegung
+   * genauso viel wert.
+   */
+  const alte = (zustand.versuche || []).filter((x) => x.start <= bis);
+  if (alte.length) {
+    sag('SCHON GEPRÜFT');
+    alte.slice(0, 8).forEach((x) => {
+      const e = ergebnis(x, eintraege, tage, bis);
+      const was = x.art === 'klasse' ? x.ziel : ausloeserName(x.ziel, zustand.eigeneAusloeser);
+      sag(`  ${was} weggelassen ab ${fmtDatum(x.start, true)}, `
+        + `${mehrzahl(x.tage, 'Tag', 'Tage')} – ${e.wort}`);
+      sag(`     davor ${fmtZahl(e.vorher.schnitt)}, ohne ${fmtZahl(e.auslass.schnitt)}`
+        + (e.nachher ? `, danach ${fmtZahl(e.nachher.schnitt)}` : ''));
+    });
     sag();
   }
 

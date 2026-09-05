@@ -83,7 +83,9 @@ check(await page.locator('.idee.ab').count() === 0, 'ein zweites Tippen macht si
 
 /* ---------- Der Weg nach draußen ---------- */
 
-await page.locator('[data-act="ideen-kopieren"]').click();
+// Den Knopf gibt es zweimal: oben in der Erinnerung „noch nicht verschickt"
+// und unten im Fuß. Gemeint ist hier der untere.
+await page.locator('[data-act="ideen-kopieren"]').last().click();
 await page.waitForTimeout(300);
 const ablage = await page.evaluate(() => navigator.clipboard.readText());
 check(ablage.includes('Bauchbuch'), 'der kopierte Text ist überschrieben');
@@ -118,11 +120,42 @@ check(
   'aber nicht in den Eintragungen – getrennte Liste, wie gedacht',
 );
 
+/* ---------- Erst verschickt ist verschickt ---------- */
+
+/*
+ * Die App hat keinen Rückkanal und soll auch keinen bekommen – niemand liest
+ * hier mit. Das heißt aber, dass eine eingetragene Idee liegen bleibt, wenn
+ * niemand sie herausschickt, und dass genau das der Fehler ist, den man nicht
+ * merkt: Man hat es ja aufgeschrieben.
+ *
+ * Deshalb steht in der App, wie viele noch nicht draußen sind, und deshalb
+ * zählt „ich habe es aufgeschrieben" nicht als verschickt.
+ */
+// Kopiert wurde weiter oben schon einmal – seitdem ist nichts Neues
+// dazugekommen, also erinnert die App auch an nichts.
+check(
+  await page.locator('.karte.karte-merk').count() === 0,
+  'nach dem Kopieren steht keine Erinnerung mehr da',
+);
+
+await page.locator('#ideeText').fill('Noch eine Sache.');
+await page.locator('[data-act="idee-neu"]').click();
+await page.waitForTimeout(250);
+check(
+  (await page.locator('#toast').textContent()).includes('geschickt ist sie damit noch nicht'),
+  'beim Eintragen sagt die App, dass Aufschreiben nicht Verschicken ist',
+);
+check(
+  (await page.locator('.karte.karte-merk').first().textContent()).replace(/\s+/g, ' ')
+    .includes('1 Idee'),
+  'und die Erinnerung kommt für die neue Idee zurück – nur für sie',
+);
+
 /* ---------- Löschen ---------- */
 
 await page.locator('.idee').first().locator('[data-act="idee-weg"]').click();
 await page.waitForTimeout(250);
-check(await page.locator('.idee').count() === 1, 'löschen geht auch');
+check(await page.locator('.idee').count() === 2, 'löschen geht auch');
 
 await page.screenshot({ path: `${SHOT}/60-ideen.png` });
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);

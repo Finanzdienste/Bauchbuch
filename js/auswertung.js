@@ -524,6 +524,80 @@ export function serieOhne(eintraege, tage, bis) {
   return zaehler;
 }
 
+/* ---------- Wird es besser oder schlechter? ---------- */
+
+/**
+ * Die letzten Wochen gegen die Wochen davor.
+ *
+ * Die Frage, die jeder stellt, der ein Tagebuch führt, und die bisher nirgends
+ * beantwortet war: Alles andere in dieser Datei mittelt über den ganzen
+ * Zeitraum und kann deshalb nicht sagen, ob es *gerade* besser wird.
+ *
+ * Zwei Entscheidungen tragen die Rechnung, und beide gehen gegen ein zu
+ * freundliches Ergebnis:
+ *
+ *   1. **Verglichen werden notierte Tage, nicht Kalendertage.** Wer in einer
+ *      schlechten Woche seltener einträgt, hätte sonst rechnerisch eine gute
+ *      Woche – der häufigste Weg, wie ein Tagebuch sich selbst belügt. Der
+ *      jüngere Abschnitt sammelt die letzten `fenster` *notierten* Tage, der
+ *      ältere die `fenster` davor.
+ *   2. **Beide Abschnitte müssen voll sein.** Ein Vergleich von zwölf gegen
+ *      drei Tage ist keiner. Fehlt es, kommt `pruefbar: false` zurück und die
+ *      Anzeige sagt, wie viele Tage noch fehlen.
+ *
+ * Und die Schwelle ist bewusst hoch: eine ganze Stufe auf der Zehnerskala.
+ * Beschwerden schwanken von selbst, und aus jeder Schwankung eine Richtung zu
+ * machen wäre ein Orakel, das mal Mut macht und mal grundlos Angst.
+ */
+/*
+ * `ab` begrenzt, wie weit zurückgeschaut werden darf.
+ *
+ * Auf dem Bildschirm bleibt es leer – dort ist die Richtung eine Aussage über
+ * das Tagebuch, nicht über einen Ausschnitt. Im Bericht steht dagegen ein
+ * Zeitraum im Kopf, und eine Zahl, die still von davor mitrechnet, wäre dort
+ * schlicht falsch beschriftet.
+ */
+export function trend(eintraege, tage, bis, fenster = 14, ab = null) {
+  // Rückwärts durch den Kalender, bis beide Fächer voll sind – oder bis ein
+  // Jahr durch ist. Ohne diese Grenze liefe die Schleife bei einem leeren
+  // Tagebuch bis ans Ende der Zeit.
+  const werte = [];
+  let iso = bis;
+  for (let i = 0; i < 400 && werte.length < fenster * 2; i++) {
+    if (ab && iso < ab) break;
+    const t = tagesWert(eintraege, iso, tage);
+    if (t.notiert) werte.push(t.wert);
+    iso = plusTage(iso, -1);
+  }
+
+  const schnitt = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+  const jung = werte.slice(0, fenster);
+  const alt = werte.slice(fenster, fenster * 2);
+  const pruefbar = jung.length >= fenster && alt.length >= fenster;
+  const differenz = schnitt(alt) - schnitt(jung);
+
+  let richtung = 'gleich';
+  if (pruefbar && differenz >= 1) richtung = 'besser';
+  else if (pruefbar && differenz <= -1) richtung = 'schlechter';
+
+  return {
+    fenster,
+    pruefbar,
+    // Wie viele notierte Tage noch fehlen, damit sich überhaupt vergleichen lässt.
+    fehlt: Math.max(0, fenster * 2 - werte.length),
+    jetzt: { tage: jung.length, schnitt: schnitt(jung), frei: jung.filter((w) => w === 0).length },
+    davor: { tage: alt.length, schnitt: schnitt(alt), frei: alt.filter((w) => w === 0).length },
+    differenz,
+    richtung,
+  };
+}
+
+export const TREND_WORT = {
+  besser: 'es wird besser',
+  schlechter: 'es wird schlechter',
+  gleich: 'kein deutlicher Unterschied',
+};
+
 /** Die großen Zahlen für die Übersicht und den Bericht. */
 export function gesamtZahlen(eintraege, tage, von, bis) {
   const reihe = verlaufReihe(eintraege, von, bis, tage);

@@ -65,6 +65,32 @@ const VORGABE = {
    * die Aussage nehmen: Wird es besser, weiß hinterher niemand, wovon.
    */
   versuch: null,
+  /*
+   * Abgeschlossene Auslassversuche, der jüngste zuerst.
+   *
+   * Sie werden behalten statt weggeräumt, und zwar aus zwei Gründen: Ein
+   * geprüfter Verdacht soll nicht in einem halben Jahr noch einmal geprüft
+   * werden – zwei Wochen ohne Milch macht niemand gern zweimal –, und ein
+   * Versuch, der *dagegen* sprach, ist für den Termin genauso ein Beleg wie
+   * einer, der dafür sprach.
+   *
+   * Gespeichert wird nur der Versuch selbst, nicht sein Ergebnis: Das rechnet
+   * js/versuch.js jedes Mal neu aus den Eintragungen. Sonst stünden hier
+   * Zahlen, die zu den Eintragungen nicht mehr passen, sobald jemand einen
+   * Eintrag korrigiert.
+   */
+  versuche: [],
+  /*
+   * Arzttermine als ISO-Daten, der jüngste zuerst.
+   *
+   * Der Bericht lief bisher über 30 oder 90 Tage – Fenster, die mit nichts zu
+   * tun haben. Gefragt wird in der Sprechstunde aber nach der Zeit *seit dem
+   * letzten Mal*, und genau die kennt nur sie.
+   */
+  termine: [],
+  // Wie viele Ideen beim letzten Weitergeben in der Liste standen. Daran
+  // erkennt die App, welche noch niemand gesehen hat – siehe ideenOffen().
+  ideenGeschickt: 0,
   atemUebung: '478',     // zuletzt gewählte Atemübung
   atemRunden: null,      // eigene Rundenzahl; null = Vorschlag der Übung
   ton: true,             // Ton bei der Atemübung – der einzige der App
@@ -397,8 +423,84 @@ export function versuchBeenden() {
   melde();
 }
 
-export function versuchVerwerfen() {
+/**
+ * Den laufenden Versuch abhaken und in die Historie legen.
+ *
+ * Früher hieß dieser Knopf „Wegräumen" und warf ihn weg. Das war die falsche
+ * Bewegung: Ein fertiger Versuch ist das Wertvollste, was dieses Tagebuch
+ * hervorbringt – zwei Wochen Verzicht plus eine bewusste Wiedereinführung –,
+ * und er ist genau dann weg, wenn man ihn ein halbes Jahr später bräuchte.
+ */
+export function versuchAblegen() {
+  if (!zustand.versuch) return;
+  const abgelegt = { ...zustand.versuch, abgelegt: heuteISO() };
+  zustand.versuche = [abgelegt, ...zustand.versuche].slice(0, 40);
   zustand.versuch = null;
+  merke();
+  melde();
+}
+
+/** Einen abgelegten Versuch endgültig löschen – die eine Stelle, die vergisst. */
+export function versuchLoeschen(id) {
+  const vorher = zustand.versuche.length;
+  zustand.versuche = zustand.versuche.filter((v) => v.id !== id);
+  if (zustand.versuche.length === vorher) return;
+  merke();
+  melde();
+}
+
+/* ---------- Arzttermine ---------- */
+
+/**
+ * Einen Termin eintragen. Doppelte Daten fallen weg, sortiert wird absteigend –
+ * der jüngste steht vorn, weil ihn der Bericht braucht.
+ */
+export function terminAnlegen(iso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return;
+  if (zustand.termine.includes(iso)) return;
+  zustand.termine = [...zustand.termine, iso].sort().reverse();
+  merke();
+  melde();
+}
+
+export function terminLoeschen(iso) {
+  const vorher = zustand.termine.length;
+  zustand.termine = zustand.termine.filter((t) => t !== iso);
+  if (zustand.termine.length === vorher) return;
+  merke();
+  melde();
+}
+
+/**
+ * Der jüngste Termin, der nicht in der Zukunft liegt.
+ *
+ * Ein Termin nächste Woche ist der *nächste*, nicht der letzte – der Bericht
+ * müsste sonst über einen Zeitraum von minus drei Tagen berichten.
+ */
+export function letzterTermin(bis) {
+  return zustand.termine.find((t) => t <= bis) || null;
+}
+
+/* ---------- Ideen weitergeben ---------- */
+
+/**
+ * Wie viele Ideen noch niemand gesehen hat.
+ *
+ * Die App hat keinen Server, also kommen ihre Vorschläge bei niemandem an,
+ * solange sie sie nicht selbst weitergibt. Bisher stand der Knopf dafür unten
+ * auf dem Ideenreiter und wurde übersehen – eine Idee, die niemand liest, ist
+ * dasselbe wie keine.
+ *
+ * Gezählt wird schlicht die Länge der Liste beim letzten Weitergeben. Das ist
+ * gröber als eine Markierung je Idee und dafür ehrlich: Wer zwischendurch
+ * etwas löscht, bekommt eher zu wenig „neu" angezeigt als zu viel.
+ */
+export function ideenOffen() {
+  return Math.max(0, zustand.ideen.length - (zustand.ideenGeschickt || 0));
+}
+
+export function ideenGeschicktMerken() {
+  zustand.ideenGeschickt = zustand.ideen.length;
   merke();
   melde();
 }
