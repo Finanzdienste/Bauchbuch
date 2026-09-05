@@ -29,9 +29,17 @@
  * sondern eine Zahl.
  */
 import { PHASEN, phaseVon, belastbar } from './zyklus.js';
+import { abstandSpielraum, strenge } from './zufall.js';
 
-/** Mahlzeiten je Seite und Phase, ab denen eine Phase überhaupt zählt. */
-const MINDEST_JE_PHASE = 5;
+/**
+ * Mahlzeiten je Seite und Phase, ab denen eine Phase überhaupt zählt.
+ *
+ * Acht und nicht fünf, und das ist teuer erkauft: Bei fünf fand diese Rechnung
+ * in einem rein zufälligen Tagebuch neun von zwanzig Auslösern „wechselnd".
+ * Eine Phase teilt die Fälle auf ein Viertel, und aus einem Viertel lässt sich
+ * ein Unterschied von Unterschieden nicht mehr ablesen.
+ */
+const MINDEST_JE_PHASE = 8;
 
 /** So viele Phasen müssen prüfbar sein. */
 const MINDEST_PHASEN = 2;
@@ -60,14 +68,41 @@ const mittel = (liste) => (liste.length
  * @param {string} id          der Auslöser
  * @param {object} tage        der Tagesspeicher, für die Phasenschätzung
  */
-export function phasenWirkung(bewertet, id, tage) {
-  const phasen = PHASEN.map((p) => {
+export function phasenWirkung(bewertet, id, tage, vergleiche = 1) {
+  const gruppen = PHASEN.map((p) => {
     const drin = bewertet.filter((b) => phaseVon(tage, b.am) === p.id);
-    const mit = drin.filter((b) => b.merkmale.has(id));
-    const ohne = drin.filter((b) => !b.merkmale.has(id));
+    return {
+      p,
+      mit: drin.filter((b) => b.merkmale.has(id)).map((b) => b.wert),
+      ohne: drin.filter((b) => !b.merkmale.has(id)).map((b) => b.wert),
+    };
+  });
+
+  /*
+   * Die Streuung wird über alle Phasen gemeinsam geschätzt, nicht je Phase.
+   *
+   * Das war der zweite Fehler, den das Rauschtagebuch aufgedeckt hat: Eine
+   * Streuung aus acht Werten ist selbst eine sehr schwankende Zahl. Fällt sie
+   * in einer Phase zufällig klein aus, wird die Schranke dort klein – und
+   * ausgerechnet die Phase mit der zufällig kleinsten Streuung ist die, die
+   * sich am ehesten als „stärkste" hervortut. Die gemeinsame Schätzung nimmt
+   * dem Zufall diese zweite Gelegenheit.
+   */
+  const quadrate = gruppen.reduce((acc, g) => {
+    [g.mit, g.ohne].forEach((liste) => {
+      if (liste.length < 2) return;
+      const m = mittel(liste);
+      acc.summe += liste.reduce((x, v) => x + (v - m) ** 2, 0);
+      acc.freiheit += liste.length - 1;
+    });
+    return acc;
+  }, { summe: 0, freiheit: 0 });
+  const streuung = quadrate.freiheit > 0 ? Math.sqrt(quadrate.summe / quadrate.freiheit) : 0;
+
+  const phasen = gruppen.map(({ p, mit, ohne }) => {
     const pruefbar = mit.length >= MINDEST_JE_PHASE && ohne.length >= MINDEST_JE_PHASE;
-    const schnittMit = mittel(mit.map((b) => b.wert));
-    const schnittOhne = mittel(ohne.map((b) => b.wert));
+    const schnittMit = mittel(mit);
+    const schnittOhne = mittel(ohne);
     return {
       phase: p.id,
       name: p.name,
@@ -76,6 +111,7 @@ export function phasenWirkung(bewertet, id, tage) {
       gegenFaelle: ohne.length,
       schnittMit,
       schnittOhne,
+      se: pruefbar ? streuung * Math.sqrt(1 / mit.length + 1 / ohne.length) : Infinity,
       differenz: pruefbar ? schnittMit - schnittOhne : 0,
     };
   });
@@ -116,7 +152,30 @@ export function phasenWirkung(bewertet, id, tage) {
   const schwaechste = sortiert[sortiert.length - 1];
   const spanne = staerkste.differenz - schwaechste.differenz;
 
-  if (spanne >= SPANNE && staerkste.differenz >= MINDEST_WIRKUNG) {
+  /*
+   * Und jetzt die Schranke, ohne die das hier eine Fundmaschine wäre.
+   *
+   * Verglichen werden zwei Differenzen, und die schwanken deutlich stärker als
+   * jede einzelne für sich. Wie stark, hängt von der Streuung der Werte und
+   * von der Fallzahl ab – und davon, wie oft insgesamt gefragt wird. Erst wenn
+   * der Abstand beides überschreitet, ist von einem Wechsel die Rede.
+   */
+  const zufall = abstandSpielraum(
+    staerkste.se, schwaechste.se, vergleiche, pruefbare.length,
+  );
+  /*
+   * Zwei Bedingungen, und die zweite ist die wichtigere.
+   *
+   * Erstens muss der Abstand zwischen den Phasen den Zufall überschreiten.
+   * Zweitens muss die stärkste Phase für sich genommen überhaupt eine Wirkung
+   * zeigen, die über ihren eigenen Spielraum hinausgeht. Ohne das genügte es,
+   * dass eine Phase zufällig weit *unter* null liegt – und schon hieße ein
+   * Auslöser „wechselt", der nirgends etwas tut.
+   */
+  const eigenstaendig = staerkste.differenz >= Math.max(
+    MINDEST_WIRKUNG, strenge(vergleiche) * staerkste.se,
+  );
+  if (spanne >= Math.max(SPANNE, zufall) && eigenstaendig) {
     return {
       urteil: 'wechselt',
       phasen,
@@ -195,8 +254,11 @@ export function phasenUrteil(bilanz, tage, mindestTage = 5) {
  */
 export function wechselnde(bewertet, ids, tage) {
   const raus = [];
+  // Wie viele Auslöser hier geprüft werden, geht in die Schranke ein: Wer
+  // zwanzigmal fragt, braucht eine deutlichere Antwort als wer dreimal fragt.
+  const vergleiche = (ids || []).length;
   (ids || []).forEach((id) => {
-    const w = phasenWirkung(bewertet, id, tage);
+    const w = phasenWirkung(bewertet, id, tage, vergleiche);
     if (w.urteil === 'wechselt') raus.push({ id, ...w });
   });
   return raus.sort((a, b) => b.spanne - a.spanne);

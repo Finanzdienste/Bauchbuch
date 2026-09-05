@@ -52,6 +52,7 @@ import {
 } from './zeitprofil.js';
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
+import { spielraumSatz } from './zufall.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
@@ -745,6 +746,20 @@ function musterDaten(s) {
 }
 
 /*
+ * Die Schwelle, die man sonst nicht sieht.
+ *
+ * Dass ein Unterschied größer sein muss als der Zufallsspielraum, ist die
+ * strengste Regel dieser App – und die einzige, die man am Ergebnis nicht
+ * ablesen kann, weil sie sich darin äußert, dass etwas *nicht* dasteht. Also
+ * steht sie als Zahl da, mit ihrem Grund.
+ */
+function spielraumZeile(d) {
+  const zeile = d.bilanz.find((b) => b.genug && Number.isFinite(b.spielraum));
+  if (!zeile) return '';
+  return `<p class="klein">${esc(spielraumSatz(zeile.spielraum, zeile.vergleiche))}</p>`;
+}
+
+/*
  * Was Sache ist – drei bis fünf Sätze, bevor irgendeine Zahl kommt.
  *
  * Zehn Karten sind eine Auswertung, die man erst zusammensetzen muss. Wer
@@ -1310,6 +1325,7 @@ function musterAnsicht(s) {
     <b>${s.fenster} Stunden</b> nach Mahlzeiten <b>mit</b> einem Merkmal gegen
     alle übrigen Mahlzeiten. Eine Zeile erscheint erst ab
     ${s.mindestFaelle} Fällen auf beiden Seiten.</p>
+    ${spielraumZeile(d)}
     <p class="klein">Das ist eine Häufigkeit, keine Ursache. Wer an einem
     schlechten Tag ohnehin anders isst, findet sich hier wieder, ohne dass das
     Essen schuld wäre. Der Zettel ist für das Gespräch in der Praxis gedacht,

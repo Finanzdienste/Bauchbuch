@@ -31,7 +31,7 @@ OUT = ROOT / 'dist' / 'bauchbuch.html'
 # zuerst: Im Buendel gibt es keine Importe, die eine Reihenfolge erzwingen.
 MODULES = ['js/datum.js', 'js/text.js', 'js/daten.js', 'js/mittel.js',
            'js/klang.js', 'js/atem.js', 'js/zyklus.js', 'js/chart.js',
-           'js/store.js', 'js/auswertung.js', 'js/stuhl.js', 'js/kriterien.js',
+           'js/store.js', 'js/zufall.js', 'js/auswertung.js', 'js/stuhl.js', 'js/kriterien.js',
            'js/versuch.js', 'js/ansprechen.js', 'js/luecken.js', 'js/schichten.js',
            'js/zeitprofil.js', 'js/wechselwirkung.js',
            'js/lage.js',

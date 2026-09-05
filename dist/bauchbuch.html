@@ -2852,6 +2852,139 @@ function allesLoeschen() {
 
 const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
 
+/* ===== js/zufall.js ===== */
+/*
+ * Der Zufallsspielraum – wie groß ein Unterschied allein durch Zufall ausfällt
+ *
+ * DAS PROBLEM, DAS MIT JEDER NEUEN AUSWERTUNG GRÖSSER WURDE
+ *
+ * Die App vergleicht inzwischen viel: zwei Dutzend Auslöser, dazu Klassen,
+ * dazu drei Zeitfenster, dazu Schichten und Zyklusphasen. Jeder einzelne
+ * Vergleich ist sauber gerechnet. Nur wächst mit ihrer Zahl etwas, das kein
+ * einzelner Vergleich sehen kann: Bei fünfzig Vergleichen ist ein „auffälliger"
+ * Unterschied kein Ausreißer mehr, sondern die Regel. Man findet immer etwas –
+ * auch in einem Tagebuch, in dem nichts drinsteckt.
+ *
+ * Und ein Zufallstreffer ist hier nicht folgenlos. Er führt dazu, dass jemand
+ * ein Lebensmittel streicht, das ihm nichts tut; dass er einseitiger isst;
+ * dass er der App beim nächsten, echten Fund weniger glaubt.
+ *
+ * WAS EINE MITTLERE DIFFERENZ NICHT SAGT
+ *
+ * „Nach Kaffee war es im Mittel 2 Stufen schlechter" klingt nach einer
+ * Aussage. Sie ist aber nur so viel wert, wie die Werte darunter beieinander
+ * liegen. Zwanzig Mahlzeiten, deren Werte zwischen 0 und 10 springen, bringen
+ * zwei Stufen Unterschied mühelos aus reinem Zufall hervor. Zwanzig
+ * Mahlzeiten, die alle zwischen 3 und 5 liegen, tun das nicht.
+ *
+ * Genau das rechnet diese Datei: Wie groß darf ein Unterschied sein, damit man
+ * ihn noch dem Zufall zuschreiben würde? Und weil die Zahl der Vergleiche
+ * mitzählt, geht sie mit ein – wer fünfzigmal fragt, braucht eine deutlichere
+ * Antwort als wer dreimal fragt.
+ *
+ * WAS DAS NICHT IST
+ *
+ * Kein Signifikanztest, und es steht nirgends ein p-Wert. Das hier ist ein
+ * Tagebuch eines einzigen Menschen, ohne Randomisierung und ohne Verblindung;
+ * ein p-Wert würde eine Strenge vortäuschen, die die Daten nicht hergeben. Was
+ * hier steht, ist eine Faustregel in der Währung der App selbst: in Stufen.
+ */
+
+/**
+ * Wie streng, bei wie vielen Vergleichen?
+ *
+ * Der Gedanke ist der von Bonferroni, nur ohne dessen Formel: Je mehr Fragen
+ * gestellt werden, desto deutlicher muss die Antwort ausfallen. Drei Stufen
+ * statt einer feinen Kurve, weil die Kurve eine Genauigkeit vorspiegelte, die
+ * hier niemand hat.
+ */
+function strenge(vergleiche) {
+  if (vergleiche <= 8) return 2;
+  if (vergleiche <= 25) return 2.5;
+  return 3;
+}
+
+const summe = (l) => l.reduce((s, x) => s + x, 0);
+
+/**
+ * Der Spielraum des Zufalls für einen Vergleich.
+ *
+ * @param {number[]} mit        die Werte der einen Seite
+ * @param {number[]} ohne       die der anderen
+ * @param {number} vergleiche   wie viele Vergleiche insgesamt angestellt werden
+ * @returns {{streuung:number, se:number, spielraum:number}}
+ *   `spielraum` ist der Unterschied, unter dem nichts behauptet wird.
+ */
+function zufallsSpielraum(mit, ohne, vergleiche = 1) {
+  const n1 = mit.length;
+  const n2 = ohne.length;
+  if (n1 < 2 || n2 < 2) return { streuung: 0, se: 0, spielraum: Infinity };
+
+  const m1 = summe(mit) / n1;
+  const m2 = summe(ohne) / n2;
+  /*
+   * Gemeinsame Streuung beider Seiten.
+   *
+   * Gemeinsam und nicht je Seite: Die Frage ist, wie stark die Werte dieses
+   * Menschen überhaupt schwanken – und die Antwort darauf ändert sich nicht
+   * dadurch, in welche Gruppe eine Mahlzeit fällt.
+   */
+  const quadrate = summe(mit.map((x) => (x - m1) ** 2)) + summe(ohne.map((x) => (x - m2) ** 2));
+  const varianz = quadrate / (n1 + n2 - 2);
+  const streuung = Math.sqrt(varianz);
+  const se = Math.sqrt(varianz * (1 / n1 + 1 / n2));
+
+  return { streuung, se, spielraum: strenge(vergleiche) * se };
+}
+
+/**
+ * Der Spielraum für einen Unterschied *zwischen zwei Unterschieden*.
+ *
+ * Das ist die Rechnung, die in der App am leichtesten danebengeht, und sie ist
+ * mit Abstand die anfälligste. „Wirkt Kaffee in der zweiten Zyklushälfte
+ * anders als in der ersten?" vergleicht nicht zwei Mittelwerte, sondern zwei
+ * Differenzen – und eine Differenz von Differenzen schwankt um den Faktor
+ * Wurzel zwei stärker als jede einzelne davon, bei obendrein kleineren
+ * Gruppen.
+ *
+ * Ohne diese Schranke fand die Zyklusrechnung in einem rein zufälligen
+ * Tagebuch neun „wechselnde" Auslöser. Neun von zwanzig, aus nichts.
+ */
+function abstandSpielraum(seA, seB, vergleiche = 1, gruppen = 2) {
+  if (!Number.isFinite(seA) || !Number.isFinite(seB)) return Infinity;
+  return strenge(vergleiche) * gesucht(gruppen) * Math.sqrt(seA ** 2 + seB ** 2);
+}
+
+/**
+ * Aufschlag dafür, dass aus mehreren Gruppen die größte und die kleinste
+ * herausgesucht wurden.
+ *
+ * Wer aus vier Zyklusphasen die stärkste und die schwächste nimmt, hat schon
+ * gesucht, bevor er verglichen hat – und der Abstand zwischen dem größten und
+ * dem kleinsten von vier Zufallswerten ist im Mittel deutlich größer als der
+ * zwischen zwei beliebigen. Ohne diesen Aufschlag ist die Schranke für vier
+ * Gruppen effektiv niedriger als für zwei, obwohl sie höher sein müsste.
+ */
+function gesucht(gruppen) {
+  if (gruppen <= 2) return 1;
+  if (gruppen === 3) return 1.25;
+  return 1.4;
+}
+
+/**
+ * Ein Satz dazu, in Worten und ohne Statistikvokabular.
+ *
+ * Er steht in der App neben den Funden, weil die Zahl sonst wie eine weitere
+ * Schwelle aussähe, die sich jemand ausgedacht hat.
+ */
+function spielraumSatz(spielraum, vergleiche) {
+  if (!Number.isFinite(spielraum)) return '';
+  return `Bei ${vergleiche} verglichenen Merkmalen kommt ein Unterschied von `
+    + `etwa ${spielraum.toFixed(1)} Stufen auch dann vor, wenn gar nichts `
+    + 'dahintersteckt – wer oft genug fragt, findet immer etwas. Erst darüber '
+    + 'steht hier ein Urteil.';
+}
+
 /* ===== js/auswertung.js ===== */
 /*
  * Die Rechenschicht: aus Eintragungen Muster machen.
@@ -2875,6 +3008,7 @@ const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoes
  *   3. Es heißt „auffällig", nicht „verursacht". Was hier herauskommt, ist
  *      ein Anhaltspunkt fürs Gespräch beim Arzt, keine Diagnose.
  */
+
 
 
 /** Späte Mahlzeit ab dieser Stunde – siehe UMSTAENDE in js/daten.js. */
@@ -3007,7 +3141,26 @@ function ausloeserBilanz(eintraege, opt = {}) {
       genug: mit.length >= mindest && ohne.length >= mindest,
       fehlt: Math.max(0, mindest - mit.length),
       zuletzt: mit[mit.length - 1].m.am,
+      werte: { mit: mit.map((b) => b.wert), ohne: ohne.map((b) => b.wert) },
     });
+  });
+
+  /*
+   * Und jetzt erst der Zufallsspielraum – denn erst hier steht fest, wie viele
+   * Vergleiche überhaupt angestellt wurden.
+   *
+   * Das ist der Punkt, an dem die Zahl der Fragen in die Antwort eingeht: Wer
+   * fünfzig Merkmale prüft, findet auch in einem Tagebuch, in dem nichts
+   * drinsteckt, ein paar auffällige. Die Schwelle wächst deshalb mit der Zahl
+   * der Vergleiche und mit der Streuung der Werte.
+   */
+  const vergleiche = zeilen.filter((z) => z.genug).length;
+  zeilen.forEach((z) => {
+    const r = zufallsSpielraum(z.werte.mit, z.werte.ohne, vergleiche);
+    z.streuung = r.streuung;
+    z.spielraum = r.spielraum;
+    z.vergleiche = vergleiche;
+    delete z.werte;
   });
 
   // Auffälligstes zuerst; bei gleicher Differenz die größere Fallzahl, weil
@@ -3075,7 +3228,18 @@ function klassenBilanz(eintraege, opt = {}) {
       genug: mit.length >= mindest && ohne.length >= mindest,
       fehlt: Math.max(0, mindest - mit.length),
       fehltGegen: Math.max(0, mindest - ohne.length),
+      werte: { mit: mit.map((b) => b.wert), ohne: ohne.map((b) => b.wert) },
     });
+  });
+
+  // Auch hier zählt die Zahl der Vergleiche mit – siehe ausloeserBilanz.
+  const vergleiche = zeilen.filter((z) => z.genug).length;
+  zeilen.forEach((z) => {
+    const r = zufallsSpielraum(z.werte.mit, z.werte.ohne, vergleiche);
+    z.streuung = r.streuung;
+    z.spielraum = r.spielraum;
+    z.vergleiche = vergleiche;
+    delete z.werte;
   });
 
   return zeilen.sort((a, b) => (b.differenz - a.differenz) || (b.faelle - a.faelle));
@@ -3109,6 +3273,17 @@ function klasseZutaten(eintraege, klasseId) {
  */
 function einstufung(zeile) {
   if (!zeile.genug) return 'zuwenig';
+  /*
+   * Zwei Bedingungen, und beide muessen erfuellt sein.
+   *
+   * Die erste ist die alte: Der Unterschied muss gross genug sein, um jemanden
+   * ueberhaupt zu interessieren – eine halbe Stufe merkt niemand. Die zweite
+   * ist neu: Er muss groesser sein als das, was bei dieser Streuung und dieser
+   * Zahl von Vergleichen ohnehin herauskommt. Ohne sie fand die App in jedem
+   * ausreichend langen Tagebuch etwas, auch in einem, in dem nichts steckt.
+   */
+  const zufall = Number.isFinite(zeile.spielraum) ? zeile.spielraum : 0;
+  if (Math.abs(zeile.differenz) < zufall) return 'neutral';
   if (zeile.differenz >= 2) return 'auffaellig';
   if (zeile.differenz >= 1) return 'moeglich';
   if (zeile.differenz <= -1) return 'unauffaellig';
@@ -3124,6 +3299,8 @@ function einstufung(zeile) {
  */
 function klassenEinstufung(zeile) {
   if (!zeile.genug) return 'zuwenig';
+  const zufall = Number.isFinite(zeile.spielraum) ? zeile.spielraum : 0;
+  if (Math.abs(zeile.differenz) < zufall) return 'neutral';
   if (zeile.differenz >= 1) return 'auffaellig';
   if (zeile.differenz >= 0.5) return 'moeglich';
   if (zeile.differenz <= -0.5) return 'unauffaellig';
@@ -5510,8 +5687,16 @@ const FENSTER_WORT = Object.fromEntries(
  * sondern eine Zahl.
  */
 
-/** Mahlzeiten je Seite und Phase, ab denen eine Phase überhaupt zählt. */
-const MINDEST_JE_PHASE = 5;
+
+/**
+ * Mahlzeiten je Seite und Phase, ab denen eine Phase überhaupt zählt.
+ *
+ * Acht und nicht fünf, und das ist teuer erkauft: Bei fünf fand diese Rechnung
+ * in einem rein zufälligen Tagebuch neun von zwanzig Auslösern „wechselnd".
+ * Eine Phase teilt die Fälle auf ein Viertel, und aus einem Viertel lässt sich
+ * ein Unterschied von Unterschieden nicht mehr ablesen.
+ */
+const MINDEST_JE_PHASE = 8;
 
 /** So viele Phasen müssen prüfbar sein. */
 const MINDEST_PHASEN = 2;
@@ -5540,14 +5725,41 @@ const mittel = (liste) => (liste.length
  * @param {string} id          der Auslöser
  * @param {object} tage        der Tagesspeicher, für die Phasenschätzung
  */
-function phasenWirkung(bewertet, id, tage) {
-  const phasen = PHASEN.map((p) => {
+function phasenWirkung(bewertet, id, tage, vergleiche = 1) {
+  const gruppen = PHASEN.map((p) => {
     const drin = bewertet.filter((b) => phaseVon(tage, b.am) === p.id);
-    const mit = drin.filter((b) => b.merkmale.has(id));
-    const ohne = drin.filter((b) => !b.merkmale.has(id));
+    return {
+      p,
+      mit: drin.filter((b) => b.merkmale.has(id)).map((b) => b.wert),
+      ohne: drin.filter((b) => !b.merkmale.has(id)).map((b) => b.wert),
+    };
+  });
+
+  /*
+   * Die Streuung wird über alle Phasen gemeinsam geschätzt, nicht je Phase.
+   *
+   * Das war der zweite Fehler, den das Rauschtagebuch aufgedeckt hat: Eine
+   * Streuung aus acht Werten ist selbst eine sehr schwankende Zahl. Fällt sie
+   * in einer Phase zufällig klein aus, wird die Schranke dort klein – und
+   * ausgerechnet die Phase mit der zufällig kleinsten Streuung ist die, die
+   * sich am ehesten als „stärkste" hervortut. Die gemeinsame Schätzung nimmt
+   * dem Zufall diese zweite Gelegenheit.
+   */
+  const quadrate = gruppen.reduce((acc, g) => {
+    [g.mit, g.ohne].forEach((liste) => {
+      if (liste.length < 2) return;
+      const m = mittel(liste);
+      acc.summe += liste.reduce((x, v) => x + (v - m) ** 2, 0);
+      acc.freiheit += liste.length - 1;
+    });
+    return acc;
+  }, { summe: 0, freiheit: 0 });
+  const streuung = quadrate.freiheit > 0 ? Math.sqrt(quadrate.summe / quadrate.freiheit) : 0;
+
+  const phasen = gruppen.map(({ p, mit, ohne }) => {
     const pruefbar = mit.length >= MINDEST_JE_PHASE && ohne.length >= MINDEST_JE_PHASE;
-    const schnittMit = mittel(mit.map((b) => b.wert));
-    const schnittOhne = mittel(ohne.map((b) => b.wert));
+    const schnittMit = mittel(mit);
+    const schnittOhne = mittel(ohne);
     return {
       phase: p.id,
       name: p.name,
@@ -5556,6 +5768,7 @@ function phasenWirkung(bewertet, id, tage) {
       gegenFaelle: ohne.length,
       schnittMit,
       schnittOhne,
+      se: pruefbar ? streuung * Math.sqrt(1 / mit.length + 1 / ohne.length) : Infinity,
       differenz: pruefbar ? schnittMit - schnittOhne : 0,
     };
   });
@@ -5596,7 +5809,30 @@ function phasenWirkung(bewertet, id, tage) {
   const schwaechste = sortiert[sortiert.length - 1];
   const spanne = staerkste.differenz - schwaechste.differenz;
 
-  if (spanne >= SPANNE && staerkste.differenz >= MINDEST_WIRKUNG) {
+  /*
+   * Und jetzt die Schranke, ohne die das hier eine Fundmaschine wäre.
+   *
+   * Verglichen werden zwei Differenzen, und die schwanken deutlich stärker als
+   * jede einzelne für sich. Wie stark, hängt von der Streuung der Werte und
+   * von der Fallzahl ab – und davon, wie oft insgesamt gefragt wird. Erst wenn
+   * der Abstand beides überschreitet, ist von einem Wechsel die Rede.
+   */
+  const zufall = abstandSpielraum(
+    staerkste.se, schwaechste.se, vergleiche, pruefbare.length,
+  );
+  /*
+   * Zwei Bedingungen, und die zweite ist die wichtigere.
+   *
+   * Erstens muss der Abstand zwischen den Phasen den Zufall überschreiten.
+   * Zweitens muss die stärkste Phase für sich genommen überhaupt eine Wirkung
+   * zeigen, die über ihren eigenen Spielraum hinausgeht. Ohne das genügte es,
+   * dass eine Phase zufällig weit *unter* null liegt – und schon hieße ein
+   * Auslöser „wechselt", der nirgends etwas tut.
+   */
+  const eigenstaendig = staerkste.differenz >= Math.max(
+    MINDEST_WIRKUNG, strenge(vergleiche) * staerkste.se,
+  );
+  if (spanne >= Math.max(SPANNE, zufall) && eigenstaendig) {
     return {
       urteil: 'wechselt',
       phasen,
@@ -5675,8 +5911,11 @@ function phasenUrteil(bilanz, tage, mindestTage = 5) {
  */
 function wechselnde(bewertet, ids, tage) {
   const raus = [];
+  // Wie viele Auslöser hier geprüft werden, geht in die Schranke ein: Wer
+  // zwanzigmal fragt, braucht eine deutlichere Antwort als wer dreimal fragt.
+  const vergleiche = (ids || []).length;
   (ids || []).forEach((id) => {
-    const w = phasenWirkung(bewertet, id, tage);
+    const w = phasenWirkung(bewertet, id, tage, vergleiche);
     if (w.urteil === 'wechselt') raus.push({ id, ...w });
   });
   return raus.sort((a, b) => b.spanne - a.spanne);
@@ -7263,6 +7502,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -7438,6 +7678,13 @@ function arztBericht(zustand, von, bis) {
   if (bleibt.length) {
     sag(`AUFFÄLLIG IM ZEITRAUM VON ${zustand.fenster} STUNDEN NACH DEM ESSEN`);
     sag('  (Vergleich: mittlere Beschwerdestärke danach gegen alle übrigen Mahlzeiten)');
+    // Die Schwelle gehört auf den Zettel: Sie erklärt, warum manches *nicht*
+    // dasteht, und das ist in einer Sprechstunde die nützlichere Auskunft.
+    const b0 = bleibt[0].b;
+    if (Number.isFinite(b0.spielraum)) {
+      umbrochen(spielraumSatz(b0.spielraum, b0.vergleiche), 66)
+        .forEach((zl) => sag(`  ${zl}`));
+    }
     bleibt.slice(0, 8).forEach(({ b, stand, zeit }) => {
       sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
       const wo = stand.urteil === 'nur-dann' ? ` (${(stand.wo || []).join(', ')})` : '';
@@ -8521,6 +8768,20 @@ function musterDaten(s) {
 }
 
 /*
+ * Die Schwelle, die man sonst nicht sieht.
+ *
+ * Dass ein Unterschied größer sein muss als der Zufallsspielraum, ist die
+ * strengste Regel dieser App – und die einzige, die man am Ergebnis nicht
+ * ablesen kann, weil sie sich darin äußert, dass etwas *nicht* dasteht. Also
+ * steht sie als Zahl da, mit ihrem Grund.
+ */
+function spielraumZeile(d) {
+  const zeile = d.bilanz.find((b) => b.genug && Number.isFinite(b.spielraum));
+  if (!zeile) return '';
+  return `<p class="klein">${esc(spielraumSatz(zeile.spielraum, zeile.vergleiche))}</p>`;
+}
+
+/*
  * Was Sache ist – drei bis fünf Sätze, bevor irgendeine Zahl kommt.
  *
  * Zehn Karten sind eine Auswertung, die man erst zusammensetzen muss. Wer
@@ -9086,6 +9347,7 @@ function musterAnsicht(s) {
     <b>${s.fenster} Stunden</b> nach Mahlzeiten <b>mit</b> einem Merkmal gegen
     alle übrigen Mahlzeiten. Eine Zeile erscheint erst ab
     ${s.mindestFaelle} Fällen auf beiden Seiten.</p>
+    ${spielraumZeile(d)}
     <p class="klein">Das ist eine Häufigkeit, keine Ursache. Wer an einem
     schlechten Tag ohnehin anders isst, findet sich hier wieder, ohne dass das
     Essen schuld wäre. Der Zettel ist für das Gespräch in der Praxis gedacht,
