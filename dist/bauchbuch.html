@@ -1323,6 +1323,28 @@ const TAGESFRAGEN = [
   { id: 'bewegung', name: 'Bewegung', menge: true, worte: ['keine', 'leicht', 'moderat', 'intensiv', 'sehr intensiv'] },
   { id: 'blutung', name: 'Periode', menge: true, worte: ['keine', 'Schmierblutung', 'leicht', 'mittel', 'stark'] },
   { id: 'sex', name: 'Sex', menge: true, worte: ['nein', 'ja'] },
+  /*
+   * Die drei Fragen zum Unterleib.
+   *
+   * Sie stehen NICHT in der Voreinstellung und erscheinen nur, wenn jemand sie
+   * unter „Mehr" einschaltet. Eine App, die sich ungefragt nach Schmerzen beim
+   * Sex erkundigt, wird zugeklappt und nicht wieder geöffnet – und dann ist
+   * auch alles andere weg.
+   *
+   * Warum es sie trotzdem gibt: Endometriose wird im Mittel sieben bis zehn
+   * Jahre lang für einen Reizdarm gehalten. Die Konstellation, an der es
+   * auffiele, ist zyklusabhängige Darmbeschwerde + tiefer Schmerz beim Sex +
+   * starker Regelschmerz – und danach wird in der Sprechstunde regelmäßig
+   * nicht gefragt. Ein Tagebuch kann genau das sehen.
+   *
+   * Getrennt nach tief und außen, weil die Unterscheidung die eigentliche
+   * Auskunft ist: Tiefer Schmerz deutet in den Bauchraum (Endometriose,
+   * Verwachsungen, Beckenboden), Schmerz am Eingang auf etwas ganz anderes.
+   * Eine Frage, die beides zusammenwirft, hätte man sich sparen können.
+   */
+  { id: 'sexschmerz', name: 'Schmerz beim Sex', worte: ['nein', 'leicht', 'mittel', 'stark', 'sehr stark'] },
+  { id: 'sextief', name: 'davon tief innen', menge: true, worte: ['nein', 'ja'] },
+  { id: 'regelschmerz', name: 'Regelschmerz', worte: ['keine', 'leicht', 'mittel', 'stark', 'sehr stark'] },
   // Nachts von Beschwerden geweckt zu werden, ist im GerdQ eine eigene Frage
   // und in der Sprechstunde eine der ersten. `menge: true`, weil „ja" hier
   // keine Note ist – es zählt die Zahl der Nächte, nicht eine Schwere.
@@ -2229,6 +2251,10 @@ const VORGABE = {
   // Wie viele Ideen beim letzten Weitergeben in der Liste standen. Daran
   // erkennt die App, welche noch niemand gesehen hat – siehe ideenOffen().
   ideenGeschickt: 0,
+  // Wurde der Hinweis auf die Unterleibsfragen schon einmal weggetippt? Dann
+  // kommt er nicht wieder – ein Vorschlag, den man mehrfach abwehren muss,
+  // ist keiner.
+  unterleibGefragt: false,
   atemUebung: '478',     // zuletzt gewählte Atemübung
   atemRunden: null,      // eigene Rundenzahl; null = Vorschlag der Übung
   ton: true,             // Ton bei der Atemübung – der einzige der App
@@ -4833,6 +4859,267 @@ function luecken(d) {
   };
 }
 
+/* ===== js/unterleib.js ===== */
+/*
+ * Der Unterleib – und warum ein Magentagebuch danach fragt.
+ *
+ * Endometriose wird im Mittel sieben bis zehn Jahre lang nicht erkannt, und
+ * die häufigste Fehldeutung auf diesem Weg ist „Reizdarm". Das ist kein
+ * Zufall: Endometrioseherde am Darm oder im Douglasraum machen Blähungen,
+ * Krämpfe, Durchfall und Verstopfung – dieselben Beschwerden, die dieses
+ * Tagebuch ohnehin zählt, nur mit einer anderen Ursache.
+ *
+ * Was die beiden auseinanderhält, steht in Daten, die eine Magensprechstunde
+ * nicht erhebt:
+ *
+ *   * **Zyklusbindung.** Reizdarmbeschwerden schwanken auch, aber nicht
+ *     verlässlich mit der Blutung. Endometriose tut das.
+ *   * **Tiefer Schmerz beim Sex.** Das ist das Merkmal mit dem größten
+ *     Gewicht und zugleich das, nach dem am seltensten gefragt wird. Schmerz
+ *     am Eingang deutet woanders hin (Beckenboden, Trockenheit, Vaginismus) –
+ *     deshalb wird hier getrennt gezählt.
+ *   * **Starker Regelschmerz**, der Schmerzmittel oder Fehltage erzwingt.
+ *   * **Darmbeschwerden, die zur Blutung hin schlimmer werden**, oft mit
+ *     schmerzhaftem Stuhlgang während der Periode.
+ *
+ * WAS DIESES MODUL NICHT TUT: eine Diagnose stellen. Endometriose wird
+ * bildgebend und letztlich durch eine Bauchspiegelung festgestellt, nie durch
+ * ein Tagebuch. Was hier herauskommt, ist ein Satz für die Sprechstunde – und
+ * der ist trotzdem viel wert, weil er eine Frage auslöst, die sonst über Jahre
+ * nicht gestellt wird.
+ *
+ * UND ES SCHWEIGT LIEBER. Alle vier Merkmale sind nur zu haben, wenn jemand
+ * die Fragen dazu eingeschaltet und ein paar Wochen ausgefüllt hat. Fehlen
+ * sie, steht hier nicht „unauffällig", sondern „nicht prüfbar" – der
+ * Unterschied ist der ganze Punkt. Ein „unauffällig" auf leerer Grundlage
+ * hätte genau die Wirkung, die es hier zu vermeiden gilt: dass niemand mehr
+ * nachfragt.
+ */
+
+/** Ab wie vielen Tagen mit einer Angabe ein Merkmal überhaupt zählt. */
+const GENUG_TAGE = 8;
+
+/** Ab wie vielen Gelegenheiten mit Sex die Schmerzfrage etwas hergibt. */
+const GENUG_SEX = 4;
+
+/** Ab wie vielen Blutungstagen sich der Regelschmerz beurteilen lässt. */
+const GENUG_BLUTUNG = 6;
+
+const zahl = (x) => (Number.isFinite(x) ? x : null);
+
+/**
+ * Die vier Merkmale, jedes mit seiner eigenen Prüfbarkeit.
+ *
+ * @param {object[]} eintraege
+ * @param {object} tage       der Tagesspeicher
+ * @param {function} tagesWert (eintraege, iso, tage) -> { notiert, wert }
+ */
+function unterleibsBild(eintraege, tage, tagesWert) {
+  const alle = Object.entries(tage || {}).filter(([, t]) => t && t.notiert);
+
+  /* ---------- 1. Schmerz beim Sex ---------- */
+
+  // Gezählt werden nur Tage, an denen es Sex gab – sonst sagt „kein Schmerz"
+  // nichts aus. Das ist der Unterschied zwischen „tut nicht weh" und
+  // „kam nicht vor".
+  const mitSex = alle.filter(([, t]) => zahl(t.sex) > 0);
+  const mitAngabe = mitSex.filter(([, t]) => zahl(t.sexschmerz) !== null);
+  const schmerzhaft = mitAngabe.filter(([, t]) => zahl(t.sexschmerz) > 0);
+  const tief = mitAngabe.filter(([, t]) => zahl(t.sextief) > 0);
+
+  const sexSchmerz = {
+    pruefbar: mitAngabe.length >= GENUG_SEX,
+    gelegenheiten: mitAngabe.length,
+    mitSchmerz: schmerzhaft.length,
+    tief: tief.length,
+    anteil: mitAngabe.length ? schmerzhaft.length / mitAngabe.length : 0,
+    // Der stärkste einzelne Hinweis: tiefer Schmerz, mehrfach.
+    tiefWiederholt: tief.length >= 2,
+    fehlt: Math.max(0, GENUG_SEX - mitAngabe.length),
+  };
+
+  /* ---------- 2. Regelschmerz ---------- */
+
+  const blutungsTage = alle.filter(([, t]) => zahl(t.blutung) > 0);
+  const mitRegelAngabe = blutungsTage.filter(([, t]) => zahl(t.regelschmerz) !== null);
+  const starkeTage = mitRegelAngabe.filter(([, t]) => zahl(t.regelschmerz) >= 3);
+
+  const regel = {
+    pruefbar: mitRegelAngabe.length >= GENUG_BLUTUNG,
+    blutungsTage: mitRegelAngabe.length,
+    starkeTage: starkeTage.length,
+    anteilStark: mitRegelAngabe.length ? starkeTage.length / mitRegelAngabe.length : 0,
+    // „Stark" heißt hier: mindestens die Hälfte der Blutungstage deutlich.
+    auffaellig: mitRegelAngabe.length >= GENUG_BLUTUNG
+      && starkeTage.length / mitRegelAngabe.length >= 0.5,
+    fehlt: Math.max(0, GENUG_BLUTUNG - mitRegelAngabe.length),
+  };
+
+  /* ---------- 3. Beschwerden zur Blutung hin ---------- */
+
+  /*
+   * Verglichen wird der Bauch an Blutungstagen gegen den Bauch an allen
+   * übrigen notierten Tagen. Gegen null zu vergleichen wäre sinnlos – fast
+   * jeder hat irgendwann Beschwerden; interessant ist der Abstand zum eigenen
+   * Alltag.
+   */
+  const wertVon = ([iso]) => tagesWert(eintraege, iso, tage).wert;
+  const beiBlutung = blutungsTage.map(wertVon);
+  const sonst = alle.filter(([, t]) => !(zahl(t.blutung) > 0)).map(wertVon);
+  const schnitt = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+
+  const zyklisch = {
+    pruefbar: beiBlutung.length >= GENUG_TAGE && sonst.length >= GENUG_TAGE,
+    blutungsTage: beiBlutung.length,
+    andereTage: sonst.length,
+    beiBlutung: schnitt(beiBlutung),
+    sonst: schnitt(sonst),
+    differenz: schnitt(beiBlutung) - schnitt(sonst),
+    // Eine ganze Stufe Unterschied, dieselbe Schwelle wie beim Verlauf.
+    auffaellig: beiBlutung.length >= GENUG_TAGE && sonst.length >= GENUG_TAGE
+      && schnitt(beiBlutung) - schnitt(sonst) >= 1,
+    fehlt: Math.max(0, GENUG_TAGE - Math.min(beiBlutung.length, sonst.length)),
+  };
+
+  /* ---------- 4. Schmerzhafter Stuhlgang während der Blutung ---------- */
+
+  const blutungsSet = new Set(blutungsTage.map(([iso]) => iso));
+  const stuhl = eintraege.filter((e) => e.art === 'stuhl');
+  const stuhlBeiBlutung = stuhl.filter((e) => blutungsSet.has(e.am));
+  const schmerzhaftBeiBlutung = stuhlBeiBlutung.filter((e) => e.schmerz || e.dringend);
+
+  const stuhlgang = {
+    pruefbar: stuhlBeiBlutung.length >= 3,
+    waehrendBlutung: stuhlBeiBlutung.length,
+    davonSchwer: schmerzhaftBeiBlutung.length,
+  };
+
+  /* ---------- Zusammengesetzt ---------- */
+
+  /*
+   * Wie viele der Merkmale sprechen dafür – und wie viele ließen sich
+   * überhaupt prüfen. Das zweite ist genauso wichtig: „eins von vier" heißt
+   * etwas ganz anderes als „eins von vier, drei nicht prüfbar".
+   */
+  const merkmale = [
+    {
+      id: 'sextief',
+      name: 'Tiefer Schmerz beim Sex',
+      gewicht: 2,
+      pruefbar: sexSchmerz.pruefbar,
+      erfuellt: sexSchmerz.pruefbar && sexSchmerz.tiefWiederholt,
+      text: sexSchmerz.pruefbar
+        ? `${sexSchmerz.tief} von ${sexSchmerz.gelegenheiten} Malen mit tiefem Schmerz`
+        : `noch ${sexSchmerz.fehlt} Angaben nötig`,
+    },
+    {
+      id: 'regelschmerz',
+      name: 'Starker Regelschmerz',
+      gewicht: 1,
+      pruefbar: regel.pruefbar,
+      erfuellt: regel.auffaellig,
+      text: regel.pruefbar
+        ? `an ${regel.starkeTage} von ${regel.blutungsTage} Blutungstagen stark`
+        : `noch ${regel.fehlt} Blutungstage mit Angabe nötig`,
+    },
+    {
+      id: 'zyklisch',
+      name: 'Bauch schlechter zur Blutung hin',
+      gewicht: 1,
+      pruefbar: zyklisch.pruefbar,
+      erfuellt: zyklisch.auffaellig,
+      text: zyklisch.pruefbar
+        ? `${zyklisch.beiBlutung.toFixed(1).replace('.', ',')} gegen `
+          + `${zyklisch.sonst.toFixed(1).replace('.', ',')} an anderen Tagen`
+        : `noch ${zyklisch.fehlt} Tage nötig`,
+    },
+    {
+      id: 'stuhlgang',
+      name: 'Stuhlgang während der Blutung schwer',
+      gewicht: 1,
+      pruefbar: stuhlgang.pruefbar,
+      erfuellt: stuhlgang.pruefbar && stuhlgang.davonSchwer >= 2,
+      text: stuhlgang.pruefbar
+        ? `${stuhlgang.davonSchwer} von ${stuhlgang.waehrendBlutung} Mal`
+        : 'zu wenige Einträge während der Blutung',
+    },
+  ];
+
+  const pruefbare = merkmale.filter((m) => m.pruefbar);
+  const erfuellte = merkmale.filter((m) => m.erfuellt);
+  const punkte = erfuellte.reduce((s, m) => s + m.gewicht, 0);
+
+  /*
+   * Wann ein Satz in den Bericht gehört – und warum die Schwelle nicht
+   * niedriger sein darf, als sie beim ersten Entwurf war.
+   *
+   * Erst hieß die Regel „zwei Punkte genügen". Die Prüfung hat gezeigt, was
+   * das bedeutet: Schmerzhafte Perioden und ein Bauch, der zur Blutung hin
+   * schlechter wird, sind zusammen bei sehr vielen Menschen der Normalzustand.
+   * Eine App, die daraufhin bei jeder Zweiten Endometriose in den Raum stellt,
+   * schickt Leute in Sprechstunden, in denen nichts gefunden wird – und beim
+   * nächsten Mal, wenn es wirklich etwas wäre, glaubt ihr niemand mehr.
+   *
+   * Deshalb zwei Wege statt eines Schwellwerts:
+   *
+   *   * Tiefer Schmerz beim Sex, wiederholt. Das ist das Merkmal mit der
+   *     eigenen Aussagekraft und trägt allein.
+   *   * Oder ALLE drei übrigen zusammen. Einzeln sind sie alltäglich, zu
+   *     dritt sind sie es nicht mehr.
+   */
+  const ansprechen = (sexSchmerz.pruefbar && sexSchmerz.tiefWiederholt) || punkte >= 3;
+
+  /*
+   * Wurden die Fragen, um die es hier geht, überhaupt beantwortet?
+   *
+   * Ohne sie bleiben nur Blutung und Stuhlgang – und dafür gibt es bereits das
+   * Zyklusmuster, das Endometriose ohnehin als Möglichkeit nennt. Ein zweites,
+   * fast gleiches Muster daneben wäre keine zusätzliche Auskunft, sondern
+   * doppelte Lautstärke bei gleichem Inhalt.
+   */
+  const neueFragen = sexSchmerz.pruefbar || regel.pruefbar;
+
+  return {
+    sexSchmerz,
+    regel,
+    zyklisch,
+    stuhlgang,
+    merkmale,
+    punkte,
+    pruefbare: pruefbare.length,
+    erfuellte: erfuellte.length,
+    ansprechen,
+    neueFragen,
+    /*
+     * Ob überhaupt jemand die Fragen eingeschaltet hat. Ohne diese
+     * Unterscheidung sähe „keine Merkmale" wie Entwarnung aus, obwohl gar
+     * nichts erhoben wurde.
+     */
+    erhoben: pruefbare.length > 0,
+  };
+}
+
+/**
+ * Lohnt es sich, die Fragen überhaupt vorzuschlagen?
+ *
+ * Nur wenn das Tagebuch schon von sich aus in diese Richtung zeigt: Blutungen
+ * eingetragen und der Bauch dabei auffällig schlechter. Dann – und nur dann –
+ * ist der Hinweis eine Hilfe und keine Zudringlichkeit.
+ */
+function fragenVorschlagen(eintraege, tage, tagesWert, tagesfragen) {
+  const schon = Array.isArray(tagesfragen) ? tagesfragen : [];
+  if (schon.includes('sexschmerz') && schon.includes('regelschmerz')) return null;
+
+  const bild = unterleibsBild(eintraege, tage, tagesWert);
+  if (!bild.zyklisch.pruefbar || !bild.zyklisch.auffaellig) return null;
+
+  return {
+    differenz: bild.zyklisch.differenz,
+    blutungsTage: bild.zyklisch.blutungsTage,
+    fehlende: ['sexschmerz', 'sextief', 'regelschmerz'].filter((f) => !schon.includes(f)),
+  };
+}
+
 /* ===== js/bild.js ===== */
 /*
  * Das Bild: so weit Richtung Diagnose, wie ein Tagebuch ehrlich kommt.
@@ -4861,6 +5148,7 @@ function luecken(d) {
  *      Untersuchung welche Frage beantwortet. Das ist die nützlichste Zeile
  *      des ganzen Programms.
  */
+
 
 
 /*
@@ -5141,6 +5429,39 @@ function musterZyklus(d) {
   return { punkte, belege };
 }
 
+/*
+ * Das Muster, wegen dem dieses Modul überhaupt nach dem Unterleib fragt.
+ *
+ * Endometriose wird im Mittel sieben bis zehn Jahre lang nicht erkannt, und
+ * die häufigste Fehldeutung auf diesem Weg heißt „Reizdarm" – dieselben
+ * Blähungen, Krämpfe und Stuhlveränderungen, nur mit anderer Ursache. Was die
+ * beiden trennt, steht in Daten, die eine Magensprechstunde nicht erhebt.
+ *
+ * Deshalb wiegt der tiefe Schmerz beim Sex hier doppelt: Er ist das Merkmal
+ * mit der größten Aussagekraft und zugleich das, nach dem am seltensten
+ * gefragt wird.
+ */
+function musterUnterleib(d) {
+  const belege = [];
+  let punkte = 0;
+  const u = d.unterleib;
+  // Ohne die eigens dafür eingeschalteten Fragen gibt es hier nichts zu sagen,
+  // was das Zyklusmuster nicht schon sagt.
+  if (!u || !u.neueFragen || !u.ansprechen) return { punkte, belege };
+
+  u.merkmale.filter((m) => m.erfuellt).forEach((m) => {
+    punkte += m.gewicht;
+    belege.push(`${m.name}: ${m.text}.`);
+  });
+
+  const offen = u.merkmale.filter((m) => !m.pruefbar);
+  if (offen.length) {
+    belege.push(`Nicht prüfbar: ${offen.map((m) => m.name.toLowerCase()).join(', ')} `
+      + `– das kann dafür sprechen oder dagegen, es ist schlicht offen.`);
+  }
+  return { punkte, belege };
+}
+
 /**
  * Die Muster mit dem, was dahinterstecken kann – und, das ist die eigentliche
  * Auskunft, womit sich das eine vom anderen unterscheiden lässt.
@@ -5239,6 +5560,23 @@ const MUSTER = [
     ],
   },
   {
+    id: 'unterleib',
+    name: 'Unterleib und Zyklus zusammen auffällig',
+    satz: 'Die Bauchbeschwerden gehen mit Beschwerden im Unterleib einher – '
+      + 'das ist ein anderes Bild als ein reiner Reizdarm.',
+    pruefe: musterUnterleib,
+    ursachen: [
+      { name: 'Endometriose', klaerung: 'Gynäkologisch abzuklären: Tastuntersuchung, Ultraschall, bei Verdacht Bauchspiegelung. Wird im Mittel sieben bis zehn Jahre lang für einen Reizdarm gehalten – genau deshalb steht sie hier.' },
+      { name: 'Adenomyose', klaerung: 'Endometriose in der Gebärmutterwand. Ultraschall, oft zusätzlich MRT.' },
+      { name: 'Beckenbodenstörung', klaerung: 'Kommt eher bei Schmerz am Eingang und bei Verstopfung in Frage; wird über eine Untersuchung des Beckenbodens beurteilt und ist gut behandelbar.' },
+      { name: 'Reizdarm und Regelschmerz nebeneinander', klaerung: 'Möglich und häufig – zwei Dinge gleichzeitig, ohne gemeinsame Ursache. Das lässt sich nur klären, indem man beides ansieht.' },
+    ],
+    fragen: [
+      'Meine Darmbeschwerden hängen am Zyklus, und ich habe Schmerzen beim Sex – kann eine Endometriose dahinterstecken?',
+      'Wäre eine gynäkologische Abklärung sinnvoll, bevor weiter Richtung Reizdarm behandelt wird?',
+    ],
+  },
+  {
     id: 'stress',
     name: 'Zusammenhang mit Anspannung und Schlaf',
     satz: 'An angespannten Tagen und nach schlechten Nächten ist es messbar '
@@ -5294,6 +5632,7 @@ function bildLesen(d) {
     nsarTage: nsarTageListe.length,
     nsarSchnitt,
     schnittGesamt,
+    unterleib: unterleibsBild(eintraege, tage, tagesWert),
   };
 
   const muster = MUSTER
@@ -6760,6 +7099,50 @@ function trendKarte(s, bis) {
 
 /* ==================== Reiter: Muster ==================== */
 
+/*
+ * Der Hinweis auf die Unterleibsfragen – und warum er nicht immer dasteht.
+ *
+ * Die drei Fragen (Schmerz beim Sex, tief oder außen, Regelschmerz) sind
+ * standardmäßig aus. Das ist richtig: Eine App, die sich ungefragt nach dem
+ * Sexleben erkundigt, wird zugeklappt, und dann ist auch alles andere weg.
+ *
+ * Nur hätte das eine Folge, die man kennt – niemand schaltet je etwas ein, das
+ * er nicht kennt. Also fragt die App nach, aber erst, wenn ihre eigenen Daten
+ * in diese Richtung zeigen: Blutungen eingetragen und der Bauch dabei
+ * messbar schlechter. Dann ist der Hinweis eine Hilfe und keine
+ * Zudringlichkeit, und er kann sagen, warum er kommt.
+ *
+ * Der Grund gehört dazu. „Schalt mal diese Fragen ein" ist übergriffig;
+ * „dein Bauch ist an Blutungstagen um 1,8 Stufen schlechter, und es gibt
+ * einen Zusammenhang, der oft jahrelang übersehen wird" ist eine Auskunft,
+ * über die jemand selbst entscheiden kann.
+ */
+function unterleibVorschlag(s) {
+  if (s.unterleibGefragt) return '';
+  const v = fragenVorschlagen(s.eintraege, s.tage, tagesWert, s.tagesfragen);
+  if (!v) return '';
+  return `<div class="karte karte-merk">
+    <h3>Zwei Fragen, die hier weiterhelfen könnten</h3>
+    <p class="klein">An deinen Blutungstagen ist der Bauch im Mittel um
+    <b>${v.differenz.toFixed(1).replace('.', ',')} Stufen</b> schlechter als
+    sonst (${mehrzahl(v.blutungsTage, 'Blutungstag', 'Blutungstage')} verglichen).
+    Das ist häufig und für sich genommen harmlos.</p>
+    <p class="klein">Es gibt aber eine Ursache, bei der genau dieses Muster
+    auftritt und die im Mittel <b>sieben bis zehn Jahre</b> lang für einen
+    Reizdarm gehalten wird: Endometriose. Was sie von einem Reizdarm
+    unterscheidet, sind zwei Dinge, nach denen in der Magensprechstunde
+    niemand fragt – <b>Schmerz beim Sex</b> (und ob er tief innen sitzt oder
+    außen) und <b>wie stark der Regelschmerz</b> ist.</p>
+    <p class="klein">Die Fragen sind ausgeschaltet, und das bleiben sie, wenn
+    du willst. Eingeschaltet erscheinen sie als zwei Regler beim Tageseintrag,
+    und die App kann sagen, ob sich daraus ein Muster ergibt.</p>
+    <div class="reihe">
+      ${knopf('unterleib-an', 'Fragen einschalten', 'btn-primary')}
+      ${knopf('unterleib-nein', 'Nein danke', 'btn-ghost')}
+    </div>
+  </div>`;
+}
+
 /**
  * Alles einmal rechnen, dann herumreichen.
  *
@@ -7314,7 +7697,7 @@ function musterAnsicht(s) {
    * fehlt – die Liste für den Termin. Wer nur die ersten beiden Karten liest,
    * hat trotzdem das Wichtigste.
    */
-  return bildTeil(s) + kriterienTeil(s, d) + versuchTeil(s, d)
+  return bildTeil(s) + unterleibVorschlag(s) + kriterienTeil(s, d) + versuchTeil(s, d)
     + klassenTeil(s, d) + gefunden + wartet + ansprechenTeil(s, d)
     + wann + wie + stuhlTeil(s) + brauchtTeil(s, d) + zyklusTeil(s) + erklaerung;
 }
@@ -8496,6 +8879,21 @@ const AKTION = {
     try { await installEreignis.userChoice; } catch { /* abgebrochen */ }
     // Das Ereignis lässt sich nur einmal auslösen; danach ist es verbraucht.
     installEreignis = null;
+    zeichne();
+  },
+
+  'unterleib-an': () => {
+    const gewaehlt = store.zustandLesen().tagesfragen || [];
+    store.einstellen('tagesfragen', [...new Set([...gewaehlt,
+      'sexschmerz', 'sextief', 'regelschmerz'])]);
+    melden('Eingeschaltet. Die Fragen stehen ab jetzt beim Tageseintrag.');
+    zeichne();
+  },
+  // „Nein danke" heißt nein und nicht „später nochmal": Der Hinweis kommt
+  // nicht wieder. Etwas, das man dreimal wegtippen muss, ist keine Frage.
+  'unterleib-nein': () => {
+    store.einstellen('unterleibGefragt', true);
+    melden('Gut. Ich frage nicht noch einmal.');
     zeichne();
   },
 

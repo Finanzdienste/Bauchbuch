@@ -299,6 +299,28 @@ export const TAGESFRAGEN = [
   { id: 'bewegung', name: 'Bewegung', menge: true, worte: ['keine', 'leicht', 'moderat', 'intensiv', 'sehr intensiv'] },
   { id: 'blutung', name: 'Periode', menge: true, worte: ['keine', 'Schmierblutung', 'leicht', 'mittel', 'stark'] },
   { id: 'sex', name: 'Sex', menge: true, worte: ['nein', 'ja'] },
+  /*
+   * Die drei Fragen zum Unterleib.
+   *
+   * Sie stehen NICHT in der Voreinstellung und erscheinen nur, wenn jemand sie
+   * unter „Mehr" einschaltet. Eine App, die sich ungefragt nach Schmerzen beim
+   * Sex erkundigt, wird zugeklappt und nicht wieder geöffnet – und dann ist
+   * auch alles andere weg.
+   *
+   * Warum es sie trotzdem gibt: Endometriose wird im Mittel sieben bis zehn
+   * Jahre lang für einen Reizdarm gehalten. Die Konstellation, an der es
+   * auffiele, ist zyklusabhängige Darmbeschwerde + tiefer Schmerz beim Sex +
+   * starker Regelschmerz – und danach wird in der Sprechstunde regelmäßig
+   * nicht gefragt. Ein Tagebuch kann genau das sehen.
+   *
+   * Getrennt nach tief und außen, weil die Unterscheidung die eigentliche
+   * Auskunft ist: Tiefer Schmerz deutet in den Bauchraum (Endometriose,
+   * Verwachsungen, Beckenboden), Schmerz am Eingang auf etwas ganz anderes.
+   * Eine Frage, die beides zusammenwirft, hätte man sich sparen können.
+   */
+  { id: 'sexschmerz', name: 'Schmerz beim Sex', worte: ['nein', 'leicht', 'mittel', 'stark', 'sehr stark'] },
+  { id: 'sextief', name: 'davon tief innen', menge: true, worte: ['nein', 'ja'] },
+  { id: 'regelschmerz', name: 'Regelschmerz', worte: ['keine', 'leicht', 'mittel', 'stark', 'sehr stark'] },
   // Nachts von Beschwerden geweckt zu werden, ist im GerdQ eine eigene Frage
   // und in der Sprechstunde eine der ersten. `menge: true`, weil „ja" hier
   // keine Note ist – es zählt die Zahl der Nächte, nicht eine Schwere.

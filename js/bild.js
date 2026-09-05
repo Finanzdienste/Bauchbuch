@@ -27,6 +27,7 @@
  */
 import { artAnteil, essensbezug, faktorBilanz, nachTageszeit, tagesWert } from './auswertung.js';
 import { phasenBilanz, belastbar } from './zyklus.js';
+import { unterleibsBild } from './unterleib.js';
 
 /*
  * ---------------------------------------------------------------------------
@@ -306,6 +307,39 @@ function musterZyklus(d) {
   return { punkte, belege };
 }
 
+/*
+ * Das Muster, wegen dem dieses Modul überhaupt nach dem Unterleib fragt.
+ *
+ * Endometriose wird im Mittel sieben bis zehn Jahre lang nicht erkannt, und
+ * die häufigste Fehldeutung auf diesem Weg heißt „Reizdarm" – dieselben
+ * Blähungen, Krämpfe und Stuhlveränderungen, nur mit anderer Ursache. Was die
+ * beiden trennt, steht in Daten, die eine Magensprechstunde nicht erhebt.
+ *
+ * Deshalb wiegt der tiefe Schmerz beim Sex hier doppelt: Er ist das Merkmal
+ * mit der größten Aussagekraft und zugleich das, nach dem am seltensten
+ * gefragt wird.
+ */
+function musterUnterleib(d) {
+  const belege = [];
+  let punkte = 0;
+  const u = d.unterleib;
+  // Ohne die eigens dafür eingeschalteten Fragen gibt es hier nichts zu sagen,
+  // was das Zyklusmuster nicht schon sagt.
+  if (!u || !u.neueFragen || !u.ansprechen) return { punkte, belege };
+
+  u.merkmale.filter((m) => m.erfuellt).forEach((m) => {
+    punkte += m.gewicht;
+    belege.push(`${m.name}: ${m.text}.`);
+  });
+
+  const offen = u.merkmale.filter((m) => !m.pruefbar);
+  if (offen.length) {
+    belege.push(`Nicht prüfbar: ${offen.map((m) => m.name.toLowerCase()).join(', ')} `
+      + `– das kann dafür sprechen oder dagegen, es ist schlicht offen.`);
+  }
+  return { punkte, belege };
+}
+
 /**
  * Die Muster mit dem, was dahinterstecken kann – und, das ist die eigentliche
  * Auskunft, womit sich das eine vom anderen unterscheiden lässt.
@@ -404,6 +438,23 @@ const MUSTER = [
     ],
   },
   {
+    id: 'unterleib',
+    name: 'Unterleib und Zyklus zusammen auffällig',
+    satz: 'Die Bauchbeschwerden gehen mit Beschwerden im Unterleib einher – '
+      + 'das ist ein anderes Bild als ein reiner Reizdarm.',
+    pruefe: musterUnterleib,
+    ursachen: [
+      { name: 'Endometriose', klaerung: 'Gynäkologisch abzuklären: Tastuntersuchung, Ultraschall, bei Verdacht Bauchspiegelung. Wird im Mittel sieben bis zehn Jahre lang für einen Reizdarm gehalten – genau deshalb steht sie hier.' },
+      { name: 'Adenomyose', klaerung: 'Endometriose in der Gebärmutterwand. Ultraschall, oft zusätzlich MRT.' },
+      { name: 'Beckenbodenstörung', klaerung: 'Kommt eher bei Schmerz am Eingang und bei Verstopfung in Frage; wird über eine Untersuchung des Beckenbodens beurteilt und ist gut behandelbar.' },
+      { name: 'Reizdarm und Regelschmerz nebeneinander', klaerung: 'Möglich und häufig – zwei Dinge gleichzeitig, ohne gemeinsame Ursache. Das lässt sich nur klären, indem man beides ansieht.' },
+    ],
+    fragen: [
+      'Meine Darmbeschwerden hängen am Zyklus, und ich habe Schmerzen beim Sex – kann eine Endometriose dahinterstecken?',
+      'Wäre eine gynäkologische Abklärung sinnvoll, bevor weiter Richtung Reizdarm behandelt wird?',
+    ],
+  },
+  {
     id: 'stress',
     name: 'Zusammenhang mit Anspannung und Schlaf',
     satz: 'An angespannten Tagen und nach schlechten Nächten ist es messbar '
@@ -459,6 +510,7 @@ export function bildLesen(d) {
     nsarTage: nsarTageListe.length,
     nsarSchnitt,
     schnittGesamt,
+    unterleib: unterleibsBild(eintraege, tage, tagesWert),
   };
 
   const muster = MUSTER

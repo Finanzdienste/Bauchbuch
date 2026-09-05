@@ -44,6 +44,7 @@ import {
   belastbar, heutigerStand, mittlereLaenge, phasenBilanz, phasenName, schwankung,
 } from './zyklus.js';
 import { WARNZEICHEN, bildLesen, genugFuerBild } from './bild.js';
+import { fragenVorschlagen } from './unterleib.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
@@ -539,6 +540,50 @@ function trendKarte(s, bis) {
 }
 
 /* ==================== Reiter: Muster ==================== */
+
+/*
+ * Der Hinweis auf die Unterleibsfragen – und warum er nicht immer dasteht.
+ *
+ * Die drei Fragen (Schmerz beim Sex, tief oder außen, Regelschmerz) sind
+ * standardmäßig aus. Das ist richtig: Eine App, die sich ungefragt nach dem
+ * Sexleben erkundigt, wird zugeklappt, und dann ist auch alles andere weg.
+ *
+ * Nur hätte das eine Folge, die man kennt – niemand schaltet je etwas ein, das
+ * er nicht kennt. Also fragt die App nach, aber erst, wenn ihre eigenen Daten
+ * in diese Richtung zeigen: Blutungen eingetragen und der Bauch dabei
+ * messbar schlechter. Dann ist der Hinweis eine Hilfe und keine
+ * Zudringlichkeit, und er kann sagen, warum er kommt.
+ *
+ * Der Grund gehört dazu. „Schalt mal diese Fragen ein" ist übergriffig;
+ * „dein Bauch ist an Blutungstagen um 1,8 Stufen schlechter, und es gibt
+ * einen Zusammenhang, der oft jahrelang übersehen wird" ist eine Auskunft,
+ * über die jemand selbst entscheiden kann.
+ */
+function unterleibVorschlag(s) {
+  if (s.unterleibGefragt) return '';
+  const v = fragenVorschlagen(s.eintraege, s.tage, tagesWert, s.tagesfragen);
+  if (!v) return '';
+  return `<div class="karte karte-merk">
+    <h3>Zwei Fragen, die hier weiterhelfen könnten</h3>
+    <p class="klein">An deinen Blutungstagen ist der Bauch im Mittel um
+    <b>${v.differenz.toFixed(1).replace('.', ',')} Stufen</b> schlechter als
+    sonst (${mehrzahl(v.blutungsTage, 'Blutungstag', 'Blutungstage')} verglichen).
+    Das ist häufig und für sich genommen harmlos.</p>
+    <p class="klein">Es gibt aber eine Ursache, bei der genau dieses Muster
+    auftritt und die im Mittel <b>sieben bis zehn Jahre</b> lang für einen
+    Reizdarm gehalten wird: Endometriose. Was sie von einem Reizdarm
+    unterscheidet, sind zwei Dinge, nach denen in der Magensprechstunde
+    niemand fragt – <b>Schmerz beim Sex</b> (und ob er tief innen sitzt oder
+    außen) und <b>wie stark der Regelschmerz</b> ist.</p>
+    <p class="klein">Die Fragen sind ausgeschaltet, und das bleiben sie, wenn
+    du willst. Eingeschaltet erscheinen sie als zwei Regler beim Tageseintrag,
+    und die App kann sagen, ob sich daraus ein Muster ergibt.</p>
+    <div class="reihe">
+      ${knopf('unterleib-an', 'Fragen einschalten', 'btn-primary')}
+      ${knopf('unterleib-nein', 'Nein danke', 'btn-ghost')}
+    </div>
+  </div>`;
+}
 
 /**
  * Alles einmal rechnen, dann herumreichen.
@@ -1094,7 +1139,7 @@ function musterAnsicht(s) {
    * fehlt – die Liste für den Termin. Wer nur die ersten beiden Karten liest,
    * hat trotzdem das Wichtigste.
    */
-  return bildTeil(s) + kriterienTeil(s, d) + versuchTeil(s, d)
+  return bildTeil(s) + unterleibVorschlag(s) + kriterienTeil(s, d) + versuchTeil(s, d)
     + klassenTeil(s, d) + gefunden + wartet + ansprechenTeil(s, d)
     + wann + wie + stuhlTeil(s) + brauchtTeil(s, d) + zyklusTeil(s) + erklaerung;
 }
@@ -2276,6 +2321,21 @@ const AKTION = {
     try { await installEreignis.userChoice; } catch { /* abgebrochen */ }
     // Das Ereignis lässt sich nur einmal auslösen; danach ist es verbraucht.
     installEreignis = null;
+    zeichne();
+  },
+
+  'unterleib-an': () => {
+    const gewaehlt = store.zustandLesen().tagesfragen || [];
+    store.einstellen('tagesfragen', [...new Set([...gewaehlt,
+      'sexschmerz', 'sextief', 'regelschmerz'])]);
+    melden('Eingeschaltet. Die Fragen stehen ab jetzt beim Tageseintrag.');
+    zeichne();
+  },
+  // „Nein danke" heißt nein und nicht „später nochmal": Der Hinweis kommt
+  // nicht wieder. Etwas, das man dreimal wegtippen muss, ist keine Frage.
+  'unterleib-nein': () => {
+    store.einstellen('unterleibGefragt', true);
+    melden('Gut. Ich frage nicht noch einmal.');
     zeichne();
   },
 

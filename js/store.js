@@ -91,6 +91,10 @@ const VORGABE = {
   // Wie viele Ideen beim letzten Weitergeben in der Liste standen. Daran
   // erkennt die App, welche noch niemand gesehen hat – siehe ideenOffen().
   ideenGeschickt: 0,
+  // Wurde der Hinweis auf die Unterleibsfragen schon einmal weggetippt? Dann
+  // kommt er nicht wieder – ein Vorschlag, den man mehrfach abwehren muss,
+  // ist keiner.
+  unterleibGefragt: false,
   atemUebung: '478',     // zuletzt gewählte Atemübung
   atemRunden: null,      // eigene Rundenzahl; null = Vorschlag der Übung
   ton: true,             // Ton bei der Atemübung – der einzige der App
