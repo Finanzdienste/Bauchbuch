@@ -336,9 +336,45 @@ Drei Regeln halten das davon ab, Kaffeesatzleserei zu werden:
 3. **Es heißt „auffällig", nicht „verursacht".** Ab einem Punkt Unterschied
    „möglicherweise", ab zwei „auffällig". Darunter: kein Unterschied.
 
-Was dabei herauskommt, ist eine Häufigkeit. Wer an einem ohnehin schlechten Tag
-anders isst, findet sich hier wieder, ohne dass das Essen schuld wäre. Die App
-stellt keine Diagnose und ersetzt keine ärztliche Beratung.
+Was dabei herauskommt, ist eine Häufigkeit. Die App stellt keine Diagnose und
+ersetzt keine ärztliche Beratung.
+
+### Liegt es wirklich daran?
+
+Der Vergleich oben kann nicht wissen, *warum* jemand isst, was er isst. Kaffee
+gibt es an Arbeitstagen, und Arbeitstage sind die angespannten. Verschlechtert
+Anspannung den Bauch, sieht der Kaffee schuldig aus, ohne es zu sein – und wer
+ihn daraufhin streicht, isst fortan einseitiger und hat nichts gewonnen.
+
+Jeder Fund wird deshalb ein zweites Mal gerechnet, aber **innerhalb**
+vergleichbarer Tage: nur ruhige gegen ruhige, nur angespannte gegen
+angespannte, dasselbe für Schlaf und für die Blutung. Vier Urteile sind
+möglich:
+
+| | |
+| --- | --- |
+| **hält stand** | in jeder prüfbaren Schicht derselbe Unterschied – das spricht fürs Essen |
+| **nur unter Umständen** | auffällig nur an angespannten Tagen, sonst nicht – eher die Umstände, oder beides zusammen |
+| **verschwindet** | unter gleichen Umständen bleibt nichts übrig – der Verdacht kam vom Zusammenfallen |
+| **nicht prüfbar** | dafür reichen die Daten nicht |
+
+Das kostet Fallzahl, und deshalb sind die Bedingungen streng: Jede Schicht
+braucht auf **beiden** Seiten mindestens vier Mahlzeiten, es müssen mindestens
+**zwei** Schichten prüfbar sein, und Schichten zählen nur im Paar – wer nie
+eine Blutung einträgt, bei dem ist „außerhalb der Blutung" keine Auskunft,
+sondern der ungeschichtete Vergleich unter anderem Namen. Reicht das nicht,
+steht dort „nicht prüfbar" und kein abgeschwächtes Urteil.
+
+Im Arztbericht hat das Folgen: Ein Fund, dessen Unterschied unter gleichen
+Umständen verschwindet, steht **nicht** unter „auffällig", sondern in einem
+eigenen Abschnitt darunter. Verschwiegen wird er nicht – sonst kommt derselbe
+Verdacht in der nächsten Sprechstunde ungeprüft wieder.
+
+Die Schichtung schwächt übrigens nicht nur ab, sie kann einen Befund auch
+*erzeugen*: Wer an ruhigen Tagen selten und an Stresstagen viel Kaffee trinkt,
+bei dem kann sich die Wirkung im Gesamtschnitt fast aufheben und erst innerhalb
+der Schichten sichtbar werden. Beides ist derselbe Rechenfehler – das
+Simpson-Paradox – nur in verschiedene Richtungen.
 
 ### Nach Wirkweise statt nach Zutat
 
@@ -538,6 +574,11 @@ js/daten.js         die Kataloge: Auslöser, Beschwerdearten, Skalenworte
 js/chart.js         Balken und Vergleichsbalken als SVG-Zeichenkette
 js/store.js         der Speicher – localStorage, mehr gibt es nicht
 js/auswertung.js    die Rechenschicht: Merkmale, Fenster, Bilanz, Verlauf
+js/schichten.js     hält jeden Fund gegen die Umstände – Anspannung,
+                    Schlaf, Zyklus –, damit nicht der Kaffee büßt, was
+                    der Arbeitstag angerichtet hat
+js/unterleib.js     Schmerz beim Sex, Regelschmerz, der Zusammenhang
+                    mit Bauch und Stuhlgang
 js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten
 js/klang.js         Töne aus einem Oszillator, keine Dateien
 js/atem.js          die Atemübungen – Daten, nicht der Ablauf
@@ -550,7 +591,7 @@ js/luecken.js       was noch fehlt und was keine App beantwortet
 js/bild.js          Warnzeichen, Muster, Differentialdiagnosen, Fragen
 js/rat.js           Vorschläge für heute, jeder mit seinem Grund
 js/briefkasten.js   die einzige Stelle, die nach draußen spricht –
-                    ein Text, eine Adresse, nur auf Tastendruck
+                    ein Text, eine Adresse, nur die Ideen
 js/tresor.js        die Sicherung mit Passwort – PBKDF2 und AES-GCM aus
                     dem Browser, ohne Bibliothek
 js/bericht.js       der Zettel für den Arzttermin, als reiner Text
@@ -567,7 +608,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Achtundzwanzig Dateien, über 580 Prüfungen, alle in einem echten Chromium. Kein
+Dreißig Dateien, über 630 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -601,6 +642,8 @@ den Rückgabewert.
 | `test-schnell.mjs` | ein Tipp legt dieselbe Mahlzeit an, nichts Erfundenes – und die Versuchs-Historie bleibt stehen |
 | `test-still.mjs` | bis zum Tastendruck null Anfragen; danach genau eine, ohne ein Wort aus dem Tagebuch |
 | `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
+| `test-unterleib.mjs` | die Fragen bleiben aus, bis jemand sie einschaltet; und Regelschmerz allein ergibt noch kein Muster |
+| `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,
 sondern an Verläufen, deren richtiges Ergebnis vorher feststeht. Der wichtigste
@@ -612,6 +655,9 @@ dafür einen Grund gibt.
 ## Herkunft
 
 Aufbau, Testläufer, der Ein-Datei-Bau und die Schichtungsprüfung stammen aus
-einem Schwesterprojekt und sind hier übernommen und angepasst. Was ausdrücklich
-nicht mitgekommen ist: der Rückkanal. Eine App über den eigenen Körper meldet
-niemandem etwas.
+einem Schwesterprojekt und sind hier übernommen und angepasst. Nicht
+mitgekommen ist dessen Telemetrie: Gesundheitsdaten eines anderen Menschen
+gehören in kein Auswertungssystem. Einen Rückkanal gibt es inzwischen doch,
+aber einen ausdrücklich schmalen – er trägt die Ideen zur App und nichts
+sonst, und was er nicht trägt, prüft `tools/pruefung/keine-leitung.py` bei
+jedem Push nach.

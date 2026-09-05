@@ -98,19 +98,31 @@ export function wertNach(eintraege, mahlzeit, fensterStunden) {
  * @param {object[]} eintraege  alle Eintragungen
  * @param {{fenster: number, mindestFaelle: number, eigene: object[]}} opt
  */
-export function ausloeserBilanz(eintraege, opt = {}) {
-  const fenster = opt.fenster || 4;
-  const mindest = opt.mindestFaelle || 5;
-  const mahlzeiten = eintraege.filter((e) => e.art === 'essen');
-  if (!mahlzeiten.length) return [];
-
-  // Einmal für alle Mahlzeiten rechnen, nicht je Auslöser neu: Bei einem Jahr
-  // Tagebuch und zwei Dutzend Auslösern wäre das sonst das Quadrat davon.
-  const bewertet = mahlzeiten.map((m) => ({
+/**
+ * Jede Mahlzeit mit ihren Merkmalen und dem, was danach kam.
+ *
+ * Einmal gerechnet und dann herumgereicht: Bei einem Jahr Tagebuch und zwei
+ * Dutzend Auslösern wäre das je Auslöser neu das Quadrat der Arbeit. Seit die
+ * Schichtung dazugekommen ist, braucht auch js/schichten.js genau diese Liste
+ * – deshalb steht sie hier für sich und nicht mehr eingebacken in die Bilanz.
+ *
+ * `am` liegt bewusst obenauf: Die Schichtung schlägt damit den Tag nach, an
+ * dem die Mahlzeit war, ohne den ganzen Eintrag auseinandernehmen zu müssen.
+ */
+export function bewerteteMahlzeiten(eintraege, fenster = 4) {
+  return eintraege.filter((e) => e.art === 'essen').map((m) => ({
     m,
+    am: m.am,
     merkmale: new Set(merkmale(m)),
     wert: wertNach(eintraege, m, fenster),
   }));
+}
+
+export function ausloeserBilanz(eintraege, opt = {}) {
+  const fenster = opt.fenster || 4;
+  const mindest = opt.mindestFaelle || 5;
+  const bewertet = bewerteteMahlzeiten(eintraege, fenster);
+  if (!bewertet.length) return [];
 
   const bekannt = new Set(ALLE_AUSLOESER.map((a) => a.id));
   (opt.eigene || []).forEach((a) => bekannt.add(a.id));

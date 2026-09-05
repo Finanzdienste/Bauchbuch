@@ -23,7 +23,7 @@
  * daran hängt das Aufräumen alter Zwischenspeicher.
  */
 
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE = `bauchbuch-${VERSION}`;
 
 const SHELL = [
@@ -52,6 +52,7 @@ const SHELL = [
   './js/tresor.js',
   './js/briefkasten.js',
   './js/unterleib.js',
+  './js/schichten.js',
   './icon.svg',
   './icon-192.png',
   './icon-512.png',

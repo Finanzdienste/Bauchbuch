@@ -17,9 +17,10 @@ import { fmtDatum, tageDazwischen } from './datum.js';
 import { fmtZahl, mehrzahl } from './text.js';
 import { ausloeserName, beschwerdeName, STAERKE_WORT } from './daten.js';
 import {
-  ausloeserBilanz, einstufung, gesamtZahlen, klassenBilanz, klassenEinstufung,
-  nachArt, nachTageszeit, tagesWert, trend, TREND_WORT,
+  ausloeserBilanz, bewerteteMahlzeiten, einstufung, gesamtZahlen, klassenBilanz,
+  klassenEinstufung, nachArt, nachTageszeit, tagesWert, trend, TREND_WORT,
 } from './auswertung.js';
+import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
 import { wissenZu } from './mittel.js';
@@ -162,13 +163,52 @@ export function arztBericht(zustand, von, bis) {
     eigene: zustand.eigeneAusloeser,
   }).filter((b) => b.genug && einstufung(b) !== 'neutral' && einstufung(b) !== 'unauffaellig');
 
-  if (bilanz.length) {
+  /*
+   * Bevor ein Auslöser auf dem Zettel steht, wird er gegen die Umstände
+   * gehalten.
+   *
+   * Der rohe Vergleich fragt nur: war es nach diesen Mahlzeiten schlimmer? Er
+   * kann nicht wissen, dass es Kaffee vor allem an Arbeitstagen gibt und
+   * Arbeitstage die angespannten sind. Wer das ungeprüft als „auffällig" in
+   * eine Sprechstunde trägt, streicht am Ende ein Lebensmittel und hat nichts
+   * gewonnen. Deshalb wird jeder Fund innerhalb gleicher Anspannung, gleichen
+   * Schlafs und gleicher Zyklusphase nachgerechnet – und was dabei
+   * verschwindet, steht weiter unten und nicht hier oben.
+   */
+  const bewertet = bewerteteMahlzeiten(imZeitraum, zustand.fenster);
+  const gehalten = bilanz.map((b) => ({ b, stand: haeltStand(bewertet, b.id, tage) }));
+  const bleibt = gehalten.filter((x) => x.stand.urteil !== 'verschwindet');
+  const zerfallen = gehalten.filter((x) => x.stand.urteil === 'verschwindet');
+
+  const zahlen = (b) => `${fmtZahl(b.schnittMit)} gegen ${fmtZahl(b.schnittOhne)} `
+    + `(${b.faelle} Mahlzeiten damit, ${b.gegenFaelle} ohne)`;
+
+  if (bleibt.length) {
     sag(`AUFFÄLLIG IM ZEITRAUM VON ${zustand.fenster} STUNDEN NACH DEM ESSEN`);
     sag('  (Vergleich: mittlere Beschwerdestärke danach gegen alle übrigen Mahlzeiten)');
-    bilanz.slice(0, 8).forEach((b) => {
-      sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} `
-        + `${fmtZahl(b.schnittMit)} gegen ${fmtZahl(b.schnittOhne)} `
-        + `(${b.faelle} Mahlzeiten damit, ${b.gegenFaelle} ohne)`);
+    bleibt.slice(0, 8).forEach(({ b, stand }) => {
+      sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
+      const wo = stand.urteil === 'nur-dann' ? ` (${(stand.wo || []).join(', ')})` : '';
+      sag(`    unter gleichen Umständen: ${SCHICHT_WORT[stand.urteil]}${wo}`
+        + (stand.urteil === 'unklar' ? ' – zu wenige Tage mit Angaben zu'
+          + ' Anspannung, Schlaf oder Zyklus' : ''));
+    });
+    sag();
+  }
+
+  /*
+   * Was den Vergleich nicht überstanden hat, wird trotzdem genannt.
+   *
+   * Es einfach wegzulassen wäre bequem und falsch: In der Sprechstunde kommt
+   * derselbe Verdacht sonst beim nächsten Mal wieder, und diesmal ungeprüft.
+   */
+  if (zerfallen.length) {
+    sag('IM ROHEN VERGLEICH AUFFÄLLIG, UNTER GLEICHEN UMSTÄNDEN NICHT MEHR');
+    sag('  (Innerhalb gleicher Anspannung, gleichen Schlafs und gleicher');
+    sag('  Zyklusphase nachgerechnet bleibt kein Unterschied übrig – der');
+    sag('  Verdacht kam vermutlich daher, dass beides zusammenfällt.)');
+    zerfallen.slice(0, 6).forEach(({ b }) => {
+      sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
     });
     sag();
   }
@@ -392,7 +432,11 @@ export function arztBericht(zustand, von, bis) {
   sag('---');
   sag('Selbst geführtes Tagebuch. Die Zahlen sind gezählt, nicht gedeutet;');
   sag('„auffällig" heißt hier nur: nach diesen Mahlzeiten stand im Mittel ein');
-  sag('höherer Wert als nach den übrigen. Der Abschnitt zum Muster ordnet den');
+  sag('höherer Wert als nach den übrigen – und der Unterschied blieb auch dann');
+  sag('bestehen, als nur Tage mit gleicher Anspannung, gleichem Schlaf und');
+  sag('gleicher Zyklusphase miteinander verglichen wurden. Das ist kein');
+  sag('Wirkungsnachweis: Es bleiben alle Umstände, die niemand einträgt.');
+  sag('Der Abschnitt zum Muster ordnet den');
   sag('Verlauf in gebräuchliche Begriffe ein und stellt keine Diagnose – die');
   sag('genannten Möglichkeiten unterscheidet eine Untersuchung, nicht ein Tagebuch.');
   return zeilen.join('\n');
