@@ -51,6 +51,7 @@ import {
   fensterWerte, spaeteFunde, zeitBild, zeitProfil,
 } from './zeitprofil.js';
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
+import { wasSacheIst } from './lage.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
@@ -680,11 +681,127 @@ function musterDaten(s) {
    * Mittelwert den Befund, statt ihn zu zeigen.
    */
   const wechsel = wechselnde(bewertet, bilanz.filter((b) => b.genug).map((b) => b.id), s.tage);
+
+  /*
+   * Das Bild und die Lücken einmal für alle.
+   *
+   * Beides wurde bis eben zweimal je Anzeige gerechnet – einmal für die
+   * Einordnung oben, einmal für „Was noch fehlt" unten. Seit die Zusammen-
+   * fassung dazugekommen ist, wären es drei. Und schlimmer als der Aufwand
+   * wäre, dass drei Stellen auseinanderlaufen können.
+   */
+  const bild = bildLesen({
+    eintraege: s.eintraege,
+    tage: s.tage,
+    bilanz,
+    name: (id) => ausloeserName(id, s.eigeneAusloeser),
+    istNsar,
+  });
+  const benutzt = {};
+  ['oberbauch', 'saettigung'].forEach((id) => {
+    benutzt[id] = s.eintraege.some((e) => (e.arten || []).includes(id));
+  });
+  const luecke = luecken({
+    kriterien: k,
+    stuhl: stuhlZahlen(s.eintraege, s.tage),
+    bezug: bezugBilanz(s.eintraege),
+    klassen,
+    mittel,
+    musterIds: bild.muster.map((m) => m.id),
+    essen: essensbezugVon(s),
+    nsarTage: [...new Set(s.eintraege
+      .filter((e) => e.art === 'medikament' && istNsar(e.mittel)).map((e) => e.am))].length,
+    warnIds: bild.warnungen.map((w) => w.id),
+    krampfAnteil: artAnteilVon(s, ['krampf']),
+    benutzt,
+    nachtwachAn: (s.tagesfragen || []).includes('nachtwach'),
+    versuchMoeglich: vorschlaege(klassen, bilanz).length > 0,
+    versuchLaeuft: !!s.versuch && !s.versuch.beendet,
+    mahlzeitenOhneZutaten: s.eintraege
+      .filter((e) => e.art === 'essen' && !zutatenVon(e).length).length,
+  });
+
+  /*
+   * Die auffälligen Funde samt ihrer beiden Nachprüfungen.
+   *
+   * Nur für die auffälligen: Für Unauffälliges gäbe es nichts zu entkräften,
+   * und jede zusätzliche Rechnung ist eine zusätzliche Gelegenheit für einen
+   * Zufallstreffer. Einmal hier statt einmal je Anzeigestelle – die
+   * Zusammenfassung oben muss dasselbe Urteil zeigen wie der Fund unten.
+   */
+  const gepruefte = bilanz
+    .filter((b) => b.genug && ['auffaellig', 'moeglich'].includes(einstufung(b)))
+    .map((b) => ({
+      b,
+      stand: haeltStand(bewertet, b.id, s.tage),
+      profil: zeitProfil(fenster, b.id),
+    }));
+
   return {
     heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel, fenster,
-    uebersehen, wechsel,
+    uebersehen, wechsel, bild, luecke, gepruefte,
     zeit: zeitBild(s.eintraege),
   };
+}
+
+/*
+ * Was Sache ist – drei bis fünf Sätze, bevor irgendeine Zahl kommt.
+ *
+ * Zehn Karten sind eine Auswertung, die man erst zusammensetzen muss. Wer
+ * Beschwerden hat, liest sie nicht; wer sie in der Sprechstunde vorzeigt, hat
+ * dafür keine zehn Minuten. Diese Karte rechnet nichts eigenes – sie wählt aus
+ * dem, was unten steht, und bringt es in Sätze. Was hier steht, steht unten
+ * mit seinen Zahlen; wer einen Satz nicht wiederfindet, hat einen Fehler
+ * gefunden.
+ */
+/*
+ * Wie viele Tage stehen überhaupt drin?
+ *
+ * Nur für den Satz, der kommt, wenn sonst nichts kommt – und der die Zahl
+ * nennen muss, statt „noch zu wenig" zu sagen. Gezählt wird vom ersten
+ * Eintrag bis heute; ein Tagebuch fängt an dem Tag an, an dem jemand anfängt.
+ */
+function tageMitEintrag(s, heute) {
+  const alle = [...Object.keys(s.tage || {}), ...s.eintraege.map((e) => e.am)].sort();
+  if (!alle.length) return 0;
+  return gesamtZahlen(s.eintraege, s.tage, alle[0], heute).notierteTage;
+}
+
+function lageTeil(s, d) {
+  const t = trend(s.eintraege, s.tage, d.heute);
+  const l = wasSacheIst({
+    warnungen: d.bild.warnungen,
+    trend: t,
+    funde: d.gepruefte.map(({ b, stand }) => ({
+      name: ausloeserName(b.id, s.eigeneAusloeser),
+      differenz: b.differenz,
+      faelle: b.faelle,
+      gegenFaelle: b.gegenFaelle,
+      urteil: stand.urteil,
+    })),
+    spaet: d.uebersehen.map((x) => ({
+      name: ausloeserName(x.id, s.eigeneAusloeser),
+      fensterName: x.fensterName,
+      ort: x.ort,
+    })),
+    wechsel: d.wechsel.map((w) => ({
+      name: ausloeserName(w.id, s.eigeneAusloeser),
+      phase: w.staerkste.name,
+    })),
+    zeit: d.zeit,
+    mittel: d.mittel.filter((m) => m.genug),
+    luecke: d.luecke.tagebuch.length
+      ? { satz: `Am meisten würde jetzt helfen: ${d.luecke.tagebuch[0].titel}.` }
+      : null,
+    notierteTage: tageMitEintrag(s, d.heute),
+  });
+
+  return `<div class="karte karte-lage">
+    <h3>Was Sache ist</h3>
+    ${l.saetze.map((x) => `<p class="lage-satz l-${x.art}">${esc(x.text)}</p>`).join('')}
+    <p class="klein">Zusammengefasst aus dem, was weiter unten mit seinen
+      Fallzahlen steht – ohne eigene Rechnung und ohne Diagnose.</p>
+  </div>`;
 }
 
 /*
@@ -1121,39 +1238,8 @@ function versuchHistorie(s, d) {
  * vorliest.
  */
 function brauchtTeil(s, d) {
-  const k = d.kriterien;
-  const b = bildLesen({
-    eintraege: s.eintraege,
-    tage: s.tage,
-    bilanz: d.bilanz,
-    name: (id) => ausloeserName(id, s.eigeneAusloeser),
-    istNsar: d.istNsar,
-  });
-  const benutzt = {};
-  ['oberbauch', 'saettigung'].forEach((id) => {
-    benutzt[id] = s.eintraege.some((e) => (e.arten || []).includes(id));
-  });
-  const nsarTage = [...new Set(s.eintraege
-    .filter((e) => e.art === 'medikament' && d.istNsar(e.mittel)).map((e) => e.am))].length;
-
-  const l = luecken({
-    kriterien: k,
-    stuhl: stuhlZahlen(s.eintraege, s.tage),
-    bezug: bezugBilanz(s.eintraege),
-    klassen: d.klassen,
-    mittel: d.mittel,
-    musterIds: b.muster.map((m) => m.id),
-    essen: essensbezugVon(s),
-    nsarTage,
-    warnIds: b.warnungen.map((w) => w.id),
-    krampfAnteil: artAnteilVon(s, ['krampf']),
-    benutzt,
-    nachtwachAn: (s.tagesfragen || []).includes('nachtwach'),
-    versuchMoeglich: vorschlaege(d.klassen, d.bilanz).length > 0,
-    versuchLaeuft: !!s.versuch && !s.versuch.beendet,
-    mahlzeitenOhneZutaten: s.eintraege
-      .filter((e) => e.art === 'essen' && !zutatenVon(e).length).length,
-  });
+  // Gerechnet wird das in musterDaten, einmal für alle – siehe dort.
+  const l = d.luecke;
 
   const offen = `<div class="karte">
     <h3>Was noch fehlt</h3>
@@ -1243,7 +1329,7 @@ function musterAnsicht(s) {
    * auch noch die Kriterien und den Stuhlgang verschlucken.
    */
   if (!mahlzeiten) {
-    return `${bildTeil(s)}${kriterienTeil(s, d)}<p class="leer">Noch keine Mahlzeit
+    return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}<p class="leer">Noch keine Mahlzeit
       eingetragen. Sobald ein paar Tage beisammen sind, steht hier, was
       auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
   }
@@ -1253,15 +1339,12 @@ function musterAnsicht(s) {
 
   const zeile = (b) => {
     const art = einstufung(b);
-    // Der Störfaktorentest – nur für das, was ohnehin auffällig ist. Für
-    // Unauffälliges gäbe es nichts zu entkräften, und jede zusätzliche
-    // Rechnung ist eine zusätzliche Gelegenheit für einen Zufallstreffer.
-    const stand = ['auffaellig', 'moeglich'].includes(art)
-      ? haeltStand(d.bewertet, b.id, s.tage) : null;
-    // Dasselbe Maß beim Zeitprofil: Wo nichts auffällt, gibt es auch keinen
-    // Zeitpunkt zu erklären.
-    const profil = ['auffaellig', 'moeglich'].includes(art)
-      ? zeitProfil(d.fenster, b.id) : null;
+    // Störfaktorentest und Zeitprofil kommen aus musterDaten – nur für das,
+    // was ohnehin auffällig ist, und nur einmal gerechnet, damit oben in der
+    // Zusammenfassung nichts anderes stehen kann als hier.
+    const g = d.gepruefte.find((x) => x.b.id === b.id);
+    const stand = g ? g.stand : null;
+    const profil = g ? g.profil : null;
     // Die Aufschlüsselung nach Rolle nur, wenn es überhaupt etwas zu
     // unterscheiden gibt: Bei einer einzigen Rolle wiederholte sie die
     // Hauptzahl mit anderen Worten.
@@ -1327,7 +1410,8 @@ function musterAnsicht(s) {
    * fehlt – die Liste für den Termin. Wer nur die ersten beiden Karten liest,
    * hat trotzdem das Wichtigste.
    */
-  return bildTeil(s) + unterleibVorschlag(s) + kriterienTeil(s, d) + versuchTeil(s, d)
+  return lageTeil(s, d) + bildTeil(s, d) + unterleibVorschlag(s)
+    + kriterienTeil(s, d) + versuchTeil(s, d)
     + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wechselTeil(s, d)
     + wartet + ansprechenTeil(s, d)
     + zeitTeil(d) + wann + wie + stuhlTeil(s) + brauchtTeil(s, d)
@@ -1598,19 +1682,9 @@ function ideenAnsicht(s) {
  * Warnzeichen und die Einordnung – das, was am nächsten an eine Diagnose
  * herankommt, ohne eine zu sein.
  */
-function bildTeil(s) {
-  const b = bildLesen({
-    eintraege: s.eintraege,
-    tage: s.tage,
-    bilanz: ausloeserBilanz(s.eintraege, {
-      fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
-    }),
-    name: (id) => ausloeserName(id, s.eigeneAusloeser),
-    istNsar: (name) => {
-      const g = wissenZu(name);
-      return !!g && g.id === 'nsar';
-    },
-  });
+function bildTeil(s, d) {
+  // Gerechnet wird das in musterDaten, einmal für alle – siehe dort.
+  const b = d.bild;
 
   // Warnzeichen stehen vor allem anderen und ohne Statistik daneben.
   const warn = b.warnungen.length ? `<div class="karte karte-warn">

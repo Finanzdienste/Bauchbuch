@@ -39,8 +39,13 @@ mal grundlos Mut macht und mal grundlos Angst. Verglichen werden *notierte*
 Tage, nicht Kalendertage – sonst meldete die App ausgerechnet in der Woche
 Besserung, in der es jemandem zu schlecht zum Eintragen war.
 
-**Muster.** Die eigentliche Auskunft, in dieser Reihenfolge – und die
-Reihenfolge ist eine Aussage: Warnzeichen, die Einordnung des Bildes, die
+**Muster.** Die eigentliche Auskunft. Ganz oben **„Was Sache ist"**: drei bis
+fünf Sätze in normaler Sprache, die zusammenfassen, was unten in zehn Karten
+steht – denn wer Beschwerden hat, liest keine zehn Karten, und in der
+Sprechstunde hat dafür niemand zehn Minuten. Dieser Absatz rechnet selbst
+nichts: Er wählt aus den fertigen Befunden aus, und was dort steht, steht
+unten mit seinen Fallzahlen. Danach, und die Reihenfolge ist eine Aussage:
+Warnzeichen, die Einordnung des Bildes, die
 **Kriterien** (Rom IV und GerdQ, siehe unten), der **Auslassversuch**, die
 Bilanz **nach Wirkweise**, dann die nach einzelnen Zutaten, das **Ansprechen
 auf die Mittel**, Tageszeit, Beschwerdeart, Stuhlgang, **was noch fehlt** und
@@ -644,6 +649,8 @@ js/wechselwirkung.js
                     Zyklus mal Auslöser: dieselbe Menge, andere Wirkung
                     – wechselnde Empfindlichkeit ist keine
                     Unverträglichkeit
+js/lage.js          „Was Sache ist": wählt aus den fertigen Befunden drei
+                    bis fünf Sätze aus und rechnet selbst nichts
 js/unterleib.js     Schmerz beim Sex, Regelschmerz, der Zusammenhang
                     mit Bauch und Stuhlgang
 js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten
@@ -675,7 +682,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Zweiunddreißig Dateien, über 680 Prüfungen, alle in einem echten Chromium. Kein
+Dreiunddreißig Dateien, über 700 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -710,6 +717,7 @@ den Rückgabewert.
 | `test-still.mjs` | bis zum Tastendruck null Anfragen; danach genau eine, ohne ein Wort aus dem Tagebuch |
 | `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
 | `test-unterleib.mjs` | die Fragen bleiben aus, bis jemand sie einschaltet; und Regelschmerz allein ergibt noch kein Muster |
+| `test-lage.mjs` | die Zusammenfassung sagt nichts, was unten nicht mit Zahlen steht – und schweigt, wo nichts ist |
 | `test-wechsel.mjs` | ein Auslöser, der nur in einer Zyklusphase wirkt – und kein Wechsel, wo keiner ist |
 | `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |

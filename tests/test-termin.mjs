@@ -91,7 +91,10 @@ check(!bericht.includes('Lange vor dem Termin'), 'was davor war, nicht');
  * Richtung eine größere Zahl als 14, hätte sie Tage von vor dem Termin
  * mitgezählt, unter einer Überschrift, die etwas anderes verspricht.
  */
-const richtung = bericht.split('\n').find((z) => z.includes('notierten Tage gegen'));
+// Gesucht wird ausdrücklich im Abschnitt RICHTUNG: Die Zusammenfassung ganz
+// oben nennt dieselben Zahlen in einem Satz und würde sonst zuerst gefunden.
+const richtung = bericht.split('RICHTUNG')[1].split('\n')
+  .find((z) => z.includes('notierten Tage gegen'));
 check(!!richtung, 'die Richtung steht auch im Bericht seit dem Termin');
 check(
   richtung.includes('14 notierten Tage gegen die 14 davor'),

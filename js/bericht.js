@@ -25,6 +25,7 @@ import {
   fensterWerte, spaeteFunde, zeitBild, zeitProfil,
 } from './zeitprofil.js';
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
+import { wasSacheIst } from './lage.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
 import { wissenZu } from './mittel.js';
@@ -78,6 +79,17 @@ export function arztBericht(zustand, von, bis) {
     sag('Das ist die Zeit seit dem letzten Termin.');
   }
   sag();
+
+  /*
+   * Hier kommt „In Kürze" hin – gefüllt wird es aber erst ganz unten.
+   *
+   * Die Sätze fassen zusammen, was der Bericht rechnet, also müssen sie nach
+   * allem entstehen. Stehen müssen sie trotzdem oben: Zehn Minuten
+   * Sprechstunde reichen nicht für zwölf Abschnitte, und was hinten steht,
+   * wird nicht gelesen. Die Zeilen werden deshalb am Ende an diese Stelle
+   * eingesetzt.
+   */
+  const kopfMarke = zeilen.length;
 
   if (!z.notierteTage) {
     sag('In diesem Zeitraum wurde nichts eingetragen.');
@@ -521,6 +533,44 @@ export function arztBericht(zustand, von, bis) {
     bild.fragen.forEach((f) => umbrochen(f, 64).forEach((z, j) => sag(`  ${j ? '  ' : '- '}${z}`)));
     sag();
   }
+
+  /*
+   * Und jetzt die Zusammenfassung, die oben eingesetzt wird.
+   *
+   * Sie rechnet nichts Eigenes (siehe js/lage.js): Jeder Satz stammt aus einem
+   * Abschnitt, der weiter unten mit seinen Fallzahlen steht. Wer einen Satz
+   * hier nicht wiederfindet, hat einen Fehler gefunden.
+   */
+  const kurz = wasSacheIst({
+    warnungen: bild.warnungen,
+    trend: t,
+    funde: bleibt.map(({ b, stand }) => ({
+      name: ausloeserName(b.id, zustand.eigeneAusloeser),
+      differenz: b.differenz,
+      faelle: b.faelle,
+      gegenFaelle: b.gegenFaelle,
+      urteil: stand.urteil,
+    })),
+    spaet: spaet.map((x) => ({
+      name: ausloeserName(x.id, zustand.eigeneAusloeser),
+      fensterName: x.fensterName,
+      ort: x.ort,
+    })),
+    wechsel: wechsel.map((w) => ({
+      name: ausloeserName(w.id, zustand.eigeneAusloeser),
+      phase: w.staerkste.name,
+    })),
+    zeit: zb,
+    mittel: ansprechen,
+    notierteTage: z.notierteTage,
+  });
+  const kurzZeilen = ['IN KÜRZE'];
+  kurz.saetze.forEach((x) => {
+    umbrochen(x.text, 66).forEach((zl, i) => kurzZeilen.push(`  ${i ? '  ' : '- '}${zl}`));
+  });
+  kurzZeilen.push('  (Zusammengefasst aus den Abschnitten unten; dort stehen die Fallzahlen.)');
+  kurzZeilen.push('');
+  zeilen.splice(kopfMarke, 0, ...kurzZeilen);
 
   sag('---');
   sag('Selbst geführtes Tagebuch. Die Zahlen sind gezählt, nicht gedeutet;');

@@ -479,6 +479,17 @@ p { margin: 0 0 8px; }
   margin: -4px 0 12px;
 }
 
+/* ---------- Was Sache ist ----------
+   Steht ganz oben und muss sich vom Rest abheben, ohne zu schreien: etwas
+   größer, etwas mehr Luft zwischen den Sätzen. Jeder Satz ein Absatz – wer
+   drei Sätze zu einem Block zusammenzieht, hat sie wieder unlesbar gemacht. */
+.karte-lage { border-left: 3px solid var(--accent); }
+.lage-satz { font-size: 15px; line-height: 1.5; margin: 0 0 10px; }
+.lage-satz:last-of-type { margin-bottom: 12px; }
+/* Ein Warnsatz bleibt auch hier ein Warnsatz. */
+.lage-satz.l-warnung { color: var(--bad); font-weight: 600; }
+.lage-satz.l-luecke { color: var(--muted); }
+
 /* ---------- Warnzeichen und Einordnung ---------- */
 .karte-warn { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, var(--bg-elev)); }
 .karte-warn h3 { color: var(--bad); }
