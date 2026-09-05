@@ -28,7 +28,14 @@ Beschwerden nachts geweckt haben.
 
 **Verlauf.** Ein Balken je Tag über 14, 30 oder 90 Tage, ein Monatskalender
 und vier Zahlen: notierte Tage, Anteil mit Beschwerden, mittlere Stärke,
-beschwerdefreie Tage in Folge.
+beschwerdefreie Tage in Folge. Darüber die **Richtung**: die letzten vierzehn
+notierten Tage gegen die vierzehn davor – „es wird besser", „es wird
+schlechter" oder „kein deutlicher Unterschied". Erst ab einer ganzen Stufe
+Unterschied wird überhaupt eine Richtung genannt: Beschwerden schwanken von
+selbst, und aus jeder Schwankung eine Richtung zu machen wäre ein Orakel, das
+mal grundlos Mut macht und mal grundlos Angst. Verglichen werden *notierte*
+Tage, nicht Kalendertage – sonst meldete die App ausgerechnet in der Woche
+Besserung, in der es jemandem zu schlecht zum Eintragen war.
 
 **Muster.** Die eigentliche Auskunft, in dieser Reihenfolge – und die
 Reihenfolge ist eine Aussage: Warnzeichen, die Einordnung des Bildes, die
@@ -52,16 +59,77 @@ jede Rechnung im Programm: Das größte Risiko für ein Tagebuch ist nicht ein
 Fehler in der Auswertung, sondern dass nach drei Wochen niemand mehr etwas
 einträgt.
 
+**Noch mal wie immer.** Auf dem Tagesreiter stehen die zwei bis drei
+Mahlzeiten, die es zuletzt am häufigsten gab, als Knopf: ein Tipp, und der
+Eintrag steht – mit demselben Namen, denselben Zutaten, derselben Portion und
+der jetzigen Uhrzeit. Erst ab dem zweiten Vorkommen; eine Mahlzeit, die es
+einmal gab, ist keine Gewohnheit. Und nur für heute: An einem vergangenen Tag
+wäre „jetzt" gelogen.
+
 **Ideen.** Ein Zettel für Verbesserungsvorschläge zur App selbst. Wer die App
 benutzt, sitzt selten neben dem, der sie baut – deshalb ist der eigentliche
-Knopf nicht „Eintragen", sondern „Alle kopieren": die Liste als Text, zum
-Einfügen in eine Nachricht. Ideen stehen neben den Eintragungen, nicht in
-ihnen, und tauchen in keiner Auswertung auf.
+Knopf nicht „Eintragen", sondern „Schicken": die Liste als Text, über
+`navigator.share` oder die Zwischenablage, zum Einfügen in eine Nachricht.
+**Die App hat keinen Rückkanal.** Eine eingetragene Idee kommt bei niemandem
+an, solange sie niemand herausschickt, und das ist der Fehler, den man nicht
+bemerkt – man hat es ja aufgeschrieben. Deshalb steht oben, wie viele noch
+nicht draußen sind, und deshalb meldet das Eintragen „Notiert – geschickt ist
+sie damit noch nicht." Ideen stehen neben den Eintragungen, nicht in ihnen,
+und tauchen in keiner Auswertung auf.
 
-**Mehr.** Sicherung als JSON-Datei und zurück, der Bericht für den Arzttermin,
-die Übersicht „Was die Mittel bewirken", seit wann die Beschwerden bestehen,
-die Einstellungen der Auswertung, welche Tagesfragen erscheinen sollen, eigene
-Auslöser, Ton, vier Farbvarianten.
+**Mehr.** Sicherung als JSON-Datei und zurück – **wahlweise mit Passwort
+verschlüsselt** (siehe unten) –, der Bericht für den Arzttermin, die
+**Arzttermine** selbst, die Übersicht „Was die Mittel bewirken", seit wann die
+Beschwerden bestehen, die Einstellungen der Auswertung, welche Tagesfragen
+erscheinen sollen, eigene Auslöser, Ton, vier Farbvarianten.
+
+### Die Sicherung mit Passwort
+
+Der wundeste Punkt dieser App hatte nie mit Medizin zu tun: Die Sicherung war
+eine offene JSON-Datei im Download-Ordner. Ein Tagebuch über den Körper eines
+Menschen, im Klartext, auf einem Gerät, das man verleiht, verliert oder
+irgendwann verkauft. Alles andere hier ist gegen Übertragung geschützt – und
+die einzige Kopie lag frei herum.
+
+Verschlüsselt wird im Browser selbst, mit dem, was er mitbringt: **PBKDF2** mit
+250 000 Runden macht aus dem Passwort einen Schlüssel und ist dabei absichtlich
+langsam, **AES-GCM** verschlüsselt und versiegelt in einem – wer an der Datei
+etwas ändert, bekommt sie nicht mehr auf, statt stillschweigend Unsinn zu
+entschlüsseln. Keine Bibliothek, kein Netz: `tools/pruefung/keine-leitung.py`
+bleibt zufrieden.
+
+Zwei Ehrlichkeiten stehen dazu in der App selbst:
+
+* **Passwort vergessen heißt Sicherung weg.** Keine Hintertür, kein
+  Zurücksetzen, niemand zum Fragen – das ist der Preis dafür, dass es auch für
+  alle anderen keine gibt.
+* **Ohne sichere Adresse gibt es das nicht.** `crypto.subtle` gibt der Browser
+  nur über https oder auf dem eigenen Rechner frei; die Ein-Datei-Fassung aus
+  dem Download-Ordner (`file://`) hat das nicht. Dort steht kein Knopf, der
+  nichts täte, sondern ein Satz, der sagt warum – und die offene Sicherung
+  bleibt erreichbar, denn gar keine wäre schlimmer als eine offene.
+
+Beim Einlesen erkennt die App an der Datei, ob sie verschlüsselt ist, und fragt
+erst dann nach dem Passwort. Ein falsches Passwort ändert nichts am Tagebuch.
+
+### Der Bericht seit dem letzten Termin
+
+„Letzte 30 Tage" ist eine runde Zahl, die niemanden interessiert. Was in der
+Sprechstunde besprochen wird, ist die Zeit seit dem letzten Mal – und niemand
+rechnet die im Kopf aus. Unter „Mehr" lassen sich Arzttermine eintragen (nur
+das Datum, mehr braucht es nicht); dann deckt der Bericht genau die Zeit seit
+dem jüngsten davon ab und sagt das in seinem Kopf auch. Die Richtung rechnet
+dabei nicht heimlich von davor mit: Sie bleibt im Zeitraum, oder sie fehlt.
+
+### Schon geprüft
+
+Ein abgeschlossener Auslassversuch lässt sich abhaken **und behalten**. Er
+steht danach in einer eigenen Liste und im Bericht – auch und gerade der, der
+*dagegen* sprach. Ohne dieses Gedächtnis schickt die nächste Sprechstunde
+denselben Verdacht noch einmal los, und ein Versuch, der nichts ergab, hat
+genauso viel Arbeit gekostet wie einer, der etwas ergab. Die Zahlen werden bei
+jeder Anzeige neu gerechnet statt eingefroren, damit dort nichts steht, was
+nicht mehr zum Tagebuch passt.
 
 ### Vorschläge für heute
 
@@ -423,6 +491,8 @@ js/ansprechen.js    ob ein Mittel etwas bewirkt – und was Ausbleiben heißt
 js/luecken.js       was noch fehlt und was keine App beantwortet
 js/bild.js          Warnzeichen, Muster, Differentialdiagnosen, Fragen
 js/rat.js           Vorschläge für heute, jeder mit seinem Grund
+js/tresor.js        die Sicherung mit Passwort – PBKDF2 und AES-GCM aus
+                    dem Browser, ohne Bibliothek
 js/bericht.js       der Zettel für den Arzttermin, als reiner Text
 js/app.js           die Anzeige: ein Zustand, eine Zeichenfunktion,
                     ein Klick-Empfänger für alles
@@ -437,7 +507,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Dreiundzwanzig Dateien, über 470 Prüfungen, alle in einem echten Chromium. Kein
+Siebenundzwanzig Dateien, über 560 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -451,7 +521,7 @@ den Rückgabewert.
 | `test-sicherung.mjs` | sichern, alles löschen, wieder einlesen – über echte Dateien |
 | `test-persist.mjs` | die Ein-Datei-Fassung übersteht Neuladen und Neustart |
 | `test-offline.mjs` | Service Worker, offline eintragen, offline auswerten |
-| `test-ideen.mjs` | eintragen, abhaken, kopieren – und Ideen bleiben aus der Auswertung heraus |
+| `test-ideen.mjs` | eintragen, abhaken, kopieren, die Erinnerung ans Verschicken – und Ideen bleiben aus der Auswertung heraus |
 | `test-mittel.mjs` | die Zuordnung freier Namen zur Wirkstoffgruppe, und der Ton der Texte |
 | `test-zutaten.mjs` | Reihenfolge nach Häufigkeit, Rollen statt Gramm, Umrechnung alter Stände |
 | `test-zyklus.mjs` | Zyklen, Phasen – und das Schweigen ohne Grundlage |
@@ -465,6 +535,10 @@ den Rückgabewert.
 | `test-versuch.mjs` | vor allem, wann *nicht* „spricht dafür" herauskommt |
 | `test-ansprechen.mjs` | der ausgereizte Säureblocker, und kein Rat zum Absetzen |
 | `test-luecken.mjs` | die zwei Sorten Lücken bleiben getrennt |
+| `test-trend.mjs` | vor allem, wann *keine* Richtung genannt wird – und dass Lücken keine guten Tage sind |
+| `test-tresor.mjs` | in der Datei steht nichts Lesbares; falsches Passwort und veränderte Datei gehen nicht auf |
+| `test-termin.mjs` | das Fenster fängt am Termin an und die Richtung rechnet nicht von davor mit |
+| `test-schnell.mjs` | ein Tipp legt dieselbe Mahlzeit an, nichts Erfundenes – und die Versuchs-Historie bleibt stehen |
 | `test-still.mjs` | die App schickt nichts |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,

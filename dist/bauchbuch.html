@@ -405,6 +405,30 @@ p { margin: 0 0 8px; }
 .fund-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .fund-urteil { font-size: 12px; color: var(--muted); }
 
+/* ---------- Richtung, Schnelleintrag, geprüfte Versuche, Schloss ---------- */
+
+/* Der Trendkarte reicht ein Streifen an der Kante. Eine ganz rot eingefärbte
+   Karte über „es wird schlechter" ist eine Wertung, wo eine Beobachtung
+   steht – und sie stünde jeden Tag da. */
+.trend { border-left-width: 3px; }
+.trend.t-besser { border-left-color: var(--ok); }
+.trend.t-schlechter { border-left-color: var(--warn); }
+.trend.t-gleich { border-left-color: var(--line); }
+
+.schnell { margin: 12px 0 4px; }
+/* Die häufigen Mahlzeiten sollen wie ein Vorschlag aussehen, nicht wie die
+   fünf großen Knöpfe darunter: derselbe Platz, weniger Gewicht. */
+.marke-schnell { max-width: 100%; text-align: left; }
+
+.geprueft { border-left: 3px solid var(--line); padding-left: 10px; }
+.geprueft.g-dafuer { border-left-color: var(--bad); }
+.geprueft.g-dagegen { border-left-color: var(--ok); }
+.geprueft.g-unklar, .geprueft.g-offen { border-left-color: var(--warn); }
+.geprueft.g-unsauber, .geprueft.g-zuwenig { border-left-color: var(--line); }
+
+.schloss { margin-top: 10px; }
+.schloss .reihe { margin-top: 10px; }
+
 .wartend { list-style: none; margin: 0; padding: 0; }
 .wartend li {
   display: flex; justify-content: space-between; align-items: center; gap: 8px;
@@ -2179,6 +2203,32 @@ const VORGABE = {
    * die Aussage nehmen: Wird es besser, weiß hinterher niemand, wovon.
    */
   versuch: null,
+  /*
+   * Abgeschlossene Auslassversuche, der jüngste zuerst.
+   *
+   * Sie werden behalten statt weggeräumt, und zwar aus zwei Gründen: Ein
+   * geprüfter Verdacht soll nicht in einem halben Jahr noch einmal geprüft
+   * werden – zwei Wochen ohne Milch macht niemand gern zweimal –, und ein
+   * Versuch, der *dagegen* sprach, ist für den Termin genauso ein Beleg wie
+   * einer, der dafür sprach.
+   *
+   * Gespeichert wird nur der Versuch selbst, nicht sein Ergebnis: Das rechnet
+   * js/versuch.js jedes Mal neu aus den Eintragungen. Sonst stünden hier
+   * Zahlen, die zu den Eintragungen nicht mehr passen, sobald jemand einen
+   * Eintrag korrigiert.
+   */
+  versuche: [],
+  /*
+   * Arzttermine als ISO-Daten, der jüngste zuerst.
+   *
+   * Der Bericht lief bisher über 30 oder 90 Tage – Fenster, die mit nichts zu
+   * tun haben. Gefragt wird in der Sprechstunde aber nach der Zeit *seit dem
+   * letzten Mal*, und genau die kennt nur sie.
+   */
+  termine: [],
+  // Wie viele Ideen beim letzten Weitergeben in der Liste standen. Daran
+  // erkennt die App, welche noch niemand gesehen hat – siehe ideenOffen().
+  ideenGeschickt: 0,
   atemUebung: '478',     // zuletzt gewählte Atemübung
   atemRunden: null,      // eigene Rundenzahl; null = Vorschlag der Übung
   ton: true,             // Ton bei der Atemübung – der einzige der App
@@ -2511,8 +2561,84 @@ function versuchBeenden() {
   melde();
 }
 
-function versuchVerwerfen() {
+/**
+ * Den laufenden Versuch abhaken und in die Historie legen.
+ *
+ * Früher hieß dieser Knopf „Wegräumen" und warf ihn weg. Das war die falsche
+ * Bewegung: Ein fertiger Versuch ist das Wertvollste, was dieses Tagebuch
+ * hervorbringt – zwei Wochen Verzicht plus eine bewusste Wiedereinführung –,
+ * und er ist genau dann weg, wenn man ihn ein halbes Jahr später bräuchte.
+ */
+function versuchAblegen() {
+  if (!zustand.versuch) return;
+  const abgelegt = { ...zustand.versuch, abgelegt: heuteISO() };
+  zustand.versuche = [abgelegt, ...zustand.versuche].slice(0, 40);
   zustand.versuch = null;
+  merke();
+  melde();
+}
+
+/** Einen abgelegten Versuch endgültig löschen – die eine Stelle, die vergisst. */
+function versuchLoeschen(id) {
+  const vorher = zustand.versuche.length;
+  zustand.versuche = zustand.versuche.filter((v) => v.id !== id);
+  if (zustand.versuche.length === vorher) return;
+  merke();
+  melde();
+}
+
+/* ---------- Arzttermine ---------- */
+
+/**
+ * Einen Termin eintragen. Doppelte Daten fallen weg, sortiert wird absteigend –
+ * der jüngste steht vorn, weil ihn der Bericht braucht.
+ */
+function terminAnlegen(iso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return;
+  if (zustand.termine.includes(iso)) return;
+  zustand.termine = [...zustand.termine, iso].sort().reverse();
+  merke();
+  melde();
+}
+
+function terminLoeschen(iso) {
+  const vorher = zustand.termine.length;
+  zustand.termine = zustand.termine.filter((t) => t !== iso);
+  if (zustand.termine.length === vorher) return;
+  merke();
+  melde();
+}
+
+/**
+ * Der jüngste Termin, der nicht in der Zukunft liegt.
+ *
+ * Ein Termin nächste Woche ist der *nächste*, nicht der letzte – der Bericht
+ * müsste sonst über einen Zeitraum von minus drei Tagen berichten.
+ */
+function letzterTermin(bis) {
+  return zustand.termine.find((t) => t <= bis) || null;
+}
+
+/* ---------- Ideen weitergeben ---------- */
+
+/**
+ * Wie viele Ideen noch niemand gesehen hat.
+ *
+ * Die App hat keinen Server, also kommen ihre Vorschläge bei niemandem an,
+ * solange sie sie nicht selbst weitergibt. Bisher stand der Knopf dafür unten
+ * auf dem Ideenreiter und wurde übersehen – eine Idee, die niemand liest, ist
+ * dasselbe wie keine.
+ *
+ * Gezählt wird schlicht die Länge der Liste beim letzten Weitergeben. Das ist
+ * gröber als eine Markierung je Idee und dafür ehrlich: Wer zwischendurch
+ * etwas löscht, bekommt eher zu wenig „neu" angezeigt als zu viel.
+ */
+function ideenOffen() {
+  return Math.max(0, zustand.ideen.length - (zustand.ideenGeschickt || 0));
+}
+
+function ideenGeschicktMerken() {
+  zustand.ideenGeschickt = zustand.ideen.length;
   merke();
   melde();
 }
@@ -2665,7 +2791,7 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, kannSpeichern, letzterTag, letzterZeitpunkt, mittelMerken, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, versuchBeenden, versuchProvozieren, versuchStarten, versuchVerwerfen, zustandLesen };
+const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
 
 /* ===== js/auswertung.js ===== */
 /*
@@ -3192,6 +3318,80 @@ function serieOhne(eintraege, tage, bis) {
   }
   return zaehler;
 }
+
+/* ---------- Wird es besser oder schlechter? ---------- */
+
+/**
+ * Die letzten Wochen gegen die Wochen davor.
+ *
+ * Die Frage, die jeder stellt, der ein Tagebuch führt, und die bisher nirgends
+ * beantwortet war: Alles andere in dieser Datei mittelt über den ganzen
+ * Zeitraum und kann deshalb nicht sagen, ob es *gerade* besser wird.
+ *
+ * Zwei Entscheidungen tragen die Rechnung, und beide gehen gegen ein zu
+ * freundliches Ergebnis:
+ *
+ *   1. **Verglichen werden notierte Tage, nicht Kalendertage.** Wer in einer
+ *      schlechten Woche seltener einträgt, hätte sonst rechnerisch eine gute
+ *      Woche – der häufigste Weg, wie ein Tagebuch sich selbst belügt. Der
+ *      jüngere Abschnitt sammelt die letzten `fenster` *notierten* Tage, der
+ *      ältere die `fenster` davor.
+ *   2. **Beide Abschnitte müssen voll sein.** Ein Vergleich von zwölf gegen
+ *      drei Tage ist keiner. Fehlt es, kommt `pruefbar: false` zurück und die
+ *      Anzeige sagt, wie viele Tage noch fehlen.
+ *
+ * Und die Schwelle ist bewusst hoch: eine ganze Stufe auf der Zehnerskala.
+ * Beschwerden schwanken von selbst, und aus jeder Schwankung eine Richtung zu
+ * machen wäre ein Orakel, das mal Mut macht und mal grundlos Angst.
+ */
+/*
+ * `ab` begrenzt, wie weit zurückgeschaut werden darf.
+ *
+ * Auf dem Bildschirm bleibt es leer – dort ist die Richtung eine Aussage über
+ * das Tagebuch, nicht über einen Ausschnitt. Im Bericht steht dagegen ein
+ * Zeitraum im Kopf, und eine Zahl, die still von davor mitrechnet, wäre dort
+ * schlicht falsch beschriftet.
+ */
+function trend(eintraege, tage, bis, fenster = 14, ab = null) {
+  // Rückwärts durch den Kalender, bis beide Fächer voll sind – oder bis ein
+  // Jahr durch ist. Ohne diese Grenze liefe die Schleife bei einem leeren
+  // Tagebuch bis ans Ende der Zeit.
+  const werte = [];
+  let iso = bis;
+  for (let i = 0; i < 400 && werte.length < fenster * 2; i++) {
+    if (ab && iso < ab) break;
+    const t = tagesWert(eintraege, iso, tage);
+    if (t.notiert) werte.push(t.wert);
+    iso = plusTage(iso, -1);
+  }
+
+  const schnitt = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+  const jung = werte.slice(0, fenster);
+  const alt = werte.slice(fenster, fenster * 2);
+  const pruefbar = jung.length >= fenster && alt.length >= fenster;
+  const differenz = schnitt(alt) - schnitt(jung);
+
+  let richtung = 'gleich';
+  if (pruefbar && differenz >= 1) richtung = 'besser';
+  else if (pruefbar && differenz <= -1) richtung = 'schlechter';
+
+  return {
+    fenster,
+    pruefbar,
+    // Wie viele notierte Tage noch fehlen, damit sich überhaupt vergleichen lässt.
+    fehlt: Math.max(0, fenster * 2 - werte.length),
+    jetzt: { tage: jung.length, schnitt: schnitt(jung), frei: jung.filter((w) => w === 0).length },
+    davor: { tage: alt.length, schnitt: schnitt(alt), frei: alt.filter((w) => w === 0).length },
+    differenz,
+    richtung,
+  };
+}
+
+const TREND_WORT = {
+  besser: 'es wird besser',
+  schlechter: 'es wird schlechter',
+  gleich: 'kein deutlicher Unterschied',
+};
 
 /** Die großen Zahlen für die Übersicht und den Bericht. */
 function gesamtZahlen(eintraege, tage, von, bis) {
@@ -5362,6 +5562,175 @@ const BEREICH_ICON = {
   essen: '🍽️', ruhe: '🌬️', sport: '🚶', mittel: '💊',
 };
 
+/* ===== js/tresor.js ===== */
+/*
+ * Die Sicherung mit Passwort.
+ *
+ * Der wundeste Punkt dieser App hatte nie etwas mit Medizin zu tun: Die
+ * Sicherung war eine offene JSON-Datei im Download-Ordner. Ein Tagebuch über
+ * den Körper eines Menschen, im Klartext, auf einem Gerät, das man verleiht,
+ * verliert oder irgendwann verkauft. Alles andere hier ist gegen Übertragung
+ * geschützt – und die einzige Kopie lag frei herum.
+ *
+ * Verschlüsselt wird im Browser selbst, mit dem, was er ohnehin mitbringt:
+ *
+ *   PBKDF2  macht aus dem Passwort einen Schlüssel und ist dabei absichtlich
+ *           langsam. 250 000 Runden kosten auf einem Handy ein bis zwei
+ *           Sekunden – beim Sichern einmal, beim Raten eines Passworts
+ *           ebenfalls, und genau darauf kommt es an.
+ *   AES-GCM verschlüsselt und versiegelt in einem: Wer an der Datei etwas
+ *           ändert, bekommt sie nicht mehr auf, statt stillschweigend Unsinn
+ *           zu entschlüsseln.
+ *
+ * Salz und Startwert stehen unverschlüsselt in der Datei. Das ist richtig so –
+ * sie sind keine Geheimnisse, sie sorgen nur dafür, dass zwei Sicherungen mit
+ * demselben Passwort verschieden aussehen und dass eine vorberechnete Liste
+ * nichts nützt.
+ *
+ * ZWEI EHRLICHKEITEN, DIE IN DIE ANZEIGE GEHÖREN:
+ *
+ *   * **Passwort vergessen heißt Sicherung weg.** Es gibt keine Hintertür,
+ *     kein Zurücksetzen, niemanden zum Fragen. Das ist der Preis dafür, dass
+ *     es auch für alle anderen keine gibt.
+ *   * **Ohne sichere Adresse gibt es das nicht.** `crypto.subtle` steht nur in
+ *     einem sicheren Kontext zur Verfügung – über https oder auf dem eigenen
+ *     Rechner. Die Ein-Datei-Fassung, die per Doppelklick aus dem Download-
+ *     Ordner startet (file://), hat keinen. Dort bleibt nur die offene
+ *     Sicherung, und die App sagt das, statt einen Knopf anzubieten, der
+ *     nichts täte.
+ *
+ * Kein Netzwerk, keine Bibliothek, keine Abhängigkeit: WebCrypto ist im
+ * Browser. tools/pruefung/keine-leitung.py bleibt damit zufrieden.
+ */
+
+/** Kennzeichen im Dateikopf, damit das Einlesen die Fassung erkennt. */
+const TRESOR_ART = 'bauchbuch-tresor';
+const TRESOR_FASSUNG = 1;
+
+/*
+ * Runden für die Schlüsselableitung.
+ *
+ * Hoch genug, dass Durchprobieren teuer wird, niedrig genug, dass ein altes
+ * Handy nicht eine halbe Minute steht. Die Zahl steht in der Datei mit drin:
+ * Wird sie hier später erhöht, lassen sich ältere Sicherungen trotzdem noch
+ * öffnen.
+ */
+const RUNDEN = 250000;
+
+/** Steht die Verschlüsselung in diesem Browser überhaupt zur Verfügung? */
+function tresorMoeglich() {
+  try {
+    return !!(globalThis.crypto && globalThis.crypto.subtle
+      && typeof globalThis.crypto.subtle.deriveKey === 'function');
+  } catch {
+    return false;
+  }
+}
+
+const roher = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n));
+
+/*
+ * Bytes als Text und zurück.
+ *
+ * base64 statt einer Zahlenliste: Die Datei wird sonst dreimal so groß, und
+ * sie soll sich noch per Nachricht verschicken lassen. In Stücken umgewandelt,
+ * weil String.fromCharCode mit einem Argument je Byte bei ein paar hunderttausend
+ * Bytes den Aufrufstapel sprengt – genau bei der großen Sicherung also, bei
+ * der es darauf ankommt.
+ */
+function zuBase64(bytes) {
+  let s = '';
+  const stueck = 0x8000;
+  for (let i = 0; i < bytes.length; i += stueck) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + stueck));
+  }
+  return btoa(s);
+}
+
+function ausBase64(text) {
+  const roh = atob(text);
+  const bytes = new Uint8Array(roh.length);
+  for (let i = 0; i < roh.length; i++) bytes[i] = roh.charCodeAt(i);
+  return bytes;
+}
+
+async function schluessel(passwort, salz, runden) {
+  const roh = await globalThis.crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(passwort), 'PBKDF2', false, ['deriveKey'],
+  );
+  return globalThis.crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: salz, iterations: runden, hash: 'SHA-256' },
+    roh,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  );
+}
+
+/**
+ * Klartext zu einer Tresordatei.
+ *
+ * Zurück kommt wieder JSON – lesbar genug, dass man sieht, was es ist, und
+ * dass ein Fehlversuch beim Einlesen erklärbar bleibt. Was drinsteht, ist
+ * ohne Passwort trotzdem nichts.
+ */
+export async function verschluesseln(klartext, passwort) {
+  if (!tresorMoeglich()) throw new Error('Dieser Browser kann nicht verschlüsseln.');
+  if (!passwort) throw new Error('Kein Passwort angegeben.');
+  const salz = roher(16);
+  const iv = roher(12);
+  const k = await schluessel(passwort, salz, RUNDEN);
+  const daten = new Uint8Array(await globalThis.crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv }, k, new TextEncoder().encode(klartext),
+  ));
+  return JSON.stringify({
+    art: TRESOR_ART,
+    fassung: TRESOR_FASSUNG,
+    hinweis: 'Verschlüsselte Bauchbuch-Sicherung. Ohne das Passwort ist hier '
+      + 'nichts zu holen – auch nicht für den, der sie geschrieben hat.',
+    verfahren: 'PBKDF2-SHA256/AES-GCM',
+    runden: RUNDEN,
+    salz: zuBase64(salz),
+    iv: zuBase64(iv),
+    daten: zuBase64(daten),
+  }, null, 2);
+}
+
+/** Ist das eine Tresordatei? Wird beim Einlesen gebraucht, bevor gefragt wird. */
+function istTresor(text) {
+  try {
+    const o = JSON.parse(text);
+    return !!o && o.art === TRESOR_ART && typeof o.daten === 'string';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Tresordatei zurück zu Klartext.
+ *
+ * Ein falsches Passwort und eine beschädigte Datei sehen für AES-GCM gleich
+ * aus – beides scheitert an der Prüfsumme. Gemeldet wird deshalb das
+ * Wahrscheinlichere, aber mit beiden Möglichkeiten: Wer sein Passwort für
+ * richtig hält, soll nicht denken, er habe es vergessen.
+ */
+export async function entschluesseln(text, passwort) {
+  if (!tresorMoeglich()) throw new Error('Dieser Browser kann nicht entschlüsseln.');
+  const o = JSON.parse(text);
+  if (!o || o.art !== TRESOR_ART) throw new Error('Das ist keine verschlüsselte Sicherung.');
+  const runden = Number.isFinite(o.runden) && o.runden > 0 ? o.runden : RUNDEN;
+  const k = await schluessel(passwort, ausBase64(o.salz), runden);
+  let klar;
+  try {
+    klar = await globalThis.crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: ausBase64(o.iv) }, k, ausBase64(o.daten),
+    );
+  } catch {
+    throw new Error('Falsches Passwort – oder die Datei ist beschädigt.');
+  }
+  return new TextDecoder().decode(klar);
+}
+
 /* ===== js/bericht.js ===== */
 /*
  * Der Ausdruck für den Arzttermin.
@@ -5427,6 +5796,12 @@ function arztBericht(zustand, von, bis) {
   sag('Magen-Tagebuch');
   sag(`Zeitraum: ${fmtDatum(von, true)} bis ${fmtDatum(bis, true)} `
     + `(${mehrzahl(tageDazwischen(von, bis) + 1, 'Tag', 'Tage')})`);
+  // Beginnt der Bericht genau an einem eingetragenen Termin, gehört das in
+  // den Kopf: Dann liest niemand die 47 Tage als eine runde Zahl, die eine
+  // App sich ausgesucht hat.
+  if ((zustand.termine || []).includes(von)) {
+    sag('Das ist die Zeit seit dem letzten Termin.');
+  }
   sag();
 
   if (!z.notierteTage) {
@@ -5468,6 +5843,29 @@ function arztBericht(zustand, von, bis) {
   sag(`  Mahlzeiten eingetragen     ${z.mahlzeiten}`);
   sag(`  Medikamenteneinnahmen      ${z.medikamente}`);
   sag();
+
+  /*
+   * Wird es besser oder schlechter?
+   *
+   * Die eine Frage, die in der Sprechstunde immer kommt und die aus dem Kopf
+   * niemand beantwortet – „mal so, mal so" ist die ehrliche Antwort und die
+   * nutzloseste. Verglichen wird nur innerhalb des Berichtszeitraums: Eine
+   * Richtung, die heimlich Tage von vor dem letzten Termin mitzählt, stünde
+   * unter einer Überschrift, die etwas anderes verspricht.
+   */
+  const t = trend(imZeitraum, tage, bis, 14, von);
+  if (t.pruefbar) {
+    sag('RICHTUNG');
+    sag(`  Die letzten ${t.jetzt.tage} notierten Tage gegen die ${t.davor.tage} davor:`);
+    sag(`  ${TREND_WORT[t.richtung]}`);
+    sag(`  Stärke im Mittel  ${fmtZahl(t.jetzt.schnitt)} zuletzt gegen `
+      + `${fmtZahl(t.davor.schnitt)} davor`);
+    sag(`  Beschwerdefreie Tage  ${t.jetzt.frei} zuletzt gegen ${t.davor.frei} davor`);
+    sag('  (Verglichen werden notierte Tage, nicht Kalendertage – eine Lücke im');
+    sag('  Tagebuch ist kein guter Tag. Schwelle für eine Richtung: eine ganze');
+    sag('  Stufe Unterschied.)');
+    sag();
+  }
 
   const arten = nachArt(imZeitraum);
   if (arten.length) {
@@ -5584,6 +5982,28 @@ function arztBericht(zustand, von, bis) {
         + `(${e.nachher.notierte} Tage)` : ', Wiedereinführung steht noch aus'));
     umbrochen(e.satz).forEach((z) => sag(`  ${z}`));
     sag('  (Ein Versuch an einem einzigen Menschen, ohne Verblindung.)');
+    sag();
+  }
+
+  /*
+   * Was schon geprüft wurde – auch und gerade, was nichts ergab.
+   *
+   * Ohne diesen Abschnitt schickt jede Sprechstunde denselben Verdacht noch
+   * einmal los. Ein Auslassversuch, der dagegen sprach, hat genauso Arbeit
+   * gekostet wie einer, der dafür sprach, und ist für die nächste Überlegung
+   * genauso viel wert.
+   */
+  const alte = (zustand.versuche || []).filter((x) => x.start <= bis);
+  if (alte.length) {
+    sag('SCHON GEPRÜFT');
+    alte.slice(0, 8).forEach((x) => {
+      const e = ergebnis(x, eintraege, tage, bis);
+      const was = x.art === 'klasse' ? x.ziel : ausloeserName(x.ziel, zustand.eigeneAusloeser);
+      sag(`  ${was} weggelassen ab ${fmtDatum(x.start, true)}, `
+        + `${mehrzahl(x.tage, 'Tag', 'Tage')} – ${e.wort}`);
+      sag(`     davor ${fmtZahl(e.vorher.schnitt)}, ohne ${fmtZahl(e.auslass.schnitt)}`
+        + (e.nachher ? `, danach ${fmtZahl(e.nachher.schnitt)}` : ''));
+    });
     sag();
   }
 
@@ -5764,6 +6184,11 @@ const ui = {
   // Ansichten, der Browser in einer Messenger-App, manche Verwaltungsgeräte.
   // Dort wäre die einzige Kopie, die es je geben wird, sonst nicht erreichbar.
   sicherung: null,
+  // Steht die Passwortabfrage offen, und was ist eingetippt? Das Passwort
+  // steht nur hier und nirgends sonst: im Speicher abgelegt wäre es dasselbe,
+  // als läge die Sicherung wieder offen da.
+  schloss: false,
+  tresorWort: '',
   mittel: false,    // steht die ganze Mittelübersicht offen?
   // Die laufende Atemübung: { schritte, i, bisMs, uhr, wecker }. Nicht im
   // Speicher – eine Übung, die beim nächsten Öffnen weiterliefe, wäre keine.
@@ -5929,6 +6354,29 @@ function tagAnsicht(s) {
     ${knopf('tag-blaettern', '›', 'btn-rund', `data-d="1" ${kuenftig || iso === heuteISO() ? 'disabled' : ''} aria-label="Tag vor"`)}
   </div>`;
 
+  /*
+   * Die häufigsten Mahlzeiten als Direkttaste – ein Tipp statt fünf.
+   *
+   * Der Bogen ist gut, wenn man etwas Neues einträgt. Für den Haferbrei, den
+   * sie jeden Morgen isst, ist er fünf Handgriffe für null neue Auskunft. Hier
+   * wird derselbe Eintrag mit einem Tipp angelegt, vollständig samt Zutaten,
+   * Rollen und Portion, mit der aktuellen Uhrzeit.
+   *
+   * Das ist keine Bequemlichkeit, sondern der Punkt, an dem Tagebücher
+   * sterben: Nicht ein Fehler in der Auswertung bringt sie um, sondern dass
+   * nach drei Wochen niemand mehr etwas einträgt. Erst ab zwei Vorkommen –
+   * eine Mahlzeit, die es einmal gab, ist keine Gewohnheit.
+   */
+  const schnell = iso === heuteISO()
+    ? haeufigeMahlzeiten(s.eintraege, 12).filter((v) => v.anzahl >= 2).slice(0, 3) : [];
+  const schnellReihe = schnell.length ? `<div class="schnell">
+    <p class="feld-name">Noch mal wie immer</p>
+    <div class="marken marken-eng">${schnell.map((v, i) => `
+      <button type="button" class="marke marke-schnell" data-act="schnell" data-i="${i}">
+        ${esc(kuerze(v.text, 22))} <span class="marke-zahl">${v.anzahl}×</span>
+      </button>`).join('')}</div>
+  </div>` : '';
+
   const anlegen = `<div class="anlegen">
     ${['essen', 'beschwerde', 'stuhl', 'medikament', 'notiz'].map((a) => `
       <button type="button" class="anlegen-btn a-${a}" data-act="neu" data-art="${a}">
@@ -5970,7 +6418,7 @@ function tagAnsicht(s) {
   </p>` : '';
 
   return kopf + sicherungKarte(iso) + versuchZeile(s, iso) + bilanz + zyklusZeile
-    + (iso === heuteISO() ? ratKarte(s) : '') + anlegen + zeilen + umstaende;
+    + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + anlegen + zeilen + umstaende;
 }
 
 /**
@@ -6113,6 +6561,8 @@ function verlaufAnsicht(s) {
     <div class="kachel"><b>${serie}</b><span>${serie === 1 ? 'Tag' : 'Tage'} frei in Folge</span></div>
   </div>`;
 
+  const richtung = trendKarte(s, bis);
+
   const tafel = z.notierteTage
     ? verlaufTafel(reihe, { titel: 'Stärkste Beschwerde je Tag', hinweis: '0 – 10' })
     : '<p class="leer">Noch keine Eintragungen in diesem Zeitraum.</p>';
@@ -6143,7 +6593,47 @@ function verlaufAnsicht(s) {
     </div>
   </div>`;
 
-  return `${wahl}${zahlen}<div class="karte">${tafel}</div>${raster}`;
+  return `${wahl}${zahlen}${richtung}<div class="karte">${tafel}</div>${raster}`;
+}
+
+/**
+ * Wird es besser oder schlechter?
+ *
+ * Die Frage, die jeder stellt, der ein Tagebuch führt – und die diese App bis
+ * eben nicht beantwortet hat: Alles war über den ganzen Zeitraum gemittelt.
+ *
+ * Sie steht auf dem Verlaufsreiter und nicht unter „Muster", weil sie keine
+ * Einordnung ist, sondern eine Beobachtung. Und sie hält sich zurück: Eine
+ * ganze Stufe Unterschied ist die Schwelle, darunter heißt es „kein
+ * deutlicher Unterschied". Beschwerden schwanken von selbst, und aus jeder
+ * Schwankung eine Richtung zu machen wäre ein Orakel, das mal grundlos Mut
+ * macht und mal grundlos Angst.
+ */
+function trendKarte(s, bis) {
+  const t = trend(s.eintraege, s.tage, bis, 14);
+  if (!t.pruefbar) {
+    return `<div class="karte">
+      <h3>Wird es besser oder schlechter?</h3>
+      <p class="klein">Dafür braucht es zweimal ${t.fenster} notierte Tage zum
+      Vergleichen – noch ${mehrzahl(t.fehlt, 'Tag', 'Tage')} fehlen. Gezählt
+      werden notierte Tage, nicht Kalendertage: Wer in einer schlechten Woche
+      seltener einträgt, hätte sonst rechnerisch eine gute Woche.</p>
+    </div>`;
+  }
+  return `<div class="karte trend t-${t.richtung}">
+    <div class="fund-kopf">
+      <h3>Wird es besser oder schlechter?</h3>
+      <span class="fund-urteil">${TREND_WORT[t.richtung]}</span>
+    </div>
+    ${vergleichBalken(t.jetzt.schnitt, t.davor.schnitt,
+    { mit: 'zuletzt', ohne: 'davor' })}
+    <p class="klein">Die letzten ${t.jetzt.tage} notierten Tage gegen die
+      ${t.davor.tage} davor · ${t.jetzt.frei} beschwerdefreie Tage gegen
+      ${t.davor.frei}</p>
+    <p class="klein">${t.richtung === 'gleich'
+    ? 'Der Unterschied liegt unter einer Stufe. Das heißt nicht „nichts tut sich" – es heißt, dass sich aus diesen Zahlen keine Richtung ablesen lässt.'
+    : 'Verglichen werden notierte Tage, nicht Kalendertage – eine Lücke im Tagebuch ist kein guter Tag. Beschwerden schwanken auch von selbst; eine Richtung über vier Wochen ist ein Hinweis, keine Gewissheit.'}</p>
+  </div>`;
 }
 
 /* ==================== Reiter: Muster ==================== */
@@ -6363,6 +6853,16 @@ function kriterienTeil(s, d) {
  */
 function versuchTeil(s, d) {
   const v = s.versuch;
+  /*
+   * Die Liste der geprüften Versuche hängt an *keinem* der Zweige unten.
+   *
+   * Das war schon einmal falsch: Sie stand nur neben dem laufenden Versuch und
+   * verschwand in dem Moment, in dem man einen abhakte – also genau dann, wenn
+   * sie zum ersten Mal etwas enthielt. Dieselbe Falle wie damals bei den
+   * Warnzeichen: Ein früher Rücksprung nimmt einen Abschnitt mit, den niemand
+   * vermisst, weil er nie da war.
+   */
+  const alte = versuchHistorie(s, d);
   if (v) {
     const p = phase(v, d.heute);
     const erg = ergebnis(v, s.eintraege, s.tage, d.heute);
@@ -6390,13 +6890,13 @@ function versuchTeil(s, d) {
         ${p === 'reif' ? knopf('versuch-provokation', 'Heute wieder gegessen', 'btn-primary') : ''}
         ${p === 'auslass' || p === 'provokation' || p === 'reif'
     ? knopf('versuch-beenden', 'Abbrechen', 'btn-ghost')
-    : knopf('versuch-weg', 'Wegräumen', 'btn-ghost')}
+    : knopf('versuch-ablegen', 'Abhaken und behalten', 'btn-primary')}
       </div>
-    </div>`;
+    </div>${alte}`;
   }
 
   const kandidaten = vorschlaege(d.klassen, d.bilanz);
-  if (!kandidaten.length) return '';
+  if (!kandidaten.length) return alte;
   const name = (x) => (x.art === 'klasse' ? klasseName(x.ziel) : ausloeserName(x.ziel, s.eigeneAusloeser));
   return `<div class="karte karte-merk">
     <h3>Einen Auslassversuch machen</h3>
@@ -6417,7 +6917,7 @@ function versuchTeil(s, d) {
     <p class="klein">Klassen stehen vor einzelnen Zutaten: Hinter „Zwiebel"
     steckt fast immer die ganze Klasse, und wer nur die Zwiebel weglässt, isst
     die übrigen Fruktane weiter und lernt nichts.</p>
-  </div>`;
+  </div>${alte}`;
 }
 
 /**
@@ -6447,6 +6947,44 @@ function ansprechenTeil(s, d) {
     gleich lang. Diese App schlägt weiterhin kein Medikament vor und rät zu
     keinem Absetzen – ein Säureblocker wird nach längerer Einnahme nicht von
     einem Tag auf den anderen weggelassen.</p>
+  </div>`;
+}
+
+/**
+ * Was schon geprüft wurde.
+ *
+ * Ein fertiger Auslassversuch ist das Aufwändigste, was dieses Tagebuch
+ * hervorbringt – zwei Wochen Verzicht und eine bewusste Wiedereinführung. Ihn
+ * danach wegzuwerfen hieß, in einem halben Jahr dieselben zwei Wochen noch
+ * einmal zu verlangen. Und ein Versuch, der *dagegen* sprach, ist für den
+ * Termin genauso ein Beleg wie einer, der dafür sprach: eine Sache weniger,
+ * auf die sie verzichten muss.
+ *
+ * Das Ergebnis wird jedes Mal neu aus den Eintragungen gerechnet, nicht
+ * eingefroren. Sonst stünden hier Zahlen, die nicht mehr zum Tagebuch passen,
+ * sobald jemand einen Eintrag korrigiert.
+ */
+function versuchHistorie(s, d) {
+  const alte = s.versuche || [];
+  if (!alte.length) return '';
+  const zahl = (x) => x.toFixed(1).replace('.', ',');
+  return `<div class="karte karte-geprueft">
+    <h3>Schon geprüft</h3>
+    <ul class="wartend">${alte.map((v) => {
+    const e = ergebnis(v, s.eintraege, s.tage, d.heute);
+    const was = v.art === 'klasse' ? klasseName(v.ziel) : ausloeserName(v.ziel, s.eigeneAusloeser);
+    return `<li class="geprueft g-${e.urteil}">
+      <span><b>${esc(was)}</b><span class="zeile-tags">${esc(fmtDatum(v.start, true))},
+        ${mehrzahl(v.tage, 'Tag', 'Tage')} · ohne ${zahl(e.auslass.schnitt)} statt
+        ${zahl(e.vorher.schnitt)}</span></span>
+      <span class="klein">${esc(e.wort)}
+        <button type="button" class="strang-weg" data-act="versuch-alt-weg"
+                data-id="${esc(v.id)}" aria-label="Aus der Liste nehmen">×</button></span>
+    </li>`;
+  }).join('')}</ul>
+    <p class="klein">Damit dasselbe nicht in einem halben Jahr noch einmal
+    geprüft wird – und weil ein Versuch, der dagegen sprach, für den Termin
+    genauso zählt wie einer, der dafür sprach.</p>
   </div>`;
 }
 
@@ -6825,11 +7363,35 @@ function ideenAnsicht(s) {
             aria-label="Idee löschen">×</button>
   </li>`;
 
+  /*
+   * Der Hinweis, der oben stehen muss.
+   *
+   * Ohne ihn ist dieser Reiter eine Falle: Man tippt seine Vorschläge ein, sie
+   * stehen ordentlich untereinander, und man nimmt selbstverständlich an, dass
+   * sie jemanden erreichen. Sie erreichen niemanden – die App hat keinen
+   * Server, das ist ihre wichtigste Eigenschaft und hier ihr Preis. Also steht
+   * es dort, wo man es liest, bevor man den ersten Satz schreibt.
+   */
+  const nichtGeschickt = store.ideenOffen();
+  const versand = nichtGeschickt ? `<div class="karte karte-merk">
+    <h3>${mehrzahl(nichtGeschickt, 'Idee ist', 'Ideen sind')} noch nicht verschickt</h3>
+    <p class="klein">Diese App schickt nichts von selbst – auch keine Ideen. Was
+    hier steht, liegt in diesem Browser, und niemand sonst sieht es. Ein Tipp
+    auf „Schicken" öffnet dein Teilen-Menü mit der fertigen Liste; wohin, wählst
+    du.</p>
+    <div class="reihe">
+      ${knopf('ideen-teilen', 'Schicken', 'btn-primary')}
+      ${knopf('ideen-kopieren', 'Kopieren')}
+    </div>
+  </div>` : '';
+
   return `
   <h2>Ideen fürs Bauchbuch</h2>
   <p class="klein">Was fehlt, was stört, was du anders hättest. Alles, was hier
-  steht, bleibt wie der Rest auf diesem Gerät – zum Weitergeben gibt es unten
-  „Kopieren".</p>
+  steht, bleibt wie der Rest auf diesem Gerät – gesehen wird es erst, wenn du
+  es weitergibst.</p>
+
+  ${versand}
 
   <div class="karte">
     <label class="feld-name" for="ideeText">Neue Idee</label>
@@ -6844,10 +7406,11 @@ function ideenAnsicht(s) {
     <ul class="ideen">${offen.map(zeile).join('')}${fertig.map(zeile).join('')}</ul>
     <div class="karte">
       <p class="klein">${mehrzahl(offen.length, 'offene Idee', 'offene Ideen')}${fertig.length ? `, ${fertig.length} erledigt` : ''}.
-      Zum Weiterschicken: kopieren und in eine Nachricht einfügen.</p>
+      ${nichtGeschickt ? `Davon ${mehrzahl(nichtGeschickt, 'noch nicht verschickt', 'noch nicht verschickt')}.`
+    : 'Alle schon einmal weitergegeben.'}</p>
       <div class="reihe">
-        ${knopf('ideen-kopieren', 'Alle kopieren', 'btn-primary')}
-        ${knopf('ideen-teilen', 'Teilen')}
+        ${knopf('ideen-teilen', 'Schicken', 'btn-primary')}
+        ${knopf('ideen-kopieren', 'Alle kopieren')}
       </div>
     </div>`
     : '<p class="leer">Noch keine Idee eingetragen.</p>'}`;
@@ -6950,6 +7513,46 @@ function zyklusTeil(s) {
   </div>`;
 }
 
+/**
+ * Die Sicherung mit Passwort.
+ *
+ * Der wundeste Punkt der App hatte nie etwas mit Medizin zu tun: Die Sicherung
+ * lag als offene JSON-Datei im Download-Ordner. Ein Tagebuch über den Körper
+ * eines Menschen, im Klartext, auf einem Gerät, das man verleiht oder verliert.
+ *
+ * Zwei Sätze müssen hier stehen und stehen deshalb groß da: Ein vergessenes
+ * Passwort heißt, dass die Sicherung weg ist – es gibt keine Hintertür, und
+ * das ist der Preis dafür, dass es auch für andere keine gibt. Und wo der
+ * Browser nicht verschlüsseln kann (die Ein-Datei-Fassung per Doppelklick),
+ * steht der Grund statt eines Knopfes, der nichts täte.
+ */
+function schlossKarte() {
+  if (!tresorMoeglich()) {
+    return `<p class="klein" style="margin-top:10px">Verschlüsseln geht hier
+    nicht: Dein Browser gibt die Verschlüsselung nur über eine gesicherte
+    Adresse frei, und diese Fassung läuft aus einer Datei. Über die Adresse
+    (https) steht der Knopf da.</p>`;
+  }
+  if (!ui.schloss) {
+    return `<div class="reihe" style="margin-top:10px">
+      ${knopf('schloss-auf', 'Mit Passwort sichern')}
+    </div>`;
+  }
+  return `<div class="schloss">
+    <p class="feld-name">Passwort für diese Sicherungsdatei</p>
+    <input type="password" class="feld feld-breit" id="tresorWort"
+           data-act="tresor-wort" autocomplete="new-password"
+           placeholder="mindestens acht Zeichen">
+    <p class="klein"><b>Vergessen heißt weg.</b> Es gibt keine Hintertür, kein
+    Zurücksetzen und niemanden zum Fragen – genau deshalb kommt auch sonst
+    niemand hinein. Schreib es dir auf, bevor du hier tippst.</p>
+    <div class="reihe">
+      ${knopf('tresor-export', 'Verschlüsselt sichern', 'btn-primary')}
+      ${knopf('schloss-zu', 'Abbrechen', 'btn-ghost')}
+    </div>
+  </div>`;
+}
+
 /* ==================== Reiter: Mehr ==================== */
 
 function mehrAnsicht(s) {
@@ -6957,6 +7560,7 @@ function mehrAnsicht(s) {
     ? `zuletzt am ${fmtDatum(s.lastBackup.on, true)} mit ${mehrzahl(s.lastBackup.anzahl, 'Eintrag', 'Einträgen')}`
     : 'noch nie';
   const alt = s.lastBackup ? tageDazwischen(s.lastBackup.on, heuteISO()) : 999;
+  const seit = store.letzterTermin(heuteISO());
 
   const bericht = ui.bericht ? `<div class="karte">
     <h3>Bericht</h3>
@@ -6982,6 +7586,7 @@ function mehrAnsicht(s) {
       ${knopf('sicherung-text', 'Als Text')}
       ${knopf('import', 'Einlesen')}
     </div>
+    ${schlossKarte()}
     ${ui.sicherung ? `
       <p class="klein" style="margin-top:10px">Alles markieren und in eine
       Notiz oder eine Mail an sich selbst kopieren. Zum Zurückholen denselben
@@ -7000,15 +7605,35 @@ function mehrAnsicht(s) {
     <p class="klein">Ein Blatt Text mit Zeitraum, Häufigkeit, Tageszeiten und
     dem, was auffällt. Zum Kopieren oder Ausdrucken.</p>
     <div class="reihe">
-      ${knopf('bericht', 'Letzte 30 Tage', 'btn-primary', 'data-n="30"')}
+      ${seit ? knopf('bericht-seit', `Seit dem ${fmtDatum(seit)}`, 'btn-primary') : ''}
+      ${knopf('bericht', 'Letzte 30 Tage', seit ? '' : 'btn-primary', 'data-n="30"')}
       ${knopf('bericht', '90 Tage', '', 'data-n="90"')}
       ${knopf('drucken', 'Drucken')}
     </div>
+    <p class="klein">${seit
+    ? `„Seit dem ${esc(fmtDatum(seit))}" deckt genau die Zeit seit deinem letzten
+       Termin ab – das ist das Fenster, über das dort geredet wird, und keines
+       der runden Zahlen daneben.`
+    : '30 und 90 Tage sind runde Zahlen ohne Bedeutung. Trag unten deinen letzten Termin ein, dann deckt der Bericht genau die Zeit seitdem ab.'}</p>
     <p class="klein">„Drucken" nimmt den Reiter <b>Muster</b> mit aufs Papier –
     also die Einordnung, die Warnzeichen und den Verlauf als Bild. Das sagt in
     der Sprechstunde mehr als eine Textspalte.</p>
   </div>
   ${bericht}
+
+  <div class="karte">
+    <h3>Arzttermine</h3>
+    <p class="klein">Wann du dort warst. Mehr braucht es nicht – daraus weiß der
+    Bericht, über welchen Zeitraum er berichten soll.</p>
+    <input type="date" class="feld" data-act="termin-neu" max="${heuteISO()}"
+           value="" aria-label="Datum eines Arzttermins">
+    ${(s.termine || []).length ? `<ul class="wartend">${s.termine.map((t) => `<li>
+      <span>${esc(fmtDatum(t, true))}</span>
+      <span class="klein">${t === seit ? 'der letzte' : ''}
+        <button type="button" class="strang-weg" data-act="termin-weg"
+                data-iso="${t}" aria-label="Termin löschen">×</button></span>
+    </li>`).join('')}</ul>` : '<p class="klein">Noch keiner eingetragen.</p>'}
+  </div>
 
   <div class="karte">
     <h3>Auswertung</h3>
@@ -7477,6 +8102,31 @@ async function kopiere(text, wahl) {
   }
 }
 
+/*
+ * Eine Sicherung einlesen – offen oder verschlüsselt.
+ *
+ * Welche von beiden es ist, steht in der Datei; gefragt wird deshalb erst,
+ * wenn es etwas zu fragen gibt. Ein Passwortfeld, das bei jeder offenen
+ * Sicherung erscheint, brächte nur die Frage mit, ob man hier eins vergeben
+ * *soll*.
+ *
+ * Die Abfrage läuft über window.prompt. Das ist die eine Stelle, an der ein
+ * eigener Dialog schöner wäre und trotzdem falsch: Beim Einlesen ist der
+ * Bildschirm gerade beim Dateiauswahldialog des Systems gewesen, und ein
+ * Feld, das man erst suchen muss, verliert man dort.
+ */
+async function sicherungEinlesen(text) {
+  if (!istTresor(text)) return store.ausJSON(text);
+  if (!tresorMoeglich()) {
+    throw new Error('Diese Sicherung ist verschlüsselt. Zum Öffnen brauchst du '
+      + 'die App über ihre Adresse (https), nicht als einzelne Datei.');
+  }
+  const wort = window.prompt('Passwort dieser Sicherung:');
+  // Abgebrochen ist nicht dasselbe wie falsch – dann passiert einfach nichts.
+  if (wort === null) return null;
+  return store.ausJSON(await entschluesseln(text, wort));
+}
+
 function sicherungLaden() {
   const feld = document.createElement('input');
   feld.type = 'file';
@@ -7485,10 +8135,10 @@ function sicherungLaden() {
     const datei = feld.files && feld.files[0];
     if (!datei) return;
     const leser = new FileReader();
-    leser.onload = () => {
+    leser.onload = async () => {
       try {
-        const anzahl = store.ausJSON(String(leser.result));
-        melden(`${mehrzahl(anzahl, 'Eintrag', 'Einträge')} eingelesen.`);
+        const anzahl = await sicherungEinlesen(String(leser.result));
+        if (anzahl !== null) melden(`${mehrzahl(anzahl, 'Eintrag', 'Einträge')} eingelesen.`);
       } catch (fehler) {
         melden(`Ging nicht: ${fehler.message}`);
       }
@@ -7551,6 +8201,31 @@ const AKTION = {
     if (!v) return;
     entwurf({ was: v.text, zutaten: v.zutaten.map((z) => ({ ...z })), portion: v.portion });
   },
+  /*
+   * Dasselbe, aber ohne Bogen: eintragen und fertig.
+   *
+   * Die Liste wird hier neu gerechnet statt beim Zeichnen gemerkt – gleiche
+   * Eingabe, gleiche Reihenfolge, und das Zeichnen bleibt frei von
+   * Nebenwirkungen. Die Meldung nennt, was eingetragen wurde: Ein Tipp, der
+   * still etwas anlegt, ist ein Tipp, dem man nicht traut.
+   */
+  schnell: (el) => {
+    const s = store.zustandLesen();
+    const liste = haeufigeMahlzeiten(s.eintraege, 12).filter((v) => v.anzahl >= 2);
+    const v = liste[Number(el.dataset.i)];
+    if (!v) return;
+    store.eintragen({
+      art: 'essen',
+      am: heuteISO(),
+      um: jetztUhr(),
+      was: v.text,
+      zutaten: v.zutaten.map((z) => ({ ...z })),
+      portion: v.portion,
+    });
+    ui.tag = heuteISO();
+    melden(`${kuerze(v.text, 24)} eingetragen.`);
+    zeichne();
+  },
   beschwerdeart: (el) => umschalten('arten', el.dataset.id),
   warnzeichen: (el) => umschalten('warnzeichen', el.dataset.id),
   'mittel-vorschlag': (el) => entwurf({ mittel: el.dataset.id }),
@@ -7584,7 +8259,12 @@ const AKTION = {
     store.versuchBeenden();
     zeichne();
   },
-  'versuch-weg': () => { store.versuchVerwerfen(); zeichne(); },
+  'versuch-ablegen': () => {
+    store.versuchAblegen();
+    melden('Abgehakt – bleibt unter „Schon geprüft" stehen.');
+    zeichne();
+  },
+  'versuch-alt-weg': (el) => { store.versuchLoeschen(el.dataset.id); zeichne(); },
 
   'tag-blaettern': (el) => {
     ui.tag = plusTage(ui.tag, Number(el.dataset.d));
@@ -7656,12 +8336,18 @@ const AKTION = {
     const feld = document.getElementById('ideeText');
     if (!store.ideeAnlegen(feld.value)) { melden('Da steht noch nichts.'); return; }
     feld.value = '';
-    melden('Notiert.');
+    // „Notiert" wäre die falsche Auskunft: Notiert ist sie, aber gelesen hat
+    // sie niemand, und das ist der Unterschied, um den es hier geht.
+    melden('Notiert – geschickt ist sie damit noch nicht.');
     zeichne();
   },
   'idee-haken': (el) => { store.ideeUmschalten(el.dataset.id); zeichne(); },
   'idee-weg': (el) => { store.ideeLoeschen(el.dataset.id); zeichne(); },
-  'ideen-kopieren': () => kopiere(ideenText(store.zustandLesen()), '#ideeText'),
+  'ideen-kopieren': async () => {
+    await kopiere(ideenText(store.zustandLesen()), '#ideeText');
+    store.ideenGeschicktMerken();
+    zeichne();
+  },
   /*
    * Teilen über das Menü des Geräts. Das ist kein Widerspruch zu „die App
    * schickt nichts": Hier wird nichts gesendet, sondern der Text an das
@@ -7671,11 +8357,27 @@ const AKTION = {
    */
   'ideen-teilen': async () => {
     const text = ideenText(store.zustandLesen());
-    if (!navigator.share) { kopiere(text, '#ideeText'); return; }
+    if (!navigator.share) {
+      await kopiere(text, '#ideeText');
+      store.ideenGeschicktMerken();
+      zeichne();
+      return;
+    }
     try {
       await navigator.share({ title: 'Bauchbuch – Ideen', text });
+      /*
+       * Erst nach dem Teilen abhaken, nicht davor.
+       *
+       * navigator.share löst erst auf, wenn wirklich geteilt wurde; ein
+       * Abbruch wirft. Deshalb steht das Merken *hier* und nicht oben: Wer das
+       * Menü wieder zumacht, soll den Hinweis behalten, statt zu glauben, es
+       * sei raus.
+       */
+      store.ideenGeschicktMerken();
+      melden('Raus. Jetzt hat sie jemand.');
+      zeichne();
     } catch {
-      // Abgebrochen oder nicht erlaubt – dann eben nicht.
+      // Abgebrochen oder nicht erlaubt – dann bleibt der Hinweis stehen.
     }
   },
 
@@ -7699,13 +8401,44 @@ const AKTION = {
   'sicherung-zu': () => { ui.sicherung = null; zeichne(); },
   'sicherung-kopieren': () => kopiere(ui.sicherung, '.bericht'),
 
+  'schloss-auf': () => { ui.schloss = true; ui.tresorWort = ''; zeichne(); },
+  'schloss-zu': () => { ui.schloss = false; ui.tresorWort = ''; zeichne(); },
+  'tresor-export': async () => {
+    // Acht Zeichen sind keine Sicherheit, aber eine Grenze, unter der es
+    // ehrlicher wäre, gar nicht erst zu verschlüsseln.
+    if (ui.tresorWort.length < 8) { melden('Mindestens acht Zeichen.'); return; }
+    melden('Wird verschlüsselt …');
+    try {
+      const text = await verschluesseln(store.alsJSON(), ui.tresorWort);
+      datenAusgeben(text, `bauchbuch-${heuteISO()}.json`, 'application/json');
+      store.sicherungNotiert();
+      ui.schloss = false;
+      ui.tresorWort = '';
+      melden('Verschlüsselt gesichert.');
+    } catch (fehler) {
+      melden(`Ging nicht: ${fehler.message}`);
+    }
+    zeichne();
+  },
+
   bericht: (el) => {
     const s = store.zustandLesen();
     const bis = heuteISO();
     ui.bericht = arztBericht(s, plusTage(bis, -(Number(el.dataset.n) - 1)), bis);
     zeichne();
   },
+  // Der Bericht seit dem letzten Termin. Genau das fragt eine Ärztin beim
+  // zweiten Mal: was seitdem war – nicht die letzten dreißig Tage, die
+  // zufällig ein Stück davor mit abdecken oder ein Stück davon abschneiden.
+  'bericht-seit': () => {
+    const bis = heuteISO();
+    const seit = store.letzterTermin(bis);
+    if (!seit) return;
+    ui.bericht = arztBericht(store.zustandLesen(), seit, bis);
+    zeichne();
+  },
   'bericht-zu': () => { ui.bericht = null; zeichne(); },
+  'termin-weg': (el) => { store.terminLoeschen(el.dataset.iso); zeichne(); },
   drucken: () => {
     store.einstellen('tab', 'muster');
     zeichne();
@@ -7766,6 +8499,17 @@ function eingabe(ev) {
     case 'bogen-datum': entwurf({ am: wert }, false); break;
     case 'tag-datum':
       if (/^\d{4}-\d{2}-\d{2}$/.test(wert)) { ui.tag = wert; zeichne(); }
+      break;
+    // Das Passwort zeichnet *nicht* neu – ein Neuzeichnen bei jedem Zeichen
+    // nähme dem Feld den Fokus, und ein Passwortfeld, das nach drei Zeichen
+    // wegspringt, ist unbenutzbar.
+    case 'tresor-wort': ui.tresorWort = wert; break;
+    case 'termin-neu':
+      if (/^\d{4}-\d{2}-\d{2}$/.test(wert)) {
+        store.terminAnlegen(wert);
+        el.value = '';
+        zeichne();
+      }
       break;
     // Der Monatsregler meldet sich bei jedem halben Tippen; erst ein
     // vollständiges 'YYYY-MM' wird übernommen, sonst stünde zwischendurch
