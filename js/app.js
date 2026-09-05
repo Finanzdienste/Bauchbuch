@@ -47,6 +47,7 @@ import { WARNZEICHEN, bildLesen, genugFuerBild } from './bild.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
+import { schicken } from './briefkasten.js';
 
 const viewEl = document.getElementById('view');
 const tabbarEl = document.getElementById('tabbar');
@@ -1276,21 +1277,22 @@ function ideenAnsicht(s) {
   const nichtGeschickt = store.ideenOffen();
   const versand = nichtGeschickt ? `<div class="karte karte-merk">
     <h3>${mehrzahl(nichtGeschickt, 'Idee ist', 'Ideen sind')} noch nicht verschickt</h3>
-    <p class="klein">Diese App schickt nichts von selbst – auch keine Ideen. Was
-    hier steht, liegt in diesem Browser, und niemand sonst sieht es. Ein Tipp
-    auf „Schicken" öffnet dein Teilen-Menü mit der fertigen Liste; wohin, wählst
-    du.</p>
+    <p class="klein"><b>Direkt schicken</b> gibt die Liste an Tobis Briefkasten
+    weiter – das ist das Einzige, was diese App je verschickt, und sie tut es
+    nur auf diesen Druck. Dein Tagebuch bleibt hier, restlos. <b>Anders
+    schicken</b> nimmt stattdessen dein Teilen-Menü, falls dir das lieber ist.</p>
     <div class="reihe">
-      ${knopf('ideen-teilen', 'Schicken', 'btn-primary')}
+      ${knopf('ideen-senden', 'Direkt schicken', 'btn-primary')}
+      ${knopf('ideen-teilen', 'Anders schicken')}
       ${knopf('ideen-kopieren', 'Kopieren')}
     </div>
   </div>` : '';
 
   return `
   <h2>Ideen fürs Bauchbuch</h2>
-  <p class="klein">Was fehlt, was stört, was du anders hättest. Alles, was hier
-  steht, bleibt wie der Rest auf diesem Gerät – gesehen wird es erst, wenn du
-  es weitergibst.</p>
+  <p class="klein">Was fehlt, was stört, was du anders hättest. Steht hier, bis
+  du auf „Direkt schicken" tippst – dann geht <b>nur diese Liste</b> raus, sonst
+  nichts. Beschwerden, Mahlzeiten, Medikamente bleiben auf diesem Gerät.</p>
 
   ${versand}
 
@@ -1310,7 +1312,8 @@ function ideenAnsicht(s) {
       ${nichtGeschickt ? `Davon ${mehrzahl(nichtGeschickt, 'noch nicht verschickt', 'noch nicht verschickt')}.`
     : 'Alle schon einmal weitergegeben.'}</p>
       <div class="reihe">
-        ${knopf('ideen-teilen', 'Schicken', 'btn-primary')}
+        ${knopf('ideen-senden', 'Direkt schicken', 'btn-primary')}
+        ${knopf('ideen-teilen', 'Anders schicken')}
         ${knopf('ideen-kopieren', 'Alle kopieren')}
       </div>
     </div>`
@@ -1604,9 +1607,13 @@ function mehrAnsicht(s) {
 
   <div class="karte">
     <h3>Was diese App nicht tut</h3>
-    <p class="klein">Sie schickt nichts. Es gibt keinen Server, kein Konto,
-    keine Anmeldung und keine Zählung von Aufrufen. Alles bleibt auf diesem
-    Gerät. Sie stellt auch keine Diagnose und ersetzt keine ärztliche
+    <p class="klein"><b>Deine Gesundheitsdaten gehen nirgendwohin.</b> Kein
+    Server, kein Konto, keine Anmeldung, keine Zählung von Aufrufen. Was du
+    isst, wie es dir geht, was du nimmst – das bleibt auf diesem Gerät.</p>
+    <p class="klein">Das Einzige, was diese App je verschickt, sind die
+    Verbesserungsvorschläge unter „Ideen", und nur, wenn du dort auf „Direkt
+    schicken" tippst. Von selbst geht nie etwas raus.</p>
+    <p class="klein">Sie stellt auch keine Diagnose und ersetzt keine ärztliche
     Beratung – sie zählt nur mit, was eingetragen wird.</p>
   </div>
 
@@ -1842,8 +1849,10 @@ function willkommen() {
     hilft. Nach ein paar Wochen zeigt es, was zusammenfällt – und macht daraus
     einen Zettel für den nächsten Arzttermin.</p>
     <ul class="punkte">
-      <li><b>Bleibt hier.</b> Kein Konto, kein Server, keine Übertragung.
-        Alles liegt im Speicher dieses Browsers.</li>
+      <li><b>Bleibt hier.</b> Kein Konto, kein Server. Was du über deinen
+        Bauch einträgst, liegt im Speicher dieses Browsers und geht nirgendwo
+        hin. Nur Verbesserungsvorschläge unter „Ideen" kannst du auf Wunsch
+        abschicken – von selbst geht nie etwas raus.</li>
       <li><b>Läuft ohne Netz.</b> Einmal geöffnet, funktioniert die App auch
         im Flugzeug und im Keller.</li>
       <li><b>Sichern nicht vergessen.</b> Was nur in einem Browser liegt, ist
@@ -2244,6 +2253,32 @@ const AKTION = {
   },
   'idee-haken': (el) => { store.ideeUmschalten(el.dataset.id); zeichne(); },
   'idee-weg': (el) => { store.ideeLoeschen(el.dataset.id); zeichne(); },
+  /*
+   * Der direkte Weg.
+   *
+   * Die einzige Stelle, an der diese App etwas verschickt – und sie tut es
+   * nur hier, nur auf diesen Druck, und nur mit dem Ideentext. Was schiefgeht,
+   * wird gesagt und nicht im Hintergrund noch einmal versucht: Ein Programm,
+   * das von selbst weitersendet, ist etwas anderes als eines, das auf einen
+   * Knopf wartet.
+   */
+  'ideen-senden': async (el) => {
+    const text = ideenText(store.zustandLesen());
+    el.disabled = true;
+    melden('Wird geschickt …');
+    try {
+      await schicken(text);
+      // Erst nach dem Erfolg abhaken. Wer es nicht rausbekommen hat, soll den
+      // Hinweis behalten, statt zu glauben, es sei angekommen.
+      store.ideenGeschicktMerken();
+      melden('Angekommen. Jetzt hat sie jemand.');
+    } catch (fehler) {
+      melden(fehler.message);
+    }
+    el.disabled = false;
+    zeichne();
+  },
+
   'ideen-kopieren': async () => {
     await kopiere(ideenText(store.zustandLesen()), '#ideeText');
     store.ideenGeschicktMerken();
