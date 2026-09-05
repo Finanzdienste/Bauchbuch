@@ -1,20 +1,24 @@
 /*
- * Von selbst passiert nichts.
+ * Das Tagebuch löst nie etwas aus.
  *
- * tests/test-still.mjs prüft den einen Weg nach draußen: was auf Tastendruck
- * hinausgeht und was dabei nicht mitgeht. Dieser hier prüft die andere Hälfte,
- * und sie ist die wichtigere – **dass ohne Tastendruck gar nichts passiert.**
+ * Seit die App Vorschläge von selbst verschickt, ist das die Zusage, auf die
+ * es ankommt – und sie ist schärfer, nicht weicher: Es gibt genau **einen**
+ * Anlass für einen Aufruf nach draußen, nämlich eine neu eingetragene Idee.
+ * Alles andere – neunzig Tage Mahlzeiten, Beschwerden, Medikamente,
+ * Stuhlgang, Zyklus, Notizen, jede Auswertung, jeder Bericht – bleibt still,
+ * egal wie lange man wartet.
  *
  * Der Unterschied ist keine Wortklauberei. Ein Programm, das etwas verschicken
- * *kann*, ist eine Zeile davon entfernt, es auch von selbst zu tun: beim
- * Starten, beim Reiterwechsel, „nur die Ideen, wenn ohnehin Netz da ist",
- * einmal nachts zum Sichern. Jede dieser Zeilen wäre für sich harmlos gemeint
- * und würde diese App zu einer anderen machen.
+ * kann, ist eine Zeile davon entfernt, mehr zu verschicken: beim Starten,
+ * beim Reiterwechsel, „einmal nachts zum Sichern". Jede dieser Zeilen wäre für
+ * sich harmlos gemeint und würde diese App zu einer anderen machen.
  *
- * Deshalb liegt hier ein volles Tagebuch im Speicher – neunzig Tage,
- * Mahlzeiten, Beschwerden, Medikamente, Stuhlgang, Zyklus, Notizen, offene
- * Ideen – und dann wird alles angefasst, was sich anfassen lässt. Erwartet
- * wird: null Anfragen. Nicht „keine verdächtigen". Null.
+ * Geprüft wird deshalb mit vollem Tagebuch und **ohne** offene Idee, über
+ * sechs vorgestellte Stunden. Erwartet wird: null Anfragen. Nicht „keine
+ * verdächtigen". Null.
+ *
+ * Und danach dasselbe mit Ideen, die schon draußen waren: Auch die gehen kein
+ * zweites Mal.
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, pruefer, vorTagen } from './umgebung.mjs';
@@ -81,12 +85,13 @@ const ZUSTAND = {
   tage,
   beschwerdenSeit: '2025-01',
   termine: [vorTagen(30)],
-  ideen: [
-    { id: 'i1', am: vorTagen(3), text: 'Mehr Platz für eigene Auslöser.', erledigt: false },
-    { id: 'i2', am: vorTagen(9), text: 'Die Bristol-Bilder größer.', erledigt: false },
-  ],
+  ideen: [],
   ideenGeschickt: 0,
 };
+
+// Die Uhr in die Hand nehmen, damit sich Stunden vorstellen lassen, ohne sie
+// abzuwarten. Ein Test, der sechs Stunden schläft, wird herausgenommen.
+await page.clock.install();
 
 await page.goto(URL, { waitUntil: 'networkidle' });
 await page.evaluate(([k, z]) => localStorage.setItem(k, JSON.stringify(z)), [KEY, ZUSTAND]);
@@ -127,13 +132,10 @@ await page.waitForTimeout(400);
 await page.locator('[data-act="sicherung-text"]').click();
 await page.waitForTimeout(300);
 
-// Ideen ansehen und eine neue eintragen – aber nicht abschicken.
+// Den Ideen-Reiter ansehen, ohne etwas einzutragen.
 await page.locator('[data-act="tab"][data-tab="ideen"]').click();
 await page.waitForTimeout(250);
-await page.locator('#ideeText').fill('Noch ein Vorschlag, der hierbleibt.');
-await page.locator('[data-act="idee-neu"]').click();
-await page.waitForTimeout(250);
-check(await page.locator('.idee').count() === 3, 'die dritte Idee steht in der Liste');
+check(await page.locator('.idee').count() === 0, 'es liegt keine Idee vor');
 
 // Eine Atemübung starten und wieder abbrechen.
 await page.locator('[data-act="tab"][data-tab="ruhe"]').click();
@@ -150,21 +152,44 @@ if (await uebung.count()) {
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 
+// Und dann sechs Stunden vorspulen. Wenn irgendwo eine Uhr läuft, die von
+// selbst etwas hinausschickt, schlägt sie hier an.
+await page.clock.fastForward(6 * 3600 * 1000);
+await page.waitForTimeout(600);
+
 /* ---------- Das Ergebnis ---------- */
 
 check(
   fremd.length === 0,
-  `null Anfragen nach draußen${fremd.length ? `: ${fremd.slice(0, 6).join(' | ')}` : ''}`,
+  `null Anfragen, auch nach sechs Stunden${fremd.length ? `: ${fremd.slice(0, 6).join(' | ')}` : ''}`,
 );
 
-// Und die Ideen gelten weiterhin als nicht verschickt – sonst hätte irgendwo
-// jemand gemeint, es sei schon raus.
 const nachher = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
+check(nachher.eintraege.length >= 90, 'das Tagebuch ist vollzählig geblieben');
+
+/* ---------- Was schon draußen war, geht nicht noch einmal ---------- */
+
+await page.evaluate(([k, iso]) => {
+  const z = JSON.parse(localStorage.getItem(k));
+  z.ideen = [
+    { id: 'i1', am: iso, text: 'Mehr Platz für eigene Auslöser.', erledigt: false },
+    { id: 'i2', am: iso, text: 'Die Bristol-Bilder größer.', erledigt: false },
+  ];
+  z.ideenGeschickt = 2;
+  localStorage.setItem(k, JSON.stringify(z));
+}, [KEY, vorTagen(3)]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.waitForTimeout(400);
+await page.locator('[data-act="tab"][data-tab="ideen"]').click();
+await page.waitForTimeout(250);
+check(await page.locator('.idee').count() === 2, 'die zwei alten Ideen stehen da');
+
+await page.clock.fastForward(6 * 3600 * 1000);
+await page.waitForTimeout(600);
 check(
-  (nachher.ideenGeschickt || 0) === 0,
-  `nichts gilt als verschickt (${nachher.ideenGeschickt || 0})`,
+  fremd.length === 0,
+  `was schon draußen war, geht kein zweites Mal${fremd.length ? `: ${fremd.slice(0, 3).join(' | ')}` : ''}`,
 );
-check(nachher.eintraege.length >= 90, 'und das Tagebuch ist vollzählig geblieben');
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

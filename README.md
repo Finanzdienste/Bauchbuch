@@ -10,9 +10,9 @@ nächsten Arzttermin.
 Konto, keine Anmeldung und keine Zählung von Aufrufen. Die Eintragungen liegen
 im `localStorage` des Browsers, in dem sie gemacht wurden, und gehen dort nicht
 weg. Das Einzige, was diese App je verschickt, sind die Verbesserungsvorschläge
-unter „Ideen" – und nur, wenn jemand sie eintippt und auf „Direkt schicken"
-tippt. Das ist keine Absichtserklärung, sondern eine dreifach geprüfte
-Eigenschaft: siehe [Die Zusage](#die-zusage).
+unter „Ideen" – die gehen von selbst hinaus, kurz nachdem sie eingetragen
+wurden, und in der App steht das auch. Das ist keine Absichtserklärung, sondern
+eine dreifach geprüfte Eigenschaft: siehe [Die Zusage](#die-zusage).
 
 ---
 
@@ -69,16 +69,15 @@ einmal gab, ist keine Gewohnheit. Und nur für heute: An einem vergangenen Tag
 wäre „jetzt" gelogen.
 
 **Ideen.** Ein Zettel für Verbesserungsvorschläge zur App selbst. Wer die App
-benutzt, sitzt selten neben dem, der sie baut – deshalb ist der eigentliche
-Knopf nicht „Eintragen", sondern **„Direkt schicken"**: ein Tipp, und die
-Liste liegt im Briefkasten dessen, der die App baut. Das ist das Einzige, was
-diese App je verschickt, und sie tut es nur auf diesen Druck (siehe *Die
-Zusage*). „Anders schicken" nimmt stattdessen das Teilen-Menü des Geräts,
-„Kopieren" die Zwischenablage – beides für den Fall, dass jemandem der direkte
-Weg nicht geheuer ist oder gerade kein Netz da ist. Solange etwas nicht
-draußen ist, steht oben, wie viel, und das Eintragen meldet „Notiert –
-geschickt ist sie damit noch nicht." Ideen stehen neben den Eintragungen,
-nicht in ihnen, und tauchen in keiner Auswertung auf.
+benutzt, sitzt selten neben dem, der sie baut – deshalb gibt es hier gar
+keinen Knopf zu suchen: **Was eingetragen wird, geht von selbst an den, der
+die App gebaut hat**, etwa eine Minute später. Die Minute ist Absicht, damit
+sich ein Satz noch ausbessern oder zurücknehmen lässt; „Jetzt gleich"
+überspringt sie. Das steht so auch in der App, zweimal – wer hier tippt, soll
+wissen, dass es gelesen wird. Es geht dabei **nur diese Liste** raus, sonst
+nichts (siehe *Die Zusage*). „Anders schicken" nimmt stattdessen das
+Teilen-Menü des Geräts, „Kopieren" die Zwischenablage. Ideen stehen neben den
+Eintragungen, nicht in ihnen, und tauchen in keiner Auswertung auf.
 
 **Mehr.** Sicherung als JSON-Datei und zurück – **wahlweise mit Passwort
 verschlüsselt** (siehe unten) –, der Bericht für den Arzttermin, die
@@ -386,7 +385,7 @@ sie ist einmal enger gefasst worden:
 | | |
 | --- | --- |
 | **früher** | Die App sendet nichts. |
-| **jetzt** | Die App sendet nichts außer den Ideen, die du selbst eintippst und selbst abschickst. |
+| **jetzt** | Die App sendet nichts außer den Ideen, die du unter „Ideen" einträgst. |
 
 Der Grund war kein Sinneswandel, sondern eine Sackgasse: Der Reiter „Ideen"
 nahm Verbesserungsvorschläge entgegen, und niemand bekam sie je zu sehen. Wer
@@ -404,27 +403,39 @@ Satz in einer README ist keine Eigenschaft, also halten ihn drei Prüfungen:
   bekommt einen fertigen Text übergeben und kann an ein Tagebuch gar nicht
   herankommen. Überall sonst: keine Adresse, kein `XMLHttpRequest`, kein
   `sendBeacon`, kein `WebSocket`, keine eingebundene Schrift, kein CSS-Import.
-* **`tests/test-still.mjs`** — was auf Tastendruck hinausgeht. Ein Browser geht
-  durch die ganze App, jede Anfrage wird mitgeschrieben. Bis zum Druck auf
-  „Direkt schicken": null. Danach genau eine, an genau eine Adresse, mit genau
-  einem Feld — und ihr Rumpf wird gegen das Tagebuch im Speicher gehalten.
-  Taucht daraus auch nur ein Wort auf, ist der Test rot.
-* **`tests/test-schweigen.mjs`** — dass ohne Tastendruck nichts passiert. Ein
-  volles Tagebuch über 90 Tage, dann wird alles angefasst, was sich anfassen
-  lässt: Reiter, Zeiträume, Monate, Aufklapper, Bericht, Sicherung, Atemübung,
-  Neuladen. Erwartet werden **null** Anfragen. Nicht „keine verdächtigen".
-  Null.
+* **`tests/test-still.mjs`** — was hinausgeht und was dabei nicht mitgeht. Ein
+  Browser geht durch die ganze App, jede Anfrage wird mitgeschrieben. Das ganze
+  Tagebuch anfassen: null. Eine Idee eintragen und innerhalb der Bedenkzeit
+  wieder löschen: immer noch null — **was zurückgenommen wird, geht nicht
+  hinaus.** Nach der Bedenkzeit: genau eine Anfrage, an genau eine Adresse, mit
+  genau einem Feld, und ihr Rumpf wird gegen das Tagebuch im Speicher gehalten.
+  Taucht daraus auch nur ein Wort auf, ist der Test rot. Danach zehn Minuten
+  und viel Herumblättern: kein zweiter Aufruf.
+* **`tests/test-schweigen.mjs`** — dass das Tagebuch nie etwas auslöst. Ein
+  volles Tagebuch über 90 Tage *ohne* offene Idee, dann wird alles angefasst,
+  was sich anfassen lässt: Reiter, Zeiträume, Monate, Aufklapper, Bericht,
+  Sicherung, Atemübung, Neuladen — und danach werden **sechs Stunden
+  vorgespult**. Erwartet werden null Anfragen. Läuft irgendwo eine Uhr, die von
+  selbst etwas hinausschickt, schlägt sie hier an. Zum Schluss dasselbe mit
+  Ideen, die schon draußen waren: die gehen kein zweites Mal.
 
 Alle drei laufen bei jedem Push. Und sie sind gegen sich selbst geprüft: Eine
 zweite Adresse, eine Adresse in einem anderen Modul, ein Zugriff auf das
-Tagebuch in der Tür, ein `sendBeacon`, ein „harmlos gemeinter" Automatikversand
-beim Zeichnen, ein zur Fehlersuche angehängtes Tagebuch — jeder dieser sechs
-Versuche lässt die Prüfungen scheitern.
+Tagebuch in der Tür, ein `sendBeacon`, ein zur Fehlersuche angehängtes
+Tagebuch, eine Uhr die stündlich „nur mal nachsieht" — jeder dieser Versuche
+lässt die Prüfungen scheitern.
 
 Denn genau darum geht es: Ein Programm, das etwas verschicken *kann*, ist eine
-Zeile davon entfernt, es auch von selbst zu tun — beim Starten, beim
-Reiterwechsel, „nur die Ideen, wenn ohnehin Netz da ist". Jede dieser Zeilen
-wäre für sich harmlos gemeint und würde diese App zu einer anderen machen.
+Zeile davon entfernt, **mehr** zu verschicken — beim Starten, beim
+Reiterwechsel, „einmal nachts zum Sichern". Jede dieser Zeilen wäre für sich
+harmlos gemeint und würde diese App zu einer anderen machen.
+
+**Die Bedenkzeit.** Vorschläge gehen nicht in dem Moment hinaus, in dem der
+Satz fertig getippt ist, sondern eine Minute nach der letzten Änderung. Wer
+„Die Uhrzeit ist blö" schreibt und kurz überlegt, soll das noch ausbessern
+können; wer eine Idee gleich wieder löscht, soll sie nicht schon verschickt
+haben. Die Uhr läuft nur, solange die App offen ist — es gibt keinen Dienst im
+Hintergrund und keine Warteschlange, die später doch noch sendet.
 
 Wohin die Ideen gehen: in einen eigenen kleinen Kasten
 ([Finanzdienste/Briefkasten](https://github.com/Finanzdienste/Briefkasten)),
@@ -432,11 +443,11 @@ der einen Text entgegennimmt und sonst nichts kann — kein Feld für ein
 Tagebuch, keins für einen Namen, keins für eine Kennung. Er speichert den
 Wortlaut und wann er ankam.
 
-Es geht nie etwas von selbst hinaus: kein Wiederholen im Hintergrund, keine
-Warteschlange, die später doch noch sendet. Klappt es nicht, sagt die App das,
-der Text bleibt stehen, und es entscheidet wieder ein Mensch. Wem der direkte
-Weg nicht geheuer ist, nimmt weiterhin „Anders schicken" — das übergibt den
-Text an das Teilen-Menü des Geräts, das *den Nutzer* fragt, wohin — oder die
+Klappt es nicht, wird nicht in einer Schleife weiterprobiert: In der Anzeige
+steht, dass noch etwas unterwegs ist, und der nächste Anlass — eine Änderung,
+ein Blick auf den Reiter — nimmt einen neuen Anlauf. „Jetzt gleich" überspringt
+die Bedenkzeit; „Anders schicken" übergibt den Text stattdessen an das
+Teilen-Menü des Geräts, das *den Nutzer* fragt, wohin, und „Kopieren" an die
 Zwischenablage.
 
 ## Benutzen

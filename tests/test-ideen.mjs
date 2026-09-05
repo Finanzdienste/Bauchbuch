@@ -120,35 +120,46 @@ check(
   'aber nicht in den Eintragungen – getrennte Liste, wie gedacht',
 );
 
-/* ---------- Erst verschickt ist verschickt ---------- */
+/* ---------- Was raus ist, ist raus ---------- */
 
 /*
- * Die App hat keinen Rückkanal und soll auch keinen bekommen – niemand liest
- * hier mit. Das heißt aber, dass eine eingetragene Idee liegen bleibt, wenn
- * niemand sie herausschickt, und dass genau das der Fehler ist, den man nicht
- * merkt: Man hat es ja aufgeschrieben.
+ * Vorschläge gehen von selbst hinaus, kurz nachdem sie eingetragen wurden.
+ * Was hier geprüft wird, ist die Buchführung darüber: Solange etwas noch
+ * unterwegs ist, steht es in der Anzeige; was schon draußen war, kommt nicht
+ * wieder als offen zurück.
  *
- * Deshalb steht in der App, wie viele noch nicht draußen sind, und deshalb
- * zählt „ich habe es aufgeschrieben" nicht als verschickt.
+ * (Dass tatsächlich genau eine Anfrage hinausgeht und was in ihr steht, prüft
+ * tests/test-still.mjs – hier geht es nur um das, was die Frau davon sieht.)
  */
 // Kopiert wurde weiter oben schon einmal – seitdem ist nichts Neues
-// dazugekommen, also erinnert die App auch an nichts.
+// dazugekommen, also steht auch nichts mehr aus.
 check(
   await page.locator('.karte.karte-merk').count() === 0,
-  'nach dem Kopieren steht keine Erinnerung mehr da',
+  'nach dem Weitergeben steht nichts mehr aus',
 );
 
 await page.locator('#ideeText').fill('Noch eine Sache.');
 await page.locator('[data-act="idee-neu"]').click();
 await page.waitForTimeout(250);
 check(
-  (await page.locator('#toast').textContent()).includes('geschickt ist sie damit noch nicht'),
-  'beim Eintragen sagt die App, dass Aufschreiben nicht Verschicken ist',
+  (await page.locator('#toast').textContent()).includes('etwa einer Minute'),
+  'beim Eintragen sagt die App, dass es gleich von selbst rausgeht',
 );
 check(
   (await page.locator('.karte.karte-merk').first().textContent()).replace(/\s+/g, ' ')
-    .includes('1 Idee'),
-  'und die Erinnerung kommt für die neue Idee zurück – nur für sie',
+    .includes('1 Idee geht gleich raus'),
+  'und die Karte sagt es noch einmal – nur für die eine neue',
+);
+
+/*
+ * Und sie sagt auch, dass man es noch zurücknehmen kann. Der Satz ist der
+ * Unterschied zwischen „schickt automatisch" und „nimmt einem die Möglichkeit,
+ * es sich anders zu überlegen" – wer ihn streicht, ändert die Zusage.
+ */
+check(
+  (await page.locator('.karte.karte-merk').first().textContent()).replace(/\s+/g, ' ')
+    .includes('kannst du noch ausbessern oder löschen'),
+  'samt dem Hinweis, dass bis dahin noch etwas zu machen ist',
 );
 
 /* ---------- Löschen ---------- */

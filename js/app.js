@@ -47,7 +47,7 @@ import { WARNZEICHEN, bildLesen, genugFuerBild } from './bild.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
-import { schicken } from './briefkasten.js';
+import { BEDENKZEIT, schicken } from './briefkasten.js';
 
 const viewEl = document.getElementById('view');
 const tabbarEl = document.getElementById('tabbar');
@@ -1251,7 +1251,44 @@ function ideenText(s) {
     .concat(s.ideen.map(zeile)).join('\n');
 }
 
+/*
+ * Vorschläge gehen von selbst hinaus.
+ *
+ * Nicht sofort: erst eine Minute nach der letzten Änderung. Wer einen Satz
+ * ausbessert oder eine Idee gleich wieder löscht, soll sie nicht schon
+ * verschickt haben – die Bedenkzeit ist der ganze Unterschied zwischen
+ * „schickt automatisch" und „nimmt einem die Möglichkeit, es sich anders zu
+ * überlegen".
+ *
+ * Die Uhr läuft nur, solange die App offen ist. Kein Dienst im Hintergrund,
+ * keine Warteschlange, die später doch noch sendet: Wird die App zugemacht,
+ * passiert nichts. Und geht es schief, wird nicht in einer Schleife weiter
+ * probiert – der nächste Anlass (eine Änderung, ein Blick auf den Reiter)
+ * versucht es erneut, und bis dahin steht sichtbar, dass noch etwas offen ist.
+ */
+let sendeUhr = null;
+
+function sendenAnstossen() {
+  clearTimeout(sendeUhr);
+  if (!store.ideenOffen()) return;
+  sendeUhr = setTimeout(async () => {
+    if (!store.ideenOffen()) return;
+    try {
+      await schicken(ideenText(store.zustandLesen()));
+      store.ideenGeschicktMerken();
+      zeichne();
+    } catch {
+      // Kein Netz oder der Kasten mag nicht. Nichts abhaken, nichts melden –
+      // in der Anzeige steht ohnehin, dass noch etwas unterwegs ist, und der
+      // nächste Anlass nimmt einen neuen Anlauf.
+    }
+  }, BEDENKZEIT);
+}
+
 function ideenAnsicht(s) {
+  // Beim Ansehen des Reiters die Uhr (neu) stellen: Das ist der Anlass, an
+  // dem ein früher gescheiterter Versuch wieder eine Chance bekommt.
+  sendenAnstossen();
   const offen = s.ideen.filter((i) => !i.erledigt);
   const fertig = s.ideen.filter((i) => i.erledigt);
 
@@ -1276,13 +1313,12 @@ function ideenAnsicht(s) {
    */
   const nichtGeschickt = store.ideenOffen();
   const versand = nichtGeschickt ? `<div class="karte karte-merk">
-    <h3>${mehrzahl(nichtGeschickt, 'Idee ist', 'Ideen sind')} noch nicht verschickt</h3>
-    <p class="klein"><b>Direkt schicken</b> gibt die Liste an Tobis Briefkasten
-    weiter – das ist das Einzige, was diese App je verschickt, und sie tut es
-    nur auf diesen Druck. Dein Tagebuch bleibt hier, restlos. <b>Anders
-    schicken</b> nimmt stattdessen dein Teilen-Menü, falls dir das lieber ist.</p>
+    <h3>${mehrzahl(nichtGeschickt, 'Idee geht', 'Ideen gehen')} gleich raus</h3>
+    <p class="klein">In etwa einer Minute geht ${nichtGeschickt === 1 ? 'sie' : 'die Liste'}
+    von selbst an Tobi – du musst nichts antippen. <b>Bis dahin kannst du noch
+    ausbessern oder löschen</b>; was du wegnimmst, geht nicht mehr mit.</p>
     <div class="reihe">
-      ${knopf('ideen-senden', 'Direkt schicken', 'btn-primary')}
+      ${knopf('ideen-senden', 'Jetzt gleich', 'btn-primary')}
       ${knopf('ideen-teilen', 'Anders schicken')}
       ${knopf('ideen-kopieren', 'Kopieren')}
     </div>
@@ -1290,9 +1326,12 @@ function ideenAnsicht(s) {
 
   return `
   <h2>Ideen fürs Bauchbuch</h2>
-  <p class="klein">Was fehlt, was stört, was du anders hättest. Steht hier, bis
-  du auf „Direkt schicken" tippst – dann geht <b>nur diese Liste</b> raus, sonst
-  nichts. Beschwerden, Mahlzeiten, Medikamente bleiben auf diesem Gerät.</p>
+  <p class="klein">Was fehlt, was stört, was du anders hättest. <b>Was du hier
+  einträgst, geht automatisch an Tobi</b> – etwa eine Minute nachdem du fertig
+  getippt hast, damit du es vorher noch ändern oder löschen kannst.</p>
+  <p class="klein">Es geht <b>nur diese Liste</b> raus, sonst nichts.
+  Beschwerden, Mahlzeiten, Medikamente und alles andere aus deinem Tagebuch
+  bleiben auf diesem Gerät.</p>
 
   ${versand}
 
@@ -1309,10 +1348,10 @@ function ideenAnsicht(s) {
     <ul class="ideen">${offen.map(zeile).join('')}${fertig.map(zeile).join('')}</ul>
     <div class="karte">
       <p class="klein">${mehrzahl(offen.length, 'offene Idee', 'offene Ideen')}${fertig.length ? `, ${fertig.length} erledigt` : ''}.
-      ${nichtGeschickt ? `Davon ${mehrzahl(nichtGeschickt, 'noch nicht verschickt', 'noch nicht verschickt')}.`
-    : 'Alle schon einmal weitergegeben.'}</p>
+      ${nichtGeschickt ? `Davon ${mehrzahl(nichtGeschickt, 'noch unterwegs', 'noch unterwegs')}.`
+    : 'Alle bei Tobi angekommen.'}</p>
       <div class="reihe">
-        ${knopf('ideen-senden', 'Direkt schicken', 'btn-primary')}
+        ${nichtGeschickt ? knopf('ideen-senden', 'Jetzt gleich', 'btn-primary') : ''}
         ${knopf('ideen-teilen', 'Anders schicken')}
         ${knopf('ideen-kopieren', 'Alle kopieren')}
       </div>
@@ -1611,8 +1650,8 @@ function mehrAnsicht(s) {
     Server, kein Konto, keine Anmeldung, keine Zählung von Aufrufen. Was du
     isst, wie es dir geht, was du nimmst – das bleibt auf diesem Gerät.</p>
     <p class="klein">Das Einzige, was diese App je verschickt, sind die
-    Verbesserungsvorschläge unter „Ideen", und nur, wenn du dort auf „Direkt
-    schicken" tippst. Von selbst geht nie etwas raus.</p>
+    Verbesserungsvorschläge unter „Ideen". Die gehen von selbst raus, kurz
+    nachdem du sie eingetragen hast – dort steht das auch. Sonst nichts.</p>
     <p class="klein">Sie stellt auch keine Diagnose und ersetzt keine ärztliche
     Beratung – sie zählt nur mit, was eingetragen wird.</p>
   </div>
@@ -1851,8 +1890,8 @@ function willkommen() {
     <ul class="punkte">
       <li><b>Bleibt hier.</b> Kein Konto, kein Server. Was du über deinen
         Bauch einträgst, liegt im Speicher dieses Browsers und geht nirgendwo
-        hin. Nur Verbesserungsvorschläge unter „Ideen" kannst du auf Wunsch
-        abschicken – von selbst geht nie etwas raus.</li>
+        hin. Einzige Ausnahme: Verbesserungsvorschläge unter „Ideen" – die
+        gehen an den, der die App gebaut hat, und dort steht das auch.</li>
       <li><b>Läuft ohne Netz.</b> Einmal geöffnet, funktioniert die App auch
         im Flugzeug und im Keller.</li>
       <li><b>Sichern nicht vergessen.</b> Was nur in einem Browser liegt, ist
@@ -2248,7 +2287,7 @@ const AKTION = {
     feld.value = '';
     // „Notiert" wäre die falsche Auskunft: Notiert ist sie, aber gelesen hat
     // sie niemand, und das ist der Unterschied, um den es hier geht.
-    melden('Notiert – geschickt ist sie damit noch nicht.');
+    melden('Notiert. Geht in etwa einer Minute raus.');
     zeichne();
   },
   'idee-haken': (el) => { store.ideeUmschalten(el.dataset.id); zeichne(); },
