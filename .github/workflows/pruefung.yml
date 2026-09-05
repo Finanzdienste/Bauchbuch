@@ -20,9 +20,12 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Die eine Zusage der App. Der schnelle Nachweis ohne Browser – der
-      # gründliche steht in tests/test-still.mjs.
-      - name: Kein Weg nach draußen
+      # Die Zusage der App: genau ein Versandweg, an genau eine Adresse, und
+      # Gesundheitsdaten gehen nie mit. Der schnelle Nachweis ohne Browser –
+      # die gründlichen stehen in tests/test-still.mjs (was auf Tastendruck
+      # hinausgeht) und tests/test-schweigen.mjs (dass ohne Tastendruck nichts
+      # passiert).
+      - name: Nur der eine Weg nach draußen
         run: python3 tools/pruefung/keine-leitung.py
 
       # Die Rechnung darf nicht an der Anzeige hängen, und ein neues Modul muss

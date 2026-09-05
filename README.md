@@ -6,11 +6,13 @@ Schlaf, Bewegung und Zyklus. Nach ein paar Wochen zeigt die App, was
 zusammenfällt, ordnet das Bild ein und macht daraus einen Zettel für den
 nächsten Arzttermin.
 
-**Alles bleibt auf dem Gerät.** Es gibt keinen Server, kein Konto, keine
-Anmeldung und keine Zählung von Aufrufen. Die Eintragungen liegen im
-`localStorage` des Browsers, in dem sie gemacht wurden, und verlassen ihn nie.
-Das ist keine Absichtserklärung, sondern eine geprüfte Eigenschaft – siehe
-[Die eine Zusage](#die-eine-zusage).
+**Gesundheitsdaten verlassen dieses Gerät nie.** Es gibt keinen Server, kein
+Konto, keine Anmeldung und keine Zählung von Aufrufen. Die Eintragungen liegen
+im `localStorage` des Browsers, in dem sie gemacht wurden, und gehen dort nicht
+weg. Das Einzige, was diese App je verschickt, sind die Verbesserungsvorschläge
+unter „Ideen" – und nur, wenn jemand sie eintippt und auf „Direkt schicken"
+tippt. Das ist keine Absichtserklärung, sondern eine dreifach geprüfte
+Eigenschaft: siehe [Die Zusage](#die-zusage).
 
 ---
 
@@ -68,14 +70,15 @@ wäre „jetzt" gelogen.
 
 **Ideen.** Ein Zettel für Verbesserungsvorschläge zur App selbst. Wer die App
 benutzt, sitzt selten neben dem, der sie baut – deshalb ist der eigentliche
-Knopf nicht „Eintragen", sondern „Schicken": die Liste als Text, über
-`navigator.share` oder die Zwischenablage, zum Einfügen in eine Nachricht.
-**Die App hat keinen Rückkanal.** Eine eingetragene Idee kommt bei niemandem
-an, solange sie niemand herausschickt, und das ist der Fehler, den man nicht
-bemerkt – man hat es ja aufgeschrieben. Deshalb steht oben, wie viele noch
-nicht draußen sind, und deshalb meldet das Eintragen „Notiert – geschickt ist
-sie damit noch nicht." Ideen stehen neben den Eintragungen, nicht in ihnen,
-und tauchen in keiner Auswertung auf.
+Knopf nicht „Eintragen", sondern **„Direkt schicken"**: ein Tipp, und die
+Liste liegt im Briefkasten dessen, der die App baut. Das ist das Einzige, was
+diese App je verschickt, und sie tut es nur auf diesen Druck (siehe *Die
+Zusage*). „Anders schicken" nimmt stattdessen das Teilen-Menü des Geräts,
+„Kopieren" die Zwischenablage – beides für den Fall, dass jemandem der direkte
+Weg nicht geheuer ist oder gerade kein Netz da ist. Solange etwas nicht
+draußen ist, steht oben, wie viel, und das Eintragen meldet „Notiert –
+geschickt ist sie damit noch nicht." Ideen stehen neben den Eintragungen,
+nicht in ihnen, und tauchen in keiner Auswertung auf.
 
 **Mehr.** Sicherung als JSON-Datei und zurück – **wahlweise mit Passwort
 verschlüsselt** (siehe unten) –, der Bericht für den Arzttermin, die
@@ -372,25 +375,69 @@ es jemandem zu schlecht ging, um etwas einzutragen – wer sie als gute Tage
 zählt, baut eine App, die genau dann Besserung meldet. Deshalb trägt jeder Tag
 ein `notiert`, und der Verlauf zeigt eine Lücke als Lücke.
 
-## Die eine Zusage
+## Die Zusage
 
-„Alles bleibt auf dem Gerät" ist die einzige Zusage, die diese App macht, und
-ein Satz in einer README ist keine Eigenschaft. Zwei Prüfungen halten ihn:
+**Gesundheitsdaten verlassen dieses Gerät nie.** Kein Eintrag, kein Tag, keine
+Auswertung, kein Bericht, keine Kennung, keine Zählung von Aufrufen.
 
-* `tools/pruefung/keine-leitung.py` – der schnelle Nachweis ohne Browser:
-  keine Adresse im Quelltext, kein `XMLHttpRequest`, kein `sendBeacon`, kein
-  `WebSocket`, keine eingebundene Schrift, kein CSS-Import.
-* `tests/test-still.mjs` – der gründliche: Ein Browser geht einmal durch die
-  ganze App, jede Anfrage wird mitgeschrieben, und alles, was nicht auf die
-  eigene Adresse zeigt, lässt den Test scheitern.
+Die Zusage lautete lange schärfer — „die App sendet überhaupt nichts" — und
+sie ist einmal enger gefasst worden:
 
-Beide laufen bei jedem Push.
+| | |
+| --- | --- |
+| **früher** | Die App sendet nichts. |
+| **jetzt** | Die App sendet nichts außer den Ideen, die du selbst eintippst und selbst abschickst. |
 
-Eine Ausnahme mit Ansage: Der Knopf „Teilen" unter „Ideen" ruft
-`navigator.share` auf, sofern das Gerät es kennt. Auch damit sendet die App
-nichts – der Text wird an das Betriebssystem übergeben, das daraufhin *den
-Nutzer* fragt, wohin. Wo es die Schnittstelle nicht gibt, bleibt der
-gewöhnliche Weg über die Zwischenablage.
+Der Grund war kein Sinneswandel, sondern eine Sackgasse: Der Reiter „Ideen"
+nahm Verbesserungsvorschläge entgegen, und niemand bekam sie je zu sehen. Wer
+etwas eintrug, hatte es *aufgeschrieben* — angekommen war es nirgends. Der
+Umweg über das Teilen-Menü half, aber ein Umweg bleibt ein Umweg, und Umwege
+werden nicht gegangen.
+
+Was sich dadurch **nicht** geändert hat, ist der Grund für das Ganze. Und ein
+Satz in einer README ist keine Eigenschaft, also halten ihn drei Prüfungen:
+
+* **`tools/pruefung/keine-leitung.py`** — der schnelle Nachweis ohne Browser.
+  Genau **eine** Datei darf eine fremde Adresse enthalten (`js/briefkasten.js`)
+  und genau **eine** Adresse darf darin stehen. Diese Datei importiert
+  `store.js` nicht und darf `localStorage` und `eintraege` nicht anfassen — sie
+  bekommt einen fertigen Text übergeben und kann an ein Tagebuch gar nicht
+  herankommen. Überall sonst: keine Adresse, kein `XMLHttpRequest`, kein
+  `sendBeacon`, kein `WebSocket`, keine eingebundene Schrift, kein CSS-Import.
+* **`tests/test-still.mjs`** — was auf Tastendruck hinausgeht. Ein Browser geht
+  durch die ganze App, jede Anfrage wird mitgeschrieben. Bis zum Druck auf
+  „Direkt schicken": null. Danach genau eine, an genau eine Adresse, mit genau
+  einem Feld — und ihr Rumpf wird gegen das Tagebuch im Speicher gehalten.
+  Taucht daraus auch nur ein Wort auf, ist der Test rot.
+* **`tests/test-schweigen.mjs`** — dass ohne Tastendruck nichts passiert. Ein
+  volles Tagebuch über 90 Tage, dann wird alles angefasst, was sich anfassen
+  lässt: Reiter, Zeiträume, Monate, Aufklapper, Bericht, Sicherung, Atemübung,
+  Neuladen. Erwartet werden **null** Anfragen. Nicht „keine verdächtigen".
+  Null.
+
+Alle drei laufen bei jedem Push. Und sie sind gegen sich selbst geprüft: Eine
+zweite Adresse, eine Adresse in einem anderen Modul, ein Zugriff auf das
+Tagebuch in der Tür, ein `sendBeacon`, ein „harmlos gemeinter" Automatikversand
+beim Zeichnen, ein zur Fehlersuche angehängtes Tagebuch — jeder dieser sechs
+Versuche lässt die Prüfungen scheitern.
+
+Denn genau darum geht es: Ein Programm, das etwas verschicken *kann*, ist eine
+Zeile davon entfernt, es auch von selbst zu tun — beim Starten, beim
+Reiterwechsel, „nur die Ideen, wenn ohnehin Netz da ist". Jede dieser Zeilen
+wäre für sich harmlos gemeint und würde diese App zu einer anderen machen.
+
+Wohin die Ideen gehen: in einen eigenen kleinen Kasten
+([Finanzdienste/Briefkasten](https://github.com/Finanzdienste/Briefkasten)),
+der einen Text entgegennimmt und sonst nichts kann — kein Feld für ein
+Tagebuch, keins für einen Namen, keins für eine Kennung. Er speichert den
+Wortlaut und wann er ankam.
+
+Es geht nie etwas von selbst hinaus: kein Wiederholen im Hintergrund, keine
+Warteschlange, die später doch noch sendet. Klappt es nicht, sagt die App das,
+der Text bleibt stehen, und es entscheidet wieder ein Mensch. Wem der direkte
+Weg nicht geheuer ist, nimmt weiterhin „Anders schicken" — das übergibt den
+Text an das Teilen-Menü des Geräts, das *den Nutzer* fragt, wohin — oder die
+Zwischenablage.
 
 ## Benutzen
 
@@ -491,6 +538,8 @@ js/ansprechen.js    ob ein Mittel etwas bewirkt – und was Ausbleiben heißt
 js/luecken.js       was noch fehlt und was keine App beantwortet
 js/bild.js          Warnzeichen, Muster, Differentialdiagnosen, Fragen
 js/rat.js           Vorschläge für heute, jeder mit seinem Grund
+js/briefkasten.js   die einzige Stelle, die nach draußen spricht –
+                    ein Text, eine Adresse, nur auf Tastendruck
 js/tresor.js        die Sicherung mit Passwort – PBKDF2 und AES-GCM aus
                     dem Browser, ohne Bibliothek
 js/bericht.js       der Zettel für den Arzttermin, als reiner Text
@@ -507,7 +556,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Siebenundzwanzig Dateien, über 560 Prüfungen, alle in einem echten Chromium. Kein
+Achtundzwanzig Dateien, über 580 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -539,7 +588,8 @@ den Rückgabewert.
 | `test-tresor.mjs` | in der Datei steht nichts Lesbares; falsches Passwort und veränderte Datei gehen nicht auf |
 | `test-termin.mjs` | das Fenster fängt am Termin an und die Richtung rechnet nicht von davor mit |
 | `test-schnell.mjs` | ein Tipp legt dieselbe Mahlzeit an, nichts Erfundenes – und die Versuchs-Historie bleibt stehen |
-| `test-still.mjs` | die App schickt nichts |
+| `test-still.mjs` | bis zum Tastendruck null Anfragen; danach genau eine, ohne ein Wort aus dem Tagebuch |
+| `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,
 sondern an Verläufen, deren richtiges Ergebnis vorher feststeht. Der wichtigste
