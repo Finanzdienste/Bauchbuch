@@ -33,7 +33,7 @@ MODULES = ['js/datum.js', 'js/text.js', 'js/daten.js', 'js/mittel.js',
            'js/klang.js', 'js/atem.js', 'js/zyklus.js', 'js/chart.js',
            'js/store.js', 'js/auswertung.js', 'js/stuhl.js', 'js/kriterien.js',
            'js/versuch.js', 'js/ansprechen.js', 'js/luecken.js', 'js/schichten.js',
-           'js/zeitprofil.js',
+           'js/zeitprofil.js', 'js/wechselwirkung.js',
            'js/unterleib.js', 'js/bild.js',
            'js/rat.js', 'js/tresor.js', 'js/briefkasten.js',
            'js/bericht.js', 'js/app.js']
