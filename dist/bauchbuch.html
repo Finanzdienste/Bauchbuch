@@ -437,6 +437,10 @@ p { margin: 0 0 8px; }
 .stand.s-haelt summary b { color: var(--bad); }
 .stand.s-verschwindet summary b { color: var(--ok); }
 .stand.s-nur-dann summary b { color: var(--warn); }
+.stand.s-zeit summary b { color: var(--accent); }
+/* Die Zeile im Zeitprofil trägt drei Angaben; auf einem schmalen Gerät darf sie
+   umbrechen, sonst schiebt sie die Namensspalte aus dem Bild. */
+.karte-zeit .wartend li > .klein { white-space: normal; text-align: right; }
 .schichten { list-style: none; margin: 8px 0; padding: 0; }
 .schichten li {
   display: flex; justify-content: space-between; gap: 8px;
@@ -5120,6 +5124,349 @@ const SCHICHT_WORT = {
   unklar: 'nicht prüfbar',
 };
 
+/* ===== js/zeitprofil.js ===== */
+/*
+ * Wann kommt es? – das Zeitprofil nach dem Essen
+ *
+ * WARUM DAS FESTE FENSTER ZU WENIG IST
+ *
+ * Bisher galt: Beschwerden in den vier Stunden nach einer Mahlzeit zählen zu
+ * ihr. Das ist eine brauchbare Faustregel und wirft eine der nützlichsten
+ * Auskünfte weg, die in einem Tagebuch steckt – nämlich *wann genau*.
+ *
+ * Der Bauch braucht Zeit, und zwar je nach Ort verschieden lange:
+ *
+ *   0–2 Stunden   Der Magen ist noch voll. Was hier weh tut, hat mit Säure,
+ *                 Dehnung und Magenentleerung zu tun – Reflux, Gastritis,
+ *                 funktionelle Dyspepsie.
+ *   2–4 Stunden   Der Speisebrei ist im Dünndarm. Fett und Galle brauchen
+ *                 ungefähr so lange.
+ *   4–8 Stunden   Jetzt erst erreicht der Rest den Dickdarm. Was Bakterien
+ *                 vergären – FODMAP, Laktose, Ballaststoffe – meldet sich
+ *                 nicht früher. Es *kann* nicht früher sein.
+ *
+ * Für die Sprechstunde ist das ein Unterschied ums Ganze: „Nach dem Essen
+ * tut es weh" führt zum Säureblocker, „sechs Stunden nach dem Essen tut es
+ * weh" führt zur Ernährungsberatung. Beides steht im selben Tagebuch.
+ *
+ * DIE FALLE, DIE DIESE DATEI VERMEIDET
+ *
+ * Wer dreimal am Tag isst, dessen Beschwerde vier Stunden nach dem Frühstück
+ * ist gleichzeitig eine Stunde nach dem Mittagessen. Zählte man sie beiden
+ * Mahlzeiten zu, stünde am Ende jede Beschwerde in jedem Fenster, und das
+ * Profil wäre Rauschen mit drei Balken.
+ *
+ * Deshalb: Jede Beschwerde gehört **der letzten Mahlzeit davor** und keiner
+ * anderen. Das hat einen Preis, und er wird hier ausgesprochen statt versteckt:
+ * Das späte Fenster einer Mahlzeit lässt sich nur beobachten, wenn in diesen
+ * Stunden nichts dazwischengegessen wurde. Für die meisten Mahlzeiten ist es
+ * deshalb gar nicht beobachtbar – und eine nicht beobachtbare Stunde ist keine
+ * beschwerdefreie Stunde. Sie zählt hier als das, was sie ist: nicht erhoben.
+ *
+ * Am Abendessen liegt das Fenster meist frei, am Frühstück selten. Wer also
+ * wissen will, was der Dickdarm macht, muss länger Tagebuch führen als jemand,
+ * der nach dem Magen fragt. Auch das sagt die App lieber, als es durch eine
+ * Zahl zu ersetzen, die so aussieht, als wäre sie erhoben worden.
+ */
+
+
+/**
+ * Die drei Fenster.
+ *
+ * Die Grenzen sind gerundet und stimmen für niemanden genau; die
+ * Magenentleerung schwankt zwischen Menschen und Mahlzeiten erheblich. Sie
+ * sind trotzdem nicht beliebig: Vergärung im Dickdarm *vor* vier Stunden gibt
+ * es nicht, und darauf beruht die ganze Auskunft.
+ */
+const FENSTER = [
+  {
+    id: 'frueh',
+    name: '0–2 Stunden danach',
+    kurz: 'früh',
+    von: 0,
+    bis: 2,
+    ort: 'Magen und Speiseröhre',
+    deutung: 'So früh kommt Beschwerde aus dem Magen oder der Speiseröhre – '
+      + 'Säure, Dehnung, verzögerte Entleerung. Für den Dickdarm ist es zu früh.',
+  },
+  {
+    id: 'mittel',
+    name: '2–4 Stunden danach',
+    kurz: 'mittel',
+    von: 2,
+    bis: 4,
+    ort: 'Dünndarm und Galle',
+    deutung: 'In dieser Zeit arbeitet der Dünndarm an Fett und Galle. Das '
+      + 'passt eher zu fettem Essen als zu vergärbaren Kohlenhydraten.',
+  },
+  {
+    id: 'spaet',
+    name: '4–8 Stunden danach',
+    kurz: 'spät',
+    von: 4,
+    bis: 8,
+    ort: 'Dickdarm',
+    deutung: 'So spät ist der Rest im Dickdarm angekommen. Was dort vergärt – '
+      + 'FODMAP, Laktose, Ballaststoffe – kann sich gar nicht früher melden.',
+  },
+];
+
+/** Mindestens so viele beobachtbare Mahlzeiten je Seite und Fenster. */
+const MINDEST_JE_FENSTER = 6;
+
+/** Ab wie vielen zugeordneten Beschwerden das allgemeine Profil etwas sagt. */
+const MINDEST_BESCHWERDEN = 12;
+
+/*
+ * Ein Schwerpunkt muss deutlich sein.
+ *
+ * Drei Fenster heißen drei Vergleiche, und wer aus drei Zahlen die größte
+ * heraussucht, findet immer eine. Sie muss deshalb nicht nur die größte sein,
+ * sondern die nächste um einen halben Punkt schlagen.
+ */
+const SCHWELLE = 1;
+const ABSTAND = 0.5;
+
+const mittelwert = (liste) => (liste.length
+  ? liste.reduce((s, x) => s + x, 0) / liste.length : 0);
+
+/**
+ * Jede Beschwerde der letzten Mahlzeit davor zuordnen.
+ *
+ * @returns {Map} Mahlzeit-Kennung -> [{ stunden, staerke }]
+ */
+function zuordnen(eintraege) {
+  const essen = eintraege.filter((e) => e.art === 'essen')
+    .map((e) => ({ e, t: zeitpunkt(e.am, e.um) }))
+    .sort((a, b) => a.t - b.t);
+  const zu = new Map();
+  essen.forEach((x) => zu.set(x.e.id, []));
+
+  eintraege.filter((e) => e.art === 'beschwerde').forEach((b) => {
+    const t = zeitpunkt(b.am, b.um);
+    let letzte = null;
+    // Rückwärts: die erste Mahlzeit, die vor der Beschwerde liegt, ist die
+    // gesuchte. Gleichzeitigkeit zählt nicht – wer beim Essen schon Schmerzen
+    // hat, hat sie nicht vom Essen.
+    for (let i = essen.length - 1; i >= 0; i--) {
+      if (essen[i].t < t) { letzte = essen[i]; break; }
+    }
+    if (!letzte) return;
+    const stunden = stundenDazwischen(letzte.t, t);
+    if (stunden > 8) return;
+    zu.get(letzte.e.id).push({ stunden, staerke: Number(b.staerke) || 0 });
+  });
+  return zu;
+}
+
+/**
+ * Für jede Mahlzeit: was in welchem Fenster kam – und welches Fenster
+ * überhaupt beobachtbar war.
+ *
+ * Beobachtbar heißt zweierlei: Es wurde in dieser Zeit nichts dazwischen
+ * gegessen (sonst gehörte die Beschwerde der anderen Mahlzeit), und das
+ * Tagebuch lief noch (sonst wäre „nichts eingetragen" als „nichts gewesen"
+ * gezählt – der Fehler, den diese App nirgends macht).
+ */
+function fensterWerte(eintraege) {
+  const essen = eintraege.filter((e) => e.art === 'essen')
+    .map((e) => ({ e, t: zeitpunkt(e.am, e.um) }))
+    .sort((a, b) => a.t - b.t);
+  const zu = zuordnen(eintraege);
+  const letzterEintrag = eintraege.reduce(
+    (m, e) => Math.max(m, zeitpunkt(e.am, e.um)), 0,
+  );
+
+  return essen.map((x, i) => {
+    const naechste = essen[i + 1] ? stundenDazwischen(x.t, essen[i + 1].t) : Infinity;
+    const tagebuchBis = stundenDazwischen(x.t, letzterEintrag);
+    const liste = zu.get(x.e.id) || [];
+    const werte = {};
+    FENSTER.forEach((f) => {
+      const beobachtbar = naechste >= f.bis && tagebuchBis >= f.bis;
+      const drin = liste.filter((b) => b.stunden > f.von && b.stunden <= f.bis);
+      werte[f.id] = {
+        beobachtbar,
+        wert: drin.reduce((m, b) => Math.max(m, b.staerke), 0),
+      };
+    });
+    return { m: x.e, am: x.e.am, merkmale: new Set(merkmale(x.e)), werte };
+  });
+}
+
+/**
+ * Wann kommen die Beschwerden überhaupt? – ohne Blick auf einzelne Auslöser.
+ *
+ * Diese Zahl beantwortet die erste Frage der Sprechstunde („kommt das nach dem
+ * Essen?") genauer als ein Ja und ist völlig unabhängig davon, ob jemand seine
+ * Zutaten sauber einträgt.
+ */
+function zeitBild(eintraege) {
+  const zu = zuordnen(eintraege);
+  const alle = [];
+  zu.forEach((liste) => liste.forEach((b) => alle.push(b)));
+  const gesamt = eintraege.filter((e) => e.art === 'beschwerde').length;
+
+  const teile = FENSTER.map((f) => {
+    const drin = alle.filter((b) => b.stunden > f.von && b.stunden <= f.bis);
+    return {
+      id: f.id,
+      name: f.name,
+      ort: f.ort,
+      anzahl: drin.length,
+      anteil: alle.length ? drin.length / alle.length : 0,
+      schnitt: mittelwert(drin.map((b) => b.staerke)),
+    };
+  });
+
+  if (alle.length < MINDEST_BESCHWERDEN) {
+    return {
+      pruefbar: false,
+      teile,
+      zugeordnet: alle.length,
+      gesamt,
+      satz: `Bisher lassen sich ${alle.length} Beschwerden einer Mahlzeit `
+        + 'davor zuordnen. Für ein Zeitprofil sind das zu wenige – das heißt '
+        + 'nicht, dass es keines gibt.',
+    };
+  }
+
+  const sortiert = [...teile].sort((a, b) => b.anteil - a.anteil);
+  const spitze = sortiert[0];
+  const zweite = sortiert[1];
+  // Auch hier: die größte von dreien ist noch kein Schwerpunkt. Sie muss die
+  // Hälfte der Zuordnungen tragen und die nächste deutlich schlagen.
+  const deutlich = spitze.anteil >= 0.45 && (spitze.anteil - zweite.anteil) >= 0.15;
+  const fenster = FENSTER.find((f) => f.id === spitze.id);
+
+  return {
+    pruefbar: true,
+    teile,
+    zugeordnet: alle.length,
+    gesamt,
+    schwerpunkt: deutlich ? spitze.id : null,
+    satz: deutlich
+      ? `Die meisten Beschwerden kommen ${spitze.name.toLowerCase()} `
+        + `(${Math.round(spitze.anteil * 100)} % der zugeordneten). ${fenster.deutung}`
+      : 'Die Beschwerden verteilen sich über die Stunden nach dem Essen, ohne '
+        + 'erkennbaren Schwerpunkt. Das spricht eher gegen einen einzelnen Ort '
+        + 'als Ursache.',
+    hinweis: 'Zugeordnet wird immer der letzten Mahlzeit davor. Späte Stunden '
+      + 'sind deshalb seltener beobachtbar als frühe – wer alle drei Stunden '
+      + 'isst, kann über den Dickdarm wenig erfahren.',
+  };
+}
+
+/**
+ * Und jetzt je Auslöser: wann meldet sich *dieses* Essen?
+ *
+ * Der Vergleich ist derselbe wie in der Auslöserbilanz – Mahlzeiten mit dem
+ * Merkmal gegen die übrigen –, nur getrennt nach Fenster. Ein Auslöser, der
+ * sich erst nach sechs Stunden zeigt, ist ein anderer Befund als einer, der
+ * nach einer halben Stunde brennt, auch wenn der Vier-Stunden-Schnitt für
+ * beide dasselbe sagt.
+ */
+function zeitProfil(bewertet, id) {
+  const teile = FENSTER.map((f) => {
+    const mit = bewertet.filter((b) => b.merkmale.has(id) && b.werte[f.id].beobachtbar);
+    const ohne = bewertet.filter((b) => !b.merkmale.has(id) && b.werte[f.id].beobachtbar);
+    const pruefbar = mit.length >= MINDEST_JE_FENSTER && ohne.length >= MINDEST_JE_FENSTER;
+    const schnittMit = mittelwert(mit.map((b) => b.werte[f.id].wert));
+    const schnittOhne = mittelwert(ohne.map((b) => b.werte[f.id].wert));
+    return {
+      id: f.id,
+      name: f.name,
+      kurz: f.kurz,
+      ort: f.ort,
+      pruefbar,
+      faelle: mit.length,
+      gegenFaelle: ohne.length,
+      schnittMit,
+      schnittOhne,
+      differenz: pruefbar ? schnittMit - schnittOhne : 0,
+      fehlt: Math.max(0, MINDEST_JE_FENSTER - Math.min(mit.length, ohne.length)),
+    };
+  });
+
+  const pruefbare = teile.filter((t) => t.pruefbar);
+  if (!pruefbare.length) {
+    return {
+      teile,
+      pruefbare: 0,
+      schwerpunkt: null,
+      satz: 'Wann genau es sich meldet, lässt sich noch nicht sagen: In keinem '
+        + 'Zeitfenster sind genug beobachtbare Mahlzeiten beisammen. Beobachtbar '
+        + 'ist ein Fenster nur, wenn darin nichts dazwischengegessen wurde.',
+    };
+  }
+
+  const sortiert = [...pruefbare].sort((a, b) => b.differenz - a.differenz);
+  const spitze = sortiert[0];
+  const zweite = sortiert[1];
+  const deutlich = spitze.differenz >= SCHWELLE
+    && (!zweite || (spitze.differenz - zweite.differenz) >= ABSTAND);
+
+  if (!deutlich) {
+    return {
+      teile,
+      pruefbare: pruefbare.length,
+      schwerpunkt: null,
+      satz: pruefbare.length === 1
+        ? `Bisher ist nur das Fenster „${pruefbare[0].name}" besetzt genug; für `
+          + 'einen Vergleich der Zeitpunkte fehlt der Rest.'
+        : 'Ein deutlicher Zeitpunkt ist nicht zu erkennen – der Unterschied '
+          + 'verteilt sich über die Stunden danach.',
+    };
+  }
+
+  const f = FENSTER.find((x) => x.id === spitze.id);
+  return {
+    teile,
+    pruefbare: pruefbare.length,
+    schwerpunkt: spitze.id,
+    satz: `Auffällig wird es vor allem ${spitze.name.toLowerCase()}. ${f.deutung}`,
+  };
+}
+
+/**
+ * Was das feste Fenster gar nicht sehen kann.
+ *
+ * Und das ist der eigentliche Gewinn dieser Datei. Die Auslöserbilanz zählt
+ * Beschwerden in den vier Stunden nach dem Essen; ein Auslöser, der sich erst
+ * nach sechs Stunden meldet, taucht dort nicht als „unauffällig" auf, sondern
+ * überhaupt nicht. Er ist kein schwacher Befund, er ist ein ungestellter.
+ *
+ * Genau danach wird hier gesucht – und **nur** danach: Zurückgegeben wird ein
+ * Auslöser nur, wenn sein Schwerpunkt jenseits des eingestellten Fensters
+ * liegt. Das ist keine Feinheit, sondern der Schutz vor der Fischerei: Drei
+ * Fenster mal zwanzig Auslöser sind sechzig Vergleiche, und wer in sechzig
+ * Vergleichen sucht, findet immer etwas. Ein früher Schwerpunkt wäre der Bilanz
+ * ohnehin aufgefallen – ihn hier ein zweites Mal zu melden hieße, dieselbe Zahl
+ * zweimal zu zählen und die Trefferchance zu verdoppeln.
+ *
+ * @param {object[]} fenster  aus fensterWerte()
+ * @param {string[]} ids      Auslöser, die die Bilanz *nicht* auffällig fand
+ * @param {number} bisher     das eingestellte Fenster in Stunden
+ */
+function spaeteFunde(fenster, ids, bisher = 4) {
+  const raus = [];
+  ids.forEach((id) => {
+    const p = zeitProfil(fenster, id);
+    if (!p.schwerpunkt) return;
+    const f = FENSTER.find((x) => x.id === p.schwerpunkt);
+    // Erst ab der Stunde, an der die alte Rechnung aufhört zu schauen.
+    if (f.von < bisher) return;
+    const teil = p.teile.find((x) => x.id === p.schwerpunkt);
+    raus.push({ id, profil: p, teil, fensterName: f.name, ort: f.ort });
+  });
+  return raus.sort((a, b) => b.teil.differenz - a.teil.differenz);
+}
+
+/** Für die Anzeige: das Fenster in einem Wort. */
+const FENSTER_WORT = Object.fromEntries(
+  FENSTER.map((f) => [f.id, f.name]),
+);
+
 /* ===== js/unterleib.js ===== */
 /*
  * Der Unterleib – und warum ein Magentagebuch danach fragt.
@@ -6481,6 +6828,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -6609,11 +6957,13 @@ function arztBericht(zustand, von, bis) {
     sag();
   }
 
-  const bilanz = ausloeserBilanz(imZeitraum, {
+  const alleAusloeser = ausloeserBilanz(imZeitraum, {
     fenster: zustand.fenster,
     mindestFaelle: zustand.mindestFaelle,
     eigene: zustand.eigeneAusloeser,
-  }).filter((b) => b.genug && einstufung(b) !== 'neutral' && einstufung(b) !== 'unauffaellig');
+  });
+  const bilanz = alleAusloeser.filter((b) => b.genug
+    && einstufung(b) !== 'neutral' && einstufung(b) !== 'unauffaellig');
 
   /*
    * Bevor ein Auslöser auf dem Zettel steht, wird er gegen die Umstände
@@ -6628,7 +6978,12 @@ function arztBericht(zustand, von, bis) {
    * verschwindet, steht weiter unten und nicht hier oben.
    */
   const bewertet = bewerteteMahlzeiten(imZeitraum, zustand.fenster);
-  const gehalten = bilanz.map((b) => ({ b, stand: haeltStand(bewertet, b.id, tage) }));
+  const fenster = fensterWerte(imZeitraum);
+  const gehalten = bilanz.map((b) => ({
+    b,
+    stand: haeltStand(bewertet, b.id, tage),
+    zeit: zeitProfil(fenster, b.id),
+  }));
   const bleibt = gehalten.filter((x) => x.stand.urteil !== 'verschwindet');
   const zerfallen = gehalten.filter((x) => x.stand.urteil === 'verschwindet');
 
@@ -6638,12 +6993,46 @@ function arztBericht(zustand, von, bis) {
   if (bleibt.length) {
     sag(`AUFFÄLLIG IM ZEITRAUM VON ${zustand.fenster} STUNDEN NACH DEM ESSEN`);
     sag('  (Vergleich: mittlere Beschwerdestärke danach gegen alle übrigen Mahlzeiten)');
-    bleibt.slice(0, 8).forEach(({ b, stand }) => {
+    bleibt.slice(0, 8).forEach(({ b, stand, zeit }) => {
       sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
       const wo = stand.urteil === 'nur-dann' ? ` (${(stand.wo || []).join(', ')})` : '';
       sag(`    unter gleichen Umständen: ${SCHICHT_WORT[stand.urteil]}${wo}`
         + (stand.urteil === 'unklar' ? ' – zu wenige Tage mit Angaben zu'
           + ' Anspannung, Schlaf oder Zyklus' : ''));
+      // Der Zeitpunkt nur, wenn er deutlich ist. „Verteilt sich" ist für die
+      // Sprechstunde keine Auskunft, sondern eine Zeile mehr zu lesen.
+      if (zeit.schwerpunkt) {
+        const f = zeit.teile.find((t) => t.id === zeit.schwerpunkt);
+        sag(`    auffällig vor allem ${f.name.toLowerCase()} (${f.ort})`);
+      }
+    });
+    sag();
+  }
+
+  /*
+   * Und was das Fenster gar nicht sehen konnte.
+   *
+   * Vier Stunden sind eine Konvention, keine Physiologie. Was im Dickdarm
+   * vergärt, meldet sich frühestens nach vier bis acht Stunden – für die
+   * Bilanz oben existiert es damit nicht. Diese Zeilen sind der Unterschied
+   * zwischen „nichts gefunden" und „nicht danach gesucht".
+   */
+  const spaet = spaeteFunde(
+    fenster,
+    alleAusloeser.filter((b) => !['auffaellig', 'moeglich'].includes(einstufung(b)))
+      .map((b) => b.id),
+    zustand.fenster || 4,
+  );
+  if (spaet.length) {
+    sag('ERST NACH DEM FENSTER AUFFÄLLIG');
+    sag(`  (Im Fenster von ${zustand.fenster || 4} Stunden unauffällig, später nicht.`);
+    sag('  Gezählt sind nur Mahlzeiten, bei denen das späte Fenster überhaupt');
+    sag('  beobachtbar war – also nichts dazwischengegessen wurde.)');
+    spaet.slice(0, 4).forEach((x) => {
+      sag(`  ${ausloeserName(x.id, zustand.eigeneAusloeser).padEnd(24)} `
+        + `${fmtZahl(x.teil.schnittMit)} gegen ${fmtZahl(x.teil.schnittOhne)} `
+        + `(${x.teil.faelle} damit, ${x.teil.gegenFaelle} ohne)`);
+      sag(`    ${x.fensterName}, also ${x.ort}`);
     });
     sag();
   }
@@ -6679,6 +7068,26 @@ function arztBericht(zustand, von, bis) {
       sag(`  ${k.kurz.padEnd(24)} ${fmtZahl(k.schnittMit)} gegen ${fmtZahl(k.schnittOhne)} `
         + `(${k.faelle} Mahlzeiten damit, ${k.gegenFaelle} ohne)`);
     });
+    sag();
+  }
+
+  /*
+   * Wie lange nach dem Essen – die Frage nach dem Ort.
+   *
+   * „Nach dem Essen tut es weh" führt zum Säureblocker; „sechs Stunden nach dem
+   * Essen tut es weh" führt zur Ernährungsberatung. Aus dem Kopf beantwortet
+   * das niemand, aus dem Tagebuch fällt es ab.
+   */
+  const zb = zeitBild(imZeitraum);
+  if (zb.zugeordnet) {
+    sag('WIE LANGE NACH DEM ESSEN');
+    zb.teile.forEach((t) => {
+      sag(`  ${t.name.padEnd(24)} ${String(t.anzahl).padStart(3)} `
+        + `(${prozent(t.anteil)}), im Mittel ${fmtZahl(t.schnitt)}  – ${t.ort}`);
+    });
+    umbrochen(zb.satz).forEach((z) => sag(`  ${z}`));
+    sag(`  Zugeordnet: ${zb.zugeordnet} von ${zb.gesamt} Beschwerden.`);
+    umbrochen(`(${zb.hinweis})`, 66).forEach((z) => sag(`  ${z}`));
     sag();
   }
 
@@ -7516,7 +7925,106 @@ function musterDaten(s) {
       return g ? g.id : null;
     },
   });
-  return { heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel };
+  // Die Fensterwerte einmal für alle: Sie kosten einen Durchlauf über alle
+  // Beschwerden und werden von der Übersichtskarte und von jedem Fund
+  // gebraucht.
+  const fenster = fensterWerte(s.eintraege);
+  // Gesucht wird nur unter denen, die die Bilanz nicht ohnehin schon nennt –
+  // sonst stünde dieselbe Zutat zweimal da, einmal je Rechenweg.
+  const uebersehen = spaeteFunde(
+    fenster,
+    bilanz.filter((b) => !['auffaellig', 'moeglich'].includes(einstufung(b))).map((b) => b.id),
+    s.fenster || 4,
+  );
+  return {
+    heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel, fenster,
+    uebersehen,
+    zeit: zeitBild(s.eintraege),
+  };
+}
+
+/*
+ * Was das eingestellte Fenster nicht sehen kann.
+ *
+ * Die Bilanz zählt Beschwerden in den vier Stunden nach dem Essen. Was sich
+ * erst nach sechs meldet – und im Dickdarm vergärt nichts früher –, kommt dort
+ * nicht als „unauffällig" vor, sondern gar nicht. Diese Karte stellt die
+ * Frage nach, statt sie am Fenster scheitern zu lassen.
+ */
+function spaetTeil(s, d) {
+  if (!d.uebersehen.length) return '';
+  return `<div class="karte karte-spaet">
+    <h3>Erst später auffällig</h3>
+    <p class="klein">Diese Auslöser fallen im eingestellten Fenster von
+      ${s.fenster || 4} Stunden nicht auf – wohl aber später. Das ist kein
+      schwächerer Befund, sondern ein anderer: So spät entsteht Beschwerde im
+      Dickdarm.</p>
+    <ul class="funde">${d.uebersehen.slice(0, 4).map((x) => `<li class="fund f-moeglich">
+      <div class="fund-kopf">
+        <b>${esc(ausloeserName(x.id, s.eigeneAusloeser))}</b>
+        <span class="fund-urteil">${esc(x.fensterName)}</span>
+      </div>
+      ${vergleichBalken(x.teil.schnittMit, x.teil.schnittOhne)}
+      <p class="klein">${x.teil.faelle} Mahlzeiten damit, ${x.teil.gegenFaelle} ohne
+        – jeweils nur die, bei denen dieses Fenster überhaupt beobachtbar war
+        (${esc(x.ort)})</p>
+    </li>`).join('')}</ul>
+  </div>`;
+}
+
+/*
+ * Wann kommt es – nicht nach der Uhr, sondern nach dem Essen.
+ *
+ * „Wann es auftritt" weiter unten zählt nach Tageszeit; das ist eine andere
+ * Frage und beantwortet vor allem, wie jemand lebt. Diese Karte zählt die
+ * Stunden seit der letzten Mahlzeit, und das sagt etwas über den Ort: Was nach
+ * einer halben Stunde brennt, kommt nicht aus dem Dickdarm, und was nach sechs
+ * Stunden bläht, kommt nicht aus dem Magen.
+ */
+function zeitTeil(d) {
+  const z = d.zeit;
+  if (!z.zugeordnet) return '';
+  const zeilen = z.teile.map((t) => `<li>
+    <span>${esc(t.name)}</span>
+    <span class="klein">${t.anzahl}× · ${Math.round(t.anteil * 100)} %
+      · im Mittel ${fmtZahl(t.schnitt)}</span>
+  </li>`).join('');
+
+  return `<div class="karte karte-zeit">
+    <h3>Wie lange nach dem Essen</h3>
+    <p>${esc(z.satz)}</p>
+    <ul class="wartend">${zeilen}</ul>
+    <p class="klein">${z.zugeordnet} von ${z.gesamt} Beschwerden ließen sich
+      einer Mahlzeit davor zuordnen. ${esc(z.hinweis)}</p>
+  </div>`;
+}
+
+/*
+ * Und dasselbe für einen einzelnen Auslöser.
+ *
+ * Der Zeitpunkt ist die Auskunft, die dem Mechanismus am nächsten kommt: Ein
+ * Auslöser, der sich erst nach Stunden meldet, wird im Dickdarm vergoren; einer
+ * mit sofortiger Wirkung nicht. In der Sprechstunde ist das der Unterschied
+ * zwischen einem Säureblocker und einer Ernährungsberatung.
+ */
+function zeitBlock(profil) {
+  const geprueft = profil.teile.filter((t) => t.pruefbar);
+  const liste = geprueft.length ? `<ul class="schichten">${geprueft.map((t) => `<li>
+    <span>${esc(t.name)}</span>
+    <span class="klein">${fmtZahl(t.schnittMit)} gegen ${fmtZahl(t.schnittOhne)}
+      · ${t.faelle}/${t.gegenFaelle} Mahlzeiten</span>
+  </li>`).join('')}</ul>` : '';
+
+  return `<details class="stand s-zeit">
+    <summary>Wann meldet es sich? <b>${profil.schwerpunkt
+  ? esc(profil.teile.find((t) => t.id === profil.schwerpunkt).name)
+  : 'kein Schwerpunkt'}</b></summary>
+    <p class="klein">${esc(profil.satz)}</p>
+    ${liste}
+    <p class="klein">Ein Fenster zählt nur, wenn in diesen Stunden nichts
+    dazwischengegessen wurde – sonst gehörte die Beschwerde der späteren
+    Mahlzeit. Späte Fenster sind deshalb dünner besetzt.</p>
+  </details>`;
 }
 
 /**
@@ -7976,6 +8484,10 @@ function musterAnsicht(s) {
     // Rechnung ist eine zusätzliche Gelegenheit für einen Zufallstreffer.
     const stand = ['auffaellig', 'moeglich'].includes(art)
       ? haeltStand(d.bewertet, b.id, s.tage) : null;
+    // Dasselbe Maß beim Zeitprofil: Wo nichts auffällt, gibt es auch keinen
+    // Zeitpunkt zu erklären.
+    const profil = ['auffaellig', 'moeglich'].includes(art)
+      ? zeitProfil(d.fenster, b.id) : null;
     // Die Aufschlüsselung nach Rolle nur, wenn es überhaupt etwas zu
     // unterscheiden gibt: Bei einer einzigen Rolle wiederholte sie die
     // Hauptzahl mit anderen Worten.
@@ -7995,6 +8507,7 @@ function musterAnsicht(s) {
         Beschwerden, sonst ${Math.round(b.quoteOhne * 100)} %</p>
       ${nachRolle}
       ${stand ? schichtBlock(stand) : ''}
+      ${profil ? zeitBlock(profil) : ''}
     </li>`;
   };
 
@@ -8041,8 +8554,9 @@ function musterAnsicht(s) {
    * hat trotzdem das Wichtigste.
    */
   return bildTeil(s) + unterleibVorschlag(s) + kriterienTeil(s, d) + versuchTeil(s, d)
-    + klassenTeil(s, d) + gefunden + wartet + ansprechenTeil(s, d)
-    + wann + wie + stuhlTeil(s) + brauchtTeil(s, d) + zyklusTeil(s) + erklaerung;
+    + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wartet + ansprechenTeil(s, d)
+    + zeitTeil(d) + wann + wie + stuhlTeil(s) + brauchtTeil(s, d)
+    + zyklusTeil(s) + erklaerung;
 }
 
 /** Der Stuhlgang in Zahlen, sobald überhaupt etwas eingetragen ist. */

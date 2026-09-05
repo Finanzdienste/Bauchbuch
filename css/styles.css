@@ -417,6 +417,10 @@ p { margin: 0 0 8px; }
 .stand.s-haelt summary b { color: var(--bad); }
 .stand.s-verschwindet summary b { color: var(--ok); }
 .stand.s-nur-dann summary b { color: var(--warn); }
+.stand.s-zeit summary b { color: var(--accent); }
+/* Die Zeile im Zeitprofil trägt drei Angaben; auf einem schmalen Gerät darf sie
+   umbrechen, sonst schiebt sie die Namensspalte aus dem Bild. */
+.karte-zeit .wartend li > .klein { white-space: normal; text-align: right; }
 .schichten { list-style: none; margin: 8px 0; padding: 0; }
 .schichten li {
   display: flex; justify-content: space-between; gap: 8px;
