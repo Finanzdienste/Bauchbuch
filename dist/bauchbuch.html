@@ -5467,6 +5467,217 @@ const FENSTER_WORT = Object.fromEntries(
   FENSTER.map((f) => [f.id, f.name]),
 );
 
+/* ===== js/wechselwirkung.js ===== */
+/*
+ * Zyklus mal Auslöser – dieselbe Menge, andere Wirkung
+ *
+ * WORUM ES GEHT
+ *
+ * Die Auslöserbilanz fragt: Ging es nach diesem Essen schlechter? Sie fragt
+ * nicht, *wann im Monat*. Und das ist bei vielen Menschen der halbe Befund.
+ *
+ * Die Empfindlichkeit des Bauchs schwankt mit dem Zyklus – nicht als Gefühl,
+ * sondern messbar: Vor und während der Periode reagiert der Darm auf dieselbe
+ * Dehnung stärker, die Passage ändert sich, Prostaglandine tun das Ihre. Wer
+ * drei Wochen lang Zwiebeln verträgt und in der vierten nicht, hat keine
+ * Zwiebelunverträglichkeit – und wird trotzdem Zwiebeln streichen, wenn die
+ * Rechnung über alle vier Wochen mittelt.
+ *
+ * Herauskommt dabei nämlich etwas, das doppelt falsch ist: In drei Wochen von
+ * vier ist der Auslöser unschuldig, in der vierten ist er es nicht, und der
+ * Mittelwert sagt „ein bisschen auffällig" – eine Aussage, die für keinen
+ * einzigen Tag stimmt.
+ *
+ * WAS DIESE DATEI NICHT TUT
+ *
+ * Sie sagt nicht voraus. Die Phasen sind aus eingetragenen Blutungstagen
+ * geschätzt (siehe js/zyklus.js, und dort steht auch, wie grob das ist). Sie
+ * taugen zum Zurückschauen und zu nichts sonst.
+ *
+ * Und sie urteilt nicht über eine einzelne Phase. Verlangt wird, dass
+ * mindestens zwei Phasen prüfbar sind – eine Zahl allein ist kein Wechsel,
+ * sondern eine Zahl.
+ */
+
+/** Mahlzeiten je Seite und Phase, ab denen eine Phase überhaupt zählt. */
+const MINDEST_JE_PHASE = 5;
+
+/** So viele Phasen müssen prüfbar sein. */
+const MINDEST_PHASEN = 2;
+
+/**
+ * Ab welchem Unterschied zwischen den Phasen von einem Wechsel die Rede ist.
+ *
+ * Anderthalb Stufen, und das ist mit Absicht mehr als die Schwelle der
+ * Auslöserbilanz selbst (eine Stufe). Hier werden Unterschiede von
+ * Unterschieden verglichen, und die schwanken stärker als die Unterschiede
+ * selbst – wer denselben Maßstab anlegte, fände in jedem Tagebuch einen
+ * Wechsel.
+ */
+const SPANNE = 1.5;
+
+/** Und irgendwo muss überhaupt eine Wirkung sein, sonst wechselt nichts. */
+const MINDEST_WIRKUNG = 1;
+
+const mittel = (liste) => (liste.length
+  ? liste.reduce((s, x) => s + x, 0) / liste.length : 0);
+
+/**
+ * Ein Auslöser, aufgeteilt nach Zyklusphase.
+ *
+ * @param {object[]} bewertet  aus bewerteteMahlzeiten(): { am, merkmale, wert }
+ * @param {string} id          der Auslöser
+ * @param {object} tage        der Tagesspeicher, für die Phasenschätzung
+ */
+function phasenWirkung(bewertet, id, tage) {
+  const phasen = PHASEN.map((p) => {
+    const drin = bewertet.filter((b) => phaseVon(tage, b.am) === p.id);
+    const mit = drin.filter((b) => b.merkmale.has(id));
+    const ohne = drin.filter((b) => !b.merkmale.has(id));
+    const pruefbar = mit.length >= MINDEST_JE_PHASE && ohne.length >= MINDEST_JE_PHASE;
+    const schnittMit = mittel(mit.map((b) => b.wert));
+    const schnittOhne = mittel(ohne.map((b) => b.wert));
+    return {
+      phase: p.id,
+      name: p.name,
+      pruefbar,
+      faelle: mit.length,
+      gegenFaelle: ohne.length,
+      schnittMit,
+      schnittOhne,
+      differenz: pruefbar ? schnittMit - schnittOhne : 0,
+    };
+  });
+
+  const pruefbare = phasen.filter((p) => p.pruefbar);
+
+  /*
+   * Ohne zwei abgeschlossene Zyklen ist die Phaseneinteilung geraten.
+   *
+   * Das steht vor der Fallzahlprüfung, weil es der schwerere Einwand ist: Bei
+   * einem einzigen beobachteten Zyklus ist die mittlere Länge diese eine
+   * Länge, und die Phasengrenzen sind dann keine Schätzung, sondern ein Echo
+   * der Daten, an denen sie geprüft werden.
+   */
+  if (!belastbar(tage)) {
+    return {
+      urteil: 'unklar',
+      phasen,
+      pruefbare: 0,
+      satz: 'Für einen Vergleich nach Zyklusphase fehlen die Zyklen: Es braucht '
+        + 'mindestens zwei vollständig eingetragene, sonst sind die Phasen '
+        + 'geraten und nicht geschätzt.',
+    };
+  }
+
+  if (pruefbare.length < MINDEST_PHASEN) {
+    return {
+      urteil: 'unklar',
+      phasen,
+      pruefbare: pruefbare.length,
+      satz: 'Bisher ist das nur in einer Phase oder in gar keiner vergleichbar. '
+        + 'Aus einer einzelnen Phase folgt nichts über den Zyklus.',
+    };
+  }
+
+  const sortiert = [...pruefbare].sort((a, b) => b.differenz - a.differenz);
+  const staerkste = sortiert[0];
+  const schwaechste = sortiert[sortiert.length - 1];
+  const spanne = staerkste.differenz - schwaechste.differenz;
+
+  if (spanne >= SPANNE && staerkste.differenz >= MINDEST_WIRKUNG) {
+    return {
+      urteil: 'wechselt',
+      phasen,
+      pruefbare: pruefbare.length,
+      staerkste,
+      schwaechste,
+      spanne,
+      satz: `In der Phase „${staerkste.name}" fällt das deutlich stärker aus `
+        + `(${staerkste.differenz.toFixed(1)} Stufen Unterschied) als in der Phase `
+        + `„${schwaechste.name}" (${schwaechste.differenz.toFixed(1)}). Dieselbe `
+        + 'Menge, andere Wirkung – das spricht eher für eine wechselnde '
+        + 'Empfindlichkeit als für eine Unverträglichkeit.',
+    };
+  }
+
+  return {
+    urteil: 'gleich',
+    phasen,
+    pruefbare: pruefbare.length,
+    staerkste,
+    schwaechste,
+    spanne,
+    satz: 'Über die Zyklusphasen hinweg fällt das ähnlich aus. Der Zyklus '
+      + 'erklärt hier also nichts – was gegen ihn spricht und für das Essen.',
+  };
+}
+
+/**
+ * Und dieselbe Frage einmal ohne Essen: Ist eine Phase für sich schon schlimmer?
+ *
+ * js/zyklus.js liefert dazu die Zahlen, aber bewusst kein Urteil. Hier steht
+ * es, mit denselben zwei Bedingungen: zwei vollständige Zyklen, und genug Tage
+ * in beiden verglichenen Phasen.
+ */
+function phasenUrteil(bilanz, tage, mindestTage = 5) {
+  const brauchbar = (bilanz || []).filter((p) => p.tage >= mindestTage);
+  if (!belastbar(tage) || brauchbar.length < 2) {
+    return {
+      pruefbar: false,
+      satz: 'Ob eine Zyklusphase für sich schlimmer ist, lässt sich noch nicht '
+        + 'sagen – dafür fehlen entweder Zyklen oder Tage in den einzelnen Phasen.',
+    };
+  }
+  const sortiert = [...brauchbar].sort((a, b) => b.schnitt - a.schnitt);
+  const schlimm = sortiert[0];
+  const mild = sortiert[sortiert.length - 1];
+  const spanne = schlimm.schnitt - mild.schnitt;
+  if (spanne < 1) {
+    return {
+      pruefbar: true,
+      deutlich: false,
+      satz: 'Über die Zyklusphasen hinweg sind die Beschwerden ähnlich stark. '
+        + 'Ein Zyklusmuster ist hier nicht zu erkennen.',
+    };
+  }
+  return {
+    pruefbar: true,
+    deutlich: true,
+    schlimm,
+    mild,
+    spanne,
+    satz: `Am stärksten ist es in der Phase „${schlimm.name}" `
+      + `(${schlimm.schnitt.toFixed(1)} im Mittel über ${schlimm.tage} Tage), `
+      + `am schwächsten in der Phase „${mild.name}" (${mild.schnitt.toFixed(1)} `
+      + `über ${mild.tage} Tage). Die Phasen sind aus den eingetragenen `
+      + 'Blutungstagen geschätzt.',
+  };
+}
+
+/**
+ * Für die Anzeige: alle Auslöser, deren Wirkung mit dem Zyklus wechselt.
+ *
+ * Nur die – „ändert sich nicht" ist keine Karte wert, sondern höchstens eine
+ * Zeile unter dem einzelnen Fund. Was hier steht, ist die Auskunft, die man
+ * sonst nirgends bekommt.
+ */
+function wechselnde(bewertet, ids, tage) {
+  const raus = [];
+  (ids || []).forEach((id) => {
+    const w = phasenWirkung(bewertet, id, tage);
+    if (w.urteil === 'wechselt') raus.push({ id, ...w });
+  });
+  return raus.sort((a, b) => b.spanne - a.spanne);
+}
+
+/** Für die Anzeige: kurzes Wort zum Urteil. */
+const WECHSEL_WORT = {
+  wechselt: 'wechselt mit dem Zyklus',
+  gleich: 'über den Zyklus gleich',
+  unklar: 'nicht prüfbar',
+};
+
 /* ===== js/unterleib.js ===== */
 /*
  * Der Unterleib – und warum ein Magentagebuch danach fragt.
@@ -6829,6 +7040,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -7192,7 +7404,35 @@ function arztBericht(zustand, von, bis) {
       sag(`  ${p.name.padEnd(24)} ${String(p.tage).padStart(3)} Tage, `
         + `im Mittel ${fmtZahl(p.schnitt)}`);
     });
+    const pu = phasenUrteil(phasen, tage);
+    if (pu.pruefbar) umbrochen(pu.satz).forEach((z) => sag(`  ${z}`));
     sag('  (Phasen geschätzt aus den eingetragenen Blutungstagen.)');
+    sag();
+  }
+
+  /*
+   * Und die Frage, die aus beidem zusammen entsteht.
+   *
+   * Ein Auslöser, der nur in einer Phase wirkt, kommt im Schnitt über vier
+   * Wochen als „ein bisschen auffällig" heraus – eine Aussage, die für keinen
+   * einzigen Tag stimmt. Für die Sprechstunde ist der Unterschied wichtig:
+   * wechselnde Empfindlichkeit ist etwas anderes als eine Unverträglichkeit,
+   * und sie wird anders behandelt.
+   */
+  const wechsel = wechselnde(
+    bewertet, alleAusloeser.filter((b) => b.genug).map((b) => b.id), tage,
+  );
+  if (wechsel.length) {
+    sag('WIRKUNG WECHSELT MIT DER ZYKLUSPHASE');
+    wechsel.slice(0, 4).forEach((w) => {
+      sag(`  ${ausloeserName(w.id, zustand.eigeneAusloeser)}`);
+      w.phasen.filter((p) => p.pruefbar).forEach((p) => {
+        sag(`    ${p.name.padEnd(22)} ${fmtZahl(p.schnittMit)} gegen `
+          + `${fmtZahl(p.schnittOhne)} (${p.faelle} damit, ${p.gegenFaelle} ohne)`);
+      });
+    });
+    sag('  (Dieselbe Menge, andere Wirkung – das spricht eher für eine');
+    sag('  wechselnde Empfindlichkeit als für eine Unverträglichkeit.)');
     sag();
   }
 
@@ -7936,11 +8176,51 @@ function musterDaten(s) {
     bilanz.filter((b) => !['auffaellig', 'moeglich'].includes(einstufung(b))).map((b) => b.id),
     s.fenster || 4,
   );
+  /*
+   * Wechselt die Wirkung mit dem Zyklus?
+   *
+   * Gefragt wird für *alle* Auslöser mit genug Fällen, nicht nur für die
+   * auffälligen – und das ist der Punkt: Ein Auslöser, der in einer Phase
+   * wirkt und in dreien nicht, kommt im Schnitt über alle vier Wochen als
+   * „unauffällig" oder „ein bisschen" heraus. Genau dann versteckt der
+   * Mittelwert den Befund, statt ihn zu zeigen.
+   */
+  const wechsel = wechselnde(bewertet, bilanz.filter((b) => b.genug).map((b) => b.id), s.tage);
   return {
     heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel, fenster,
-    uebersehen,
+    uebersehen, wechsel,
     zeit: zeitBild(s.eintraege),
   };
+}
+
+/*
+ * Dieselbe Menge, andere Wirkung.
+ *
+ * Wer drei Wochen lang Zwiebeln verträgt und in der vierten nicht, hat keine
+ * Zwiebelunverträglichkeit – und streicht trotzdem Zwiebeln, wenn die Rechnung
+ * über alle vier Wochen mittelt. Diese Karte gibt es nur, wenn wirklich etwas
+ * wechselt; „ändert sich nicht" ist keine Karte wert.
+ */
+function wechselTeil(s, d) {
+  if (!d.wechsel.length) return '';
+  return `<div class="karte karte-wechsel">
+    <h3>Kommt auf den Zeitpunkt im Zyklus an</h3>
+    <ul class="funde">${d.wechsel.slice(0, 4).map((w) => `<li class="fund f-moeglich">
+      <div class="fund-kopf">
+        <b>${esc(ausloeserName(w.id, s.eigeneAusloeser))}</b>
+        <span class="fund-urteil">${esc(w.staerkste.name)}</span>
+      </div>
+      <p class="klein">${esc(w.satz)}</p>
+      <ul class="schichten">${w.phasen.filter((p) => p.pruefbar).map((p) => `<li>
+        <span>${esc(p.name)}</span>
+        <span class="klein">${fmtZahl(p.schnittMit)} gegen ${fmtZahl(p.schnittOhne)}
+          · ${p.faelle}/${p.gegenFaelle} Mahlzeiten</span>
+      </li>`).join('')}</ul>
+    </li>`).join('')}</ul>
+    <p class="klein">Die Phasen sind aus den eingetragenen Blutungstagen
+      geschätzt. Was hier steht, beschreibt vergangene Wochen und sagt nichts
+      voraus.</p>
+  </div>`;
 }
 
 /*
@@ -8554,7 +8834,8 @@ function musterAnsicht(s) {
    * hat trotzdem das Wichtigste.
    */
   return bildTeil(s) + unterleibVorschlag(s) + kriterienTeil(s, d) + versuchTeil(s, d)
-    + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wartet + ansprechenTeil(s, d)
+    + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wechselTeil(s, d)
+    + wartet + ansprechenTeil(s, d)
     + zeitTeil(d) + wann + wie + stuhlTeil(s) + brauchtTeil(s, d)
     + zyklusTeil(s) + erklaerung;
 }
@@ -8901,12 +9182,18 @@ function zyklusTeil(s) {
   if (!phasen.length) return '';
   const laenge = mittlereLaenge(s.tage);
   const spanne = schwankung(s.tage);
+  // Die Zahlen standen hier immer schon; was fehlte, war der Satz dazu. Er
+  // kommt nur, wenn er zulässig ist – zwei abgeschlossene Zyklen und genug
+  // Tage in beiden verglichenen Phasen.
+  const urteil = phasenUrteil(phasen, s.tage);
   return `<div class="karte">
     <h3>Nach Zyklusphase</h3>
+    ${urteil.deutlich ? `<p>${esc(urteil.satz)}</p>` : ''}
     <ul class="wartend">${phasen.map((p) => `<li>
       <span>${esc(p.name)}</span>
       <span class="klein">${mehrzahl(p.tage, 'Tag', 'Tage')}, im Mittel ${fmtZahl(p.schnitt)}</span>
     </li>`).join('')}</ul>
+    ${urteil.pruefbar && !urteil.deutlich ? `<p class="klein">${esc(urteil.satz)}</p>` : ''}
     <p class="klein">
       ${laenge ? `Deine Zyklen dauern im Mittel ${laenge} Tage${spanne ? ` (${spanne.von} bis ${spanne.bis}, aus ${spanne.anzahl} Zyklen)` : ''}. ` : ''}
       ${belastbar(s.tage) ? '' : 'Noch keine zwei abgeschlossenen Zyklen – die Zahlen stehen da, aber es folgt noch nichts daraus. '}

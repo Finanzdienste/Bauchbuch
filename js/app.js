@@ -50,6 +50,7 @@ import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import {
   fensterWerte, spaeteFunde, zeitBild, zeitProfil,
 } from './zeitprofil.js';
+import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
@@ -669,11 +670,51 @@ function musterDaten(s) {
     bilanz.filter((b) => !['auffaellig', 'moeglich'].includes(einstufung(b))).map((b) => b.id),
     s.fenster || 4,
   );
+  /*
+   * Wechselt die Wirkung mit dem Zyklus?
+   *
+   * Gefragt wird für *alle* Auslöser mit genug Fällen, nicht nur für die
+   * auffälligen – und das ist der Punkt: Ein Auslöser, der in einer Phase
+   * wirkt und in dreien nicht, kommt im Schnitt über alle vier Wochen als
+   * „unauffällig" oder „ein bisschen" heraus. Genau dann versteckt der
+   * Mittelwert den Befund, statt ihn zu zeigen.
+   */
+  const wechsel = wechselnde(bewertet, bilanz.filter((b) => b.genug).map((b) => b.id), s.tage);
   return {
     heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel, fenster,
-    uebersehen,
+    uebersehen, wechsel,
     zeit: zeitBild(s.eintraege),
   };
+}
+
+/*
+ * Dieselbe Menge, andere Wirkung.
+ *
+ * Wer drei Wochen lang Zwiebeln verträgt und in der vierten nicht, hat keine
+ * Zwiebelunverträglichkeit – und streicht trotzdem Zwiebeln, wenn die Rechnung
+ * über alle vier Wochen mittelt. Diese Karte gibt es nur, wenn wirklich etwas
+ * wechselt; „ändert sich nicht" ist keine Karte wert.
+ */
+function wechselTeil(s, d) {
+  if (!d.wechsel.length) return '';
+  return `<div class="karte karte-wechsel">
+    <h3>Kommt auf den Zeitpunkt im Zyklus an</h3>
+    <ul class="funde">${d.wechsel.slice(0, 4).map((w) => `<li class="fund f-moeglich">
+      <div class="fund-kopf">
+        <b>${esc(ausloeserName(w.id, s.eigeneAusloeser))}</b>
+        <span class="fund-urteil">${esc(w.staerkste.name)}</span>
+      </div>
+      <p class="klein">${esc(w.satz)}</p>
+      <ul class="schichten">${w.phasen.filter((p) => p.pruefbar).map((p) => `<li>
+        <span>${esc(p.name)}</span>
+        <span class="klein">${fmtZahl(p.schnittMit)} gegen ${fmtZahl(p.schnittOhne)}
+          · ${p.faelle}/${p.gegenFaelle} Mahlzeiten</span>
+      </li>`).join('')}</ul>
+    </li>`).join('')}</ul>
+    <p class="klein">Die Phasen sind aus den eingetragenen Blutungstagen
+      geschätzt. Was hier steht, beschreibt vergangene Wochen und sagt nichts
+      voraus.</p>
+  </div>`;
 }
 
 /*
@@ -1287,7 +1328,8 @@ function musterAnsicht(s) {
    * hat trotzdem das Wichtigste.
    */
   return bildTeil(s) + unterleibVorschlag(s) + kriterienTeil(s, d) + versuchTeil(s, d)
-    + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wartet + ansprechenTeil(s, d)
+    + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wechselTeil(s, d)
+    + wartet + ansprechenTeil(s, d)
     + zeitTeil(d) + wann + wie + stuhlTeil(s) + brauchtTeil(s, d)
     + zyklusTeil(s) + erklaerung;
 }
@@ -1634,12 +1676,18 @@ function zyklusTeil(s) {
   if (!phasen.length) return '';
   const laenge = mittlereLaenge(s.tage);
   const spanne = schwankung(s.tage);
+  // Die Zahlen standen hier immer schon; was fehlte, war der Satz dazu. Er
+  // kommt nur, wenn er zulässig ist – zwei abgeschlossene Zyklen und genug
+  // Tage in beiden verglichenen Phasen.
+  const urteil = phasenUrteil(phasen, s.tage);
   return `<div class="karte">
     <h3>Nach Zyklusphase</h3>
+    ${urteil.deutlich ? `<p>${esc(urteil.satz)}</p>` : ''}
     <ul class="wartend">${phasen.map((p) => `<li>
       <span>${esc(p.name)}</span>
       <span class="klein">${mehrzahl(p.tage, 'Tag', 'Tage')}, im Mittel ${fmtZahl(p.schnitt)}</span>
     </li>`).join('')}</ul>
+    ${urteil.pruefbar && !urteil.deutlich ? `<p class="klein">${esc(urteil.satz)}</p>` : ''}
     <p class="klein">
       ${laenge ? `Deine Zyklen dauern im Mittel ${laenge} Tage${spanne ? ` (${spanne.von} bis ${spanne.bis}, aus ${spanne.anzahl} Zyklen)` : ''}. ` : ''}
       ${belastbar(s.tage) ? '' : 'Noch keine zwei abgeschlossenen Zyklen – die Zahlen stehen da, aber es folgt noch nichts daraus. '}

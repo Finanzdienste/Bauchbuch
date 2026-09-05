@@ -410,6 +410,33 @@ es das nicht, zählt es als nicht erhoben und nicht als beschwerdefrei. Wer also
 wissen will, was der Dickdarm macht, braucht mehr Tage als jemand, der nach dem
 Magen fragt – und die App sagt das, statt die Lücke mit einer Null zu füllen.
 
+### Zyklus mal Auslöser
+
+Die Auslöserbilanz mittelt über alle vier Wochen. Nur schwankt die
+Empfindlichkeit des Bauchs mit dem Zyklus – vor und während der Periode
+reagiert der Darm auf dieselbe Dehnung stärker. Wer drei Wochen lang Zwiebeln
+verträgt und in der vierten nicht, bekommt von einem Mittelwert „ein bisschen
+auffällig" zu hören: eine Aussage, die für keinen einzigen Tag stimmt, und die
+dazu führt, dass jemand ein Lebensmittel für 28 Tage streicht, das an 21 davon
+nichts tut.
+
+Deshalb wird jeder Auslöser mit genug Fällen zusätzlich nach Zyklusphase
+aufgeteilt – **jeder**, nicht nur die auffälligen: Gerade dort, wo die Wirkung
+nur eine Woche im Monat da ist, versteckt der Schnitt sie. Fällt der
+Unterschied in einer Phase um mindestens anderthalb Stufen deutlicher aus als
+in einer anderen, steht das unter „Kommt auf den Zeitpunkt im Zyklus an" – mit
+allen Fallzahlen und mit dem Satz, um den es eigentlich geht: **wechselnde
+Empfindlichkeit ist etwas anderes als eine Unverträglichkeit**, und sie wird
+anders behandelt.
+
+Die Schwelle ist mit Absicht höher als die der Bilanz selbst (anderthalb statt
+einer Stufe): Hier werden Unterschiede von Unterschieden verglichen, und die
+schwanken stärker. Zwei Bedingungen kommen dazu, und ohne sie gibt es kein
+Urteil – auch kein vorsichtiges: mindestens **zwei abgeschlossene Zyklen**
+(bei einem einzigen ist die mittlere Zykluslänge dieser eine Zyklus, und die
+Phasengrenzen sind dann ein Echo der Daten, an denen sie geprüft werden), und
+mindestens **zwei prüfbare Phasen** mit je fünf Mahlzeiten auf beiden Seiten.
+
 ### Nach Wirkweise statt nach Zutat
 
 „Zwiebel" ist als Antwort schwach – nicht weil sie falsch wäre, sondern weil
@@ -613,6 +640,10 @@ js/schichten.js     hält jeden Fund gegen die Umstände – Anspannung,
                     der Arbeitstag angerichtet hat
 js/zeitprofil.js    wie lange nach dem Essen – und was das über den Ort
                     sagt: Magen, Dünndarm oder Dickdarm
+js/wechselwirkung.js
+                    Zyklus mal Auslöser: dieselbe Menge, andere Wirkung
+                    – wechselnde Empfindlichkeit ist keine
+                    Unverträglichkeit
 js/unterleib.js     Schmerz beim Sex, Regelschmerz, der Zusammenhang
                     mit Bauch und Stuhlgang
 js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten
@@ -644,7 +675,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Einunddreißig Dateien, über 660 Prüfungen, alle in einem echten Chromium. Kein
+Zweiunddreißig Dateien, über 680 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -679,6 +710,7 @@ den Rückgabewert.
 | `test-still.mjs` | bis zum Tastendruck null Anfragen; danach genau eine, ohne ein Wort aus dem Tagebuch |
 | `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
 | `test-unterleib.mjs` | die Fragen bleiben aus, bis jemand sie einschaltet; und Regelschmerz allein ergibt noch kein Muster |
+| `test-wechsel.mjs` | ein Auslöser, der nur in einer Zyklusphase wirkt – und kein Wechsel, wo keiner ist |
 | `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
 

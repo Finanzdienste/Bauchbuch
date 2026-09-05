@@ -24,6 +24,7 @@ import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import {
   fensterWerte, spaeteFunde, zeitBild, zeitProfil,
 } from './zeitprofil.js';
+import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
 import { wissenZu } from './mittel.js';
@@ -395,7 +396,35 @@ export function arztBericht(zustand, von, bis) {
       sag(`  ${p.name.padEnd(24)} ${String(p.tage).padStart(3)} Tage, `
         + `im Mittel ${fmtZahl(p.schnitt)}`);
     });
+    const pu = phasenUrteil(phasen, tage);
+    if (pu.pruefbar) umbrochen(pu.satz).forEach((z) => sag(`  ${z}`));
     sag('  (Phasen geschätzt aus den eingetragenen Blutungstagen.)');
+    sag();
+  }
+
+  /*
+   * Und die Frage, die aus beidem zusammen entsteht.
+   *
+   * Ein Auslöser, der nur in einer Phase wirkt, kommt im Schnitt über vier
+   * Wochen als „ein bisschen auffällig" heraus – eine Aussage, die für keinen
+   * einzigen Tag stimmt. Für die Sprechstunde ist der Unterschied wichtig:
+   * wechselnde Empfindlichkeit ist etwas anderes als eine Unverträglichkeit,
+   * und sie wird anders behandelt.
+   */
+  const wechsel = wechselnde(
+    bewertet, alleAusloeser.filter((b) => b.genug).map((b) => b.id), tage,
+  );
+  if (wechsel.length) {
+    sag('WIRKUNG WECHSELT MIT DER ZYKLUSPHASE');
+    wechsel.slice(0, 4).forEach((w) => {
+      sag(`  ${ausloeserName(w.id, zustand.eigeneAusloeser)}`);
+      w.phasen.filter((p) => p.pruefbar).forEach((p) => {
+        sag(`    ${p.name.padEnd(22)} ${fmtZahl(p.schnittMit)} gegen `
+          + `${fmtZahl(p.schnittOhne)} (${p.faelle} damit, ${p.gegenFaelle} ohne)`);
+      });
+    });
+    sag('  (Dieselbe Menge, andere Wirkung – das spricht eher für eine');
+    sag('  wechselnde Empfindlichkeit als für eine Unverträglichkeit.)');
     sag();
   }
 
