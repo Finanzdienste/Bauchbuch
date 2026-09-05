@@ -22,6 +22,7 @@
  */
 import { plusTage, tageDazwischen, tageszeit, TAGESZEIT_NAME, zeitpunkt, stundenDazwischen } from './datum.js';
 import { ALLE_AUSLOESER, KLASSEN, ROLLEN, ROLLE_VORGABE, klassenVon } from './daten.js';
+import { zufallsSpielraum } from './zufall.js';
 
 /** Späte Mahlzeit ab dieser Stunde – siehe UMSTAENDE in js/daten.js. */
 const SPAET_AB = 20;
@@ -153,7 +154,26 @@ export function ausloeserBilanz(eintraege, opt = {}) {
       genug: mit.length >= mindest && ohne.length >= mindest,
       fehlt: Math.max(0, mindest - mit.length),
       zuletzt: mit[mit.length - 1].m.am,
+      werte: { mit: mit.map((b) => b.wert), ohne: ohne.map((b) => b.wert) },
     });
+  });
+
+  /*
+   * Und jetzt erst der Zufallsspielraum – denn erst hier steht fest, wie viele
+   * Vergleiche überhaupt angestellt wurden.
+   *
+   * Das ist der Punkt, an dem die Zahl der Fragen in die Antwort eingeht: Wer
+   * fünfzig Merkmale prüft, findet auch in einem Tagebuch, in dem nichts
+   * drinsteckt, ein paar auffällige. Die Schwelle wächst deshalb mit der Zahl
+   * der Vergleiche und mit der Streuung der Werte.
+   */
+  const vergleiche = zeilen.filter((z) => z.genug).length;
+  zeilen.forEach((z) => {
+    const r = zufallsSpielraum(z.werte.mit, z.werte.ohne, vergleiche);
+    z.streuung = r.streuung;
+    z.spielraum = r.spielraum;
+    z.vergleiche = vergleiche;
+    delete z.werte;
   });
 
   // Auffälligstes zuerst; bei gleicher Differenz die größere Fallzahl, weil
@@ -221,7 +241,18 @@ export function klassenBilanz(eintraege, opt = {}) {
       genug: mit.length >= mindest && ohne.length >= mindest,
       fehlt: Math.max(0, mindest - mit.length),
       fehltGegen: Math.max(0, mindest - ohne.length),
+      werte: { mit: mit.map((b) => b.wert), ohne: ohne.map((b) => b.wert) },
     });
+  });
+
+  // Auch hier zählt die Zahl der Vergleiche mit – siehe ausloeserBilanz.
+  const vergleiche = zeilen.filter((z) => z.genug).length;
+  zeilen.forEach((z) => {
+    const r = zufallsSpielraum(z.werte.mit, z.werte.ohne, vergleiche);
+    z.streuung = r.streuung;
+    z.spielraum = r.spielraum;
+    z.vergleiche = vergleiche;
+    delete z.werte;
   });
 
   return zeilen.sort((a, b) => (b.differenz - a.differenz) || (b.faelle - a.faelle));
@@ -255,6 +286,17 @@ export function klasseZutaten(eintraege, klasseId) {
  */
 export function einstufung(zeile) {
   if (!zeile.genug) return 'zuwenig';
+  /*
+   * Zwei Bedingungen, und beide muessen erfuellt sein.
+   *
+   * Die erste ist die alte: Der Unterschied muss gross genug sein, um jemanden
+   * ueberhaupt zu interessieren – eine halbe Stufe merkt niemand. Die zweite
+   * ist neu: Er muss groesser sein als das, was bei dieser Streuung und dieser
+   * Zahl von Vergleichen ohnehin herauskommt. Ohne sie fand die App in jedem
+   * ausreichend langen Tagebuch etwas, auch in einem, in dem nichts steckt.
+   */
+  const zufall = Number.isFinite(zeile.spielraum) ? zeile.spielraum : 0;
+  if (Math.abs(zeile.differenz) < zufall) return 'neutral';
   if (zeile.differenz >= 2) return 'auffaellig';
   if (zeile.differenz >= 1) return 'moeglich';
   if (zeile.differenz <= -1) return 'unauffaellig';
@@ -270,6 +312,8 @@ export function einstufung(zeile) {
  */
 export function klassenEinstufung(zeile) {
   if (!zeile.genug) return 'zuwenig';
+  const zufall = Number.isFinite(zeile.spielraum) ? zeile.spielraum : 0;
+  if (Math.abs(zeile.differenz) < zufall) return 'neutral';
   if (zeile.differenz >= 1) return 'auffaellig';
   if (zeile.differenz >= 0.5) return 'moeglich';
   if (zeile.differenz <= -0.5) return 'unauffaellig';

@@ -26,6 +26,7 @@ import {
 } from './zeitprofil.js';
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
+import { spielraumSatz } from './zufall.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
 import { wissenZu } from './mittel.js';
@@ -209,6 +210,13 @@ export function arztBericht(zustand, von, bis) {
   if (bleibt.length) {
     sag(`AUFFÄLLIG IM ZEITRAUM VON ${zustand.fenster} STUNDEN NACH DEM ESSEN`);
     sag('  (Vergleich: mittlere Beschwerdestärke danach gegen alle übrigen Mahlzeiten)');
+    // Die Schwelle gehört auf den Zettel: Sie erklärt, warum manches *nicht*
+    // dasteht, und das ist in einer Sprechstunde die nützlichere Auskunft.
+    const b0 = bleibt[0].b;
+    if (Number.isFinite(b0.spielraum)) {
+      umbrochen(spielraumSatz(b0.spielraum, b0.vergleiche), 66)
+        .forEach((zl) => sag(`  ${zl}`));
+    }
     bleibt.slice(0, 8).forEach(({ b, stand, zeit }) => {
       sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
       const wo = stand.urteil === 'nur-dann' ? ` (${(stand.wo || []).join(', ')})` : '';

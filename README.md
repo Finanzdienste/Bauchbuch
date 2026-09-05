@@ -331,7 +331,7 @@ Mahlzeiten **mit** einem Merkmal gegen alle **übrigen** Mahlzeiten. Also nicht
 gegen null, sondern gegen den eigenen Alltag: Sonst wäre bei jedem Menschen mit
 täglichen Beschwerden jedes Lebensmittel „auffällig", das er täglich isst.
 
-Drei Regeln halten das davon ab, Kaffeesatzleserei zu werden:
+Vier Regeln halten das davon ab, Kaffeesatzleserei zu werden:
 
 1. **Fallzahl.** Ein Merkmal erscheint erst mit mindestens fünf Mahlzeiten
    dafür *und* fünf dagegen (einstellbar). Darunter steht es unter „Zählt
@@ -340,9 +340,47 @@ Drei Regeln halten das davon ab, Kaffeesatzleserei zu werden:
    beide Quoten – auch wenn sie unbequem sind.
 3. **Es heißt „auffällig", nicht „verursacht".** Ab einem Punkt Unterschied
    „möglicherweise", ab zwei „auffällig". Darunter: kein Unterschied.
+4. **Der Zufallsspielraum.** Der Unterschied muss größer sein als das, was bei
+   dieser Streuung und dieser Zahl von Vergleichen ohnehin herauskommt – siehe
+   unten.
 
 Was dabei herauskommt, ist eine Häufigkeit. Die App stellt keine Diagnose und
 ersetzt keine ärztliche Beratung.
+
+### Der Zufallsspielraum
+
+Die App vergleicht inzwischen viel: zwei Dutzend Auslöser, dazu Klassen, drei
+Zeitfenster, sechs Schichten, vier Zyklusphasen. Jeder einzelne Vergleich ist
+sauber gerechnet – und trotzdem wächst mit ihrer Zahl etwas, das kein einzelner
+Vergleich sehen kann: **Bei fünfzig Vergleichen ist ein „auffälliger"
+Unterschied kein Ausreißer mehr, sondern zu erwarten.** Auch in einem Tagebuch,
+in dem nichts drinsteckt.
+
+„Nach Kaffee war es im Mittel 2 Stufen schlechter" ist deshalb nur so viel
+wert, wie die Werte darunter beieinanderliegen. Zwanzig Mahlzeiten, deren Werte
+zwischen 0 und 10 springen, bringen zwei Stufen Unterschied mühelos aus reinem
+Zufall hervor; zwanzig Mahlzeiten zwischen 3 und 5 tun das nicht.
+
+`js/zufall.js` rechnet deshalb für jeden Vergleich mit, wie groß ein
+Unterschied allein durch Zufall ausfällt – aus der Streuung der Werte, den
+Fallzahlen und der **Zahl der gestellten Fragen**: Wer fünfzigmal fragt,
+braucht eine deutlichere Antwort als wer dreimal fragt. Die Zahl steht in der
+App und auf dem Zettel („bei 23 verglichenen Merkmalen kommt ein Unterschied
+von etwa 0,8 Stufen auch dann vor, wenn gar nichts dahintersteckt"), weil sie
+sonst die einzige Regel wäre, die man am Ergebnis nicht ablesen kann – sie
+äußert sich ja darin, dass etwas *nicht* dasteht.
+
+Ein p-Wert steht nirgends, und das ist Absicht: Das hier ist das Tagebuch eines
+einzigen Menschen, ohne Randomisierung und ohne Verblindung. Ein p-Wert würde
+eine Strenge vortäuschen, die die Daten nicht hergeben.
+
+Am schärfsten wirkt das dort, wo **Unterschiede von Unterschieden** verglichen
+werden – „wirkt Kaffee in der zweiten Zyklushälfte anders als in der ersten?".
+So etwas schwankt deutlich stärker als ein einzelner Unterschied, und wer aus
+vier Phasen die stärkste und die schwächste heraussucht, hat schon gesucht,
+bevor er verglichen hat. Beides geht in die Schranke ein. Wie nötig das war,
+zeigte erst `test-zufall.mjs`: In Tagebüchern aus reinem Zufall fand die
+Zyklusrechnung anfangs **neun von zwanzig** Auslösern „wechselnd". Jetzt keinen.
 
 ### Liegt es wirklich daran?
 
@@ -651,6 +689,8 @@ js/wechselwirkung.js
                     Unverträglichkeit
 js/lage.js          „Was Sache ist": wählt aus den fertigen Befunden drei
                     bis fünf Sätze aus und rechnet selbst nichts
+js/zufall.js        wie groß ein Unterschied allein durch Zufall ausfällt
+                    – die Schranke, die mit der Zahl der Vergleiche wächst
 js/unterleib.js     Schmerz beim Sex, Regelschmerz, der Zusammenhang
                     mit Bauch und Stuhlgang
 js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten
@@ -682,7 +722,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Dreiunddreißig Dateien, über 700 Prüfungen, alle in einem echten Chromium. Kein
+Vierunddreißig Dateien, über 710 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -717,6 +757,7 @@ den Rückgabewert.
 | `test-still.mjs` | bis zum Tastendruck null Anfragen; danach genau eine, ohne ein Wort aus dem Tagebuch |
 | `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
 | `test-unterleib.mjs` | die Fragen bleiben aus, bis jemand sie einschaltet; und Regelschmerz allein ergibt noch kein Muster |
+| `test-zufall.mjs` | acht Tagebücher aus reinem Zufall – die App muss schweigen, und einen echten Fund trotzdem finden |
 | `test-lage.mjs` | die Zusammenfassung sagt nichts, was unten nicht mit Zahlen steht – und schweigt, wo nichts ist |
 | `test-wechsel.mjs` | ein Auslöser, der nur in einer Zyklusphase wirkt – und kein Wechsel, wo keiner ist |
 | `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
