@@ -47,6 +47,9 @@ import {
 import { WARNZEICHEN, bildLesen, genugFuerBild } from './bild.js';
 import { fragenVorschlagen } from './unterleib.js';
 import { haeltStand, SCHICHT_WORT } from './schichten.js';
+import {
+  fensterWerte, spaeteFunde, zeitBild, zeitProfil,
+} from './zeitprofil.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
@@ -655,7 +658,106 @@ function musterDaten(s) {
       return g ? g.id : null;
     },
   });
-  return { heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel };
+  // Die Fensterwerte einmal für alle: Sie kosten einen Durchlauf über alle
+  // Beschwerden und werden von der Übersichtskarte und von jedem Fund
+  // gebraucht.
+  const fenster = fensterWerte(s.eintraege);
+  // Gesucht wird nur unter denen, die die Bilanz nicht ohnehin schon nennt –
+  // sonst stünde dieselbe Zutat zweimal da, einmal je Rechenweg.
+  const uebersehen = spaeteFunde(
+    fenster,
+    bilanz.filter((b) => !['auffaellig', 'moeglich'].includes(einstufung(b))).map((b) => b.id),
+    s.fenster || 4,
+  );
+  return {
+    heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel, fenster,
+    uebersehen,
+    zeit: zeitBild(s.eintraege),
+  };
+}
+
+/*
+ * Was das eingestellte Fenster nicht sehen kann.
+ *
+ * Die Bilanz zählt Beschwerden in den vier Stunden nach dem Essen. Was sich
+ * erst nach sechs meldet – und im Dickdarm vergärt nichts früher –, kommt dort
+ * nicht als „unauffällig" vor, sondern gar nicht. Diese Karte stellt die
+ * Frage nach, statt sie am Fenster scheitern zu lassen.
+ */
+function spaetTeil(s, d) {
+  if (!d.uebersehen.length) return '';
+  return `<div class="karte karte-spaet">
+    <h3>Erst später auffällig</h3>
+    <p class="klein">Diese Auslöser fallen im eingestellten Fenster von
+      ${s.fenster || 4} Stunden nicht auf – wohl aber später. Das ist kein
+      schwächerer Befund, sondern ein anderer: So spät entsteht Beschwerde im
+      Dickdarm.</p>
+    <ul class="funde">${d.uebersehen.slice(0, 4).map((x) => `<li class="fund f-moeglich">
+      <div class="fund-kopf">
+        <b>${esc(ausloeserName(x.id, s.eigeneAusloeser))}</b>
+        <span class="fund-urteil">${esc(x.fensterName)}</span>
+      </div>
+      ${vergleichBalken(x.teil.schnittMit, x.teil.schnittOhne)}
+      <p class="klein">${x.teil.faelle} Mahlzeiten damit, ${x.teil.gegenFaelle} ohne
+        – jeweils nur die, bei denen dieses Fenster überhaupt beobachtbar war
+        (${esc(x.ort)})</p>
+    </li>`).join('')}</ul>
+  </div>`;
+}
+
+/*
+ * Wann kommt es – nicht nach der Uhr, sondern nach dem Essen.
+ *
+ * „Wann es auftritt" weiter unten zählt nach Tageszeit; das ist eine andere
+ * Frage und beantwortet vor allem, wie jemand lebt. Diese Karte zählt die
+ * Stunden seit der letzten Mahlzeit, und das sagt etwas über den Ort: Was nach
+ * einer halben Stunde brennt, kommt nicht aus dem Dickdarm, und was nach sechs
+ * Stunden bläht, kommt nicht aus dem Magen.
+ */
+function zeitTeil(d) {
+  const z = d.zeit;
+  if (!z.zugeordnet) return '';
+  const zeilen = z.teile.map((t) => `<li>
+    <span>${esc(t.name)}</span>
+    <span class="klein">${t.anzahl}× · ${Math.round(t.anteil * 100)} %
+      · im Mittel ${fmtZahl(t.schnitt)}</span>
+  </li>`).join('');
+
+  return `<div class="karte karte-zeit">
+    <h3>Wie lange nach dem Essen</h3>
+    <p>${esc(z.satz)}</p>
+    <ul class="wartend">${zeilen}</ul>
+    <p class="klein">${z.zugeordnet} von ${z.gesamt} Beschwerden ließen sich
+      einer Mahlzeit davor zuordnen. ${esc(z.hinweis)}</p>
+  </div>`;
+}
+
+/*
+ * Und dasselbe für einen einzelnen Auslöser.
+ *
+ * Der Zeitpunkt ist die Auskunft, die dem Mechanismus am nächsten kommt: Ein
+ * Auslöser, der sich erst nach Stunden meldet, wird im Dickdarm vergoren; einer
+ * mit sofortiger Wirkung nicht. In der Sprechstunde ist das der Unterschied
+ * zwischen einem Säureblocker und einer Ernährungsberatung.
+ */
+function zeitBlock(profil) {
+  const geprueft = profil.teile.filter((t) => t.pruefbar);
+  const liste = geprueft.length ? `<ul class="schichten">${geprueft.map((t) => `<li>
+    <span>${esc(t.name)}</span>
+    <span class="klein">${fmtZahl(t.schnittMit)} gegen ${fmtZahl(t.schnittOhne)}
+      · ${t.faelle}/${t.gegenFaelle} Mahlzeiten</span>
+  </li>`).join('')}</ul>` : '';
+
+  return `<details class="stand s-zeit">
+    <summary>Wann meldet es sich? <b>${profil.schwerpunkt
+  ? esc(profil.teile.find((t) => t.id === profil.schwerpunkt).name)
+  : 'kein Schwerpunkt'}</b></summary>
+    <p class="klein">${esc(profil.satz)}</p>
+    ${liste}
+    <p class="klein">Ein Fenster zählt nur, wenn in diesen Stunden nichts
+    dazwischengegessen wurde – sonst gehörte die Beschwerde der späteren
+    Mahlzeit. Späte Fenster sind deshalb dünner besetzt.</p>
+  </details>`;
 }
 
 /**
@@ -1115,6 +1217,10 @@ function musterAnsicht(s) {
     // Rechnung ist eine zusätzliche Gelegenheit für einen Zufallstreffer.
     const stand = ['auffaellig', 'moeglich'].includes(art)
       ? haeltStand(d.bewertet, b.id, s.tage) : null;
+    // Dasselbe Maß beim Zeitprofil: Wo nichts auffällt, gibt es auch keinen
+    // Zeitpunkt zu erklären.
+    const profil = ['auffaellig', 'moeglich'].includes(art)
+      ? zeitProfil(d.fenster, b.id) : null;
     // Die Aufschlüsselung nach Rolle nur, wenn es überhaupt etwas zu
     // unterscheiden gibt: Bei einer einzigen Rolle wiederholte sie die
     // Hauptzahl mit anderen Worten.
@@ -1134,6 +1240,7 @@ function musterAnsicht(s) {
         Beschwerden, sonst ${Math.round(b.quoteOhne * 100)} %</p>
       ${nachRolle}
       ${stand ? schichtBlock(stand) : ''}
+      ${profil ? zeitBlock(profil) : ''}
     </li>`;
   };
 
@@ -1180,8 +1287,9 @@ function musterAnsicht(s) {
    * hat trotzdem das Wichtigste.
    */
   return bildTeil(s) + unterleibVorschlag(s) + kriterienTeil(s, d) + versuchTeil(s, d)
-    + klassenTeil(s, d) + gefunden + wartet + ansprechenTeil(s, d)
-    + wann + wie + stuhlTeil(s) + brauchtTeil(s, d) + zyklusTeil(s) + erklaerung;
+    + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wartet + ansprechenTeil(s, d)
+    + zeitTeil(d) + wann + wie + stuhlTeil(s) + brauchtTeil(s, d)
+    + zyklusTeil(s) + erklaerung;
 }
 
 /** Der Stuhlgang in Zahlen, sobald überhaupt etwas eingetragen ist. */

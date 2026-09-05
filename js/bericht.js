@@ -21,6 +21,9 @@ import {
   klassenEinstufung, nachArt, nachTageszeit, tagesWert, trend, TREND_WORT,
 } from './auswertung.js';
 import { haeltStand, SCHICHT_WORT } from './schichten.js';
+import {
+  fensterWerte, spaeteFunde, zeitBild, zeitProfil,
+} from './zeitprofil.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
 import { wissenZu } from './mittel.js';
@@ -157,11 +160,13 @@ export function arztBericht(zustand, von, bis) {
     sag();
   }
 
-  const bilanz = ausloeserBilanz(imZeitraum, {
+  const alleAusloeser = ausloeserBilanz(imZeitraum, {
     fenster: zustand.fenster,
     mindestFaelle: zustand.mindestFaelle,
     eigene: zustand.eigeneAusloeser,
-  }).filter((b) => b.genug && einstufung(b) !== 'neutral' && einstufung(b) !== 'unauffaellig');
+  });
+  const bilanz = alleAusloeser.filter((b) => b.genug
+    && einstufung(b) !== 'neutral' && einstufung(b) !== 'unauffaellig');
 
   /*
    * Bevor ein Auslöser auf dem Zettel steht, wird er gegen die Umstände
@@ -176,7 +181,12 @@ export function arztBericht(zustand, von, bis) {
    * verschwindet, steht weiter unten und nicht hier oben.
    */
   const bewertet = bewerteteMahlzeiten(imZeitraum, zustand.fenster);
-  const gehalten = bilanz.map((b) => ({ b, stand: haeltStand(bewertet, b.id, tage) }));
+  const fenster = fensterWerte(imZeitraum);
+  const gehalten = bilanz.map((b) => ({
+    b,
+    stand: haeltStand(bewertet, b.id, tage),
+    zeit: zeitProfil(fenster, b.id),
+  }));
   const bleibt = gehalten.filter((x) => x.stand.urteil !== 'verschwindet');
   const zerfallen = gehalten.filter((x) => x.stand.urteil === 'verschwindet');
 
@@ -186,12 +196,46 @@ export function arztBericht(zustand, von, bis) {
   if (bleibt.length) {
     sag(`AUFFÄLLIG IM ZEITRAUM VON ${zustand.fenster} STUNDEN NACH DEM ESSEN`);
     sag('  (Vergleich: mittlere Beschwerdestärke danach gegen alle übrigen Mahlzeiten)');
-    bleibt.slice(0, 8).forEach(({ b, stand }) => {
+    bleibt.slice(0, 8).forEach(({ b, stand, zeit }) => {
       sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
       const wo = stand.urteil === 'nur-dann' ? ` (${(stand.wo || []).join(', ')})` : '';
       sag(`    unter gleichen Umständen: ${SCHICHT_WORT[stand.urteil]}${wo}`
         + (stand.urteil === 'unklar' ? ' – zu wenige Tage mit Angaben zu'
           + ' Anspannung, Schlaf oder Zyklus' : ''));
+      // Der Zeitpunkt nur, wenn er deutlich ist. „Verteilt sich" ist für die
+      // Sprechstunde keine Auskunft, sondern eine Zeile mehr zu lesen.
+      if (zeit.schwerpunkt) {
+        const f = zeit.teile.find((t) => t.id === zeit.schwerpunkt);
+        sag(`    auffällig vor allem ${f.name.toLowerCase()} (${f.ort})`);
+      }
+    });
+    sag();
+  }
+
+  /*
+   * Und was das Fenster gar nicht sehen konnte.
+   *
+   * Vier Stunden sind eine Konvention, keine Physiologie. Was im Dickdarm
+   * vergärt, meldet sich frühestens nach vier bis acht Stunden – für die
+   * Bilanz oben existiert es damit nicht. Diese Zeilen sind der Unterschied
+   * zwischen „nichts gefunden" und „nicht danach gesucht".
+   */
+  const spaet = spaeteFunde(
+    fenster,
+    alleAusloeser.filter((b) => !['auffaellig', 'moeglich'].includes(einstufung(b)))
+      .map((b) => b.id),
+    zustand.fenster || 4,
+  );
+  if (spaet.length) {
+    sag('ERST NACH DEM FENSTER AUFFÄLLIG');
+    sag(`  (Im Fenster von ${zustand.fenster || 4} Stunden unauffällig, später nicht.`);
+    sag('  Gezählt sind nur Mahlzeiten, bei denen das späte Fenster überhaupt');
+    sag('  beobachtbar war – also nichts dazwischengegessen wurde.)');
+    spaet.slice(0, 4).forEach((x) => {
+      sag(`  ${ausloeserName(x.id, zustand.eigeneAusloeser).padEnd(24)} `
+        + `${fmtZahl(x.teil.schnittMit)} gegen ${fmtZahl(x.teil.schnittOhne)} `
+        + `(${x.teil.faelle} damit, ${x.teil.gegenFaelle} ohne)`);
+      sag(`    ${x.fensterName}, also ${x.ort}`);
     });
     sag();
   }
@@ -227,6 +271,26 @@ export function arztBericht(zustand, von, bis) {
       sag(`  ${k.kurz.padEnd(24)} ${fmtZahl(k.schnittMit)} gegen ${fmtZahl(k.schnittOhne)} `
         + `(${k.faelle} Mahlzeiten damit, ${k.gegenFaelle} ohne)`);
     });
+    sag();
+  }
+
+  /*
+   * Wie lange nach dem Essen – die Frage nach dem Ort.
+   *
+   * „Nach dem Essen tut es weh" führt zum Säureblocker; „sechs Stunden nach dem
+   * Essen tut es weh" führt zur Ernährungsberatung. Aus dem Kopf beantwortet
+   * das niemand, aus dem Tagebuch fällt es ab.
+   */
+  const zb = zeitBild(imZeitraum);
+  if (zb.zugeordnet) {
+    sag('WIE LANGE NACH DEM ESSEN');
+    zb.teile.forEach((t) => {
+      sag(`  ${t.name.padEnd(24)} ${String(t.anzahl).padStart(3)} `
+        + `(${prozent(t.anteil)}), im Mittel ${fmtZahl(t.schnitt)}  – ${t.ort}`);
+    });
+    umbrochen(zb.satz).forEach((z) => sag(`  ${z}`));
+    sag(`  Zugeordnet: ${zb.zugeordnet} von ${zb.gesamt} Beschwerden.`);
+    umbrochen(`(${zb.hinweis})`, 66).forEach((z) => sag(`  ${z}`));
     sag();
   }
 

@@ -376,6 +376,40 @@ bei dem kann sich die Wirkung im Gesamtschnitt fast aufheben und erst innerhalb
 der Schichten sichtbar werden. Beides ist derselbe Rechenfehler – das
 Simpson-Paradox – nur in verschiedene Richtungen.
 
+### Wie lange nach dem Essen
+
+Das feste Fenster von vier Stunden ist eine Konvention, keine Physiologie – und
+es wirft die nützlichste Auskunft weg, die in einem Tagebuch steckt: *wann
+genau*. Der Bauch braucht Zeit, und je nach Ort verschieden lange.
+
+| | |
+| --- | --- |
+| **0–2 Stunden** | Der Magen ist noch voll: Säure, Dehnung, Entleerung |
+| **2–4 Stunden** | Dünndarm, Fett, Galle |
+| **4–8 Stunden** | Erst jetzt ist der Rest im Dickdarm. Was dort vergärt – FODMAP, Laktose, Ballaststoffe – kann sich gar nicht früher melden |
+
+Für die Sprechstunde ist das ein Unterschied ums Ganze: „nach dem Essen tut es
+weh" führt zum Säureblocker, „sechs Stunden nach dem Essen tut es weh" zur
+Ernährungsberatung. Beides steht im selben Tagebuch.
+
+Daraus folgt auch der wichtigste Zusatz: Ein Auslöser, der erst nach sechs
+Stunden wirkt, ist im Vier-Stunden-Fenster nicht etwa schwach auffällig –
+er kommt dort **gar nicht vor**. Deshalb gibt es „Erst später auffällig" als
+eigene Karte und einen eigenen Abschnitt im Bericht. Gesucht wird dort
+ausdrücklich **nur** jenseits des eingestellten Fensters: Ein früher
+Schwerpunkt wäre der Bilanz ohnehin aufgefallen, und ihn ein zweites Mal zu
+melden hieße, dieselbe Zahl zweimal zu zählen.
+
+**Und der Preis, der dabei genannt wird.** Wer dreimal am Tag isst, dessen
+Beschwerde vier Stunden nach dem Frühstück ist gleichzeitig eine Stunde nach
+dem Mittagessen. Sie gehört deshalb **der letzten Mahlzeit davor und keiner
+anderen** – sonst stünde am Ende jede Beschwerde in jedem Fenster. Das bedeutet
+umgekehrt: Das späte Fenster einer Mahlzeit ist nur dann *beobachtbar*, wenn in
+diesen Stunden nichts dazwischengegessen wurde und das Tagebuch noch lief. Ist
+es das nicht, zählt es als nicht erhoben und nicht als beschwerdefrei. Wer also
+wissen will, was der Dickdarm macht, braucht mehr Tage als jemand, der nach dem
+Magen fragt – und die App sagt das, statt die Lücke mit einer Null zu füllen.
+
 ### Nach Wirkweise statt nach Zutat
 
 „Zwiebel" ist als Antwort schwach – nicht weil sie falsch wäre, sondern weil
@@ -577,6 +611,8 @@ js/auswertung.js    die Rechenschicht: Merkmale, Fenster, Bilanz, Verlauf
 js/schichten.js     hält jeden Fund gegen die Umstände – Anspannung,
                     Schlaf, Zyklus –, damit nicht der Kaffee büßt, was
                     der Arbeitstag angerichtet hat
+js/zeitprofil.js    wie lange nach dem Essen – und was das über den Ort
+                    sagt: Magen, Dünndarm oder Dickdarm
 js/unterleib.js     Schmerz beim Sex, Regelschmerz, der Zusammenhang
                     mit Bauch und Stuhlgang
 js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten
@@ -608,7 +644,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Dreißig Dateien, über 630 Prüfungen, alle in einem echten Chromium. Kein
+Einunddreißig Dateien, über 660 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -643,6 +679,7 @@ den Rückgabewert.
 | `test-still.mjs` | bis zum Tastendruck null Anfragen; danach genau eine, ohne ein Wort aus dem Tagebuch |
 | `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
 | `test-unterleib.mjs` | die Fragen bleiben aus, bis jemand sie einschaltet; und Regelschmerz allein ergibt noch kein Muster |
+| `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,
