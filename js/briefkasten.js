@@ -51,6 +51,21 @@ export const KASTEN = 'https://briefkasten.tobias-kruse-184.workers.dev/idee';
 export const MAX_ZEICHEN = 2000;
 
 /**
+ * Die Bedenkzeit: eine Minute nach der letzten Änderung.
+ *
+ * Vorschläge gehen von selbst hinaus, ohne dass jemand einen Knopf sucht –
+ * aber nicht in dem Moment, in dem der Satz fertig getippt ist. Wer „Die
+ * Uhrzeit ist blö" schreibt und kurz überlegt, soll das noch ausbessern
+ * können; wer eine Idee gleich wieder löscht, soll sie nicht schon
+ * verschickt haben.
+ *
+ * Die Uhr läuft nur, solange die App offen ist. Es gibt keinen Dienst im
+ * Hintergrund, der später doch noch sendet – wird die App zugemacht, passiert
+ * nichts, und beim nächsten Öffnen fängt die Minute von vorn an.
+ */
+export const BEDENKZEIT = 60000;
+
+/**
  * Einen Text abschicken.
  *
  * Wirft mit einer Meldung, die man jemandem zeigen kann – die Anzeige gibt sie

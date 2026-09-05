@@ -1,24 +1,31 @@
 /*
  * Was diese App verschickt – und vor allem, was nicht.
  *
- * Die Zusage hat sich einmal geändert, und zwar nur in eine Richtung: enger.
+ * Die Zusage lautet:
  *
- *     früher   „Die App sendet nichts."
- *     jetzt    „Die App sendet nichts außer den Ideen, die du selbst
- *               eintippst und selbst abschickst."
+ *     „Gesundheitsdaten verlassen dieses Gerät nie. Das Einzige, was
+ *      hinausgeht, sind die Verbesserungsvorschläge unter Ideen – und die
+ *      von selbst, kurz nachdem sie eingetragen wurden."
  *
- * Unverändert und der eigentliche Grund für das Ganze:
- * **Gesundheitsdaten verlassen dieses Gerät nie.**
+ * Der zweite Halbsatz ist neu und macht den ersten *wichtiger*, nicht
+ * unwichtiger: Sobald ein Programm etwas verschicken kann, entscheidet sich an
+ * genau einer Stelle, ob es das Richtige verschickt.
  *
- * Dieser Test ist der gründliche Nachweis, in zwei Teilen:
+ * Dieser Test ist der gründliche Nachweis, in vier Teilen:
  *
- *   1. SCHWEIGEN. Ein ganzer Durchgang durch die App – eintragen, blättern,
- *      auswerten, Bericht bauen, sogar eine Idee eintippen – darf **null**
- *      Anfragen nach draußen erzeugen. Aufschreiben ist nicht Abschicken.
- *   2. DER EINE WEG. Nach einem Druck auf „Direkt schicken" darf genau eine
- *      Anfrage hinausgehen, an genau eine Adresse. Ihr Rumpf wird gegen das
- *      Tagebuch gehalten, das im Speicher liegt: Taucht daraus auch nur ein
- *      Wort auf, ist der Test rot.
+ *   1. BIS DAHIN NICHTS. Eintragen, blättern, auswerten, Bericht bauen – das
+ *      ganze Tagebuch anfassen erzeugt **null** Anfragen.
+ *   2. BEDENKZEIT. Eine eingetragene Idee geht nicht sofort hinaus. Wer sie
+ *      innerhalb der Minute wieder löscht, hat sie nie verschickt.
+ *   3. DANN VON SELBST. Nach der Bedenkzeit geht genau eine Anfrage hinaus, an
+ *      genau eine Adresse, mit genau einem Feld – und ihr Rumpf wird gegen das
+ *      Tagebuch im Speicher gehalten. Taucht daraus auch nur ein Wort auf, ist
+ *      der Test rot.
+ *   4. UND SONST NICHTS. Kein zweiter Aufruf, solange nichts Neues dazukommt.
+ *
+ * Die Zeit wird dabei vorgestellt (page.clock), nicht abgewartet – ein Test,
+ * der eine Minute schläft, wird irgendwann herausgenommen, und dann prüft
+ * niemand mehr etwas.
  *
  * Es gibt eine Vorgeschichte dazu, aus dem Schwesterprojekt: Dort meldeten die
  * Testläufe monatelang erfundene Geräte an einen echten Server, weil niemand
@@ -56,11 +63,14 @@ await page.route('**/briefkasten.*/**', (route) => route.fulfill({
   body: JSON.stringify({ ok: true }),
 }));
 
+// Die Uhr in die Hand nehmen, bevor die Seite lädt.
+await page.clock.install();
+
 await page.goto(URL, { waitUntil: 'networkidle' });
 await page.evaluate((k) => localStorage.removeItem(k), KEY);
 await page.reload({ waitUntil: 'networkidle' });
 
-/* ==================== 1. Schweigen ==================== */
+/* ==================== 1. Bis dahin nichts ==================== */
 
 await page.locator('[data-act="los"]').click();
 await page.waitForTimeout(150);
@@ -85,30 +95,48 @@ await page.locator('[data-act="bericht"][data-n="30"]').click();
 await page.waitForTimeout(250);
 check(await page.locator('.bericht').count() === 1, 'der Bericht ist erzeugt worden');
 
-// Eine Idee eintragen. Auch das darf noch nichts verschicken – Aufschreiben
-// ist nicht Abschicken, und das ist der ganze Unterschied.
-await page.locator('[data-act="tab"][data-tab="ideen"]').click();
-await page.waitForTimeout(200);
-await page.locator('#ideeText').fill('Die Uhrzeit sollte man schneller ändern können.');
-await page.locator('[data-act="idee-neu"]').click();
-await page.waitForTimeout(250);
-check(await page.locator('.idee').count() === 1, 'die Idee steht in der Liste');
-
 // Der Service Worker holt beim Einrichten die ganze Liste nach – abwarten,
 // sonst prüft der Test, bevor überhaupt etwas hätte falsch laufen können.
 await page.waitForTimeout(1200);
 
 check(
   fremd.length === 0,
-  `bis hierher keine einzige Anfrage nach draußen${fremd.length ? `: ${fremd.slice(0, 5).map((f) => `${f.methode} ${f.url}`).join(' | ')}` : ''}`,
+  `das ganze Tagebuch angefasst, keine einzige Anfrage${fremd.length ? `: ${fremd.slice(0, 5).map((f) => `${f.methode} ${f.url}`).join(' | ')}` : ''}`,
 );
 
-/* ==================== 2. Der eine Weg ==================== */
+/* ==================== 2. Bedenkzeit ==================== */
 
-await page.locator('[data-act="ideen-senden"]').first().click();
-await page.waitForTimeout(800);
+await page.locator('[data-act="tab"][data-tab="ideen"]').click();
+await page.waitForTimeout(200);
+await page.locator('#ideeText').fill('Ein Satz, den ich gleich zurücknehme.');
+await page.locator('[data-act="idee-neu"]').click();
+await page.waitForTimeout(250);
+check(await page.locator('.idee').count() === 1, 'die Idee steht in der Liste');
 
-check(fremd.length === 1, `ein Druck, eine Anfrage (${fremd.length})`);
+await page.clock.fastForward(20000);
+await page.waitForTimeout(300);
+check(fremd.length === 0, `nach 20 Sekunden noch nichts hinausgegangen (${fremd.length})`);
+
+/*
+ * Und wieder gelöscht. Das ist der Fall, für den es die Bedenkzeit gibt: Wer
+ * einen Satz zurücknimmt, soll ihn nicht schon verschickt haben.
+ */
+await page.locator('.idee').first().locator('[data-act="idee-weg"]').click();
+await page.waitForTimeout(250);
+await page.clock.fastForward(120000);
+await page.waitForTimeout(400);
+check(fremd.length === 0, `zurückgenommen heißt nicht verschickt (${fremd.length})`);
+
+/* ==================== 3. Dann von selbst ==================== */
+
+await page.locator('#ideeText').fill('Die Uhrzeit sollte man schneller ändern können.');
+await page.locator('[data-act="idee-neu"]').click();
+await page.waitForTimeout(250);
+
+await page.clock.fastForward(70000);
+await page.waitForTimeout(600);
+
+check(fremd.length === 1, `nach der Bedenkzeit geht sie von selbst hinaus (${fremd.length})`);
 
 const raus = fremd[0] || {};
 check(raus.methode === 'POST', 'sie geht als POST hinaus');
@@ -151,6 +179,25 @@ check(
   daheim.includes('Reis mit Möhren') && daheim.includes('"staerke"'),
   'das Tagebuch liegt dabei sehr wohl im Speicher – es geht nur nicht mit',
 );
+
+/* ==================== 4. Und sonst nichts ==================== */
+
+/*
+ * Ohne neuen Anlass bleibt es bei dem einen Aufruf. Ein Programm, das alle
+ * paar Minuten „nur mal nachsehen" hinausruft, wäre etwas anderes als eines,
+ * das schickt, was jemand geschrieben hat.
+ */
+await page.clock.fastForward(600000);
+await page.waitForTimeout(400);
+check(fremd.length === 1, `zehn Minuten später immer noch ein einziger Aufruf (${fremd.length})`);
+
+for (const tab of ['verlauf', 'muster', 'ideen', 'mehr', 'heute']) {
+  await page.locator(`[data-act="tab"][data-tab="${tab}"]`).click();
+  await page.waitForTimeout(150);
+}
+await page.clock.fastForward(120000);
+await page.waitForTimeout(400);
+check(fremd.length === 1, `auch Herumblättern löst nichts aus (${fremd.length})`);
 
 /* ==================== Der Quelltext ==================== */
 
