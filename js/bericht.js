@@ -37,6 +37,7 @@ import { stuhlZahlen } from './stuhl.js';
 import { befund, mittelBilanz } from './ansprechen.js';
 import { ergebnis } from './versuch.js';
 import { provokationsBild } from './provokation.js';
+import { planBild } from './stufenplan.js';
 
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
@@ -409,6 +410,39 @@ export function arztBericht(zustand, von, bis) {
         + `(${e.nachher.notierte} Tage)` : ', Wiedereinführung steht noch aus'));
     umbrochen(e.satz).forEach((z) => sag(`  ${z}`));
     sag('  (Ein Versuch an einem einzigen Menschen, ohne Verblindung.)');
+    sag();
+  }
+
+  /*
+   * Der Stufenplan gehört in den Bericht, und zwar als Erstes von allem
+   * Geprüften.
+   *
+   * Er ist das Aufwendigste, was dieses Tagebuch hervorbringt – Wochen –, und
+   * die Ernährungsberatung, an die eine Praxis überweist, fängt sonst bei null
+   * an: dieselbe Karenz, dieselben Wochen. Ein Plan mit Ergebnissen erspart
+   * genau das. Und die Karenzweiche gehört mit hinein, gerade wenn sie negativ
+   * ausfiel: „Vier Wochen ohne FODMAPs haben nichts geändert" schließt eine
+   * ganze Richtung aus und ist damit eine der nützlichsten Zeilen des Zettels.
+   */
+  const plan = zustand.stufenplan;
+  const plaene = [plan, ...(zustand.stufenplaene || [])].filter(Boolean);
+  if (plaene.length) {
+    sag('STUFENPLAN (FODMAP)');
+    plaene.slice(0, 3).forEach((pl) => {
+      const b = planBild(pl, eintraege, tage, bis);
+      sag(`  Karenz ab ${fmtDatum(pl.start, true)}, ${mehrzahl(pl.karenzTage, 'Tag', 'Tage')}`
+        + ` – ${b.karenz.wort}`);
+      sag(`     ${fmtZahl(b.karenz.karenz.schnitt)} während der Karenz gegen `
+        + `${fmtZahl(b.karenz.vorher.schnitt)} davor `
+        + `(${b.karenz.karenz.notierte} gegen ${b.karenz.vorher.notierte} notierte Tage)`);
+      b.stufen.forEach((x) => {
+        sag(`     ${x.name}: ${x.wort}`
+          + (x.urteil === 'menge' && x.gehtBis ? ` (bis ${x.gehtBis})` : '')
+          + (Number.isFinite(x.unterschied) && x.urteil !== 'laeuft'
+            ? ` – ${fmtZahl(x.schnitt)} gegen ${fmtZahl(x.basis)} in der Karenz` : ''));
+      });
+      if (b.offen.length) sag(`     noch nicht geprüft: ${b.offen.length} Gruppen`);
+    });
     sag();
   }
 

@@ -47,7 +47,7 @@ nichts: Er wählt aus den fertigen Befunden aus, und was dort steht, steht
 unten mit seinen Fallzahlen. Danach, und die Reihenfolge ist eine Aussage:
 Warnzeichen, die Einordnung des Bildes, die
 **Kriterien** (Rom IV und GerdQ, siehe unten), der **Auslassversuch**, der
-**Provokationstest**, die
+**Stufenplan**, der **Provokationstest**, die
 Bilanz **nach Wirkweise**, dann die nach einzelnen Zutaten, das **Ansprechen
 auf die Mittel**, Tageszeit, Beschwerdeart, Stuhlgang, **was noch fehlt** und
 die Zyklusphase. Wer nur die ersten beiden Karten liest, hat trotzdem das
@@ -420,6 +420,73 @@ Schönheitsfehler: Ein Eintrag macht einen Tag zu einem *notierten* Tag, und ein
 notierter Tag ohne Beschwerdeeintrag ist in dieser App ein Tag ohne
 Beschwerden. Wer sich nur wiegt, hätte sich sonst lauter beschwerdefreie Tage
 gebucht — und damit die Quote nach unten gerechnet, die den Verlauf beschreibt.
+
+### Der Stufenplan: erst weglassen, dann Gruppe für Gruppe zurückholen
+
+Das Größte, was diese App verlangt, und das einzige, was am Ende einen
+**Speiseplan** hinterlässt statt einer Auskunft. Der Ablauf ist der der
+FODMAP-Diät, wie sie in der Ernährungsberatung gemacht wird:
+
+1. **Karenz.** Zwei bis vier Wochen konsequent ohne die vergärbaren
+   Kohlenhydrate. Die Frage dieser Phase ist nicht „was davon", sondern
+   „überhaupt".
+2. **Wiedereinführung.** Eine Gruppe nach der anderen — Laktose, Fruktose,
+   Fruktane aus Getreide, Fruktane aus Zwiebel, Galactane, Sorbit, Mannit —,
+   jede über drei Tage mit steigender Menge, dazwischen jedes Mal drei Tage
+   zurück auf die Karenz.
+3. **Was bleibt.** Der Alltag danach ist die Karenz *plus alles, was sich als
+   verträglich erwiesen hat* — und das ist bei den meisten Menschen das meiste.
+
+**Die wichtigste Ausgabe dieses Moduls ist ein Abbruch.** Wenn die Karenz nichts
+bringt, ist der Plan zu Ende: nicht „dann probieren wir die Wiedereinführung
+trotzdem", sondern aufhören, wieder normal essen, woanders suchen. Das ist die
+Stelle, an der Apps und Ratgeber reihenweise versagen — sie führen durch zehn
+Wochen Verzicht, ohne je zu fragen, ob die ersten drei etwas gebracht haben. Und
+es ist keine Formalie: Eine FODMAP-Karenz streicht Weizen, Zwiebeln,
+Hülsenfrüchte, viele Obstsorten und Milchprodukte auf einmal. Wer sie ohne
+Nutzen weiterführt, verliert Ballaststoffe, Kalzium und Vielfalt in der
+Darmflora und hat dafür nichts bekommen. **Eine Diät ohne Wirkung ist kein
+neutraler Zustand, sie ist ein Schaden mit Aufwand.**
+
+Die zweitwichtigste steht direkt daneben: **Die Karenz ist nicht das Ziel.** Sie
+ist der Aufbau. Wer nach der Karenz aufhört, weil es ihm besser geht, bleibt für
+immer auf der strengsten Stufe — und das ist der häufigste Ausgang im wirklichen
+Leben, weil sich niemand traut, das Erreichte wieder aufs Spiel zu setzen.
+Deshalb steht an jeder Stelle, dass die Wiedereinführung der Punkt ist.
+
+Drei Dinge halten die Rechnung ehrlich:
+
+* **Der Tag nach einer Stufe gehört noch zur Stufe.** Was am dritten Tag in der
+  größten Menge gegessen wurde, meldet sich oft erst am nächsten Morgen —
+  FODMAPs wirken im Dickdarm, und dorthin braucht Essen seine Zeit. Zählte
+  dieser Tag zur Pause, ginge die Reaktion doppelt daneben: Sie fehlte beim
+  Befund *und* machte den Vergleichswert schlechter.
+* **Die Pausen zählen als Karenz.** Verglichen wird gegen alle
+  FODMAP-freien Tage des Plans, nicht nur gegen die erste Karenzwoche — bei
+  einem Plan über zehn Wochen ändert sich sonst der Maßstab unter der Hand.
+* **Die Menge fällt fast umsonst ab.** Weil jede Stufe über drei Tage
+  steigert, steht am Ende nicht nur *ob*, sondern *ab wann*. „Weizen verträgst
+  du nicht" streicht Brot, Nudeln und Couscous; „ab zwei Scheiben wird es zu
+  viel" streicht gar nichts.
+
+Beim Bau dieses Moduls trat derselbe Fehler wieder auf, der einmal in
+`js/dosis.js` steckte: Fehlte ausgerechnet der erste Tag im Tagebuch — der mit
+der kleinsten Menge —, kam „schon die kleinste geprüfte Menge hat
+durchgeschlagen" heraus. Das ist eine Aussage über etwas, das nie beobachtet
+wurde, und sie streicht eine ganze Gruppe. Jetzt heißt es dort „reagiert, kleine
+Menge ungeprüft", mit dem Vorschlag, die Stufe zu wiederholen.
+
+**Vor dem Start: Zöliakie.** Eine Karenz nimmt Weizen mit heraus. Der Bluttest
+auf Zöliakie funktioniert aber nur, solange noch Gluten gegessen wird — wer
+vorher wegläßt, bekommt ein falsch unauffälliges Ergebnis und einen Verdacht,
+der jahrelang unentdeckt bleibt. Die Frage steht deshalb vor dem Start und nicht
+im Kleingedruckten.
+
+Und eine Stufe lässt sich **verwerfen**. Das ist kein Schönmachen, sondern
+Notwehr gegen das wirkliche Leben: Kommt mitten in der Weizenstufe ein
+Magen-Darm-Infekt oder eine Geburtstagsfeier dazwischen, messen diese drei Tage
+nicht die Gruppe. Sie stehen zu lassen hieße, sie zu Unrecht durchfallen zu
+lassen — und jemand striche dann jahrelang Brot.
 
 ### Der Provokationstest: die Frage stellen, statt auf die Antwort zu warten
 
@@ -873,6 +940,8 @@ js/gewicht.js       das einzige harte Maß: ungewollter Verlust als
                     Warnzeichen, Wasserschwankung als keines
 js/provokation.js   der Provokationstest mit Protokoll – nüchtern,
                     wiederholt, gegen einen Leerdurchgang
+js/stufenplan.js    Karenz, die Weiche danach, und die Wiedereinführung
+                    Gruppe für Gruppe
 
 tools/vorschlaege.mjs        rahmt fremden Text ein, damit er Material
                              bleibt und keine Anweisung wird
@@ -911,7 +980,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Achtunddreißig Dateien, über 820 Prüfungen, alle in einem echten Chromium. Kein
+Neununddreißig Dateien, über 850 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -954,6 +1023,7 @@ den Rückgabewert.
 | `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
 | `test-gewicht.mjs` | fünf Prozent ungewollt sind ein Warnzeichen, dieselben fünf Prozent gewollt keines – und ein Tag, an dem nur gewogen wurde, ist kein Tag ohne Beschwerden |
+| `test-stufenplan.mjs` | eine Karenz ohne Wirkung muss den Plan beenden, nicht weiterführen – und ein fehlender erster Tag darf kein Urteil über die kleine Menge ergeben |
 | `test-provokation.mjs` | derselbe Schmerz an den Test- *und* an den Leermorgen darf nicht der Milch angelastet werden – und wer im Fenster frühstückt, hat keinen Durchgang gemacht |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,
