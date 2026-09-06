@@ -23,7 +23,7 @@
  * daran hängt das Aufräumen alter Zwischenspeicher.
  */
 
-const VERSION = 'v15';
+const VERSION = 'v16';
 const CACHE = `bauchbuch-${VERSION}`;
 
 const SHELL = [
@@ -60,6 +60,7 @@ const SHELL = [
   './js/dosis.js',
   './js/gewicht.js',
   './js/provokation.js',
+  './js/stufenplan.js',
   './icon.svg',
   './icon-192.png',
   './icon-512.png',

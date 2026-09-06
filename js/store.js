@@ -101,6 +101,22 @@ const VORGABE = {
    */
   provokationen: [],
   /*
+   * Der Stufenplan – siehe js/stufenplan.js:
+   * { id, start, karenzTage, gruppen: [id], stufen: [{ gruppe, start }], beendet }
+   *
+   * Das Größte, was diese App verlangt: Wochen. Gespeichert wird trotzdem nur,
+   * was sich nicht ausrechnen lässt – ab wann, wie lange, welche Gruppen, und
+   * an welchem Tag welche Gruppe geprüft wurde. Ob es geholfen hat, rechnet
+   * js/stufenplan.js jedes Mal neu aus den Eintragungen.
+   */
+  stufenplan: null,
+  /*
+   * Abgeschlossene Pläne. Einer reicht im Leben meistens – aber wer nach einem
+   * halben Jahr eine Gruppe noch einmal prüft, soll nachsehen können, was
+   * damals herauskam.
+   */
+  stufenplaene: [],
+  /*
    * Arzttermine als ISO-Daten, der jüngste zuerst.
    *
    * Der Bericht lief bisher über 30 oder 90 Tage – Fenster, die mit nichts zu
@@ -497,6 +513,84 @@ export function versuchLoeschen(id) {
   melde();
 }
 
+/* ---------- Stufenplan ---------- */
+
+/**
+ * Einen Stufenplan beginnen.
+ *
+ * `gruppen` ist die Auswahl und ihre Reihenfolge – beides trifft der Mensch
+ * und nicht die App. Wer viel Brot isst, prüft Weizen zuerst, weil diese
+ * Antwort seinen Alltag am stärksten ändert; wer selten auswärts isst, kann
+ * die Zwiebel hinten anstellen.
+ */
+export function planStarten(gruppen, karenzTage = 21) {
+  zustand.stufenplan = {
+    id: neueId(),
+    start: heuteISO(),
+    karenzTage: Math.max(14, Math.min(42, Number(karenzTage) || 21)),
+    gruppen: (gruppen || []).filter((g) => typeof g === 'string').slice(0, 10),
+    stufen: [],
+    beendet: null,
+  };
+  merke();
+  melde();
+  return zustand.stufenplan.id;
+}
+
+/** Eine Gruppe ab heute prüfen – drei Tage mit steigender Menge. */
+export function stufeStarten(gruppe) {
+  const p = zustand.stufenplan;
+  if (!p || p.beendet) return;
+  if (p.stufen.some((st) => st.gruppe === gruppe)) return;
+  zustand.stufenplan = { ...p, stufen: [...p.stufen, { gruppe, start: heuteISO() }] };
+  merke();
+  melde();
+}
+
+/**
+ * Eine Stufe verwerfen.
+ *
+ * Für den Fall, der im wirklichen Leben garantiert eintritt: Mitten in der
+ * Weizenstufe kommt ein Magen-Darm-Infekt, eine Geburtstagsfeier oder eine
+ * schlaflose Nacht. Diese drei Tage messen dann nicht die Gruppe. Sie
+ * stehenzulassen wäre schlimmer als sie zu wiederholen – die Gruppe fiele zu
+ * Unrecht durch, und jemand striche sie für Jahre vom Speiseplan.
+ */
+export function stufeVerwerfen(gruppe) {
+  const p = zustand.stufenplan;
+  if (!p) return;
+  const stufen = p.stufen.filter((st) => st.gruppe !== gruppe);
+  if (stufen.length === p.stufen.length) return;
+  zustand.stufenplan = { ...p, stufen };
+  merke();
+  melde();
+}
+
+/** Abbrechen. Bleibt stehen – auch ein abgebrochener Plan ist eine Auskunft. */
+export function planBeenden() {
+  if (!zustand.stufenplan) return;
+  zustand.stufenplan = { ...zustand.stufenplan, beendet: heuteISO() };
+  merke();
+  melde();
+}
+
+export function planAblegen() {
+  if (!zustand.stufenplan) return;
+  const abgelegt = { ...zustand.stufenplan, abgelegt: heuteISO() };
+  zustand.stufenplaene = [abgelegt, ...zustand.stufenplaene].slice(0, 10);
+  zustand.stufenplan = null;
+  merke();
+  melde();
+}
+
+export function planLoeschen(id) {
+  const vorher = zustand.stufenplaene.length;
+  zustand.stufenplaene = zustand.stufenplaene.filter((p) => p.id !== id);
+  if (zustand.stufenplaene.length === vorher) return;
+  merke();
+  melde();
+}
+
 /* ---------- Provokationstest ---------- */
 
 /**
@@ -809,6 +903,22 @@ export function ausJSON(text) {
     frisch.provokation = {
       ...pv,
       laeufe: pv.laeufe.filter((l) => l && typeof l.am === 'string' && typeof l.um === 'string'),
+    };
+  }
+  /*
+   * Und für den Stufenplan. Ohne `start` und `karenzTage` gäbe es keine
+   * Zeitrechnung, ohne `stufen` keine Wiedereinführung – ein halb gelesener
+   * Plan würde den Tagesreiter mit „Tag NaN von undefined" begrüßen.
+   */
+  const sp = frisch.stufenplan;
+  if (!sp || typeof sp !== 'object' || typeof sp.start !== 'string'
+      || !Number.isFinite(Number(sp.karenzTage)) || !Array.isArray(sp.gruppen)) {
+    frisch.stufenplan = null;
+  } else {
+    frisch.stufenplan = {
+      ...sp,
+      stufen: (Array.isArray(sp.stufen) ? sp.stufen : [])
+        .filter((st) => st && typeof st.gruppe === 'string' && typeof st.start === 'string'),
     };
   }
   zustand = frisch;

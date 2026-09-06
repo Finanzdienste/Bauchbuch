@@ -589,12 +589,23 @@ p { margin: 0 0 8px; }
 }
 .versuch-zahlen b { font-size: 20px; }
 .versuch-zahlen > li > span:first-child { font-size: 12px; color: var(--muted); }
-.versuch-wahl { list-style: none; margin: 10px 0; padding: 0; }
-.versuch-wahl li {
+/*
+ * Dieselbe Liste, drei Verwendungen – aber drei Klassen.
+ *
+ * Auslassversuch, Stufenplan und Provokationstest bieten alle eine Auswahl in
+ * derselben Form an. Sie sich eine Klasse teilen zu lassen, war schon einmal
+ * falsch: Ein Test, der „die erste .versuch-wahl" ansprach, prüfte plötzlich
+ * die Liste einer anderen Karte. Gleiches Aussehen ist kein Grund für gleiche
+ * Benennung, sobald man die Dinge auseinanderhalten muss.
+ */
+.versuch-wahl, .plan-wahl, .prov-wahl { list-style: none; margin: 10px 0; padding: 0; }
+.versuch-wahl li, .plan-wahl li, .prov-wahl li {
   border-top: 1px solid var(--line); padding: 10px 0;
   display: flex; flex-direction: column; gap: 8px;
 }
-.versuch-wahl li:first-child { border-top: none; }
+.versuch-wahl li:first-child,
+.plan-wahl li:first-child,
+.prov-wahl li:first-child { border-top: none; }
 
 /* ---------- Was noch fehlt ---------- */
 .luecken { margin: 10px 0 0; padding-left: 20px; }
@@ -2299,6 +2310,22 @@ const VORGABE = {
    */
   provokationen: [],
   /*
+   * Der Stufenplan – siehe js/stufenplan.js:
+   * { id, start, karenzTage, gruppen: [id], stufen: [{ gruppe, start }], beendet }
+   *
+   * Das Größte, was diese App verlangt: Wochen. Gespeichert wird trotzdem nur,
+   * was sich nicht ausrechnen lässt – ab wann, wie lange, welche Gruppen, und
+   * an welchem Tag welche Gruppe geprüft wurde. Ob es geholfen hat, rechnet
+   * js/stufenplan.js jedes Mal neu aus den Eintragungen.
+   */
+  stufenplan: null,
+  /*
+   * Abgeschlossene Pläne. Einer reicht im Leben meistens – aber wer nach einem
+   * halben Jahr eine Gruppe noch einmal prüft, soll nachsehen können, was
+   * damals herauskam.
+   */
+  stufenplaene: [],
+  /*
    * Arzttermine als ISO-Daten, der jüngste zuerst.
    *
    * Der Bericht lief bisher über 30 oder 90 Tage – Fenster, die mit nichts zu
@@ -2695,6 +2722,84 @@ function versuchLoeschen(id) {
   melde();
 }
 
+/* ---------- Stufenplan ---------- */
+
+/**
+ * Einen Stufenplan beginnen.
+ *
+ * `gruppen` ist die Auswahl und ihre Reihenfolge – beides trifft der Mensch
+ * und nicht die App. Wer viel Brot isst, prüft Weizen zuerst, weil diese
+ * Antwort seinen Alltag am stärksten ändert; wer selten auswärts isst, kann
+ * die Zwiebel hinten anstellen.
+ */
+function planStarten(gruppen, karenzTage = 21) {
+  zustand.stufenplan = {
+    id: neueId(),
+    start: heuteISO(),
+    karenzTage: Math.max(14, Math.min(42, Number(karenzTage) || 21)),
+    gruppen: (gruppen || []).filter((g) => typeof g === 'string').slice(0, 10),
+    stufen: [],
+    beendet: null,
+  };
+  merke();
+  melde();
+  return zustand.stufenplan.id;
+}
+
+/** Eine Gruppe ab heute prüfen – drei Tage mit steigender Menge. */
+function stufeStarten(gruppe) {
+  const p = zustand.stufenplan;
+  if (!p || p.beendet) return;
+  if (p.stufen.some((st) => st.gruppe === gruppe)) return;
+  zustand.stufenplan = { ...p, stufen: [...p.stufen, { gruppe, start: heuteISO() }] };
+  merke();
+  melde();
+}
+
+/**
+ * Eine Stufe verwerfen.
+ *
+ * Für den Fall, der im wirklichen Leben garantiert eintritt: Mitten in der
+ * Weizenstufe kommt ein Magen-Darm-Infekt, eine Geburtstagsfeier oder eine
+ * schlaflose Nacht. Diese drei Tage messen dann nicht die Gruppe. Sie
+ * stehenzulassen wäre schlimmer als sie zu wiederholen – die Gruppe fiele zu
+ * Unrecht durch, und jemand striche sie für Jahre vom Speiseplan.
+ */
+function stufeVerwerfen(gruppe) {
+  const p = zustand.stufenplan;
+  if (!p) return;
+  const stufen = p.stufen.filter((st) => st.gruppe !== gruppe);
+  if (stufen.length === p.stufen.length) return;
+  zustand.stufenplan = { ...p, stufen };
+  merke();
+  melde();
+}
+
+/** Abbrechen. Bleibt stehen – auch ein abgebrochener Plan ist eine Auskunft. */
+function planBeenden() {
+  if (!zustand.stufenplan) return;
+  zustand.stufenplan = { ...zustand.stufenplan, beendet: heuteISO() };
+  merke();
+  melde();
+}
+
+function planAblegen() {
+  if (!zustand.stufenplan) return;
+  const abgelegt = { ...zustand.stufenplan, abgelegt: heuteISO() };
+  zustand.stufenplaene = [abgelegt, ...zustand.stufenplaene].slice(0, 10);
+  zustand.stufenplan = null;
+  merke();
+  melde();
+}
+
+function planLoeschen(id) {
+  const vorher = zustand.stufenplaene.length;
+  zustand.stufenplaene = zustand.stufenplaene.filter((p) => p.id !== id);
+  if (zustand.stufenplaene.length === vorher) return;
+  merke();
+  melde();
+}
+
 /* ---------- Provokationstest ---------- */
 
 /**
@@ -3009,6 +3114,22 @@ function ausJSON(text) {
       laeufe: pv.laeufe.filter((l) => l && typeof l.am === 'string' && typeof l.um === 'string'),
     };
   }
+  /*
+   * Und für den Stufenplan. Ohne `start` und `karenzTage` gäbe es keine
+   * Zeitrechnung, ohne `stufen` keine Wiedereinführung – ein halb gelesener
+   * Plan würde den Tagesreiter mit „Tag NaN von undefined" begrüßen.
+   */
+  const sp = frisch.stufenplan;
+  if (!sp || typeof sp !== 'object' || typeof sp.start !== 'string'
+      || !Number.isFinite(Number(sp.karenzTage)) || !Array.isArray(sp.gruppen)) {
+    frisch.stufenplan = null;
+  } else {
+    frisch.stufenplan = {
+      ...sp,
+      stufen: (Array.isArray(sp.stufen) ? sp.stufen : [])
+        .filter((st) => st && typeof st.gruppe === 'string' && typeof st.start === 'string'),
+    };
+  }
   zustand = frisch;
   merke();
   melde();
@@ -3025,7 +3146,7 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
+const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
 
 /* ===== js/zufall.js ===== */
 /*
@@ -6936,6 +7057,589 @@ function naechsterSchritt(p, heute) {
   return { dran: false, satz: 'Genug Durchgänge beisammen – das Ergebnis steht unten.' };
 }
 
+/* ===== js/stufenplan.js ===== */
+/*
+ * Der Stufenplan: erst weglassen, dann Gruppe für Gruppe zurückholen
+ *
+ * WORAUF DAS GANZE HINAUSLÄUFT
+ *
+ * Das hier ist die größte Sache, die diese App verlangt, und die einzige, die
+ * am Ende einen Speiseplan hinterlässt statt einer Auskunft. Der Ablauf ist der
+ * der FODMAP-Diät, wie sie in der Ernährungsberatung gemacht wird:
+ *
+ *   1. KARENZ. Zwei bis vier Wochen konsequent ohne die vergärbaren
+ *      Kohlenhydrate. Die Frage dieser Phase ist nicht „was davon", sondern
+ *      „überhaupt".
+ *   2. WIEDEREINFÜHRUNG. Eine Gruppe nach der anderen, jede über drei Tage mit
+ *      steigender Menge, dazwischen jedes Mal zurück auf die Karenz.
+ *   3. WAS BLEIBT. Der Alltag danach ist die Karenz plus alles, was sich als
+ *      verträglich erwiesen hat – und das ist bei den meisten Menschen das
+ *      meiste.
+ *
+ * DIE WICHTIGSTE ZEILE DIESER DATEI IST EIN ABBRUCH
+ *
+ * Wenn die Karenz nichts bringt, ist der Plan zu Ende. Nicht „dann probieren
+ * wir die Wiedereinführung trotzdem", sondern: aufhören, wieder normal essen,
+ * woanders suchen. Das ist die Stelle, an der Apps und Ratgeber reihenweise
+ * versagen – sie führen durch zehn Wochen Verzicht, ohne je zu fragen, ob die
+ * ersten drei etwas gebracht haben.
+ *
+ * Und es ist keine Formalie: Eine FODMAP-Karenz streicht Weizen, Zwiebeln,
+ * Hülsenfrüchte, viele Obstsorten und Milchprodukte auf einmal. Wer sie ohne
+ * Nutzen weiterführt, verliert Ballaststoffe, Kalzium und Vielfalt in der
+ * Darmflora und hat dafür nichts bekommen. Eine Diät ohne Wirkung ist kein
+ * neutraler Zustand, sie ist ein Schaden mit Aufwand.
+ *
+ * DIE ZWEITWICHTIGSTE: DIE KARENZ IST NICHT DAS ZIEL
+ *
+ * Sie ist der Aufbau, nicht das Ergebnis. Wer nach der Karenz aufhört, weil es
+ * ihm besser geht, bleibt für immer auf der strengsten Stufe – und das ist der
+ * häufigste Ausgang im wirklichen Leben, weil sich niemand traut, das
+ * Erreichte wieder aufs Spiel zu setzen. Deshalb steht in dieser App an jeder
+ * Stelle, dass die Wiedereinführung der Punkt ist und die Karenz nur der Weg
+ * dorthin.
+ *
+ * VOR DEM ANFANG: ZÖLIAKIE
+ *
+ * Eine Karenz nimmt Weizen mit heraus. Der Bluttest auf Zöliakie funktioniert
+ * aber nur, solange noch Gluten gegessen wird – wer vorher wegläßt, bekommt
+ * ein falsch unauffälliges Ergebnis und einen Verdacht, der jahrelang
+ * unentdeckt bleibt. Deshalb steht die Frage vor dem Start und nicht im
+ * Kleingedruckten.
+ *
+ * Reine Rechnung. Was gestartet und abgehakt wird, steht in js/store.js.
+ */
+
+
+/** Wie lange eine Gruppe geprüft wird: drei Tage mit steigender Menge. */
+const STUFE_TAGE = 3;
+
+/**
+ * Und so lange danach wieder Karenz, bevor die nächste Gruppe kommt.
+ *
+ * Ohne diese Pause misst die zweite Gruppe, was die erste angerichtet hat. Sie
+ * ist der Grund, warum ein Stufenplan Wochen dauert und nicht Tage.
+ */
+const PAUSE_TAGE = 3;
+
+/**
+ * Der erste Tag nach einer Stufe zählt noch zur Stufe.
+ *
+ * Was am dritten Tag in der größten Menge gegessen wurde, meldet sich oft erst
+ * am nächsten Morgen – FODMAPs wirken im Dickdarm, und dorthin braucht Essen
+ * seine Zeit. Diesen Tag zur Pause zu zählen hieße, die Reaktion der
+ * Vergleichsgruppe zuzuschlagen: Sie fehlte dann nicht nur beim Befund, sie
+ * machte den Vergleichswert obendrein schlechter.
+ */
+const NACHKLANG = 1;
+
+/**
+ * Die ersten Tage der Karenz zählen nicht mit.
+ *
+ * Eine Ernährungsumstellung braucht ein paar Tage, bis sie steht – und die
+ * ersten sind erfahrungsgemäß die unruhigsten, weil sich auch der Alltag
+ * umstellen muss. Sie in den Vergleichswert zu nehmen machte die Karenz
+ * schlechter, als sie ist.
+ */
+const EINGEWOEHNUNG = 3;
+
+/** Auf beiden Seiten so viele notierte Tage, sonst gibt es kein Urteil. */
+const MINDEST_NOTIERT = 5;
+
+/** Eine ganze Stufe – dieselbe Schwelle wie überall in dieser App. */
+const PLAN_SCHWELLE = 1;
+
+/** Kürzer als zwei Wochen zeigt nichts, länger als vier hält niemand durch. */
+const KARENZ_VORSCHLAEGE = [14, 21, 28];
+
+/**
+ * Die Gruppen, und womit sie geprüft werden.
+ *
+ * Die Mengen steigen über drei Tage, und das ist keine Bequemlichkeit: Die
+ * meisten Unverträglichkeiten sind Mengenfragen. Wer nur die größte Menge
+ * prüft, erfährt nie, dass die kleine durchgeht – und streicht dann eine ganze
+ * Gruppe, obwohl ein Drittel davon problemlos gewesen wäre.
+ *
+ * Weizen und Zwiebel stehen getrennt, obwohl beides Fruktane sind. Sie
+ * vertragen sich beim selben Menschen oft verschieden gut, und für den Alltag
+ * ist der Unterschied riesig: Brot betrifft jede Mahlzeit, Zwiebel fast jedes
+ * Gericht, das jemand anders gekocht hat.
+ */
+const FODMAP_GRUPPEN = [
+  {
+    id: 'laktose',
+    name: 'Laktose – Milchzucker',
+    womit: 'Milch',
+    mengen: ['100 ml', '200 ml', '300 ml'],
+    steckt: 'Milch, Frischkäse, Joghurt, Sahne. Hartkäse und gereifter Käse '
+      + 'enthalten kaum noch Laktose und sind fast immer verträglich.',
+  },
+  {
+    id: 'fruktose',
+    name: 'Fruktose – Fruchtzucker im Überschuss',
+    womit: 'Honig',
+    mengen: ['1 TL', '1 EL', '2 EL'],
+    steckt: 'Honig, Mango, Apfel, Birne, Wassermelone, Agavendicksaft, '
+      + 'Fruchtsäfte. Gemeint ist nur der Überschuss über den Traubenzucker – '
+      + 'Beeren und Zitrusfrüchte sind unproblematisch.',
+  },
+  {
+    id: 'fruktane-weizen',
+    name: 'Fruktane aus Getreide',
+    womit: 'Weizenbrot',
+    mengen: ['½ Scheibe', '1 Scheibe', '2 Scheiben'],
+    steckt: 'Weizen, Roggen, Gerste – also Brot, Nudeln, Couscous, die meisten '
+      + 'Frühstücksflocken. Das ist die Gruppe, die den Alltag am stärksten '
+      + 'betrifft, und deshalb die, deren Antwort am meisten wert ist.',
+  },
+  {
+    id: 'fruktane-zwiebel',
+    name: 'Fruktane aus Zwiebel und Knoblauch',
+    womit: 'Zwiebel, gekocht',
+    mengen: ['⅛ Zwiebel', '¼ Zwiebel', '½ Zwiebel'],
+    steckt: 'Zwiebel, Knoblauch, Lauch, Schalotte – und damit fast alles, was '
+      + 'jemand anders gekocht hat. Getrennt von den Getreide-Fruktanen '
+      + 'geprüft, weil sich beides beim selben Menschen oft verschieden '
+      + 'verhält.',
+  },
+  {
+    id: 'galactane',
+    name: 'Galactane – Hülsenfrüchte',
+    womit: 'Kichererbsen aus der Dose, abgespült',
+    mengen: ['2 EL', '4 EL', '6 EL'],
+    steckt: 'Linsen, Kichererbsen, Bohnen, Erbsen, Sojabohnen. Abspülen '
+      + 'schwemmt einen Teil heraus – deshalb wird mit der abgespülten '
+      + 'Dosenware geprüft und nicht mit selbst gekochten.',
+  },
+  {
+    id: 'sorbit',
+    name: 'Sorbit – ein Zuckeralkohol',
+    womit: 'Trockenpflaumen',
+    mengen: ['1 Stück', '2 Stück', '4 Stück'],
+    steckt: 'Steinobst, Avocado, Trockenobst und alles „Zuckerfreie": '
+      + 'Kaugummi, Bonbons, Hustenlutscher.',
+  },
+  {
+    id: 'mannit',
+    name: 'Mannit – der andere Zuckeralkohol',
+    womit: 'Champignons',
+    mengen: ['1 Stück', '3 Stück', '5 Stück'],
+    steckt: 'Champignons, Blumenkohl, Zuckerschoten, Sellerie. Wird oft '
+      + 'zusammen mit Sorbit vertragen oder nicht, aber eben nicht immer – '
+      + 'deshalb steht es für sich.',
+  },
+];
+
+const GRUPPE_VON = Object.fromEntries(FODMAP_GRUPPEN.map((g) => [g.id, g]));
+
+const tagesSchnitt = (werte) => (werte.length
+  ? werte.reduce((a, b) => a + b, 0) / werte.length : 0);
+
+/** Die notierten Tageswerte eines Zeitraums, beide Ränder eingeschlossen. */
+function zeitraum(eintraege, tage, von, bis) {
+  const werte = [];
+  const n = tageDazwischen(von, bis);
+  if (n < 0) return { werte, notierte: 0, schnitt: 0, von, bis };
+  for (let i = 0; i <= n; i++) {
+    const t = tagesWert(eintraege, plusTage(von, i), tage);
+    // Eine Lücke im Tagebuch ist kein beschwerdefreier Tag. Dieselbe Regel wie
+    // überall – und hier zählt sie doppelt, weil ein Stufenplan über Wochen
+    // läuft und niemand über Wochen lückenlos einträgt.
+    if (t.notiert) werte.push(t.wert);
+  }
+  return { werte, notierte: werte.length, schnitt: tagesSchnitt(werte), von, bis };
+}
+
+/** Der Zeitraum einer Stufe: die drei Tage plus den Nachklang. */
+function stufenFenster(st) {
+  return { von: st.start, bis: plusTage(st.start, STUFE_TAGE - 1 + NACHKLANG) };
+}
+
+/**
+ * Wo der Plan gerade steht.
+ *
+ *   'karenz'    die Auslasszeit läuft
+ *   'entscheid' die Karenz ist um – jetzt fällt die Frage, ob es überhaupt hilft
+ *   'stufe'     eine Gruppe wird gerade geprüft
+ *   'pause'     Karenz zwischen zwei Gruppen
+ *   'bereit'    die Pause ist um, die nächste Gruppe kann anfangen
+ *   'fertig'    alle gewählten Gruppen durch
+ *   'beendet'   von Hand abgebrochen
+ */
+function planStand(plan, heute) {
+  if (!plan) return null;
+  if (plan.beendet) return { phase: 'beendet' };
+
+  const stufen = plan.stufen || [];
+  const laufend = stufen.find((st) => {
+    const f = stufenFenster(st);
+    return heute >= st.start && heute <= f.bis;
+  });
+  if (laufend) {
+    return {
+      phase: 'stufe',
+      gruppe: laufend.gruppe,
+      tag: Math.min(STUFE_TAGE, tageDazwischen(laufend.start, heute) + 1),
+      nachklang: tageDazwischen(laufend.start, heute) >= STUFE_TAGE,
+    };
+  }
+
+  const karenzBis = plusTage(plan.start, plan.karenzTage - 1);
+  if (!stufen.length) {
+    return tageDazwischen(plan.start, heute) >= plan.karenzTage
+      ? { phase: 'entscheid', karenzBis }
+      : {
+        phase: 'karenz',
+        tag: Math.max(1, tageDazwischen(plan.start, heute) + 1),
+        von: plan.karenzTage,
+        rest: Math.max(0, plan.karenzTage - (tageDazwischen(plan.start, heute) + 1)),
+      };
+  }
+
+  const offen = (plan.gruppen || []).filter((g) => !stufen.some((st) => st.gruppe === g));
+  if (!offen.length) return { phase: 'fertig' };
+
+  const letzte = stufen[stufen.length - 1];
+  const seit = tageDazwischen(stufenFenster(letzte).bis, heute);
+  return seit >= PAUSE_TAGE
+    ? { phase: 'bereit', naechste: offen[0], offen }
+    : { phase: 'pause', naechste: offen[0], offen, rest: PAUSE_TAGE - seit };
+}
+
+const KARENZ_URTEIL = {
+  laeuft: 'läuft noch',
+  zuwenig: 'zu wenige notierte Tage',
+  hilft: 'die Karenz hilft',
+  'hilft-nicht': 'die Karenz hilft nicht',
+};
+
+/**
+ * Bringt die Karenz überhaupt etwas?
+ *
+ * Die Weiche, an der der ganze Plan hängt. Verglichen wird die Karenz – ohne
+ * ihre Eingewöhnungstage – mit dem gleich langen Zeitraum davor, also mit dem
+ * eigenen Alltag und nicht mit null.
+ */
+function karenzBild(plan, eintraege, tage, heute) {
+  if (!plan) return null;
+  const bis0 = plusTage(plan.start, plan.karenzTage - 1);
+  const bis = heute < bis0 ? heute : bis0;
+  const von = plusTage(plan.start, EINGEWOEHNUNG);
+  const karenz = zeitraum(eintraege, tage, von, bis);
+  const vorher = zeitraum(eintraege, tage,
+    plusTage(plan.start, -plan.karenzTage), plusTage(plan.start, -1));
+  const besserung = vorher.schnitt - karenz.schnitt;
+
+  const zahlen = `${karenz.schnitt.toFixed(1).replace('.', ',')} während der Karenz `
+    + `gegen ${vorher.schnitt.toFixed(1).replace('.', ',')} davor `
+    + `(${karenz.notierte} gegen ${vorher.notierte} notierte Tage).`;
+
+  if (vorher.notierte < MINDEST_NOTIERT || karenz.notierte < MINDEST_NOTIERT) {
+    return {
+      urteil: 'zuwenig',
+      wort: KARENZ_URTEIL.zuwenig,
+      vorher,
+      karenz,
+      besserung,
+      satz: `Für den Vergleich braucht es auf beiden Seiten mindestens `
+        + `${MINDEST_NOTIERT} notierte Tage – bisher ${vorher.notierte} davor und `
+        + `${karenz.notierte} währenddessen. Eine Lücke im Tagebuch ist kein `
+        + `beschwerdefreier Tag, und gerade in einer Karenz wird weniger `
+        + `eingetragen, weil weniger passiert.`,
+    };
+  }
+
+  if (heute <= bis0) {
+    return {
+      urteil: 'laeuft',
+      wort: KARENZ_URTEIL.laeuft,
+      vorher,
+      karenz,
+      besserung,
+      satz: besserung >= PLAN_SCHWELLE
+        ? `Bisher ${besserung.toFixed(1).replace('.', ',')} Stufen besser: ${zahlen} `
+          + `Das sieht gut aus – und es ist noch keine Antwort darauf, *was* davon. `
+          + `Die kommt erst mit der Wiedereinführung.`
+        : `Bisher kein deutlicher Unterschied: ${zahlen} Weiter bis zum Ende der `
+          + `Karenz; darunter ist es zu früh für ein Urteil.`,
+    };
+  }
+
+  if (besserung >= PLAN_SCHWELLE) {
+    return {
+      urteil: 'hilft',
+      wort: KARENZ_URTEIL.hilft,
+      vorher,
+      karenz,
+      besserung,
+      satz: `${besserung.toFixed(1).replace('.', ',')} Stufen besser: ${zahlen} `
+        + `Damit steht fest, dass es sich lohnt weiterzumachen – und jetzt kommt `
+        + `der Teil, auf den alles hinausläuft. **Die Karenz ist nicht das Ziel.** `
+        + `Sie ist der Aufbau: Erst die Wiedereinführung sagt, welche Gruppe `
+        + `es war, und alles andere darf zurück auf den Teller.`,
+    };
+  }
+
+  /*
+   * Der Abbruch. Die wichtigste Ausgabe dieser Datei, und sie muss unmissver-
+   * ständlich sein: nicht „vielleicht doch noch weiterprobieren", sondern
+   * aufhören.
+   */
+  return {
+    urteil: 'hilft-nicht',
+    wort: KARENZ_URTEIL['hilft-nicht'],
+    vorher,
+    karenz,
+    besserung,
+    satz: `Kein deutlicher Unterschied: ${zahlen} Damit ist dieser Plan zu Ende, `
+      + `und das ist die richtige Folgerung und kein Fehlschlag: Wenn `
+      + `${plan.karenzTage} Tage ohne diese Kohlenhydrate nichts geändert haben, `
+      + `wird die Wiedereinführung es auch nicht klären – dann liegt es nicht `
+      + `daran. Iss wieder normal. Eine Diät, die nichts bringt, ist kein `
+      + `neutraler Zustand: Sie kostet Ballaststoffe, Kalzium und Vielfalt, und `
+      + `dafür bekommst du hier nichts. Was stattdessen dransteht, steht unter `
+      + `„Was noch fehlt".`,
+  };
+}
+
+const STUFEN_URTEIL = {
+  laeuft: 'läuft noch',
+  zuwenig: 'zu wenig eingetragen',
+  vertraegt: 'verträgst du',
+  menge: 'kommt auf die Menge an',
+  reagiert: 'reagiert – kleine Menge ungeprüft',
+  'vertraegt-nicht': 'verträgst du nicht',
+};
+
+/**
+ * Was bei den Karenz-Tagen herauskommt, gegen die eine Stufe gehalten wird.
+ *
+ * Nicht nur die ursprüngliche Karenz, sondern auch die Pausen zwischen den
+ * Stufen: Der Plan läuft über Wochen, und wie es jemandem „ohne" geht, ändert
+ * sich in dieser Zeit. Der Nachklangtag nach jeder Stufe bleibt draußen – er
+ * gehört zur Stufe.
+ */
+function grundlinie(plan, eintraege, tage, heute) {
+  const werte = [];
+  const bis0 = plusTage(plan.start, plan.karenzTage - 1);
+  const k = zeitraum(eintraege, tage, plusTage(plan.start, EINGEWOEHNUNG),
+    heute < bis0 ? heute : bis0);
+  werte.push(...k.werte);
+
+  (plan.stufen || []).forEach((st) => {
+    const nach = plusTage(stufenFenster(st).bis, 1);
+    const p = zeitraum(eintraege, tage, nach,
+      heute < plusTage(nach, PAUSE_TAGE - 1) ? heute : plusTage(nach, PAUSE_TAGE - 1));
+    werte.push(...p.werte);
+  });
+
+  return { werte, notierte: werte.length, schnitt: tagesSchnitt(werte) };
+}
+
+/**
+ * Eine einzelne Stufe: verträgst du die Gruppe – und in welcher Menge?
+ *
+ * Die Mengenfrage fällt hier fast umsonst ab, weil die Stufe ohnehin über drei
+ * Tage steigert. Sie zu verschweigen wäre die teuerste Auslassung des ganzen
+ * Plans: „Weizen verträgst du nicht" streicht Brot, Nudeln und Couscous;
+ * „ab zwei Scheiben wird es zu viel" streicht gar nichts.
+ */
+function stufenBild(plan, st, eintraege, tage, heute) {
+  const g = GRUPPE_VON[st.gruppe] || { name: st.gruppe, mengen: [] };
+  const basis = grundlinie(plan, eintraege, tage, heute);
+  const f = stufenFenster(st);
+
+  const tageswerte = [];
+  for (let i = 0; i < STUFE_TAGE; i++) {
+    const iso = plusTage(st.start, i);
+    const t = tagesWert(eintraege, iso, tage);
+    tageswerte.push(t.notiert ? t.wert : null);
+  }
+  // Der Nachklangtag zählt zum letzten, größten Tag – dort wurde am meisten
+  // gegessen, und dorthin gehört, was sich am Morgen danach meldet.
+  const nach = tagesWert(eintraege, plusTage(st.start, STUFE_TAGE), tage);
+  if (nach.notiert && tageswerte[STUFE_TAGE - 1] !== null) {
+    tageswerte[STUFE_TAGE - 1] = Math.max(tageswerte[STUFE_TAGE - 1], nach.wert);
+  }
+
+  const gemessen = tageswerte.filter((x) => x !== null);
+  const schnitt = tagesSchnitt(gemessen);
+  const unterschied = schnitt - basis.schnitt;
+
+  const gemeinsam = {
+    gruppe: st.gruppe,
+    name: g.name,
+    start: st.start,
+    bis: f.bis,
+    tageswerte,
+    mengen: g.mengen,
+    basis: basis.schnitt,
+    basisTage: basis.notierte,
+    schnitt,
+    unterschied,
+  };
+
+  if (heute <= f.bis) {
+    return { ...gemeinsam, urteil: 'laeuft', wort: STUFEN_URTEIL.laeuft, satz: '' };
+  }
+  if (gemessen.length < 2 || basis.notierte < MINDEST_NOTIERT) {
+    return {
+      ...gemeinsam,
+      urteil: 'zuwenig',
+      wort: STUFEN_URTEIL.zuwenig,
+      satz: `An ${gemessen.length} der ${STUFE_TAGE} Tage steht etwas im Tagebuch, `
+        + `und als Vergleich ${basis.notierte} Karenztage. Das reicht nicht – `
+        + `diese Gruppe müsste noch einmal geprüft werden. Ärgerlich, aber `
+        + `ehrlicher, als aus zwei Tagen einen Speiseplan zu machen.`,
+    };
+  }
+
+  const zahlen = `${schnitt.toFixed(1).replace('.', ',')} an den Testtagen gegen `
+    + `${basis.schnitt.toFixed(1).replace('.', ',')} in der Karenz `
+    + `(${basis.notierte} Tage).`;
+
+  if (unterschied < PLAN_SCHWELLE) {
+    return {
+      ...gemeinsam,
+      urteil: 'vertraegt',
+      wort: STUFEN_URTEIL.vertraegt,
+      satz: `Kein deutlicher Unterschied: ${zahlen} Diese Gruppe darf zurück auf `
+        + `den Teller – bis ${g.mengen[STUFE_TAGE - 1] || 'zur geprüften Menge'} `
+        + `${g.womit ? `${g.womit} ` : ''}war nichts zu merken. Jede Gruppe, die `
+        + `zurückkommt, ist der eigentliche Ertrag des ganzen Plans.`,
+    };
+  }
+
+  /*
+   * Reagiert hat es. Jetzt die Frage, die den Unterschied zwischen einer
+   * Streichliste und einer Faustregel macht: ab welcher Menge?
+   */
+  const erste = tageswerte[0];
+  const ruhigAmAnfang = erste !== null && erste - basis.schnitt < PLAN_SCHWELLE;
+  const abTag = tageswerte.findIndex((w) => w !== null && w - basis.schnitt >= PLAN_SCHWELLE);
+
+  if (ruhigAmAnfang && abTag > 0) {
+    return {
+      ...gemeinsam,
+      urteil: 'menge',
+      wort: STUFEN_URTEIL.menge,
+      abTag: abTag + 1,
+      gehtBis: g.mengen[abTag - 1],
+      satz: `${zahlen} Aber nicht von Anfang an: ${g.mengen[abTag - 1]} `
+        + `${g.womit || ''} ging noch, ab ${g.mengen[abTag]} kam es. Das ist die `
+        + `nützlichste Antwort, die dieser Plan geben kann – **streichen wäre `
+        + `hier zu viel.** Behalte die kleinere Menge und lass die größere weg.`,
+    };
+  }
+
+  /*
+   * Der erste Tag fehlt im Tagebuch – und damit ausgerechnet der, der über die
+   * kleine Menge entscheidet.
+   *
+   * Hier „schon die kleinste Menge schlägt durch" zu schreiben, wäre eine
+   * Aussage über etwas, das nie beobachtet wurde, und sie hätte Folgen: Sie
+   * streicht eine ganze Gruppe. Derselbe Fehler steckte einmal in
+   * js/dosis.js – dort hieß es „auch in kleiner Menge", obwohl nur die große
+   * je vorkam. Was nicht erhoben wurde, heißt nicht unauffällig, und es heißt
+   * genauso wenig auffällig.
+   */
+  if (erste === null) {
+    return {
+      ...gemeinsam,
+      urteil: 'reagiert',
+      wort: STUFEN_URTEIL.reagiert,
+      satz: `${zahlen} Diese Gruppe hat reagiert – aber am ersten Tag, dem mit der `
+        + `kleinsten Menge (${g.mengen[0] || 'die erste Stufe'}), steht nichts im `
+        + `Tagebuch. Ob die kleine Menge durchgeht, ist damit offen, und das ist `
+        + `genau die Frage, an der hängt, ob du die Gruppe streichen musst oder `
+        + `nur begrenzen. Diese Stufe lohnt eine Wiederholung.`,
+    };
+  }
+
+  return {
+    ...gemeinsam,
+    urteil: 'vertraegt-nicht',
+    wort: STUFEN_URTEIL['vertraegt-nicht'],
+    satz: `${zahlen} Schon die kleinste geprüfte Menge `
+      + `(${g.mengen[0] || 'die erste Stufe'}${g.womit ? ` ${g.womit}` : ''}) hat `
+      + `durchgeschlagen. Diese Gruppe bleibt vorerst draußen – und lohnt in `
+      + `einem halben Jahr einen zweiten Versuch: Verträglichkeiten ändern sich, `
+      + `besonders wenn sich der Darm zwischendurch beruhigt hat.`,
+  };
+}
+
+/**
+ * Der ganze Plan auf einen Blick – und vor allem: was heute zu tun ist.
+ *
+ * Ein Plan über zehn Wochen, der nicht jeden Tag sagt, was heute dran ist, ist
+ * keiner. Genau daran scheitert die FODMAP-Diät im Alltag am häufigsten: nicht
+ * am Verzicht, sondern daran, dass nach der dritten Woche niemand mehr weiß,
+ * welche Gruppe als Nächstes kommt und wann.
+ */
+function planBild(plan, eintraege, tage, heute) {
+  if (!plan) return null;
+  const stand = planStand(plan, heute);
+  const karenz = karenzBild(plan, eintraege, tage, heute);
+  const stufen = (plan.stufen || []).map((st) => stufenBild(plan, st, eintraege, tage, heute));
+  const offen = (plan.gruppen || []).filter((g) => !(plan.stufen || []).some((st) => st.gruppe === g));
+
+  let schritt = null;
+  if (stand.phase === 'karenz') {
+    schritt = {
+      satz: `Tag ${stand.tag} von ${plan.karenzTage} der Karenz. Noch `
+        + `${stand.rest} Tage – einfach weiter eintragen, mehr ist heute nicht zu tun.`,
+    };
+  } else if (stand.phase === 'entscheid') {
+    schritt = {
+      entscheid: true,
+      satz: karenz.urteil === 'hilft'
+        ? 'Die Karenz ist um und sie hat geholfen. Jetzt die Wiedereinführung – '
+          + 'wähle die Gruppe, deren Antwort dir am meisten bringt.'
+        : (karenz.urteil === 'hilft-nicht'
+          ? 'Die Karenz ist um und hat nichts gebracht. Hier ist Schluss: wieder '
+            + 'normal essen.'
+          : 'Die Karenz ist um, aber es fehlen notierte Tage für ein Urteil.'),
+    };
+  } else if (stand.phase === 'stufe') {
+    const g = GRUPPE_VON[stand.gruppe] || {};
+    schritt = stand.nachklang
+      ? {
+        satz: `Heute nichts davon mehr – der Tag nach der Stufe gehört noch dazu. `
+          + `Was sich vom gestrigen Tag noch meldet, gehört zu ${g.name || stand.gruppe}.`,
+      }
+      : {
+        satz: `${g.name || stand.gruppe}, Tag ${stand.tag} von ${STUFE_TAGE}: `
+          + `${(g.mengen || [])[stand.tag - 1] || 'die vorgesehene Menge'} `
+          + `${g.womit || ''}. Sonst weiter wie in der Karenz – nur diese eine Sache dazu.`,
+      };
+  } else if (stand.phase === 'pause') {
+    schritt = {
+      satz: `Pause: noch ${stand.rest} Tage zurück auf die Karenz, damit die `
+        + `nächste Gruppe nicht misst, was die letzte hinterlassen hat.`,
+    };
+  } else if (stand.phase === 'bereit') {
+    const g = GRUPPE_VON[stand.naechste] || {};
+    schritt = {
+      bereit: true,
+      gruppe: stand.naechste,
+      satz: `Bereit für die nächste Gruppe: ${g.name || stand.naechste}, `
+        + `drei Tage mit ${(g.mengen || []).join(', ')} ${g.womit || ''}.`,
+    };
+  } else if (stand.phase === 'fertig') {
+    const gut = stufen.filter((x) => x.urteil === 'vertraegt').length;
+    const teils = stufen.filter((x) => x.urteil === 'menge').length;
+    schritt = {
+      satz: `Alle gewählten Gruppen durch. ${gut} davon verträgst du, `
+        + `${teils} in kleiner Menge. Dein Alltag ist ab jetzt die Karenz plus `
+        + `alles, was zurückdurfte – und nicht die Karenz.`,
+    };
+  }
+
+  return {
+    stand, karenz, stufen, offen, schritt,
+  };
+}
+
 /* ===== js/lage.js ===== */
 /*
  * Was Sache ist – drei bis fünf Sätze, ganz oben
@@ -8543,6 +9247,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -8914,6 +9619,39 @@ function arztBericht(zustand, von, bis) {
         + `(${e.nachher.notierte} Tage)` : ', Wiedereinführung steht noch aus'));
     umbrochen(e.satz).forEach((z) => sag(`  ${z}`));
     sag('  (Ein Versuch an einem einzigen Menschen, ohne Verblindung.)');
+    sag();
+  }
+
+  /*
+   * Der Stufenplan gehört in den Bericht, und zwar als Erstes von allem
+   * Geprüften.
+   *
+   * Er ist das Aufwendigste, was dieses Tagebuch hervorbringt – Wochen –, und
+   * die Ernährungsberatung, an die eine Praxis überweist, fängt sonst bei null
+   * an: dieselbe Karenz, dieselben Wochen. Ein Plan mit Ergebnissen erspart
+   * genau das. Und die Karenzweiche gehört mit hinein, gerade wenn sie negativ
+   * ausfiel: „Vier Wochen ohne FODMAPs haben nichts geändert" schließt eine
+   * ganze Richtung aus und ist damit eine der nützlichsten Zeilen des Zettels.
+   */
+  const plan = zustand.stufenplan;
+  const plaene = [plan, ...(zustand.stufenplaene || [])].filter(Boolean);
+  if (plaene.length) {
+    sag('STUFENPLAN (FODMAP)');
+    plaene.slice(0, 3).forEach((pl) => {
+      const b = planBild(pl, eintraege, tage, bis);
+      sag(`  Karenz ab ${fmtDatum(pl.start, true)}, ${mehrzahl(pl.karenzTage, 'Tag', 'Tage')}`
+        + ` – ${b.karenz.wort}`);
+      sag(`     ${fmtZahl(b.karenz.karenz.schnitt)} während der Karenz gegen `
+        + `${fmtZahl(b.karenz.vorher.schnitt)} davor `
+        + `(${b.karenz.karenz.notierte} gegen ${b.karenz.vorher.notierte} notierte Tage)`);
+      b.stufen.forEach((x) => {
+        sag(`     ${x.name}: ${x.wort}`
+          + (x.urteil === 'menge' && x.gehtBis ? ` (bis ${x.gehtBis})` : '')
+          + (Number.isFinite(x.unterschied) && x.urteil !== 'laeuft'
+            ? ` – ${fmtZahl(x.schnitt)} gegen ${fmtZahl(x.basis)} in der Karenz` : ''));
+      });
+      if (b.offen.length) sag(`     noch nicht geprüft: ${b.offen.length} Gruppen`);
+    });
     sag();
   }
 
@@ -9452,7 +10190,8 @@ function tagAnsicht(s) {
     ${stand.laenge ? ` · deine Zyklen dauern im Mittel ${stand.laenge} Tage` : ''}
   </p>` : '';
 
-  return kopf + sicherungKarte(iso) + versuchZeile(s, iso) + provokationZeile(s, iso) + bilanz + zyklusZeile
+  return kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
+    + provokationZeile(s, iso) + bilanz + zyklusZeile
     + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + anlegen + zeilen + umstaende;
 }
 
@@ -9493,6 +10232,36 @@ function versuchZeile(s, iso) {
     : `Tag ${st.tag} von ${st.von} – heute ohne <b>${esc(was)}</b>.`
       + (heutigeVerstoesse ? ` Heute steht es ${heutigeVerstoesse}× im Tagebuch; das ist kein Vorwurf, es geht nur in die Auswertung ein.` : '')}</p>
     ${knopf('versuch-beenden', 'Abbrechen', 'btn-ghost')}
+  </div>`;
+}
+
+/**
+ * Der Stufenplan auf dem Tagesreiter – die wichtigste Zeile der ganzen App,
+ * solange er läuft.
+ *
+ * Ein Plan über zehn Wochen scheitert im Alltag nicht am Verzicht, sondern
+ * daran, dass nach der dritten Woche niemand mehr weiß, welche Gruppe dran
+ * ist, in welcher Menge und ob heute noch Pause ist. Deshalb steht hier jeden
+ * Tag genau ein Satz: was heute zu tun ist. Und deshalb steht er ganz oben,
+ * vor allem anderen.
+ */
+function planZeile(s, iso) {
+  const p = s.stufenplan;
+  if (!p || p.beendet || iso !== heuteISO()) return '';
+  const b = planBild(p, s.eintraege, s.tage, heuteISO());
+  if (!b.schritt) return '';
+  const merk = b.stand.phase === 'stufe' || b.stand.phase === 'bereit'
+    || b.stand.phase === 'entscheid';
+
+  return `<div class="karte ${merk ? 'karte-merk ' : ''}plan-zeile">
+    <h3>${b.stand.phase === 'karenz' ? 'Karenz'
+    : (b.stand.phase === 'stufe' ? 'Wiedereinführung' : 'Stufenplan')}</h3>
+    <p class="klein">${esc(b.schritt.satz)}</p>
+    ${b.stand.phase === 'bereit'
+    ? `<div class="reihe">${knopf('stufe-los', 'Diese Gruppe jetzt anfangen', 'btn-primary')}</div>`
+    : ''}
+    ${b.stand.phase === 'entscheid'
+    ? '<p class="klein">Das Ergebnis der Karenz steht unter „Muster".</p>' : ''}
   </div>`;
 }
 
@@ -10361,6 +11130,149 @@ function versuchTeil(s, d) {
 }
 
 /**
+ * Der Stufenplan: Karenz, Weiche, Wiedereinführung.
+ *
+ * Steht direkt hinter den Kriterien und vor allen Einzelbefunden, weil er als
+ * einziges Stück dieser App am Ende einen Speiseplan hinterlässt statt einer
+ * Auskunft. Und weil die Weiche in der Mitte – hilft die Karenz überhaupt? –
+ * die folgenreichste Frage ist, die hier gestellt wird.
+ */
+function planTeil(s, d) {
+  const p = s.stufenplan;
+  if (!p) return planAngebot(s, d);
+
+  const b = planBild(p, s.eintraege, s.tage, d.heute);
+  const abbruch = b.karenz && b.karenz.urteil === 'hilft-nicht';
+  const zahl = (x) => x.toFixed(1).replace('.', ',');
+
+  return `<div class="karte plan ${abbruch ? 'karte-warn' : ''}">
+    <div class="fund-kopf">
+      <b>Stufenplan</b>
+      <span class="fund-urteil">${esc(b.karenz.wort)}</span>
+    </div>
+
+    <p class="feld-name">1. Karenz — ${p.karenzTage} Tage ab ${esc(fmtDatum(p.start, true))}</p>
+    ${b.karenz.vorher.notierte >= 2 && b.karenz.karenz.notierte >= 2
+    ? vergleichBalken(b.karenz.karenz.schnitt, b.karenz.vorher.schnitt,
+      { mit: 'Karenz', ohne: 'davor' }) : ''}
+    <p>${esc(b.karenz.satz.replace(/\*\*/g, ''))}</p>
+
+    ${abbruch ? `<div class="reihe">
+      ${knopf('plan-beenden', 'Plan beenden und wieder normal essen', 'btn-primary')}
+    </div>` : ''}
+
+    ${!abbruch && (b.stufen.length || b.stand.phase !== 'karenz') ? `
+      <p class="feld-name">2. Wiedereinführung — eine Gruppe nach der anderen</p>
+      ${b.stufen.length ? `<ul class="wartend plan-stufen">${b.stufen.map((x) => `<li class="geprueft g-${x.urteil}">
+        <span><b>${esc(x.name)}</b><span class="zeile-tags">${esc(fmtDatum(x.start, true))} ·
+          ${x.tageswerte.map((w, i) => `${esc((x.mengen[i] || '?'))}: ${w === null ? '–' : w}`).join(' · ')}</span></span>
+        <span class="klein">${esc(x.wort)}${x.urteil !== 'laeuft' ? `
+          <button type="button" class="strang-weg" data-act="stufe-weg"
+                  data-id="${esc(x.gruppe)}"
+                  aria-label="Diese Stufe verwerfen und noch einmal machen">×</button>` : ''}</span>
+      </li>`).join('')}</ul>` : ''}
+      ${b.stufen.filter((x) => x.satz).map((x) => `<p class="klein"><b>${esc(x.name)}:</b> ${esc(x.satz.replace(/\*\*/g, ''))}</p>`).join('')}
+      ${b.offen.length ? `<p class="klein">Noch offen:
+        ${b.offen.map((g) => esc((GRUPPE_VON[g] || {}).name || g)).join(', ')}.</p>` : ''}
+    ` : ''}
+
+    ${b.schritt ? `<p class="klein"><b>Als Nächstes:</b> ${esc(b.schritt.satz)}</p>` : ''}
+
+    <div class="reihe">
+      ${b.stand.phase === 'bereit' || b.stand.phase === 'entscheid'
+    ? knopf('stufe-los', 'Nächste Gruppe anfangen', 'btn-primary') : ''}
+      ${p.beendet || b.stand.phase === 'fertig'
+    ? knopf('plan-ablegen', 'Abhaken und behalten', 'btn-primary')
+    : (abbruch ? '' : knopf('plan-beenden', 'Abbrechen', 'btn-ghost'))}
+    </div>
+
+    <p class="klein">Die Karenz ist nicht das Ziel, sondern der Aufbau. Wer nach
+    der Karenz aufhört, weil es besser geht, bleibt für immer auf der strengsten
+    Stufe — und das meiste, was jetzt draußen ist, wäre wahrscheinlich
+    verträglich. Der Ertrag dieses Plans ist alles, was zurückdarf.</p>
+    ${b.stufen.length ? `<p class="klein">Werte je Tag, weil die Menge steigt:
+    ${zahl(b.karenz.karenz.schnitt)} war der Karenz-Schnitt, gegen den verglichen
+    wird.</p>` : ''}
+  </div>${planHistorie(s, d)}`;
+}
+
+/**
+ * Das Angebot, wenn noch keiner läuft.
+ *
+ * Bewusst nicht als Vorschlag der App, sondern als Auswahl: Welche Gruppen
+ * geprüft werden und in welcher Reihenfolge, hängt daran, wie jemand isst.
+ * Wer viel Brot isst, fängt mit Getreide an, weil diese Antwort seinen Alltag
+ * am stärksten ändert.
+ */
+function planAngebot(s, d) {
+  const hist = planHistorie(s, d);
+  // Erst anbieten, wenn überhaupt etwas dasteht: Ein Plan über Wochen ist die
+  // falsche Antwort auf „ich trage seit vier Tagen ein".
+  if (tageMitEintrag(s, d.heute) < 14) return hist;
+  const gewaehlt = ui.planGruppen || FODMAP_GRUPPEN.map((g) => g.id);
+
+  return `<div class="karte karte-merk">
+    <h3>Der Stufenplan</h3>
+    <p class="klein">Das Größte, was diese App vorschlägt, und das einzige, was
+    am Ende einen Speiseplan hinterlässt statt einer Auskunft. Erst zwei bis vier
+    Wochen konsequent ohne die vergärbaren Kohlenhydrate — die Frage dieser
+    Phase ist nicht <i>was davon</i>, sondern <i>überhaupt</i>. Dann Gruppe für
+    Gruppe zurück, jede über drei Tage mit steigender Menge, dazwischen jedes
+    Mal zurück auf die Karenz.</p>
+
+    <p class="klein"><b>Vorher zu klären:</b> Eine Karenz nimmt Weizen mit heraus.
+    Der Bluttest auf Zöliakie funktioniert aber nur, solange noch Gluten gegessen
+    wird — wer vorher wegläßt, bekommt ein falsch unauffälliges Ergebnis. Ist das
+    schon einmal abgeklärt worden? Wenn nicht, gehört das <b>vor</b> den Plan.</p>
+
+    <p class="feld-name">Welche Gruppen, in welcher Reihenfolge</p>
+    <ul class="plan-wahl">${FODMAP_GRUPPEN.map((g) => `<li>
+      <div><b>${esc(g.name)}</b>
+        <span class="klein">${esc(g.steckt)}</span></div>
+      <div class="wahl">
+        <button type="button" class="wahl-btn${gewaehlt.includes(g.id) ? ' an' : ''}"
+                data-act="plan-gruppe" data-id="${esc(g.id)}">${gewaehlt.includes(g.id) ? 'dabei' : 'weglassen'}</button>
+      </div>
+    </li>`).join('')}</ul>
+
+    <p class="feld-name">Wie lange die Karenz</p>
+    <div class="wahl">${KARENZ_VORSCHLAEGE.map((n) => `
+      <button type="button" class="wahl-btn" data-act="plan-start"
+              data-n="${n}">${n} Tage</button>`).join('')}</div>
+
+    <p class="klein">Wenn die Karenz nichts bringt, ist der Plan zu Ende — dann
+    wird nicht trotzdem wiedereingeführt, sondern aufgehört. Eine Diät ohne
+    Wirkung ist kein neutraler Zustand: Sie kostet Ballaststoffe, Kalzium und
+    Vielfalt in der Darmflora, und dafür bekommst du nichts. Genau diese Weiche
+    fehlt in den meisten Anleitungen.</p>
+  </div>${hist}`;
+}
+
+/** Abgeschlossene Pläne – damit eine Gruppe nicht zweimal durchgeprüft wird. */
+function planHistorie(s, d) {
+  const alte = s.stufenplaene || [];
+  if (!alte.length) return '';
+  return `<div class="karte karte-geprueft">
+    <h3>Frühere Stufenpläne</h3>
+    ${alte.map((p) => {
+    const b = planBild(p, s.eintraege, s.tage, d.heute);
+    return `<div>
+      <p class="feld-name">Ab ${esc(fmtDatum(p.start, true))} — ${esc(b.karenz.wort)}</p>
+      <ul class="wartend">${b.stufen.map((x) => `<li class="geprueft g-${x.urteil}">
+        <span>${esc(x.name)}</span>
+        <span class="klein">${esc(x.wort)}
+          <button type="button" class="strang-weg" data-act="plan-alt-weg"
+                  data-id="${esc(p.id)}" aria-label="Aus der Liste nehmen">×</button></span>
+      </li>`).join('')}</ul>
+    </div>`;
+  }).join('')}
+    <p class="klein">Verträglichkeiten ändern sich. Eine Gruppe, die vor einem
+    Jahr durchfiel, lohnt einen zweiten Versuch – besonders, wenn sich der Darm
+    zwischendurch beruhigt hat.</p>
+  </div>`;
+}
+
+/**
  * Der Provokationstest: laufend, fertig oder noch nicht angefangen.
  *
  * Er steht direkt hinter dem Auslassversuch, weil er dieselbe Bewegung macht –
@@ -10421,7 +11333,7 @@ function provokationTeil(s, d) {
     eine festgelegte Menge, <b>nüchtern</b>, dann vier Stunden nichts essen und
     aufschreiben, wie es geht – und das dreimal. Genau so wird auf Laktose und
     Fruktose geprüft; in der Klinik misst dabei zusätzlich ein Atemtest mit.</p>
-    <ul class="versuch-wahl">${PRUEFBAR.map((x) => `<li>
+    <ul class="prov-wahl">${PRUEFBAR.map((x) => `<li>
       <div><b>${esc(x.name)}</b>
         <span class="klein">${esc(x.was)} · ${esc(x.warum)}</span></div>
       <div class="wahl">
@@ -10632,7 +11544,7 @@ function musterAnsicht(s) {
    * gerade weniger isst. Dieselbe Falle wie damals, eine Tür weiter.
    */
   if (!mahlzeiten) {
-    return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}${versuchTeil(s, d)}${provokationTeil(s, d)}<p class="leer">Noch keine Mahlzeit
+    return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}<p class="leer">Noch keine Mahlzeit
       eingetragen. Sobald ein paar Tage beisammen sind, steht hier, was
       auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
   }
@@ -10718,7 +11630,7 @@ function musterAnsicht(s) {
    * hat trotzdem das Wichtigste.
    */
   return lageTeil(s, d) + bildTeil(s, d) + unterleibVorschlag(s)
-    + kriterienTeil(s, d) + versuchTeil(s, d) + provokationTeil(s, d)
+    + kriterienTeil(s, d) + versuchTeil(s, d) + planTeil(s, d) + provokationTeil(s, d)
     + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wechselTeil(s, d)
     + wartet + ansprechenTeil(s, d)
     + zeitTeil(d) + wann + wie + stuhlTeil(s) + brauchtTeil(s, d)
@@ -11985,6 +12897,63 @@ const AKTION = {
     zeichne();
   },
   'prov-alt-weg': (el) => { store.provokationLoeschen(el.dataset.id); zeichne(); },
+
+  /*
+   * Die Auswahl der Gruppen lebt in `ui` und nicht im Speicher: Sie gilt nur
+   * für den Moment, in dem jemand vor der Liste sitzt und überlegt. Erst der
+   * Start schreibt etwas fest.
+   */
+  'plan-gruppe': (el) => {
+    const alle = FODMAP_GRUPPEN.map((g) => g.id);
+    const jetzt = ui.planGruppen || alle;
+    ui.planGruppen = jetzt.includes(el.dataset.id)
+      ? jetzt.filter((g) => g !== el.dataset.id)
+      : alle.filter((g) => jetzt.includes(g) || g === el.dataset.id);
+    zeichne();
+  },
+  'plan-start': (el) => {
+    const gruppen = ui.planGruppen || FODMAP_GRUPPEN.map((g) => g.id);
+    if (!gruppen.length) { melden('Wähle mindestens eine Gruppe aus.'); return; }
+    if (!window.confirm('Der Plan dauert mehrere Wochen. Vorher geklärt: Ist Zöliakie schon einmal ausgeschlossen worden? Der Bluttest geht nur, solange noch Gluten gegessen wird.')) return;
+    store.planStarten(gruppen, Number(el.dataset.n) || 21);
+    store.einstellen('tab', 'heute');
+    melden('Karenz läuft. Was heute dran ist, steht ab jetzt oben auf dem Tagesreiter.');
+    zeichne();
+  },
+  'stufe-los': () => {
+    const s = store.zustandLesen();
+    const b = planBild(s.stufenplan, s.eintraege, s.tage, heuteISO());
+    const naechste = (b && b.stand.naechste) || (b && b.offen[0]);
+    if (!naechste) return;
+    const g = GRUPPE_VON[naechste] || {};
+    store.stufeStarten(naechste);
+    melden(`${g.name || naechste}: heute ${(g.mengen || [])[0] || 'die erste Menge'} `
+      + `${g.womit || ''}, sonst weiter wie in der Karenz.`);
+    zeichne();
+  },
+  /*
+   * Eine Stufe verwerfen ist kein Schönmachen, sondern Notwehr gegen das
+   * wirkliche Leben: Kommt mitten in der Weizenstufe ein Infekt oder eine
+   * Feier dazwischen, messen diese drei Tage nicht die Gruppe. Sie stehen zu
+   * lassen hieße, die Gruppe zu Unrecht durchfallen zu lassen – und jemand
+   * striche dann jahrelang Brot.
+   */
+  'stufe-weg': (el) => {
+    if (!window.confirm('Diese Stufe verwerfen? Sie zählt dann nicht mehr und kann noch einmal gemacht werden.')) return;
+    store.stufeVerwerfen(el.dataset.id);
+    zeichne();
+  },
+  'plan-beenden': () => {
+    if (!window.confirm('Stufenplan beenden? Was bisher herauskam, bleibt stehen.')) return;
+    store.planBeenden();
+    zeichne();
+  },
+  'plan-ablegen': () => {
+    store.planAblegen();
+    melden('Abgehakt – bleibt unter „Frühere Stufenpläne" stehen.');
+    zeichne();
+  },
+  'plan-alt-weg': (el) => { store.planLoeschen(el.dataset.id); zeichne(); },
 
   'tag-blaettern': (el) => {
     ui.tag = plusTage(ui.tag, Number(el.dataset.d));

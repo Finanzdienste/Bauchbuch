@@ -569,12 +569,23 @@ p { margin: 0 0 8px; }
 }
 .versuch-zahlen b { font-size: 20px; }
 .versuch-zahlen > li > span:first-child { font-size: 12px; color: var(--muted); }
-.versuch-wahl { list-style: none; margin: 10px 0; padding: 0; }
-.versuch-wahl li {
+/*
+ * Dieselbe Liste, drei Verwendungen – aber drei Klassen.
+ *
+ * Auslassversuch, Stufenplan und Provokationstest bieten alle eine Auswahl in
+ * derselben Form an. Sie sich eine Klasse teilen zu lassen, war schon einmal
+ * falsch: Ein Test, der „die erste .versuch-wahl" ansprach, prüfte plötzlich
+ * die Liste einer anderen Karte. Gleiches Aussehen ist kein Grund für gleiche
+ * Benennung, sobald man die Dinge auseinanderhalten muss.
+ */
+.versuch-wahl, .plan-wahl, .prov-wahl { list-style: none; margin: 10px 0; padding: 0; }
+.versuch-wahl li, .plan-wahl li, .prov-wahl li {
   border-top: 1px solid var(--line); padding: 10px 0;
   display: flex; flex-direction: column; gap: 8px;
 }
-.versuch-wahl li:first-child { border-top: none; }
+.versuch-wahl li:first-child,
+.plan-wahl li:first-child,
+.prov-wahl li:first-child { border-top: none; }
 
 /* ---------- Was noch fehlt ---------- */
 .luecken { margin: 10px 0 0; padding-left: 20px; }
