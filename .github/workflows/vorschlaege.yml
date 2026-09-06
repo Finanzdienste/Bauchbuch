@@ -22,8 +22,11 @@
 #
 #   * Der Entwurf bleibt ein Entwurf (draft), und ein Mensch führt zusammen.
 #   * tools/pruefung/bot-grenzen.py verbietet dem Zweig die Wächter, die Tests,
-#     js/briefkasten.js, package.json und .github/ – geprüft in der normalen
-#     CI, nicht hier. Was der Agent selbst ausführt, könnte er auch umgehen.
+#     js/briefkasten.js, package.json und .github/ – geprüft weiter unten in
+#     diesem Ablauf, mit dem Skript aus main statt aus dem Arbeitsverzeichnis.
+#     Der Grund steht dort; kurz: Die gewöhnliche CI läuft auf diesem Zweig
+#     nicht, weil GitHub für Pushes mit dem GITHUB_TOKEN keine Workflows
+#     startet.
 #   * Der fremde Text steht im Auftrag als *Material* gekennzeichnet, in einem
 #     Block, aus dem er nicht ausbrechen kann (siehe tools/vorschlaege.mjs).
 #
@@ -171,6 +174,30 @@ jobs:
           claude_args: >-
             --max-turns 40
             --allowedTools "Read,Glob,Grep,Edit,Write,Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(python3:*),Bash(git:*)"
+
+      # Die Grenze – und zwar hier, weil sie sonst nirgends greift.
+      #
+      # Das war ein Denkfehler im ersten Entwurf: Der Plan war, die Grenze in
+      # der gewöhnlichen CI zu prüfen, weil der Agent die dort nicht umgehen
+      # kann. Nur läuft die CI auf diesem Zweig gar nicht – GitHub startet
+      # keine Workflows für Pushes und Pull Requests, die ein Workflow mit dem
+      # GITHUB_TOKEN erzeugt hat. Das ist deren Schutz gegen Endlosschleifen,
+      # und er hat den Wächter genau dort ausgeschaltet, wo er hingehörte.
+      #
+      # Also wird hier geprüft. Der Einwand von damals gilt weiter – was der
+      # Agent ausführt, könnte er auch ändern –, deshalb kommt das Skript
+      # nicht aus dem Arbeitsverzeichnis, sondern aus `origin/main`. Was der
+      # Agent an seiner Arbeitskopie gedreht hat, zählt nicht mit; und
+      # `.github/` und `tools/pruefung/` stehen selbst auf der Sperrliste, ein
+      # geänderter Wächter fiele also auf.
+      - name: Grenzen für Entwürfe prüfen
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0'
+        env:
+          GITHUB_HEAD_REF: ${{ steps.zweig.outputs.name }}
+        run: |
+          git fetch origin main --depth=1
+          git show origin/main:tools/pruefung/bot-grenzen.py > "$RUNNER_TEMP/waechter.py"
+          python3 "$RUNNER_TEMP/waechter.py" origin/main
 
       - name: Entwurf anlegen
         if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0'
