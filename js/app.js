@@ -46,7 +46,9 @@ import {
 } from './zyklus.js';
 import { WARNZEICHEN, bildLesen, genugFuerBild } from './bild.js';
 import { freischaltung, naechsteSchwelle } from './anfang.js';
-import { KALENDER_NAME, ZEIT_VORSCHLAEGE, erinnerungsTermin } from './kalender.js';
+import {
+  KALENDER_NAME, ZEIT_VORSCHLAEGE, erinnerungsTermin, terminEintrag,
+} from './kalender.js';
 import { fragenVorschlagen } from './unterleib.js';
 import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import {
@@ -1330,6 +1332,7 @@ function planTeil(s, d) {
     ` : ''}
 
     ${b.schritt ? `<p class="klein"><b>Als Nächstes:</b> ${esc(b.schritt.satz)}</p>` : ''}
+    ${terminKnopf(b.schritt)}
 
     <div class="reihe">
       ${b.stand.phase === 'bereit' || b.stand.phase === 'entscheid'
@@ -1460,6 +1463,7 @@ function provokationTeil(s, d) {
     : ''}
       <p>${esc(b.satz)}</p>
       ${schritt && !fertig ? `<p class="klein"><b>Als Nächstes:</b> ${esc(schritt.satz)}</p>` : ''}
+      ${fertig ? '' : terminKnopf(schritt)}
       <div class="reihe">
         ${schritt && schritt.dran
     ? knopf(schritt.leer ? 'prov-leer' : 'prov-lauf',
@@ -2253,6 +2257,29 @@ function zyklusTeil(s) {
  * ohne dass irgendetwas das Gerät verlässt – und er erinnert auch dann noch,
  * wenn die App monatelang nicht geöffnet wird.
  */
+/**
+ * „In den Kalender" für einen Zeitpunkt, auf den die App wartet.
+ *
+ * Stufenplan und Provokationstest bestehen zur Hälfte aus Warten: drei Tage
+ * Pause, zwei Tage Abstand. Das sind genau die Fristen, die im Alltag
+ * verlorengehen – nicht weil sie schwer wären, sondern weil niemand sich einen
+ * Termin in vier Tagen merkt, den ihm keiner sagt. Die App kann nicht
+ * klingeln; der Kalender kann es.
+ *
+ * Erscheint nur, wenn wirklich ein künftiger Tag feststeht. Ein Knopf, der
+ * heute schon anbietet, an heute zu erinnern, wäre Lärm.
+ */
+function terminKnopf(schritt) {
+  if (!schritt || !schritt.am || schritt.am <= heuteISO()) return '';
+  return `<div class="reihe">
+    <button type="button" class="btn btn-ghost" data-act="termin-kalender"
+            data-am="${schritt.am}" data-titel="${esc(schritt.titel || 'Bauchbuch')}"
+            data-text="${esc(schritt.satz || '')}">
+      Am ${esc(fmtDatum(schritt.am, true))} erinnern
+    </button>
+  </div>`;
+}
+
 function erinnerungKarte(s) {
   const gewaehlt = ui.erinnerungZeit || '20:00';
   return `<div class="karte">
@@ -3235,6 +3262,22 @@ const AKTION = {
   'plan-alt-weg': (el) => { store.planLoeschen(el.dataset.id); zeichne(); },
 
   'erinnern-zeit': (el) => { ui.erinnerungZeit = el.dataset.z; zeichne(); },
+  /*
+   * Ein einzelner Termin, kein wiederkehrender: Ein Wecker, der nach dem
+   * Durchgang weiter jeden Tag klingelt, wird gelöscht – und meistens der
+   * tägliche gleich mit.
+   */
+  'termin-kalender': (el) => {
+    const text = terminEintrag({
+      am: el.dataset.am,
+      uhr: '09:00',
+      titel: el.dataset.titel,
+      text: el.dataset.text,
+    });
+    if (!text) { melden('Für diesen Tag geht das nicht.'); return; }
+    datenAusgeben(text, `bauchbuch-${el.dataset.am}.ics`, 'text/calendar;charset=utf-8');
+    melden('Termin erzeugt – dein Kalender fragt gleich, ob er ihn übernehmen soll.');
+  },
   'erinnern-datei': () => {
     datenAusgeben(erinnerungsTermin(ui.erinnerungZeit || '20:00'),
       KALENDER_NAME, 'text/calendar;charset=utf-8');
