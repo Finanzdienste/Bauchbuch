@@ -28,6 +28,22 @@ anderen Grund rot sind. Die gruendlicheren stehen daneben:
                               und verlangt: null Anfragen
 
 Erlaubt bleibt fetch() auf eigene Dateien - der Service Worker lebt davon.
+
+WAS HIER ABSICHTLICH NICHT GEPRUEFT WIRD: tools/
+
+Unter tools/ steht seit dem Rueckkanal auch ein Werkzeug, das ins Netz greift
+(tools/vorschlaege-holen.mjs, es holt die Vorschlaege aus dem Briefkasten).
+Das ist kein Loch in dieser Pruefung, sondern liegt ausserhalb ihres
+Gegenstands: Geprueft wird, was auf Amys Geraet laeuft. Nach dort geliefert
+werden index.html, css/, js/, sw.js und die daraus erzeugte
+dist/bauchbuch.html - und deren Inhalt bestimmt die feste Liste MODULES in
+tools/build-single.py, nicht ein Suchmuster. Was unter tools/ liegt, laeuft auf
+einem Rechner von GitHub und sieht kein Tagebuch; es kaeme selbst dann nicht
+mit, wenn es wollte.
+
+Wer das aendert - etwa indem tools/ irgendwann doch ausgeliefert wird -, muss
+diese Liste hier erweitern. Deshalb steht der Grund dabei und nicht nur die
+Auslassung.
 """
 import pathlib
 import re
