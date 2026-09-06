@@ -7640,6 +7640,304 @@ function planBild(plan, eintraege, tage, heute) {
   };
 }
 
+/* ===== js/anfang.js ===== */
+/*
+ * Die ersten Wochen – oder: wie man „noch nicht" sagt, ohne zehnmal nein zu sagen
+ *
+ * WAS HIER SCHIEFLIEF
+ *
+ * Am fünften Tag hatte der Muster-Reiter über neuntausend Zeichen, und der weit
+ * überwiegende Teil davon war eine Absage: „noch nichts Belastbares", „fehlt
+ * noch Material", „ab etwa zwei Wochen", „noch keine Klasse mit genug Fällen",
+ * „zu wenige", „zählt noch". Zehn Karten, die alle dasselbe sagten.
+ *
+ * Jede einzelne davon war richtig – daran ändert sich nichts, und daran soll
+ * sich nichts ändern. Aber die Menge war das Problem, und zwar ausgerechnet in
+ * den Wochen, die über alles Weitere entscheiden. Im README dieses Projekts
+ * steht der Satz: „Das größte Risiko für ein Tagebuch ist nicht ein Fehler in
+ * der Auswertung, sondern dass nach drei Wochen niemand mehr etwas einträgt."
+ * Genau dagegen arbeitete dieser Reiter.
+ *
+ * WAS STATTDESSEN
+ *
+ * Dieselbe Auskunft, einmal statt zehnmal – und in die andere Richtung
+ * formuliert. Nicht „dafür reicht es noch nicht", sondern „dafür fehlen noch
+ * vier Tage". Das ist kein Schönreden: Die Zahlen sind dieselben, die Schwellen
+ * sind dieselben, und was noch nicht gesagt werden kann, wird weiterhin nicht
+ * gesagt. Es steht nur als Ziel da statt als Zurückweisung.
+ *
+ * WAS DIESE DATEI AUSDRÜCKLICH NICHT TUT
+ *
+ * Sie schaltet nichts frei und rechnet nichts aus. Die Schwellen stehen dort,
+ * wo sie hingehören – in js/bild.js, js/kriterien.js, in den Einstellungen der
+ * Bilanz. Hier wird nur nachgesehen, wie weit es noch ist. Und sie verdeckt
+ * nichts: Warnzeichen stehen auch am ersten Tag oben, ohne Schwelle und ohne
+ * Fortschrittsbalken. Ein einziges Mal Blut ist ein einziges Mal zu viel, und
+ * das hat mit Fallzahlen nichts zu tun.
+ */
+
+/** Ab so vielen notierten Tagen lohnt der Stufenplan – siehe js/app.js. */
+const PLAN_AB = 14;
+
+/**
+ * Wie weit ist es noch bis wohin?
+ *
+ * @param {object} z  { notierteTage, beschwerden, zuordenbar, mahlzeiten,
+ *                      naechsteBilanz: {name, faelle, gegen} | null,
+ *                      mindestFaelle }
+ * @returns {{fertig: boolean, schritte: object[]}}
+ */
+function freischaltung(z) {
+  const schritte = [];
+  const offen = (jetzt, brauch) => Math.max(0, brauch - jetzt);
+
+  /*
+   * Die Reihenfolge ist dieselbe wie auf dem Reiter selbst, damit sich die
+   * Liste später an derselben Stelle wiederfindet, an der sie versprochen
+   * wurde.
+   */
+  schritte.push({
+    id: 'bild',
+    titel: 'Die Einordnung deines Musters',
+    was: 'wonach das Bild aussieht, in den Worten, die in einer Praxis benutzt werden',
+    offen: Math.max(offen(z.notierteTage, 10), offen(z.beschwerden, 5)),
+    stand: `${z.notierteTage} von 10 notierten Tagen, ${z.beschwerden} von 5 Eintragungen zu Beschwerden`,
+  });
+
+  schritte.push({
+    id: 'kriterien',
+    titel: 'Rom IV und GerdQ',
+    was: 'die Regelwerke, mit denen in der Sprechstunde eingeordnet wird',
+    offen: offen(z.notierteTage, 14),
+    stand: `${z.notierteTage} von 14 notierten Tagen`,
+  });
+
+  /*
+   * Die Bilanz hat keine Tagesschwelle, sondern eine je Merkmal: fünf
+   * Mahlzeiten damit und fünf ohne. Deshalb steht hier nicht „noch n Tage",
+   * sondern der eine Auslöser, der am nächsten dran ist – das ist die Zahl, die
+   * sich durch Eintragen tatsächlich bewegt.
+   */
+  if (z.naechsteBilanz) {
+    const b = z.naechsteBilanz;
+    schritte.push({
+      id: 'bilanz',
+      titel: 'Der erste Auslöser mit Zahlen',
+      was: 'was nach welchem Essen wie oft kam – verglichen mit deinem eigenen Alltag',
+      offen: Math.max(offen(b.faelle, z.mindestFaelle), offen(b.gegen, z.mindestFaelle)),
+      stand: `am nächsten dran: ${b.name} – ${b.faelle} Mahlzeiten damit, `
+        + `${b.gegen} ohne, gebraucht werden je ${z.mindestFaelle}`,
+    });
+  } else {
+    schritte.push({
+      id: 'bilanz',
+      titel: 'Der erste Auslöser mit Zahlen',
+      was: 'was nach welchem Essen wie oft kam – verglichen mit deinem eigenen Alltag',
+      offen: Math.max(1, z.mindestFaelle - z.mahlzeiten),
+      stand: `${z.mahlzeiten} Mahlzeiten eingetragen; je Merkmal braucht es `
+        + `${z.mindestFaelle} damit und ${z.mindestFaelle} ohne`,
+    });
+  }
+
+  schritte.push({
+    id: 'plan',
+    titel: 'Der Stufenplan',
+    was: 'das Verfahren, das am Ende einen Speiseplan hinterlässt statt einer Auskunft',
+    offen: offen(z.notierteTage, PLAN_AB),
+    stand: `${z.notierteTage} von ${PLAN_AB} notierten Tagen`,
+  });
+
+  return { fertig: schritte.every((s) => s.offen === 0), schritte };
+}
+
+/**
+ * Ein Satz darüber, was als Nächstes dazukommt.
+ *
+ * Er nennt *eine* Schwelle und nur die. Eine Liste aus vier Entfernungen ist
+ * wieder nur eine Wand.
+ *
+ * Genommen wird die erste offene in der Reihenfolge oben – und ausdrücklich
+ * nicht die mit der kleinsten Zahl. Die Zahlen messen Verschiedenes: „noch acht
+ * Tage" und „noch fünf Mahlzeiten" lassen sich nicht vergleichen, und wer sie
+ * gegeneinander sortiert, sortiert Äpfel gegen Birnen und nennt das Ergebnis
+ * dann auch noch „am nächsten dran".
+ */
+function naechsteSchwelle(schritte) {
+  const naechster = schritte.find((s) => s.offen > 0);
+  if (!naechster) return null;
+  return { ...naechster, satz: `Als Nächstes: ${naechster.titel} – ${naechster.stand}.` };
+}
+
+/* ===== js/kalender.js ===== */
+/*
+ * Die Erinnerung – die einzige Funktion hier, die mehr bringt als jede Rechnung
+ *
+ * WARUM ÜBERHAUPT
+ *
+ * Alles in dieser App hängt daran, dass eingetragen wird. Die Auswertung kann
+ * so sauber sein, wie sie will: Ein Tagebuch, an das niemand erinnert, endet
+ * nach drei Wochen, und dann war die ganze Statistik für nichts. Im README
+ * steht der Satz seit dem ersten Tag – nur gab es bis jetzt nichts, was ihn
+ * beantwortet hätte.
+ *
+ * WARUM ES KEINE PUSH-NACHRICHT IST
+ *
+ * Weil das nicht geht, ohne die Zusage dieser App zu brechen. Eine
+ * Benachrichtigung, die ankommt, während die App geschlossen ist, braucht auf
+ * dem iPhone die Push-API – und die braucht einen Server, der sie verschickt,
+ * plus eine Kennung des Geräts, die dort liegt. Beides gibt es hier nicht und
+ * soll es nicht geben. „Kein Server" ist keine Sparmaßnahme, sondern der Grund,
+ * warum das Tagebuch nirgends landen kann.
+ *
+ * WAS STATTDESSEN GEHT
+ *
+ * Der Kalender, den das Telefon ohnehin hat. Diese Datei baut einen ganz
+ * gewöhnlichen Termineintrag nach RFC 5545 – täglich, mit Wecker –, und der
+ * wird einmal in den Kalender gelegt. Ab da erinnert das Telefon selbst, auch
+ * offline, auch wenn die App nie wieder geöffnet wird, und ohne dass irgendwo
+ * eine Adresse, ein Konto oder ein Gerät vermerkt wäre. Der Text entsteht im
+ * Browser aus ein paar Zeilen; herausgereicht wird eine Datei, sonst nichts.
+ *
+ * Die Kehrseite steht in der App: Es ist ein Kalendereintrag und keine
+ * Funktion dieser App. Wer ihn löscht, wird nicht mehr erinnert, und die App
+ * merkt davon nichts – sie kann in den Kalender nicht hineinsehen. Das ist die
+ * Kehrseite davon, dass sie auch sonst nirgends hineinsieht.
+ */
+
+/**
+ * Zeilen nach RFC 5545 umbrechen: höchstens 75 Oktette, Fortsetzung mit einem
+ * führenden Leerzeichen.
+ *
+ * Sieht nach Kleinkram aus, ist aber der Unterschied zwischen „wird importiert"
+ * und „Datei defekt": Manche Kalender lehnen zu lange Zeilen rundheraus ab. Ein
+ * Umlaut zählt dabei als zwei Oktette, deshalb wird nach Bytes gemessen und
+ * nicht nach Zeichen.
+ */
+function falten(zeile) {
+  const kodierer = new TextEncoder();
+  if (kodierer.encode(zeile).length <= 75) return zeile;
+  const teile = [];
+  let jetzt = '';
+  let bytes = 0;
+  for (const zeichen of zeile) {
+    const n = kodierer.encode(zeichen).length;
+    // Fortsetzungszeilen haben ein Leerzeichen vorn, also ein Oktett weniger.
+    if (bytes + n > (teile.length ? 74 : 75)) {
+      teile.push(jetzt);
+      jetzt = '';
+      bytes = 0;
+    }
+    jetzt += zeichen;
+    bytes += n;
+  }
+  teile.push(jetzt);
+
+  /*
+   * Kein Umbruch direkt hinter einem Leerzeichen.
+   *
+   * Beim Auffalten wird die Fortsetzungszeile hinten angehängt und ihr erstes
+   * Zeichen (das Faltzeichen) verworfen. Endet die vorige Zeile auf einem
+   * *echten* Leerzeichen, steht das am Zeilenende – und Leerzeichen am
+   * Zeilenende überleben nicht jeden Transport. Fällt es weg, klebt
+   * „Eintragungist" zusammen. Das Leerzeichen wandert deshalb an den Anfang
+   * der nächsten Zeile, wo es geschützt hinter dem Faltzeichen steht.
+   */
+  return teile.reduce((raus, teil, i) => {
+    if (i === 0) return [teil];
+    const vorher = raus[raus.length - 1];
+    if (vorher.endsWith(' ')) {
+      raus[raus.length - 1] = vorher.slice(0, -1);
+      return [...raus, ` ${teil}`];
+    }
+    return [...raus, teil];
+  }, []).join('\r\n ');
+}
+
+/** In einem Textfeld sind Komma, Semikolon, Backslash und Umbruch zu maskieren. */
+const schuetzen = (t) => String(t)
+  .replace(/\\/g, '\\\\')
+  .replace(/;/g, '\\;')
+  .replace(/,/g, '\\,')
+  .replace(/\n/g, '\\n');
+
+const zwei = (n) => String(n).padStart(2, '0');
+
+/** Ein Zeitstempel in UTC, wie ihn DTSTAMP verlangt. */
+function utcStempel(d) {
+  return `${d.getUTCFullYear()}${zwei(d.getUTCMonth() + 1)}${zwei(d.getUTCDate())}`
+    + `T${zwei(d.getUTCHours())}${zwei(d.getUTCMinutes())}${zwei(d.getUTCSeconds())}Z`;
+}
+
+/** Vorschläge für die Uhrzeit – abends, wenn der Tag zu Ende ist. */
+const ZEIT_VORSCHLAEGE = ['12:00', '18:00', '20:00', '21:00'];
+
+const KALENDER_NAME = 'bauchbuch-erinnerung.ics';
+
+/**
+ * Der Termineintrag als Text.
+ *
+ * Bewusst *ohne* Zeitzone: DTSTART steht als „lokale Zeit ohne Angabe" da
+ * (Form 1 nach RFC 5545). Der Termin ist damit um 20 Uhr dort, wo das Telefon
+ * gerade steht – und bleibt es auch auf Reisen. Mit einer festen Zeitzone würde
+ * die Erinnerung im Urlaub mitten in der Nacht klingeln, und eine vollständige
+ * VTIMEZONE-Angabe wäre für einen täglichen Wecker um 20 Uhr eine Menge
+ * Zeremonie für nichts.
+ *
+ * @param {string} uhr    'HH:MM'
+ * @param {Date} [jetzt]  für den Test einsetzbar
+ */
+function erinnerungsTermin(uhr, jetzt = new Date()) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(uhr || '')) || ['', '20', '00'];
+  const stunde = Math.max(0, Math.min(23, Number(m[1])));
+  const minute = Math.max(0, Math.min(59, Number(m[2])));
+
+  /*
+   * Beginn ist heute. Liegt die Uhrzeit schon in der Vergangenheit, wäre der
+   * erste Termin vorbei, bevor er angelegt ist – dann fängt die Reihe morgen
+   * an. Sonst hätte jemand, der das um 22 Uhr einrichtet, den Eindruck, es
+   * funktioniere nicht.
+   */
+  const start = new Date(jetzt);
+  start.setHours(stunde, minute, 0, 0);
+  if (start <= jetzt) start.setDate(start.getDate() + 1);
+
+  const lokal = `${start.getFullYear()}${zwei(start.getMonth() + 1)}${zwei(start.getDate())}`
+    + `T${zwei(stunde)}${zwei(minute)}00`;
+
+  const zeilen = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Bauchbuch//Erinnerung//DE',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    // Die Kennung ist aus Zufall und Zeit gebaut und sagt über niemanden etwas.
+    `UID:bauchbuch-${Math.random().toString(36).slice(2, 10)}-${utcStempel(jetzt)}`,
+    `DTSTAMP:${utcStempel(jetzt)}`,
+    `DTSTART:${lokal}`,
+    'DURATION:PT10M',
+    'RRULE:FREQ=DAILY',
+    `SUMMARY:${schuetzen('Bauchbuch: Tag eintragen')}`,
+    `DESCRIPTION:${schuetzen(
+      'Zwei Minuten: Was gegessen, wie es dem Bauch ging, Stuhlgang. '
+      + 'Auch ein Tag ohne Beschwerden gehört hinein – ein Tag ohne Eintragung '
+      + 'ist etwas anderes als ein Tag ohne Beschwerden, und nur der '
+      + 'eingetragene zählt in der Auswertung mit.',
+    )}`,
+    'TRANSP:TRANSPARENT',
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    'TRIGGER:PT0S',
+    `DESCRIPTION:${schuetzen('Bauchbuch: Tag eintragen')}`,
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ];
+
+  // CRLF ist im Format vorgeschrieben, und manche Kalender sind darin streng.
+  return `${zeilen.map(falten).join('\r\n')}\r\n`;
+}
+
 /* ===== js/lage.js ===== */
 /*
  * Was Sache ist – drei bis fünf Sätze, ganz oben
@@ -8736,7 +9034,17 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
  */
 function raete(d) {
   const raus = [];
-  const heuteWert = tagesWert(d.eintraege, d.heute, d.tage).wert;
+  const heute = tagesWert(d.eintraege, d.heute, d.tage);
+  const heuteWert = heute.wert;
+  /*
+   * Ob für heute überhaupt etwas dasteht – und nicht nur, ob der Wert 0 ist.
+   *
+   * `tagesWert` liefert für einen leeren Tag 0, und das ist richtig gerechnet:
+   * Es gibt keine Beschwerde. Es heißt aber nicht, dass keine da war. Wer
+   * daraus einen Rat ableitet, sagt jemandem am Morgen, bevor irgendetwas
+   * eingetragen ist, wie es ihm heute geht.
+   */
+  const heuteNotiert = heute.notiert;
   const heuteTag = d.tage[d.heute] || {};
   const akut = heuteWert >= 6;
   const leicht = heuteWert > 0 && heuteWert < 6;
@@ -8833,7 +9141,9 @@ function raete(d) {
 
   /* ---------- Sport ---------- */
 
-  raus.push(sportRat(d, { heuteWert, akut, leicht, heuteTag, heuteAngespannt }));
+  raus.push(sportRat(d, {
+    heuteWert, heuteNotiert, akut, leicht, heuteTag, heuteAngespannt,
+  }));
 
   /* ---------- Medikamente: kein Rat, sondern der Stand ---------- */
 
@@ -8902,11 +9212,37 @@ function sportRat(d, k) {
       + 'Intensiv würde ich heute noch nicht ansetzen.',
       `Der heutige Wert liegt bei ${k.heuteWert} von 10.`, 'allgemein');
   }
+  /*
+   * Der letzte Fall – und die Stelle, an der dieser Rat einmal falsch war.
+   *
+   * Er sagte „beschwerdefrei und ausgeruht", wenn der Tageswert 0 war, und der
+   * Beleg darunter sagte im selben Atemzug „bisher nichts eingetragen". Das
+   * sind zwei verschiedene Dinge, und der Unterschied ist das Leitmotiv dieser
+   * App: Ein Tag ohne Beschwerden ist etwas anderes als ein Tag ohne
+   * Eintragung. Weil ein Tag naturgemäß leer anfängt, erschien der Satz jeden
+   * Morgen – auch bei jemandem, der an jedem der letzten Tage eine Sechs
+   * eingetragen hatte. Ein Rat, der einem den eigenen Zustand mitteilt, statt
+   * ihn zu erfragen, verliert genau das Vertrauen, von dem alles Übrige hier
+   * lebt.
+   *
+   * Also: Steht für heute etwas da, darf der Rat sich darauf berufen. Steht
+   * nichts da, sagt er nichts über den Tag, sondern stellt eine Bedingung.
+   */
+  if (!k.heuteNotiert) {
+    return rat('sport', 'sport', 'Wenn es dir heute gut geht, geht auch intensiv',
+      'Für heute steht noch nichts im Tagebuch, deshalb keine Aussage über den '
+      + 'Tag – nur die Regel: An beschwerdefreien Tagen spricht nichts gegen '
+      + 'intensives Training, und danach mindestens eine Stunde, bevor du dich '
+      + 'hinlegst.',
+      'Für heute ist noch nichts eingetragen – das heißt nicht, dass nichts war.',
+      'allgemein');
+  }
+
   return rat('sport', 'sport', 'Heute geht auch intensiv',
     'Beschwerdefrei und ausgeruht: Wenn du intensiv trainieren willst, ist heute '
     + 'der Tag dafür. Danach mindestens eine Stunde, bevor du dich hinlegst.',
-    k.heuteWert === 0 ? 'Heute ist bisher nichts an Beschwerden eingetragen.'
-      : 'Keine Beschwerden und keine hohe Anspannung für heute eingetragen.',
+    'Für heute ist etwas eingetragen, aber keine Beschwerden und keine hohe '
+    + 'Anspannung.',
     'allgemein');
 }
 
@@ -11543,6 +11879,31 @@ function musterAnsicht(s) {
    * steht, und zwar ausgerechnet bei dem, der gerade weniger einträgt, weil er
    * gerade weniger isst. Dieselbe Falle wie damals, eine Tür weiter.
    */
+  /*
+   * Die Frühphase: solange nichts auswertbar ist, eine kurze Fassung.
+   *
+   * Am fünften Tag standen hier über neuntausend Zeichen, und fast alles davon
+   * war eine Absage – zehn Karten, die nacheinander „noch nicht" sagten. Jede
+   * für sich richtig, zusammen die beste Art, jemanden das Eintragen aufgeben
+   * zu lassen. Gezeigt wird deshalb: die Lage, die Warnzeichen, ein
+   * Fortschrittsblock – und alles, was schon etwas zu sagen hat.
+   *
+   * Was hier NICHT passiert: Es wird nichts früher behauptet. Die Schwellen
+   * sind dieselben geblieben. Und die Warnzeichen stehen weiter ganz oben, ohne
+   * Schwelle und ohne Fortschritt: Ein einziges Mal Blut ist ein einziges Mal
+   * zu viel, auch am zweiten Tag.
+   *
+   * Versuch, Plan und Provokation stehen mit in der Liste, obwohl sie in dieser
+   * Phase fast immer leer sind: Sie melden sich, sobald einer davon *läuft* –
+   * und ein laufender Versuch darf nie an einer Anzeigebedingung hängen.
+   */
+  const frueh = !genugFuerBild(d.bild.basis) && !bilanz.some((b) => b.genug);
+  if (frueh) {
+    return `${lageTeil(s, d)}${warnTeil(d)}${fortschrittTeil(s, d)}`
+      + `${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}`
+      + `${ansprechenTeil(s, d)}${stuhlTeil(s)}${zyklusTeil(s)}${erklaerung}`;
+  }
+
   if (!mahlzeiten) {
     return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}<p class="leer">Noch keine Mahlzeit
       eingetragen. Sobald ein paar Tage beisammen sind, steht hier, was
@@ -11901,12 +12262,68 @@ function ideenAnsicht(s) {
  * Warnzeichen und die Einordnung – das, was am nächsten an eine Diagnose
  * herankommt, ohne eine zu sein.
  */
-function bildTeil(s, d) {
-  // Gerechnet wird das in musterDaten, einmal für alle – siehe dort.
-  const b = d.bild;
+/**
+ * Die Frühphase: ein Ziel statt zehnmal „noch nicht".
+ *
+ * Solange nichts auswertbar ist, sagten zehn Karten dasselbe. Jede für sich
+ * richtig, zusammen eine Wand – und zwar genau in den Wochen, in denen sich
+ * entscheidet, ob überhaupt weiter eingetragen wird. Hier steht dieselbe
+ * Auskunft einmal, in die andere Richtung formuliert: nicht „dafür reicht es
+ * nicht", sondern „dafür fehlen noch vier Tage".
+ */
+function fortschrittTeil(s, d) {
+  const f = freischaltung({
+    notierteTage: tageMitEintrag(s, d.heute),
+    beschwerden: d.bild.basis.beschwerden,
+    zuordenbar: d.bild.basis.zuordenbar,
+    mahlzeiten: s.eintraege.filter((e) => e.art === 'essen').length,
+    mindestFaelle: s.mindestFaelle,
+    naechsteBilanz: naechsteBilanzZeile(s, d),
+  });
+  const naechst = naechsteSchwelle(f.schritte);
 
-  // Warnzeichen stehen vor allem anderen und ohne Statistik daneben.
-  const warn = b.warnungen.length ? `<div class="karte karte-warn">
+  return `<div class="karte karte-merk">
+    <h3>Was als Nächstes dazukommt</h3>
+    ${naechst ? `<p><b>${esc(naechst.satz)}</b></p>` : ''}
+    <ul class="wartend fortschritt">${f.schritte.map((x) => `<li class="fs-${x.offen ? 'offen' : 'da'}">
+      <span><b>${esc(x.titel)}</b><span class="zeile-tags">${esc(x.was)}</span></span>
+      <span class="klein">${x.offen ? esc(x.stand) : 'steht unten'}</span>
+    </li>`).join('')}</ul>
+    <p class="klein">Das sind keine Punkte zum Sammeln, sondern die Fallzahlen,
+    die eine Aussage braucht. Was hier noch fehlt, fehlt wirklich – eine App,
+    die aus vier Tagen einen Auslöser macht, schickt dich hinterher auf eine
+    Streichliste, die niemandem hilft. Zwei bis drei Wochen ist der ehrliche
+    Preis, und danach steht hier deutlich mehr.</p>
+    <p class="klein">Warnzeichen sind davon ausgenommen: Die stehen ab dem
+    ersten Tag ganz oben, ohne Schwelle.</p>
+  </div>`;
+}
+
+/** Der Auslöser, der der ersten Bilanz am nächsten ist – oder nichts. */
+function naechsteBilanzZeile(s, d) {
+  const offen = (d.bilanz || []).filter((b) => !b.genug)
+    .sort((a, b) => (b.faelle + b.gegenFaelle) - (a.faelle + a.gegenFaelle))[0];
+  if (!offen) return null;
+  return {
+    name: ausloeserName(offen.id, s.eigeneAusloeser),
+    faelle: offen.faelle,
+    gegen: offen.gegenFaelle,
+  };
+}
+
+/*
+ * Die Warnzeichen für sich, damit sie nirgends mitgeschluckt werden.
+ *
+ * Sie standen bisher als lokale Variable in bildTeil. Seit der Muster-Reiter in
+ * der Frühphase eine kurze Fassung zeigt, braucht auch die sie – und zwar
+ * unverändert. Ein Warnzeichen hat keine Fallzahl und keine Schwelle: Ein
+ * einziges Mal Blut ist ein einziges Mal zu viel, ganz gleich, ob das Tagebuch
+ * seit fünf Tagen oder seit fünf Monaten läuft.
+ */
+function warnTeil(d) {
+  const b = d.bild;
+  if (!b.warnungen.length) return '';
+  return `<div class="karte karte-warn">
     <h3>${b.warnungen.some((w) => w.dringlichkeit === 'sofort')
     ? 'Das gehört heute abgeklärt' : 'Das gehört zeitnah abgeklärt'}</h3>
     <ul class="warnliste">${b.warnungen.map((w) => `<li class="w-${w.dringlichkeit}">
@@ -11917,7 +12334,13 @@ function bildTeil(s, d) {
     </li>`).join('')}</ul>
     <p class="klein">Bei Blut, schwarzem Stuhl oder Schmerz mit Ausstrahlung in
     Arm oder Kiefer nicht auf einen Termin warten – Notaufnahme oder 112.</p>
-  </div>` : '';
+  </div>`;
+}
+
+function bildTeil(s, d) {
+  // Gerechnet wird das in musterDaten, einmal für alle – siehe dort.
+  const b = d.bild;
+  const warn = warnTeil(d);
 
   if (!b.muster.length) {
     return warn + (genugFuerBild(b.basis) ? '' : `<div class="karte">
@@ -12004,6 +12427,43 @@ function zyklusTeil(s) {
  * Fünf Prozent weniger sind ein Warnzeichen, wenn sie ungewollt kommen, und
  * ein Erfolg, wenn jemand dafür gearbeitet hat.
  */
+/*
+ * Die tägliche Erinnerung – über den Kalender, weil es anders nicht ginge.
+ *
+ * Eine Benachrichtigung, die ankommt, während die App zu ist, bräuchte auf dem
+ * iPhone einen Server, der sie verschickt, und eine Gerätekennung, die dort
+ * liegt. Beides widerspricht der Zusage dieser App. Der Kalender kann dasselbe,
+ * ohne dass irgendetwas das Gerät verlässt – und er erinnert auch dann noch,
+ * wenn die App monatelang nicht geöffnet wird.
+ */
+function erinnerungKarte(s) {
+  const gewaehlt = ui.erinnerungZeit || '20:00';
+  return `<div class="karte">
+    <h3>Täglich erinnern lassen</h3>
+    <p class="klein">Das Wichtigste an einem Tagebuch ist nicht die Auswertung,
+    sondern dass es geführt wird. Hier entsteht ein ganz gewöhnlicher
+    Kalendereintrag – täglich, mit Wecker –, den du einmal in deinen Kalender
+    legst. Ab da erinnert dich das Telefon selbst, auch offline.</p>
+    <p class="feld-name">Wann?</p>
+    <div class="wahl">${ZEIT_VORSCHLAEGE.map((z) => `
+      <button type="button" class="wahl-btn${z === gewaehlt ? ' an' : ''}"
+              data-act="erinnern-zeit" data-z="${z}">${z} Uhr</button>`).join('')}</div>
+    <div class="reihe">
+      ${knopf('erinnern-datei', 'In den Kalender legen', 'btn-primary')}
+      ${knopf('erinnern-teilen', 'Anders öffnen', 'btn-ghost')}
+    </div>
+    <p class="klein">Abends ist meist besser als morgens: Dann liegt der Tag
+    hinter dir und du trägst ihn ein, statt ihn vorherzusagen.</p>
+    <p class="klein">Zwei Ehrlichkeiten dazu. <b>Es ist ein Kalendereintrag,
+    keine Funktion dieser App</b> – wer ihn löscht oder verschiebt, ändert damit
+    die Erinnerung, und die App merkt davon nichts: Sie kann in deinen Kalender
+    nicht hineinsehen. Und <b>eine echte Push-Nachricht gibt es hier bewusst
+    nicht</b>: Die bräuchte einen Server, der sie verschickt, und eine Kennung
+    deines Geräts, die dort liegt. Beides gibt es in dieser App nicht, und
+    genau deshalb kann dein Tagebuch nirgendwo landen.</p>
+  </div>`;
+}
+
 function gewichtKarte(s) {
   const g = gewichtsBild(s.gewicht, heuteISO(), s.abnehmenGewollt);
   const letzte = (s.gewicht || []).slice(0, 6);
@@ -12203,6 +12663,8 @@ function mehrAnsicht(s) {
   ${bericht}
 
   ${gewichtKarte(s)}
+
+  ${erinnerungKarte(s)}
 
   <div class="karte">
     <h3>Arzttermine</h3>
@@ -12954,6 +13416,34 @@ const AKTION = {
     zeichne();
   },
   'plan-alt-weg': (el) => { store.planLoeschen(el.dataset.id); zeichne(); },
+
+  'erinnern-zeit': (el) => { ui.erinnerungZeit = el.dataset.z; zeichne(); },
+  'erinnern-datei': () => {
+    datenAusgeben(erinnerungsTermin(ui.erinnerungZeit || '20:00'),
+      KALENDER_NAME, 'text/calendar;charset=utf-8');
+    melden('Datei erzeugt – dein Kalender fragt gleich, ob er sie übernehmen soll.');
+  },
+  /*
+   * Der zweite Weg, und er ist kein Beiwerk: In einer eingebetteten Fassung
+   * unterbindet der Rahmen jeden Download, den die Seite selbst auslöst –
+   * derselbe Grund, aus dem es die Sicherung auch als Text gibt. Dann ist das
+   * Teilen-Menü der einzige Ausgang.
+   */
+  'erinnern-teilen': async () => {
+    const text = erinnerungsTermin(ui.erinnerungZeit || '20:00');
+    try {
+      const datei = new File([text], KALENDER_NAME, { type: 'text/calendar' });
+      if (navigator.canShare && navigator.canShare({ files: [datei] })) {
+        await navigator.share({ files: [datei], title: 'Bauchbuch – Erinnerung' });
+        return;
+      }
+      throw new Error('kein Teilen von Dateien');
+    } catch {
+      // Auch das kann scheitern (abgebrochen, nicht erlaubt) – dann bleibt der
+      // gewöhnliche Weg, und der wird hier genannt statt verschwiegen.
+      melden('Das Teilen ging nicht. Nimm „In den Kalender legen".');
+    }
+  },
 
   'tag-blaettern': (el) => {
     ui.tag = plusTage(ui.tag, Number(el.dataset.d));

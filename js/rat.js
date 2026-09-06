@@ -51,7 +51,17 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
  */
 export function raete(d) {
   const raus = [];
-  const heuteWert = tagesWert(d.eintraege, d.heute, d.tage).wert;
+  const heute = tagesWert(d.eintraege, d.heute, d.tage);
+  const heuteWert = heute.wert;
+  /*
+   * Ob für heute überhaupt etwas dasteht – und nicht nur, ob der Wert 0 ist.
+   *
+   * `tagesWert` liefert für einen leeren Tag 0, und das ist richtig gerechnet:
+   * Es gibt keine Beschwerde. Es heißt aber nicht, dass keine da war. Wer
+   * daraus einen Rat ableitet, sagt jemandem am Morgen, bevor irgendetwas
+   * eingetragen ist, wie es ihm heute geht.
+   */
+  const heuteNotiert = heute.notiert;
   const heuteTag = d.tage[d.heute] || {};
   const akut = heuteWert >= 6;
   const leicht = heuteWert > 0 && heuteWert < 6;
@@ -148,7 +158,9 @@ export function raete(d) {
 
   /* ---------- Sport ---------- */
 
-  raus.push(sportRat(d, { heuteWert, akut, leicht, heuteTag, heuteAngespannt }));
+  raus.push(sportRat(d, {
+    heuteWert, heuteNotiert, akut, leicht, heuteTag, heuteAngespannt,
+  }));
 
   /* ---------- Medikamente: kein Rat, sondern der Stand ---------- */
 
@@ -217,11 +229,37 @@ function sportRat(d, k) {
       + 'Intensiv würde ich heute noch nicht ansetzen.',
       `Der heutige Wert liegt bei ${k.heuteWert} von 10.`, 'allgemein');
   }
+  /*
+   * Der letzte Fall – und die Stelle, an der dieser Rat einmal falsch war.
+   *
+   * Er sagte „beschwerdefrei und ausgeruht", wenn der Tageswert 0 war, und der
+   * Beleg darunter sagte im selben Atemzug „bisher nichts eingetragen". Das
+   * sind zwei verschiedene Dinge, und der Unterschied ist das Leitmotiv dieser
+   * App: Ein Tag ohne Beschwerden ist etwas anderes als ein Tag ohne
+   * Eintragung. Weil ein Tag naturgemäß leer anfängt, erschien der Satz jeden
+   * Morgen – auch bei jemandem, der an jedem der letzten Tage eine Sechs
+   * eingetragen hatte. Ein Rat, der einem den eigenen Zustand mitteilt, statt
+   * ihn zu erfragen, verliert genau das Vertrauen, von dem alles Übrige hier
+   * lebt.
+   *
+   * Also: Steht für heute etwas da, darf der Rat sich darauf berufen. Steht
+   * nichts da, sagt er nichts über den Tag, sondern stellt eine Bedingung.
+   */
+  if (!k.heuteNotiert) {
+    return rat('sport', 'sport', 'Wenn es dir heute gut geht, geht auch intensiv',
+      'Für heute steht noch nichts im Tagebuch, deshalb keine Aussage über den '
+      + 'Tag – nur die Regel: An beschwerdefreien Tagen spricht nichts gegen '
+      + 'intensives Training, und danach mindestens eine Stunde, bevor du dich '
+      + 'hinlegst.',
+      'Für heute ist noch nichts eingetragen – das heißt nicht, dass nichts war.',
+      'allgemein');
+  }
+
   return rat('sport', 'sport', 'Heute geht auch intensiv',
     'Beschwerdefrei und ausgeruht: Wenn du intensiv trainieren willst, ist heute '
     + 'der Tag dafür. Danach mindestens eine Stunde, bevor du dich hinlegst.',
-    k.heuteWert === 0 ? 'Heute ist bisher nichts an Beschwerden eingetragen.'
-      : 'Keine Beschwerden und keine hohe Anspannung für heute eingetragen.',
+    'Für heute ist etwas eingetragen, aber keine Beschwerden und keine hohe '
+    + 'Anspannung.',
     'allgemein');
 }
 

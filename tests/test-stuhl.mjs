@@ -114,9 +114,20 @@ check(
   'das Warnzeichen steht mit Namen da – gefunden wird es in allen Eintragsarten, nicht nur in Beschwerden',
 );
 check(warnText.includes('heute abgeklärt'), 'und mit der Dringlichkeit „sofort"');
+/*
+ * Die Warnung steht vor jeder Statistik – egal, welche gerade dran ist.
+ *
+ * Früher wurde hier gegen die Kriterienkarte geprüft. Die gibt es bei so
+ * wenigen Tagen nicht mehr: Der Reiter zeigt in der Frühphase eine kurze
+ * Fassung mit dem Fortschrittsblock. Geprüft wird deshalb gegen das erste, was
+ * überhaupt eine Zahl behauptet – so hält die Prüfung auch, wenn sich der
+ * Aufbau des Reiters noch einmal ändert.
+ */
+const html = await page.locator('#view').innerHTML();
+const ersteStatistik = Math.min(...['fortschritt', 'Kriterien', 'funde']
+  .map((x) => html.indexOf(x)).filter((i) => i >= 0));
 check(
-  (await page.locator('#view').innerHTML()).indexOf('karte-warn')
-    < (await page.locator('#view').innerHTML()).indexOf('Kriterien'),
+  html.indexOf('karte-warn') >= 0 && html.indexOf('karte-warn') < ersteStatistik,
   'die Warnung steht vor jeder Statistik',
 );
 await page.screenshot({ path: `${SHOT}/96-stuhl.png`, fullPage: true });

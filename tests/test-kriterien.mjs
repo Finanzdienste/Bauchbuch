@@ -185,14 +185,21 @@ await setze({
   fenster: 4,
   mindestFaelle: 5,
 });
-const kurz = await text(page.locator('.karte', { hasText: 'Kriterien' }).first());
+/*
+ * Bei zwei Tagen gibt es die Kriterienkarte gar nicht mehr – der Reiter zeigt
+ * in der Frühphase eine kurze Fassung, in der steht, wie weit es noch ist.
+ * Geprüft wird deshalb der ganze Reiter statt einer Karte, und das ist die
+ * schärfere Prüfung: Aus zwei Tagen darf nirgends etwas „Erfülltes" stehen,
+ * nicht nur nicht in einer bestimmten Karte.
+ */
+const kurz = await text(page.locator('#view'));
 check(
-  kurz.includes('Ab etwa zwei Wochen'),
-  'unter zwei Wochen Tagebuch steht dort, was noch fehlt – und keine Kriterienliste',
+  kurz.includes('2 von 14 notierten Tagen'),
+  'unter zwei Wochen Tagebuch steht da, wie weit es bis zu den Kriterien noch ist',
 );
 check(
-  !kurz.includes('Kriterien erfüllt'),
-  'vor allem steht dort nichts „Erfülltes": Aus zwei Tagen wird keine Diagnose',
+  !kurz.includes('Kriterien erfüllt') && !kurz.includes('erfüllt'),
+  'und nirgends auf dem Reiter etwas „Erfülltes": Aus zwei Tagen wird keine Diagnose',
 );
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
