@@ -805,9 +805,23 @@ mehr geprüft, sondern nur noch behauptet. Drei Dinge stehen dagegen:
    wer erst liest und dann erfährt, was er gelesen hat, hat es schon geglaubt.
 2. **Die Grenze.** `tools/pruefung/bot-grenzen.py` weist jeden Zweig mit dem
    Präfix `vorschlag/` zurück, der `tools/pruefung/`, `tests/`, `.github/`,
-   `package.json` oder `js/briefkasten.js` anfasst. Die Prüfung läuft in der
-   **normalen CI**, nicht im Ablauf des Agenten: Was er selbst ausführt, könnte
-   er auch umgehen.
+   `package.json` oder `js/briefkasten.js` anfasst.
+
+   Wo diese Prüfung läuft, war der teuerste Irrtum am ganzen Rückkanal. Der
+   Plan war: in der gewöhnlichen CI, weil der Agent die dort nicht umgehen
+   kann. Nur startet GitHub für Pushes und Pull Requests, die ein Workflow mit
+   dem `GITHUB_TOKEN` erzeugt hat, **gar keine weiteren Workflows** – ein
+   Schutz gegen Endlosschleifen, der den Wächter genau dort ausschaltete, wo er
+   hingehörte. Aufgefallen ist es erst am ersten echten Entwurf: null
+   Prüfungen, wo zwei hätten laufen sollen.
+
+   Geprüft wird deshalb im Ablauf selbst, **vor** dem Anlegen des Entwurfs –
+   aber mit dem Skript aus `origin/main` statt aus dem Arbeitsverzeichnis. Der
+   ursprüngliche Einwand gilt ja weiter: Was der Agent ausführt, könnte er auch
+   ändern. Was er an seiner Arbeitskopie dreht, zählt damit nicht mit, und ein
+   geänderter Wächter fiele auf, weil `tools/pruefung/` selbst gesperrt ist.
+   `test-vorschlaege.mjs` liest den Ablauf und besteht darauf, dass es so
+   bleibt: ein Wächter, der still verschwindet, ist schlimmer als keiner.
 3. **Der Mensch.** Der Entwurf bleibt ein Entwurf. Und die interessanteste
    Frage beim Durchsehen ist nicht, ob der Code gut ist, sondern ob im Eingang
    etwas steht, das sich wie eine Anweisung an ein Programm liest.

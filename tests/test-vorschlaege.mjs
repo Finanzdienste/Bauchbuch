@@ -19,7 +19,7 @@
  * Kein Browser nötig: Hier wird gerechnet, nicht geklickt.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pruefer } from './umgebung.mjs';
@@ -185,5 +185,36 @@ check(
 );
 
 rmSync(bau, { recursive: true, force: true });
+
+/* ---------- 6. Und die Grenze muss im Ablauf auch wirklich vorkommen ---------- */
+
+/*
+ * Der teuerste Fehler in diesem ganzen Rückkanal war kein Programmfehler,
+ * sondern eine falsche Annahme: Die Grenze sollte in der gewöhnlichen CI
+ * geprüft werden, weil der Agent die dort nicht umgehen kann. Nur startet
+ * GitHub für Pushes und Pull Requests, die ein Workflow mit dem GITHUB_TOKEN
+ * erzeugt, gar keine weiteren Workflows – der Schutz gegen Endlosschleifen
+ * hat den Wächter genau dort ausgeschaltet, wo er hingehörte. Aufgefallen ist
+ * das erst am ersten echten Entwurf: null Prüfungen.
+ *
+ * Ein Wächter, der still aus dem Ablauf verschwindet, ist schlimmer als
+ * keiner – man verlässt sich ja auf ihn. Also wird hier nachgesehen, dass er
+ * darin steht, dass er aus `origin/main` kommt und nicht aus dem
+ * Arbeitsverzeichnis, und dass er *vor* dem Anlegen des Entwurfs läuft.
+ */
+const ablauf = readFileSync(new URL('../.github/workflows/vorschlaege.yml', import.meta.url), 'utf8');
+
+check(
+  ablauf.includes('bot-grenzen.py'),
+  'der Ablauf ruft die Grenzprüfung überhaupt auf',
+);
+check(
+  /git show origin\/main:tools\/pruefung\/bot-grenzen\.py/.test(ablauf),
+  'und holt sie aus origin/main, nicht aus dem Arbeitsverzeichnis des Agenten',
+);
+check(
+  ablauf.indexOf('bot-grenzen.py') < ablauf.indexOf('gh pr create'),
+  'und prüft, bevor ein Entwurf angelegt wird – nicht danach',
+);
 
 ende();
