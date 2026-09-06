@@ -36,6 +36,7 @@ import { kriterien } from './kriterien.js';
 import { stuhlZahlen } from './stuhl.js';
 import { befund, mittelBilanz } from './ansprechen.js';
 import { ergebnis } from './versuch.js';
+import { provokationsBild } from './provokation.js';
 
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
@@ -408,6 +409,33 @@ export function arztBericht(zustand, von, bis) {
         + `(${e.nachher.notierte} Tage)` : ', Wiedereinführung steht noch aus'));
     umbrochen(e.satz).forEach((z) => sag(`  ${z}`));
     sag('  (Ein Versuch an einem einzigen Menschen, ohne Verblindung.)');
+    sag();
+  }
+
+  /*
+   * Der Provokationstest gehört in den Bericht, und zwar mitsamt seinen
+   * Leerdurchgängen.
+   *
+   * In der Sprechstunde ist „ich vertrage keine Milch" eine Meinung. „Dreimal
+   * nüchtern 250 ml, dreimal Beschwerden, an zwei Leermorgen nichts" ist eine
+   * Beobachtung mit Protokoll – und sie beantwortet die Frage, die dort als
+   * Nächstes kommt: Lohnt ein Atemtest, oder ist die Sache schon geklärt?
+   * Ohne die Leerdurchgänge wäre es wieder nur eine Meinung.
+   */
+  const prov = [zustand.provokation, ...(zustand.provokationen || [])].filter(Boolean);
+  if (prov.length) {
+    sag('PROVOKATIONSTESTS');
+    prov.slice(0, 6).forEach((p) => {
+      const b = provokationsBild(p, eintraege, bis);
+      sag(`  ${p.was || p.ziel} nüchtern, Fenster ${p.fenster || 4} h – ${b.wort}`);
+      sag(`     ${b.echte} Durchgänge, ${b.leere} Leerdurchgänge`
+        + (b.verworfen ? `, ${b.verworfen} nicht auswertbar (dabei gegessen)` : '')
+        + (Number.isFinite(b.unterschied)
+          ? `; ${fmtZahl(b.schnitt)} gegen ${fmtZahl(b.vergleich)} von 10` : ''));
+      umbrochen(b.satz).forEach((z) => sag(`     ${z}`));
+    });
+    sag('  (Nicht verblindet. Ein Test ohne Befund wiegt hier schwerer als einer');
+    sag('   mit: Die Erwartung schiebt nur in eine Richtung.)');
     sag();
   }
 
