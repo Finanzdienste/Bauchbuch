@@ -12,7 +12,7 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { URL, KEY, HANDY, ABLAGE, vorTagen, pruefer } from './umgebung.mjs';
+import { URL, KEY, HANDY, ABLAGE, SHOT, vorTagen, pruefer } from './umgebung.mjs';
 
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
@@ -214,6 +214,100 @@ check(
   'nach dem Sichern ist die Frage weg – und zwar ohne Aufschub',
 );
 
+/* ---------- Der Umzug: eine Sicherung, die als Text ankommt ---------- */
+
+/*
+ * Der Speicher eines Browsers gehört der Adresse, nicht dem Menschen. Wer die
+ * App unter einer Adresse benutzt hat und an eine andere wechselt, findet dort
+ * ein leeres Tagebuch – und der Weg hinüber führt über die Sicherung.
+ *
+ * Nur ist eine *Datei* nicht immer zu haben: In einer eingebetteten Fassung
+ * unterbindet der Rahmen jeden Download, den die Seite selbst auslöst. Dort
+ * bleibt die Zwischenablage der einzige Ausgang, und dann braucht es auf der
+ * anderen Seite ein Feld zum Einfügen. Genau das fehlte, bis ein echter Umzug
+ * anstand.
+ *
+ * Geprüft wird mit einer Sicherung im **alten** Format – Zutaten als bloße
+ * Kennungen unter `tags` statt als Liste mit Rollen. Wer umzieht, kommt fast
+ * immer aus einer älteren Fassung; eine Einleseprüfung mit heutigen Daten
+ * ginge an dem vorbei, wofür sie da ist.
+ */
+const alteSicherung = JSON.stringify({
+  begruesst: true,
+  eintraege: [
+    {
+      id: 'a1', am: vorTagen(3), um: '12:00', art: 'essen', was: 'Zwiebelsuppe',
+      portion: 'gross', tags: ['zwiebel', 'fett'],
+    },
+    { id: 'a2', am: vorTagen(3), um: '14:00', art: 'beschwerde', staerke: 6, arten: ['brennen'] },
+    { id: 'a3', am: vorTagen(2), um: '20:00', art: 'notiz', text: 'Aus der alten Fassung' },
+  ],
+  tage: { [vorTagen(3)]: { notiert: true, stress: 2 } },
+  ideen: [{ id: 'i1', text: 'Knopf zu klein', erledigt: false }],
+});
+
+// Auf ein leeres Tagebuch, so wie es nach einem Umzug dasteht.
+await page.evaluate(([k]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true, tab: 'mehr', eintraege: [], tage: {},
+})), [KEY]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.waitForTimeout(300);
+
+check(
+  await page.locator('[data-act="einfuegen-auf"]').count() === 1,
+  'unter Mehr steht ein Weg, eine Sicherung als Text einzulesen',
+);
+await page.locator('[data-act="einfuegen-auf"]').click();
+await page.waitForTimeout(200);
+
+// Erst der Fehlversuch: Was da nicht hineingehört, darf nichts anrichten.
+await page.locator('[data-act="einfuegen-text"]').fill('das ist keine Sicherung');
+await page.locator('[data-act="einfuegen-los"]').click();
+await page.waitForTimeout(300);
+check(
+  (await page.locator('#toast').textContent()).includes('Ging nicht'),
+  'Müll wird abgewiesen, mit Grund',
+);
+check(
+  await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).eintraege.length, KEY) === 0,
+  'und das Tagebuch bleibt, wie es war',
+);
+
+// Und jetzt der echte Umzug.
+await page.locator('[data-act="einfuegen-text"]').fill(alteSicherung);
+await page.locator('[data-act="einfuegen-los"]').click();
+await page.waitForTimeout(400);
+
+const angekommen = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
+check(angekommen.eintraege.length === 3, `alle drei Einträge sind da (${angekommen.eintraege.length})`);
+check(!!angekommen.tage[Object.keys(angekommen.tage)[0]], 'die Tagesangaben auch');
+check(angekommen.ideen.length === 1, 'und die Ideen');
+
+/*
+ * Und das Alte wird dabei umgerechnet: `tags` wird zu Zutaten mit Rolle. Ohne
+ * das käme das Tagebuch zwar an, aber die Auswertung fände darin keine
+ * einzige Zutat – der Umzug hätte die Vorgeschichte stumm gemacht.
+ */
+const mahlzeit = angekommen.eintraege.find((e) => e.art === 'essen');
+check(
+  Array.isArray(mahlzeit.zutaten) && mahlzeit.zutaten.length === 2,
+  `die alten Merkmale sind zu Zutaten geworden (${(mahlzeit.zutaten || []).length})`,
+);
+check(
+  mahlzeit.zutaten.every((z) => z.rolle === 'haupt'),
+  'jede mit einer Rolle – „haupt", weil damals niemand etwas anderes gesagt hat',
+);
+check(mahlzeit.tags === undefined, 'und die alte Angabe steht nicht doppelt da');
+
+await page.locator('[data-act="tab"][data-tab="heute"]').click();
+await page.waitForTimeout(300);
+await page.locator('[data-act="tag-blaettern"][data-n="-3"]').count();
+check(
+  (await page.locator('#view').textContent()).length > 0,
+  'und die App zeichnet danach ohne Fehler weiter',
+);
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
+await page.screenshot({ path: `${SHOT}/umzug.png`, fullPage: true });
 await browser.close();
 ende();

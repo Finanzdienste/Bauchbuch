@@ -119,6 +119,30 @@ Zwei Ehrlichkeiten stehen dazu in der App selbst:
 Beim Einlesen erkennt die App an der Datei, ob sie verschlüsselt ist, und fragt
 erst dann nach dem Passwort. Ein falsches Passwort ändert nichts am Tagebuch.
 
+### Umziehen: die Sicherung als Text
+
+Der Speicher eines Browsers gehört **der Adresse**, nicht dem Menschen. Wer die
+App unter einer Adresse benutzt hat und an eine andere wechselt, findet dort
+ein leeres Tagebuch — nicht kaputt, aber unerreichbar.
+
+Deshalb geht die Sicherung in beide Richtungen auch als **Text**: „Als Text"
+legt sie in die Zwischenablage, „Text einlesen" nimmt sie dort wieder an. Zwei
+Gründe, warum das nicht bloß eine Bequemlichkeit neben der Datei ist:
+
+* **Nicht überall gibt es Dateien.** In einer eingebetteten Fassung — etwa als
+  veröffentlichtes Artifact — unterbindet der Rahmen jeden Download, den die
+  Seite selbst auslöst. Dort bleibt der Knopf „Als Datei sichern" wirkungslos,
+  und die Zwischenablage ist der einzige Ausgang.
+* **Es ist der datensparsamste Weg.** Kopieren und Einfügen bleibt auf
+  demselben Gerät. Eine Datei wandert über den Download-Ordner, und wer sie
+  sich selbst schickt, hat sein Tagebuch anschließend in einem Postfach liegen.
+
+Eingelesen wird dabei auch das alte Format: Zutaten, die früher bloße
+Kennungen waren, werden zu Zutaten mit Rolle — jede als „Hauptzutat", weil
+damals niemand etwas anderes gesagt hat. Ohne diese Umrechnung käme das
+Tagebuch zwar an, aber die Auswertung fände darin keine einzige Zutat, und der
+Umzug hätte die ganze Vorgeschichte stumm gemacht.
+
 ### Der Bericht seit dem letzten Termin
 
 „Letzte 30 Tage" ist eine runde Zahl, die niemanden interessiert. Was in der
@@ -729,7 +753,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Fünfunddreißig Dateien, über 730 Prüfungen, alle in einem echten Chromium. Kein
+Fünfunddreißig Dateien, über 740 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 

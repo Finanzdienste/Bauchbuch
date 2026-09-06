@@ -100,6 +100,8 @@ const ui = {
   // als läge die Sicherung wieder offen da.
   schloss: false,
   tresorWort: '',
+  // Der eingefügte Text einer Sicherung – siehe einfuegeKarte().
+  einfuegen: null,
   // Hat der Browser zugesagt, diesen Speicher nicht wegzuräumen? null heißt
   // „weiß man nicht", und das wird auch so angezeigt statt beruhigt.
   speicher: null,
@@ -1787,6 +1789,41 @@ function zyklusTeil(s) {
   </div>`;
 }
 
+/*
+ * Eine Sicherung, die als Text ankommt statt als Datei.
+ *
+ * Das fehlte, und es fiel erst bei einem Umzug auf: Wer die App an einer
+ * Adresse benutzt hat und an eine andere wechselt, findet dort ein leeres
+ * Tagebuch – der Speicher eines Browsers gehört der Adresse, nicht dem
+ * Menschen. Der Weg hinaus über „Als Text" war da; der Weg hinein gab es nur
+ * als Datei.
+ *
+ * Und eine Datei ist nicht immer zu haben. In einer eingebetteten Fassung
+ * unterbindet der Rahmen jeden Download, den die Seite selbst auslöst – dort
+ * bleibt der Knopf „Als Datei sichern" ohne Wirkung, und die Zwischenablage
+ * ist der einzige Ausgang. Wer so aus einer Sackgasse heraus muss, braucht
+ * auf der anderen Seite ein Feld zum Einfügen.
+ *
+ * Das ist zugleich der datensparsamste Weg: kopieren und einfügen bleibt auf
+ * demselben Gerät. Eine Datei wandert über den Download-Ordner, und wer sie
+ * sich selbst schickt, hat sein Tagebuch in einem Postfach liegen.
+ */
+function einfuegeKarte() {
+  if (ui.einfuegen === null) return '';
+  return `<div class="schloss">
+    <p class="feld-name">Sicherungstext hier einfügen</p>
+    <textarea class="bericht" rows="6" data-act="einfuegen-text"
+      placeholder="Den kopierten Text einfügen (beginnt mit { oder mit BAUCHBUCH)"></textarea>
+    <p class="klein">Das ersetzt, was hier gerade gespeichert ist. Bei einem
+    Umzug ist genau das gewollt; wenn hier schon etwas drinsteht, das du
+    behalten willst, sichere es vorher.</p>
+    <div class="reihe">
+      ${knopf('einfuegen-los', 'Einlesen', 'btn-primary')}
+      ${knopf('einfuegen-zu', 'Abbrechen', 'btn-ghost')}
+    </div>
+  </div>`;
+}
+
 /**
  * Die Sicherung mit Passwort.
  *
@@ -1871,9 +1908,11 @@ function mehrAnsicht(s) {
     <div class="reihe">
       ${knopf('export', 'Als Datei sichern', 'btn-primary')}
       ${knopf('sicherung-text', 'Als Text')}
-      ${knopf('import', 'Einlesen')}
+      ${knopf('import', 'Datei einlesen')}
+      ${knopf('einfuegen-auf', 'Text einlesen')}
     </div>
     ${schlossKarte()}
+    ${einfuegeKarte()}
     ${ui.sicherung ? `
       <p class="klein" style="margin-top:10px">Alles markieren und in eine
       Notiz oder eine Mail an sich selbst kopieren. Zum Zurückholen denselben
@@ -2733,6 +2772,22 @@ const AKTION = {
     zeichne();
   },
   'sicherung-zu': () => { ui.sicherung = null; zeichne(); },
+  'einfuegen-auf': () => { ui.einfuegen = ''; zeichne(); },
+  'einfuegen-zu': () => { ui.einfuegen = null; zeichne(); },
+  'einfuegen-los': async () => {
+    const text = String(ui.einfuegen || '').trim();
+    if (!text) { melden('Da ist noch nichts eingefügt.'); return; }
+    try {
+      const anzahl = await sicherungEinlesen(text);
+      if (anzahl !== null) {
+        ui.einfuegen = null;
+        melden(`${mehrzahl(anzahl, 'Eintrag', 'Einträge')} eingelesen.`);
+      }
+    } catch (fehler) {
+      melden(`Ging nicht: ${fehler.message}`);
+    }
+    zeichne();
+  },
   'sicherung-kopieren': () => kopiere(ui.sicherung, '.bericht'),
 
   'schloss-auf': () => { ui.schloss = true; ui.tresorWort = ''; zeichne(); },
@@ -2838,6 +2893,9 @@ function eingabe(ev) {
     // nähme dem Feld den Fokus, und ein Passwortfeld, das nach drei Zeichen
     // wegspringt, ist unbenutzbar.
     case 'tresor-wort': ui.tresorWort = wert; break;
+    // Wie das Passwort: kein Neuzeichnen, sonst verliert das Feld beim
+    // Einfügen eines langen Textes den Fokus.
+    case 'einfuegen-text': ui.einfuegen = wert; break;
     case 'termin-neu':
       if (/^\d{4}-\d{2}-\d{2}$/.test(wert)) {
         store.terminAnlegen(wert);
