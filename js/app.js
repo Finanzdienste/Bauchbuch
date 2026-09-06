@@ -68,6 +68,7 @@ import {
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
+import { wachHalten, wachLoslassen } from './wach.js';
 import { BEDENKZEIT, schicken } from './briefkasten.js';
 
 const viewEl = document.getElementById('view');
@@ -1861,10 +1862,27 @@ function ruheAnsicht(s) {
               data-act="atem-runden" data-n="${n}">${n}</button>`).join('')}</div>
   </div>`;
 
+  /*
+   * Ob der Bildschirm anbleibt, steht dabei – und zwar als Tatsache und nicht
+   * als Versprechen. Die Sperre ist eine Bitte ans Betriebssystem, die im
+   * Stromsparmodus oder bei wenig Akku abgelehnt wird. „Du kannst das Handy
+   * weglegen" zu behaupten, wo es gleich abschaltet, wäre schlimmer als nichts
+   * zu sagen: Man macht die Augen zu und wundert sich hinterher.
+   */
+  const wachZeile = laeuft
+    ? (ui.atem.wach
+      ? '<p class="klein">Der Bildschirm bleibt an, solange die Übung läuft – '
+        + 'du kannst das Telefon weglegen und die Augen zumachen.</p>'
+      : '<p class="klein">Der Bildschirm lässt sich hier nicht anhalten '
+        + '(Stromsparmodus oder ein Browser ohne diese Möglichkeit). Schaltet '
+        + 'er ab, hält die Übung an – dann lieber kurz wach halten.</p>')
+    : '';
+
   const kreis = `<div class="atem${laeuft ? ' laeuft' : ''}">
     <div class="atem-kreis" id="atemKreis"><span id="atemZahl">${laeuft ? '' : '·'}</span></div>
     <p class="atem-wort" id="atemWort">${laeuft ? '' : 'Bereit, wenn du bist'}</p>
     <p class="klein" id="atemRunde">${laeuft ? '' : `${runden} Runden, ${esc(u.name)}`}</p>
+    ${wachZeile}
   </div>`;
 
   return `
@@ -1939,7 +1957,21 @@ function atemStart(s) {
   // Der Tonkontext darf erst hier entstehen: Browser lassen Audio nur nach
   // einer Nutzergeste zu, und "Anfangen" ist diese Geste.
   const ton = s.ton !== false && weckKlang();
-  ui.atem = { schritte: ablauf(u, runden), i: 0, ton, wecker: null, uhr: null };
+  ui.atem = {
+    schritte: ablauf(u, runden), i: 0, ton, wecker: null, uhr: null, wach: false,
+  };
+  /*
+   * Den Bildschirm anlassen – dieselbe Geste, dieselbe Gelegenheit.
+   *
+   * Ohne das schaltet das Telefon nach einer halben Minute ab und friert
+   * damit die Zeitgeber dieser Seite ein: Der nächste Ton käme zu spät oder
+   * gar nicht, und die Übung stünde mitten im Ausatmen still. Es ist eine
+   * Bitte und keine Garantie, deshalb wird das Ergebnis gemerkt und angezeigt
+   * statt angenommen.
+   */
+  wachHalten().then((ok) => {
+    if (ui.atem) { ui.atem.wach = ok; zeichne(); }
+  });
   zeichne();
   // Erst zeichnen, dann anfangen – sonst greift der erste Schritt auf Elemente
   // zu, die es noch nicht gibt.
@@ -1959,8 +1991,25 @@ function atemStopp() {
   clearTimeout(ui.atem.wecker);
   clearInterval(ui.atem.uhr);
   ui.atem = null;
+  // An jedem Ende, auch beim Abbrechen: Eine Sperre, die stehen bleibt, hält
+  // den Bildschirm an, bis der Akku leer ist.
+  wachLoslassen();
   zeichne();
 }
+
+/*
+ * Zurück aus dem Hintergrund: die Sperre neu erbitten.
+ *
+ * Das Betriebssystem nimmt sie weg, sobald die Seite verdeckt wird, und gibt
+ * sie nicht von allein zurück. Wer hier nicht neu bittet, hat sie still
+ * verloren – die App hielte sich für wach und wäre es nicht.
+ */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !ui.atem) return;
+  wachHalten().then((ok) => {
+    if (ui.atem && ui.atem.wach !== ok) { ui.atem.wach = ok; zeichne(); }
+  });
+});
 
 /* ==================== Reiter: Ideen ==================== */
 

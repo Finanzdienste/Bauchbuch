@@ -457,11 +457,37 @@ Frist ohnehin rechnet (`js/stufenplan.js`, `js/provokation.js`), und nicht aus
 der Anzeige: Zwei Stellen, die dieselbe Frist nachrechnen, laufen früher oder
 später auseinander.
 
-Für die **Atemübung** gibt es das bewusst nicht. Dort wäre eine Benachrichtigung
-je Phase nur solange sichtbar, wie die App offen und der Bildschirm an ist — und
-dann sieht man den Kreis ohnehin. Sobald der Bildschirm sperrt, friert iOS die
-Zeitgeber der Seite ein, und die Benachrichtigung käme zu spät oder gar nicht.
-Der Ton läuft weiter; genau dafür ist er da.
+Für die **Atemübung** ist eine Benachrichtigung die falsche Antwort — und zwar
+nicht, weil sie nicht ginge, sondern weil sie das Problem nur aus einer anderen
+Richtung beschreibt. Wenn der Bildschirm sperrt, friert das Betriebssystem die
+Zeitgeber dieser Seite ein; eine Benachrichtigung, die aus einem eingefrorenen
+Zeitgeber kommt, kommt genauso spät. Die Frage ist nicht, wie die Nachricht
+herauskommt, sondern wie die Uhr weiterläuft.
+
+Deshalb `js/wach.js`: `navigator.wakeLock` bittet das Betriebssystem, den
+Bildschirm anzulassen, solange die Übung läuft. Damit läuft alles weiter — der
+Kreis, der Ton, die Zeitrechnung —, und man kann das Telefon weglegen und die
+Augen zumachen. Genau darum ging es.
+
+Drei Dinge, die man dabei still falsch macht, und für jedes eine Prüfung:
+
+* **Nicht wieder loslassen.** Eine Sperre, die nach der Übung stehen bleibt,
+  hält den Bildschirm an, bis der Akku leer ist — und niemand käme auf die Idee,
+  das einer Atem-App anzulasten. Sie wird an jedem Ende gelöst, auch beim
+  Abbrechen.
+* **Vergessen, dass das System sie wegnimmt.** Sobald die Seite verdeckt wird,
+  ist die Sperre weg und kommt nicht von allein zurück. Beim Zurückkehren wird
+  neu gebeten.
+* **Sich darauf verlassen.** Es ist eine Bitte, keine Garantie: im
+  Stromsparmodus oder bei wenig Akku wird sie abgelehnt. Was in der App steht,
+  richtet sich danach — „du kannst das Telefon weglegen" zu behaupten, wo es
+  gleich abschaltet, wäre schlimmer als nichts zu sagen.
+
+Der Test dazu deckte beim Schreiben seine eigene Lücke auf: Ein Browser ohne
+Bildschirm lehnt die Sperre ab, also lief bis dahin **nur der Fehlerfall** —
+der Zweig, der auf einem echten Telefon greift, wurde nie ausgeführt. Jetzt
+stellt eine Attrappe die Sperre nach, samt des `release`-Ereignisses, mit dem
+ein Betriebssystem sie wieder wegnimmt.
 
 Und die Ehrlichkeit dazu steht in der App: **Es ist ein Kalendereintrag, keine
 Funktion dieser App.** Wer ihn löscht, wird nicht mehr erinnert, und die App
@@ -1040,6 +1066,7 @@ js/stufenplan.js    Karenz, die Weiche danach, und die Wiedereinführung
 js/anfang.js        die ersten Wochen: was noch fehlt, einmal statt zehnmal
 js/kalender.js      die tägliche Erinnerung als Kalendereintrag – ohne
                     Server, ohne Push
+js/wach.js          hält den Bildschirm an, solange die Atemübung läuft
 
 tools/vorschlaege.mjs        rahmt fremden Text ein, damit er Material
                              bleibt und keine Anweisung wird
@@ -1078,7 +1105,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Einundvierzig Dateien, über 900 Prüfungen, alle in einem echten Chromium. Kein
+Einundvierzig Dateien, über 910 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
