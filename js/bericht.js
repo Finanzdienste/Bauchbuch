@@ -28,6 +28,7 @@ import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
 import { spielraumSatz } from './zufall.js';
 import { dosisBild } from './dosis.js';
+import { gewichtsBild } from './gewicht.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
 import { wissenZu } from './mittel.js';
@@ -121,6 +122,20 @@ export function arztBericht(zustand, von, bis) {
       sag(`  [${w.dringlichkeit === 'sofort' ? 'sofort' : 'zeitnah'}] ${w.name}`);
       sag(`           ${mehrzahl(w.anzahl, 'Mal', 'Mal')}, zuletzt ${fmtDatum(w.zuletzt, true)}`);
     });
+    sag();
+  }
+
+  /*
+   * Die Waage steht bei den Warnzeichen und nicht bei den Zahlen.
+   *
+   * Ein ungewollter Verlust von fünf Prozent ist das stärkste einzelne
+   * Zeichen, das ein Tagebuch beisteuern kann – und die einzige Angabe darin,
+   * die nicht aus einer Selbsteinschätzung stammt.
+   */
+  const waage = gewichtsBild(zustand.gewicht, bis, zustand.abnehmenGewollt);
+  if (waage.urteil !== 'keine' && waage.urteil !== 'zu-kurz') {
+    sag(waage.warnung ? '!! GEWICHT' : 'GEWICHT');
+    umbrochen(waage.satz).forEach((zl) => sag(`  ${zl}`));
     sag();
   }
 
@@ -585,6 +600,7 @@ export function arztBericht(zustand, von, bis) {
       phase: w.staerkste.name,
     })),
     zeit: zb,
+    gewicht: waage,
     mittel: ansprechen,
     notierteTage: z.notierteTage,
   });

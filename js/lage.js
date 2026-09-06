@@ -56,6 +56,7 @@ const HOECHSTENS = 5;
  * @param {object} [q.zeit]         aus zeitBild()
  * @param {object[]} [q.mittel]     { name, urteil, satz }
  * @param {object} [q.versuch]      { was, wort }
+ * @param {object} [q.gewicht]      aus gewichtsBild(): { warnung, satz }
  * @param {object} [q.luecke]       { satz }
  * @param {number} [q.notierteTage]
  */
@@ -79,6 +80,18 @@ export function wasSacheIst(q = {}) {
         + 'Termin zu machen.'
       : `Im Tagebuch stehen Dinge, die ärztlich abgeklärt gehören – beim `
         + `nächsten Termin anzusprechen: ${liste}.`);
+  }
+
+  /*
+   * 1b. Die Waage – direkt hinter den Warnzeichen, weil sie eines ist.
+   *
+   * Sie steht vor der Richtung und vor jedem Auslöser, und zwar aus einem
+   * Grund: Ein ungewollter Gewichtsverlust ist das stärkste einzelne Zeichen
+   * dafür, dass hinter Bauchbeschwerden mehr steckt als eine gereizte
+   * Verdauung. Welche Zutat auffällt, ist daneben zweitrangig.
+   */
+  if (q.gewicht && q.gewicht.warnung) {
+    sag('warnung', q.gewicht.satz);
   }
 
   /*

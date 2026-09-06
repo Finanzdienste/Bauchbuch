@@ -88,6 +88,30 @@ const VORGABE = {
    * letzten Mal*, und genau die kennt nur sie.
    */
   termine: [],
+  /*
+   * Gewichtsmessungen: [{ am, kg }], die jüngste zuerst.
+   *
+   * Bewusst **neben** den Eintragungen und nicht in ihnen. Der Grund ist eine
+   * Zeile weiter oben in js/auswertung.js: Dort gilt ein Tag als notiert,
+   * sobald an ihm irgendein Eintrag steht. Ein Tag, an dem sich nur jemand
+   * gewogen hat, wäre damit ein notierter Tag mit Beschwerdewert 0 – also ein
+   * beschwerdefreier Tag. Er würde in jede Quote, in den Trend und in die
+   * Kriterien eingehen, und zwar als Verbesserung.
+   *
+   * Das ist genau der Fehler, den diese App an allen anderen Stellen
+   * ausdrücklich vermeidet: Ein Tag ohne Beschwerden ist etwas anderes als ein
+   * Tag ohne Eintragung. Wer sich wiegt, hat über seinen Bauch nichts gesagt.
+   */
+  gewicht: [],
+  /*
+   * Ob gerade absichtlich abgenommen wird.
+   *
+   * Ohne diese Angabe wäre die Gewichtsüberwachung ein Fehlalarm-Automat: Ein
+   * Verlust von fünf Prozent ist ein Warnzeichen, wenn er *ungewollt* ist –
+   * und ein Erfolg, wenn jemand dafür gearbeitet hat. Den Unterschied kann
+   * keine Rechnung sehen, nur der Mensch.
+   */
+  abnehmenGewollt: false,
   // Wie viele Ideen beim letzten Weitergeben in der Liste standen. Daran
   // erkennt die App, welche noch niemand gesehen hat – siehe ideenOffen().
   ideenGeschickt: 0,
@@ -449,6 +473,35 @@ export function versuchLoeschen(id) {
   const vorher = zustand.versuche.length;
   zustand.versuche = zustand.versuche.filter((v) => v.id !== id);
   if (zustand.versuche.length === vorher) return;
+  merke();
+  melde();
+}
+
+/* ---------- Gewicht ---------- */
+
+/**
+ * Ein Gewicht notieren – ein Wert je Tag, der neuere ersetzt den alten.
+ *
+ * Zweimal am Tag zu wiegen ergibt zwei Zahlen, die sich um ein Kilo
+ * unterscheiden können, ohne dass sich am Menschen etwas geändert hätte.
+ * Gespeichert wird deshalb der letzte Wert des Tages und nicht beide.
+ */
+export function gewichtNotieren(iso, kg) {
+  const wert = Number(kg);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return;
+  // Unter 20 und über 400 Kilo ist ein Tippfehler, keine Messung.
+  if (!Number.isFinite(wert) || wert < 20 || wert > 400) return;
+  zustand.gewicht = [{ am: iso, kg: Math.round(wert * 10) / 10 }]
+    .concat(zustand.gewicht.filter((g) => g.am !== iso))
+    .sort((a, b) => (a.am < b.am ? 1 : -1));
+  merke();
+  melde();
+}
+
+export function gewichtLoeschen(iso) {
+  const vorher = zustand.gewicht.length;
+  zustand.gewicht = zustand.gewicht.filter((g) => g.am !== iso);
+  if (zustand.gewicht.length === vorher) return;
   merke();
   melde();
 }

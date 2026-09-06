@@ -86,9 +86,10 @@ Eintragungen, nicht in ihnen, und tauchen in keiner Auswertung auf.
 
 **Mehr.** Sicherung als JSON-Datei und zurück – **wahlweise mit Passwort
 verschlüsselt** (siehe unten) –, der Bericht für den Arzttermin, die
-**Arzttermine** selbst, die Übersicht „Was die Mittel bewirken", seit wann die
-Beschwerden bestehen, die Einstellungen der Auswertung, welche Tagesfragen
-erscheinen sollen, eigene Auslöser, Ton, vier Farbvarianten.
+**Arzttermine** selbst, das **Gewicht** (siehe unten), die Übersicht „Was die
+Mittel bewirken", seit wann die Beschwerden bestehen, die Einstellungen der
+Auswertung, welche Tagesfragen erscheinen sollen, eigene Auslöser, Ton, vier
+Farbvarianten.
 
 ### Die Sicherung mit Passwort
 
@@ -370,6 +371,54 @@ Vier Regeln halten das davon ab, Kaffeesatzleserei zu werden:
 
 Was dabei herauskommt, ist eine Häufigkeit. Die App stellt keine Diagnose und
 ersetzt keine ärztliche Beratung.
+
+### Die Waage: die einzige Zahl, die nicht aus dem Gefühl kommt
+
+Alles andere in dieser App ist Selbstauskunft. „Stärke 6" ist eine
+Einschätzung, „Blähungen" ein Gefühl, und wie stark etwas war, verschiebt sich
+mit der Stimmung, mit der Erwartung und mit dem, was gestern war. Das ist kein
+Mangel — anders geht es bei Bauchbeschwerden nicht —, aber es hat eine Folge:
+Kein Wert in dieser App lässt sich von außen nachprüfen.
+
+Das Gewicht schon. Und ausgerechnet es ist die klinisch wichtigste Zahl, die
+ein Tagebuch beitragen kann: Bei Bauchbeschwerden verläuft die entscheidende
+Grenze zwischen *funktionell* — unangenehm, oft langwierig, aber ohne Schaden —
+und *da muss jemand nachsehen*. Ein **ungewollter Gewichtsverlust** ist das
+stärkste einzelne Zeichen, das auf die zweite Seite deutet, und steht in jeder
+Leitlinie unter den Alarmzeichen. Fünf Prozent des Körpergewichts in sechs
+Monaten gilt als die Grenze, ab der nachgesehen wird.
+
+Bisher stand das hier nur zum Ankreuzen. Angekreuzt wird es aber von dem, der
+es schon bemerkt hat — und schleichende Verluste bemerkt niemand. Deshalb gibt
+es unter „Mehr" ein Feld für das Gewicht, alle ein bis zwei Wochen, und
+`js/gewicht.js` rechnet daraus eine Richtung.
+
+Zwei Dinge muss diese Rechnung richtig machen, und beide werden geprüft:
+
+1. **Nicht auf Wasser hereinfallen.** Ein Mensch schwankt am Tag um ein bis
+   zwei Kilo, je nach Trinken, Salz, Stuhlgang und Zyklus. Verglichen werden
+   deshalb keine Einzelwerte, sondern Mittel aus bis zu drei Messungen je
+   Seite, und zwischen „früher" und „jetzt" müssen mindestens 30 Tage liegen.
+   Fehlt der Abstand, sagt die App „noch keine Richtung" statt eines Urteils.
+   Was länger als ein halbes Jahr zurückliegt, zählt gar nicht mit — sonst
+   hinge jemandem ein Studentengewicht bis ans Lebensende als „Verlust" nach.
+2. **Nicht bei jeder Diät Alarm schlagen.** Fünf Prozent weniger sind ein
+   Warnzeichen, wenn sie *ungewollt* kommen, und ein Erfolg, wenn jemand dafür
+   gearbeitet hat. Den Unterschied sieht keine Rechnung, deshalb steht die
+   Frage nach der Absicht auf der Karte und nicht im Kleingedruckten. Ist „Ja,
+   gewollt" gesetzt, wird der Verlust benannt, aber nicht als Warnzeichen —
+   sonst ist die Karte nach zwei Wochen abgeschaltet, samt Ernstfall.
+
+Ein ungewollter Verlust steht danach ganz oben in „Was Sache ist", direkt
+hinter den übrigen Warnzeichen, und im Bericht als eigener Abschnitt mit `!!`.
+Was dort steht, ist ausdrücklich keine Diagnose, sondern die Grenze, ab der
+nachgesehen wird.
+
+Das Gewicht liegt **neben** dem Tagebuch, nicht darin, und das ist kein
+Schönheitsfehler: Ein Eintrag macht einen Tag zu einem *notierten* Tag, und ein
+notierter Tag ohne Beschwerdeeintrag ist in dieser App ein Tag ohne
+Beschwerden. Wer sich nur wiegt, hätte sich sonst lauter beschwerdefreie Tage
+gebucht — und damit die Quote nach unten gerechnet, die den Verlauf beschreibt.
 
 ### Wie viel verträgst du – nicht ob
 
@@ -754,6 +803,8 @@ js/zufall.js        wie groß ein Unterschied allein durch Zufall ausfällt
                     – die Schranke, die mit der Zahl der Vergleiche wächst
 js/dosis.js         wie viel du verträgst, nicht ob – aus den Rollen der
                     Zutaten eine Mengenschwelle
+js/gewicht.js       das einzige harte Maß: ungewollter Verlust als
+                    Warnzeichen, Wasserschwankung als keines
 
 tools/vorschlaege.mjs        rahmt fremden Text ein, damit er Material
                              bleibt und keine Anweisung wird
@@ -792,7 +843,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Sechsunddreißig Dateien, über 760 Prüfungen, alle in einem echten Chromium. Kein
+Siebenunddreißig Dateien, über 790 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -834,6 +885,7 @@ den Rückgabewert.
 | `test-wechsel.mjs` | ein Auslöser, der nur in einer Zyklusphase wirkt – und kein Wechsel, wo keiner ist |
 | `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
+| `test-gewicht.mjs` | fünf Prozent ungewollt sind ein Warnzeichen, dieselben fünf Prozent gewollt keines – und ein Tag, an dem nur gewogen wurde, ist kein Tag ohne Beschwerden |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,
 sondern an Verläufen, deren richtiges Ergebnis vorher feststeht. Der wichtigste

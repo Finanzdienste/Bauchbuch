@@ -54,6 +54,7 @@ import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
 import { spielraumSatz } from './zufall.js';
 import { dosisBild, DOSIS_WORT } from './dosis.js';
+import { gewichtsBild, GEWICHT_WORT } from './gewicht.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
@@ -840,6 +841,7 @@ function lageTeil(s, d) {
       phase: w.staerkste.name,
     })),
     zeit: d.zeit,
+    gewicht: gewichtsBild(s.gewicht, d.heute, s.abnehmenGewollt),
     mittel: d.mittel.filter((m) => m.genug),
     luecke: d.luecke.tagebuch.length
       ? { satz: `Am meisten würde jetzt helfen: ${d.luecke.tagebuch[0].titel}.` }
@@ -1828,6 +1830,60 @@ function zyklusTeil(s) {
 }
 
 /*
+ * Die Waage – die einzige Zahl hier, die nicht aus dem Gefühl kommt.
+ *
+ * Alles andere in dieser App ist Selbstauskunft, und das ist bei
+ * Bauchbeschwerden nicht anders möglich. Das Gewicht ist die Ausnahme, und
+ * ausgerechnet es ist die klinisch wichtigste Zahl, die ein Tagebuch
+ * beitragen kann: Ein ungewollter Verlust ist das stärkste einzelne Zeichen
+ * dafür, dass mehr dahintersteckt als eine gereizte Verdauung.
+ *
+ * Die Frage nach der Absicht steht mit auf der Karte und nicht im
+ * Kleingedruckten. Ohne sie wäre die ganze Rechnung ein Fehlalarm-Automat:
+ * Fünf Prozent weniger sind ein Warnzeichen, wenn sie ungewollt kommen, und
+ * ein Erfolg, wenn jemand dafür gearbeitet hat.
+ */
+function gewichtKarte(s) {
+  const g = gewichtsBild(s.gewicht, heuteISO(), s.abnehmenGewollt);
+  const letzte = (s.gewicht || []).slice(0, 6);
+
+  return `<div class="karte ${g.warnung ? 'karte-warn' : ''}">
+    <h3>Gewicht</h3>
+    ${g.urteil !== 'keine' ? `<p><b>${GEWICHT_WORT[g.urteil]}.</b></p>` : ''}
+    <p class="klein">${esc(g.satz)}</p>
+    <p class="feld-name">Heute gewogen</p>
+    <div class="reihe">
+      <!--
+        Bewusst kein type="number": Auf einem deutschen Handy liefert die
+        Zifferntastatur ein Komma, und ein Zahlenfeld wirft ein Komma
+        stillschweigend weg – die Eingabe käme leer an. Mit inputmode="decimal"
+        erscheint dieselbe Tastatur, das Komma kommt durch, und umgerechnet
+        wird unten in „gewicht-los".
+      -->
+      <input type="text" class="feld" data-act="gewicht-neu" inputmode="decimal"
+             placeholder="kg" aria-label="Gewicht in Kilogramm">
+      ${knopf('gewicht-los', 'Eintragen', 'btn-primary')}
+    </div>
+    ${letzte.length ? `<ul class="wartend">${letzte.map((m) => `<li>
+      <span>${esc(fmtDatum(m.am, true))}</span>
+      <span class="klein">${fmtZahl(m.kg)} kg
+        <button type="button" class="strang-weg" data-act="gewicht-weg"
+                data-iso="${m.am}" aria-label="Messung löschen">×</button></span>
+    </li>`).join('')}</ul>` : ''}
+    <p class="feld-name">Nimmst du gerade absichtlich ab?</p>
+    <div class="wahl">
+      <button type="button" class="wahl-btn${s.abnehmenGewollt ? '' : ' an'}"
+              data-act="abnehmen" data-n="nein">Nein</button>
+      <button type="button" class="wahl-btn${s.abnehmenGewollt ? ' an' : ''}"
+              data-act="abnehmen" data-n="ja">Ja, gewollt</button>
+    </div>
+    <p class="klein">Das ist keine Nebensache: Ein Verlust von fünf Prozent
+    gehört abgeklärt, wenn er ungewollt kommt – und ist ein Erfolg, wenn du
+    dafür gearbeitet hast. Den Unterschied sieht keine Rechnung, nur du.</p>
+  </div>`;
+}
+
+/*
  * Eine Sicherung, die als Text ankommt statt als Datei.
  *
  * Das fehlte, und es fiel erst bei einem Umzug auf: Wer die App an einer
@@ -1984,6 +2040,8 @@ function mehrAnsicht(s) {
     der Sprechstunde mehr als eine Textspalte.</p>
   </div>
   ${bericht}
+
+  ${gewichtKarte(s)}
 
   <div class="karte">
     <h3>Arzttermine</h3>
@@ -2810,6 +2868,25 @@ const AKTION = {
     zeichne();
   },
   'sicherung-zu': () => { ui.sicherung = null; zeichne(); },
+  'gewicht-los': () => {
+    const feld = viewEl.querySelector('[data-act="gewicht-neu"]');
+    const kg = Number(String(feld && feld.value).replace(',', '.'));
+    if (!Number.isFinite(kg) || kg < 20 || kg > 400) {
+      melden('Bitte ein Gewicht zwischen 20 und 400 kg.');
+      return;
+    }
+    store.gewichtNotieren(heuteISO(), kg);
+    melden('Notiert.');
+    zeichne();
+  },
+  'gewicht-weg': (el) => {
+    store.gewichtLoeschen(el.dataset.iso);
+    zeichne();
+  },
+  abnehmen: (el) => {
+    store.einstellen('abnehmenGewollt', el.dataset.n === 'ja');
+    zeichne();
+  },
   'einfuegen-auf': () => { ui.einfuegen = ''; zeichne(); },
   'einfuegen-zu': () => { ui.einfuegen = null; zeichne(); },
   'einfuegen-los': async () => {

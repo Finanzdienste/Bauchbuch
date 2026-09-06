@@ -2286,6 +2286,30 @@ const VORGABE = {
    * letzten Mal*, und genau die kennt nur sie.
    */
   termine: [],
+  /*
+   * Gewichtsmessungen: [{ am, kg }], die jüngste zuerst.
+   *
+   * Bewusst **neben** den Eintragungen und nicht in ihnen. Der Grund ist eine
+   * Zeile weiter oben in js/auswertung.js: Dort gilt ein Tag als notiert,
+   * sobald an ihm irgendein Eintrag steht. Ein Tag, an dem sich nur jemand
+   * gewogen hat, wäre damit ein notierter Tag mit Beschwerdewert 0 – also ein
+   * beschwerdefreier Tag. Er würde in jede Quote, in den Trend und in die
+   * Kriterien eingehen, und zwar als Verbesserung.
+   *
+   * Das ist genau der Fehler, den diese App an allen anderen Stellen
+   * ausdrücklich vermeidet: Ein Tag ohne Beschwerden ist etwas anderes als ein
+   * Tag ohne Eintragung. Wer sich wiegt, hat über seinen Bauch nichts gesagt.
+   */
+  gewicht: [],
+  /*
+   * Ob gerade absichtlich abgenommen wird.
+   *
+   * Ohne diese Angabe wäre die Gewichtsüberwachung ein Fehlalarm-Automat: Ein
+   * Verlust von fünf Prozent ist ein Warnzeichen, wenn er *ungewollt* ist –
+   * und ein Erfolg, wenn jemand dafür gearbeitet hat. Den Unterschied kann
+   * keine Rechnung sehen, nur der Mensch.
+   */
+  abnehmenGewollt: false,
   // Wie viele Ideen beim letzten Weitergeben in der Liste standen. Daran
   // erkennt die App, welche noch niemand gesehen hat – siehe ideenOffen().
   ideenGeschickt: 0,
@@ -2651,6 +2675,35 @@ function versuchLoeschen(id) {
   melde();
 }
 
+/* ---------- Gewicht ---------- */
+
+/**
+ * Ein Gewicht notieren – ein Wert je Tag, der neuere ersetzt den alten.
+ *
+ * Zweimal am Tag zu wiegen ergibt zwei Zahlen, die sich um ein Kilo
+ * unterscheiden können, ohne dass sich am Menschen etwas geändert hätte.
+ * Gespeichert wird deshalb der letzte Wert des Tages und nicht beide.
+ */
+function gewichtNotieren(iso, kg) {
+  const wert = Number(kg);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return;
+  // Unter 20 und über 400 Kilo ist ein Tippfehler, keine Messung.
+  if (!Number.isFinite(wert) || wert < 20 || wert > 400) return;
+  zustand.gewicht = [{ am: iso, kg: Math.round(wert * 10) / 10 }]
+    .concat(zustand.gewicht.filter((g) => g.am !== iso))
+    .sort((a, b) => (a.am < b.am ? 1 : -1));
+  merke();
+  melde();
+}
+
+function gewichtLoeschen(iso) {
+  const vorher = zustand.gewicht.length;
+  zustand.gewicht = zustand.gewicht.filter((g) => g.am !== iso);
+  if (zustand.gewicht.length === vorher) return;
+  merke();
+  melde();
+}
+
 /* ---------- Arzttermine ---------- */
 
 /**
@@ -2855,7 +2908,7 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
+const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
 
 /* ===== js/zufall.js ===== */
 /*
@@ -6149,6 +6202,184 @@ const DOSIS_WORT = {
   unklar: 'Menge nicht prüfbar',
 };
 
+/* ===== js/gewicht.js ===== */
+/*
+ * Das einzige harte Maß
+ *
+ * WARUM AUSGERECHNET DIE WAAGE
+ *
+ * Alles andere in dieser App ist Selbstauskunft. „Stärke 6" ist eine
+ * Einschätzung, „Blähungen" ein Gefühl, und wie stark etwas war, verschiebt
+ * sich mit der Stimmung, mit der Erwartung und mit dem, was gestern war. Das
+ * ist kein Mangel – anders geht es bei Bauchbeschwerden nicht –, aber es hat
+ * eine Folge: Kein Wert in dieser App lässt sich von außen nachprüfen.
+ *
+ * Das Gewicht schon. Es ist die eine Zahl, die eine Waage sagt und nicht der
+ * Mensch, und ausgerechnet sie ist die klinisch wichtigste, die ein Tagebuch
+ * beitragen kann.
+ *
+ * WAS SIE ENTSCHEIDET
+ *
+ * Bei Bauchbeschwerden verläuft die entscheidende Grenze zwischen
+ * „funktionell" – unangenehm, oft langwierig, aber ohne Schaden – und „da muss
+ * jemand nachsehen". Ein ungewollter Gewichtsverlust ist das stärkste einzelne
+ * Zeichen, das auf die zweite Seite deutet, und er steht in jeder Leitlinie
+ * unter den Alarmzeichen. Fünf Prozent des Körpergewichts in sechs Monaten
+ * gilt als die Grenze, ab der nachgesehen wird.
+ *
+ * Bisher stand das hier nur zum Ankreuzen. Angekreuzt wird es aber von dem,
+ * der es schon bemerkt hat – und schleichende Verluste bemerkt niemand.
+ *
+ * ZWEI DINGE, DIE DIESE DATEI RICHTIG MACHEN MUSS
+ *
+ *   1. **Nicht auf Wasser hereinfallen.** Ein Mensch schwankt am Tag um ein
+ *      bis zwei Kilo, je nach Trinken, Salz, Stuhlgang und Zyklus. Verglichen
+ *      werden deshalb keine Einzelwerte, sondern Mittel aus mehreren
+ *      Messungen, und zwischen ihnen muss ordentlich Zeit liegen.
+ *   2. **Nicht bei jeder Diät Alarm schlagen.** Fünf Prozent weniger sind ein
+ *      Warnzeichen, wenn sie *ungewollt* kommen, und ein Erfolg, wenn jemand
+ *      dafür gearbeitet hat. Den Unterschied sieht keine Rechnung – deshalb
+ *      wird gefragt.
+ */
+
+/** Ab hier gilt ein Verlust als abklärungsbedürftig: fünf Prozent. */
+const ALARM_ANTEIL = 0.05;
+
+/** In diesem Zeitraum – länger zurück ist eine andere Geschichte. */
+const WAAGE_FENSTER = 180;
+
+/** So weit müssen „früher" und „jetzt" auseinanderliegen. */
+const MINDEST_ABSTAND = 30;
+
+/** Und so viele Messungen gehen höchstens in ein Mittel ein. */
+const JE_SEITE = 3;
+
+const kiloSchnitt = (l) => (l.length ? l.reduce((s, x) => s + x.kg, 0) / l.length : 0);
+
+const tageZwischen = (a, b) => Math.round(
+  (new Date(`${b}T12:00`) - new Date(`${a}T12:00`)) / 86400000,
+);
+
+/**
+ * Was die Waage über die letzten Monate sagt.
+ *
+ * @param {object[]} messungen  [{ am, kg }], jüngste zuerst
+ * @param {string} heute        ISO-Datum
+ * @param {boolean} gewollt     ob gerade absichtlich abgenommen wird
+ */
+function gewichtsBild(messungen, heute, gewollt = false) {
+  const liste = [...(messungen || [])]
+    .filter((g) => g && g.am && Number.isFinite(Number(g.kg)))
+    .sort((a, b) => (a.am < b.am ? 1 : -1));
+
+  if (!liste.length) {
+    return {
+      urteil: 'keine',
+      messungen: liste,
+      satz: 'Noch nichts gewogen. Alle ein bis zwei Wochen reicht – es ist die '
+        + 'einzige Zahl hier, die nicht aus dem Gefühl kommt, und ein '
+        + 'ungewollter Verlust ist das wichtigste Zeichen, das ein Tagebuch '
+        + 'überhaupt liefern kann.',
+    };
+  }
+
+  const imFenster = liste.filter((g) => tageZwischen(g.am, heute) <= WAAGE_FENSTER);
+  const jetzt = imFenster.slice(0, JE_SEITE);
+  const aktuell = kiloSchnitt(jetzt);
+
+  /*
+   * „Früher" sind die ältesten Messungen im Fenster – aber nur, wenn sie weit
+   * genug zurückliegen. Zwei Wiegungen aus derselben Woche zu vergleichen
+   * misst den Wasserhaushalt, nicht den Verlauf.
+   */
+  const weitGenug = imFenster.filter((g) => tageZwischen(g.am, jetzt[0].am) >= MINDEST_ABSTAND);
+  const frueher = weitGenug.slice(-JE_SEITE);
+
+  if (!frueher.length) {
+    return {
+      urteil: 'zu-kurz',
+      messungen: liste,
+      aktuell,
+      satz: `Zuletzt ${aktuell.toFixed(1)} kg. Für eine Richtung braucht es `
+        + `Messungen, die mindestens ${MINDEST_ABSTAND} Tage auseinanderliegen – `
+        + 'darunter misst man Wasser und nicht den Verlauf.',
+    };
+  }
+
+  const davor = kiloSchnitt(frueher);
+  const differenz = aktuell - davor;
+  const anteil = davor ? differenz / davor : 0;
+  const spanne = tageZwischen(frueher[frueher.length - 1].am, jetzt[0].am);
+
+  const grundlage = `${aktuell.toFixed(1)} kg zuletzt gegen ${davor.toFixed(1)} kg `
+    + `vor gut ${Math.round(spanne / 30)} Monaten `
+    + `(${jetzt.length} gegen ${frueher.length} Messungen).`;
+
+  if (anteil <= -ALARM_ANTEIL) {
+    /*
+     * Der Fall, für den das Ganze da ist. Und die Frage, die ihn entscheidet,
+     * kann die App nicht selbst beantworten – deshalb steht die Antwort des
+     * Menschen mit im Urteil und nicht bloß im Text.
+     */
+    return {
+      urteil: gewollt ? 'verlust-gewollt' : 'verlust',
+      messungen: liste,
+      aktuell,
+      davor,
+      differenz,
+      anteil,
+      spanne,
+      warnung: !gewollt,
+      satz: gewollt
+        ? `${grundlage} Das sind ${Math.abs(anteil * 100).toFixed(0)} Prozent – `
+          + 'du hast angegeben, dass das so gewollt ist, deshalb steht hier kein '
+          + 'Warnzeichen. Sollte sich das ändern, stell es unter „Mehr" um.'
+        : `${grundlage} Das sind ${Math.abs(anteil * 100).toFixed(0)} Prozent `
+          + 'weniger. Ein ungewollter Verlust ab fünf Prozent gehört ärztlich '
+          + 'abgeklärt – das ist keine Diagnose, sondern die Grenze, ab der '
+          + 'nachgesehen wird. Wenn du absichtlich abnimmst, sag es der App '
+          + 'unter „Mehr", dann hört sie damit auf.',
+    };
+  }
+
+  if (anteil >= ALARM_ANTEIL) {
+    return {
+      urteil: 'zunahme',
+      messungen: liste,
+      aktuell,
+      davor,
+      differenz,
+      anteil,
+      spanne,
+      satz: `${grundlage} Das sind ${(anteil * 100).toFixed(0)} Prozent mehr. `
+        + 'Kein Alarmzeichen – aber eine Zahl, die zum übrigen Bild gehört.',
+    };
+  }
+
+  return {
+    urteil: 'stabil',
+    messungen: liste,
+    aktuell,
+    davor,
+    differenz,
+    anteil,
+    spanne,
+    satz: `${grundlage} Das Gewicht ist damit stabil, und das ist bei `
+      + 'Bauchbeschwerden eine gute Nachricht: Der wichtigste Hinweis darauf, '
+      + 'dass mehr dahintersteckt, ist ein ungewollter Verlust.',
+  };
+}
+
+/** Für die Anzeige: das Urteil in einem Wort. */
+const GEWICHT_WORT = {
+  verlust: 'deutlich weniger',
+  'verlust-gewollt': 'weniger, wie gewollt',
+  zunahme: 'deutlich mehr',
+  stabil: 'stabil',
+  'zu-kurz': 'noch keine Richtung',
+  keine: 'nichts gewogen',
+};
+
 /* ===== js/lage.js ===== */
 /*
  * Was Sache ist – drei bis fünf Sätze, ganz oben
@@ -6208,6 +6439,7 @@ const HOECHSTENS = 5;
  * @param {object} [q.zeit]         aus zeitBild()
  * @param {object[]} [q.mittel]     { name, urteil, satz }
  * @param {object} [q.versuch]      { was, wort }
+ * @param {object} [q.gewicht]      aus gewichtsBild(): { warnung, satz }
  * @param {object} [q.luecke]       { satz }
  * @param {number} [q.notierteTage]
  */
@@ -6231,6 +6463,18 @@ function wasSacheIst(q = {}) {
         + 'Termin zu machen.'
       : `Im Tagebuch stehen Dinge, die ärztlich abgeklärt gehören – beim `
         + `nächsten Termin anzusprechen: ${liste}.`);
+  }
+
+  /*
+   * 1b. Die Waage – direkt hinter den Warnzeichen, weil sie eines ist.
+   *
+   * Sie steht vor der Richtung und vor jedem Auslöser, und zwar aus einem
+   * Grund: Ein ungewollter Gewichtsverlust ist das stärkste einzelne Zeichen
+   * dafür, dass hinter Bauchbeschwerden mehr steckt als eine gereizte
+   * Verdauung. Welche Zutat auffällt, ist daneben zweitrangig.
+   */
+  if (q.gewicht && q.gewicht.warnung) {
+    sag('warnung', q.gewicht.satz);
   }
 
   /*
@@ -7741,6 +7985,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -7826,6 +8071,20 @@ function arztBericht(zustand, von, bis) {
       sag(`  [${w.dringlichkeit === 'sofort' ? 'sofort' : 'zeitnah'}] ${w.name}`);
       sag(`           ${mehrzahl(w.anzahl, 'Mal', 'Mal')}, zuletzt ${fmtDatum(w.zuletzt, true)}`);
     });
+    sag();
+  }
+
+  /*
+   * Die Waage steht bei den Warnzeichen und nicht bei den Zahlen.
+   *
+   * Ein ungewollter Verlust von fünf Prozent ist das stärkste einzelne
+   * Zeichen, das ein Tagebuch beisteuern kann – und die einzige Angabe darin,
+   * die nicht aus einer Selbsteinschätzung stammt.
+   */
+  const waage = gewichtsBild(zustand.gewicht, bis, zustand.abnehmenGewollt);
+  if (waage.urteil !== 'keine' && waage.urteil !== 'zu-kurz') {
+    sag(waage.warnung ? '!! GEWICHT' : 'GEWICHT');
+    umbrochen(waage.satz).forEach((zl) => sag(`  ${zl}`));
     sag();
   }
 
@@ -8290,6 +8549,7 @@ function arztBericht(zustand, von, bis) {
       phase: w.staerkste.name,
     })),
     zeit: zb,
+    gewicht: waage,
     mittel: ansprechen,
     notierteTage: z.notierteTage,
   });
@@ -9114,6 +9374,7 @@ function lageTeil(s, d) {
       phase: w.staerkste.name,
     })),
     zeit: d.zeit,
+    gewicht: gewichtsBild(s.gewicht, d.heute, s.abnehmenGewollt),
     mittel: d.mittel.filter((m) => m.genug),
     luecke: d.luecke.tagebuch.length
       ? { satz: `Am meisten würde jetzt helfen: ${d.luecke.tagebuch[0].titel}.` }
@@ -10102,6 +10363,60 @@ function zyklusTeil(s) {
 }
 
 /*
+ * Die Waage – die einzige Zahl hier, die nicht aus dem Gefühl kommt.
+ *
+ * Alles andere in dieser App ist Selbstauskunft, und das ist bei
+ * Bauchbeschwerden nicht anders möglich. Das Gewicht ist die Ausnahme, und
+ * ausgerechnet es ist die klinisch wichtigste Zahl, die ein Tagebuch
+ * beitragen kann: Ein ungewollter Verlust ist das stärkste einzelne Zeichen
+ * dafür, dass mehr dahintersteckt als eine gereizte Verdauung.
+ *
+ * Die Frage nach der Absicht steht mit auf der Karte und nicht im
+ * Kleingedruckten. Ohne sie wäre die ganze Rechnung ein Fehlalarm-Automat:
+ * Fünf Prozent weniger sind ein Warnzeichen, wenn sie ungewollt kommen, und
+ * ein Erfolg, wenn jemand dafür gearbeitet hat.
+ */
+function gewichtKarte(s) {
+  const g = gewichtsBild(s.gewicht, heuteISO(), s.abnehmenGewollt);
+  const letzte = (s.gewicht || []).slice(0, 6);
+
+  return `<div class="karte ${g.warnung ? 'karte-warn' : ''}">
+    <h3>Gewicht</h3>
+    ${g.urteil !== 'keine' ? `<p><b>${GEWICHT_WORT[g.urteil]}.</b></p>` : ''}
+    <p class="klein">${esc(g.satz)}</p>
+    <p class="feld-name">Heute gewogen</p>
+    <div class="reihe">
+      <!--
+        Bewusst kein type="number": Auf einem deutschen Handy liefert die
+        Zifferntastatur ein Komma, und ein Zahlenfeld wirft ein Komma
+        stillschweigend weg – die Eingabe käme leer an. Mit inputmode="decimal"
+        erscheint dieselbe Tastatur, das Komma kommt durch, und umgerechnet
+        wird unten in „gewicht-los".
+      -->
+      <input type="text" class="feld" data-act="gewicht-neu" inputmode="decimal"
+             placeholder="kg" aria-label="Gewicht in Kilogramm">
+      ${knopf('gewicht-los', 'Eintragen', 'btn-primary')}
+    </div>
+    ${letzte.length ? `<ul class="wartend">${letzte.map((m) => `<li>
+      <span>${esc(fmtDatum(m.am, true))}</span>
+      <span class="klein">${fmtZahl(m.kg)} kg
+        <button type="button" class="strang-weg" data-act="gewicht-weg"
+                data-iso="${m.am}" aria-label="Messung löschen">×</button></span>
+    </li>`).join('')}</ul>` : ''}
+    <p class="feld-name">Nimmst du gerade absichtlich ab?</p>
+    <div class="wahl">
+      <button type="button" class="wahl-btn${s.abnehmenGewollt ? '' : ' an'}"
+              data-act="abnehmen" data-n="nein">Nein</button>
+      <button type="button" class="wahl-btn${s.abnehmenGewollt ? ' an' : ''}"
+              data-act="abnehmen" data-n="ja">Ja, gewollt</button>
+    </div>
+    <p class="klein">Das ist keine Nebensache: Ein Verlust von fünf Prozent
+    gehört abgeklärt, wenn er ungewollt kommt – und ist ein Erfolg, wenn du
+    dafür gearbeitet hast. Den Unterschied sieht keine Rechnung, nur du.</p>
+  </div>`;
+}
+
+/*
  * Eine Sicherung, die als Text ankommt statt als Datei.
  *
  * Das fehlte, und es fiel erst bei einem Umzug auf: Wer die App an einer
@@ -10258,6 +10573,8 @@ function mehrAnsicht(s) {
     der Sprechstunde mehr als eine Textspalte.</p>
   </div>
   ${bericht}
+
+  ${gewichtKarte(s)}
 
   <div class="karte">
     <h3>Arzttermine</h3>
@@ -11084,6 +11401,25 @@ const AKTION = {
     zeichne();
   },
   'sicherung-zu': () => { ui.sicherung = null; zeichne(); },
+  'gewicht-los': () => {
+    const feld = viewEl.querySelector('[data-act="gewicht-neu"]');
+    const kg = Number(String(feld && feld.value).replace(',', '.'));
+    if (!Number.isFinite(kg) || kg < 20 || kg > 400) {
+      melden('Bitte ein Gewicht zwischen 20 und 400 kg.');
+      return;
+    }
+    store.gewichtNotieren(heuteISO(), kg);
+    melden('Notiert.');
+    zeichne();
+  },
+  'gewicht-weg': (el) => {
+    store.gewichtLoeschen(el.dataset.iso);
+    zeichne();
+  },
+  abnehmen: (el) => {
+    store.einstellen('abnehmenGewollt', el.dataset.n === 'ja');
+    zeichne();
+  },
   'einfuegen-auf': () => { ui.einfuegen = ''; zeichne(); },
   'einfuegen-zu': () => { ui.einfuegen = null; zeichne(); },
   'einfuegen-los': async () => {
