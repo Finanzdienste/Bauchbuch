@@ -7031,8 +7031,16 @@ function naechsterSchritt(p, heute) {
   const leere = laeufe.filter((l) => l.leer).length;
 
   if (letzter && tageDazwischen(letzter.am, heute) < ABSTAND_TAGE) {
+    /*
+     * `am` ist der Tag, an dem der nächste Durchgang dran ist. Er wird hier
+     * ausgerechnet, weil hier die Frist steht – die Anzeige braucht ihn nur,
+     * um daraus einen Kalendertermin zu machen, und soll sie nicht ein zweites
+     * Mal nachrechnen.
+     */
     return {
       dran: false,
+      am: plusTage(letzter.am, ABSTAND_TAGE),
+      titel: `Bauchbuch: ${p.was || 'Provokationstest'} – nächster Durchgang`,
       satz: `Heute nicht – zwischen zwei Durchgängen liegen ${ABSTAND_TAGE} Tage, `
         + 'sonst hallt der letzte noch nach.',
     };
@@ -7301,9 +7309,19 @@ function planStand(plan, heute) {
 
   const letzte = stufen[stufen.length - 1];
   const seit = tageDazwischen(stufenFenster(letzte).bis, heute);
+  /*
+   * `ab` ist der Tag, an dem die nächste Gruppe drankommt – und er wird hier
+   * ausgerechnet und nicht in der Anzeige. Die Anzeige braucht ihn für den
+   * Kalendereintrag, und eine zweite Stelle, die dieselbe Frist noch einmal
+   * nachrechnet, wäre die sicherste Art, sie irgendwann auseinanderlaufen zu
+   * lassen.
+   */
+  const ab = plusTage(stufenFenster(letzte).bis, PAUSE_TAGE);
   return seit >= PAUSE_TAGE
-    ? { phase: 'bereit', naechste: offen[0], offen }
-    : { phase: 'pause', naechste: offen[0], offen, rest: PAUSE_TAGE - seit };
+    ? { phase: 'bereit', naechste: offen[0], offen, ab }
+    : {
+      phase: 'pause', naechste: offen[0], offen, rest: PAUSE_TAGE - seit, ab,
+    };
 }
 
 const KARENZ_URTEIL = {
@@ -7613,7 +7631,11 @@ function planBild(plan, eintraege, tage, heute) {
           + `${g.womit || ''}. Sonst weiter wie in der Karenz – nur diese eine Sache dazu.`,
       };
   } else if (stand.phase === 'pause') {
+    const g = GRUPPE_VON[stand.naechste] || {};
     schritt = {
+      am: stand.ab,
+      gruppe: stand.naechste,
+      titel: `Bauchbuch: ${g.name || stand.naechste} anfangen`,
       satz: `Pause: noch ${stand.rest} Tage zurück auf die Karenz, damit die `
         + `nächste Gruppe nicht misst, was die letzte hinterlassen hat.`,
     };
@@ -7873,6 +7895,73 @@ const ZEIT_VORSCHLAEGE = ['12:00', '18:00', '20:00', '21:00'];
 
 const KALENDER_NAME = 'bauchbuch-erinnerung.ics';
 
+/** Der gemeinsame Rahmen, in den ein oder mehrere Termine kommen. */
+function kalender(inhalt) {
+  const zeilen = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Bauchbuch//Erinnerung//DE',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    ...inhalt,
+    'END:VCALENDAR',
+  ];
+  // CRLF ist im Format vorgeschrieben, und manche Kalender sind darin streng.
+  return `${zeilen.map(falten).join('\r\n')}\r\n`;
+}
+
+/** Kopfzeilen, die jeder Termin braucht. */
+function kopf(jetzt) {
+  return [
+    // Die Kennung ist aus Zufall und Zeit gebaut und sagt über niemanden etwas.
+    `UID:bauchbuch-${Math.random().toString(36).slice(2, 10)}-${utcStempel(jetzt)}`,
+    `DTSTAMP:${utcStempel(jetzt)}`,
+  ];
+}
+
+const wecker = (titel) => [
+  'BEGIN:VALARM',
+  'ACTION:DISPLAY',
+  'TRIGGER:PT0S',
+  `DESCRIPTION:${schuetzen(titel)}`,
+  'END:VALARM',
+];
+
+/**
+ * Ein einzelner Termin an einem bestimmten Tag.
+ *
+ * Für alles, worauf die App wartet und was sie nicht selbst anstoßen kann: die
+ * nächste Stufe im Stufenplan, der nächste Durchgang beim Provokationstest.
+ * Beides sind Termine in ein paar Tagen, und beides scheitert im Alltag an
+ * derselben Stelle – man vergisst es. Die App kann nicht klingeln, der
+ * Kalender schon.
+ *
+ * Wichtig ist die Trennung zur täglichen Erinnerung: Das hier wiederholt sich
+ * *nicht*. Ein Termin, der nach dem Durchgang weiter jeden Tag klingelt, wird
+ * gelöscht, und mit ihm meistens der tägliche gleich mit.
+ *
+ * @param {{am: string, uhr?: string, titel: string, text?: string}} was
+ */
+function terminEintrag(was, jetzt = new Date()) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(was.am || ''));
+  if (!m) return null;
+  const u = /^(\d{1,2}):(\d{2})$/.exec(String(was.uhr || '')) || ['', '09', '00'];
+  const stunde = Math.max(0, Math.min(23, Number(u[1])));
+  const minute = Math.max(0, Math.min(59, Number(u[2])));
+
+  return kalender([
+    'BEGIN:VEVENT',
+    ...kopf(jetzt),
+    `DTSTART:${m[1]}${m[2]}${m[3]}T${zwei(stunde)}${zwei(minute)}00`,
+    'DURATION:PT15M',
+    `SUMMARY:${schuetzen(was.titel)}`,
+    ...(was.text ? [`DESCRIPTION:${schuetzen(was.text)}`] : []),
+    'TRANSP:TRANSPARENT',
+    ...wecker(was.titel),
+    'END:VEVENT',
+  ]);
+}
+
 /**
  * Der Termineintrag als Text.
  *
@@ -7904,16 +7993,9 @@ function erinnerungsTermin(uhr, jetzt = new Date()) {
   const lokal = `${start.getFullYear()}${zwei(start.getMonth() + 1)}${zwei(start.getDate())}`
     + `T${zwei(stunde)}${zwei(minute)}00`;
 
-  const zeilen = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Bauchbuch//Erinnerung//DE',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
+  return kalender([
     'BEGIN:VEVENT',
-    // Die Kennung ist aus Zufall und Zeit gebaut und sagt über niemanden etwas.
-    `UID:bauchbuch-${Math.random().toString(36).slice(2, 10)}-${utcStempel(jetzt)}`,
-    `DTSTAMP:${utcStempel(jetzt)}`,
+    ...kopf(jetzt),
     `DTSTART:${lokal}`,
     'DURATION:PT10M',
     'RRULE:FREQ=DAILY',
@@ -7925,17 +8007,9 @@ function erinnerungsTermin(uhr, jetzt = new Date()) {
       + 'eingetragene zählt in der Auswertung mit.',
     )}`,
     'TRANSP:TRANSPARENT',
-    'BEGIN:VALARM',
-    'ACTION:DISPLAY',
-    'TRIGGER:PT0S',
-    `DESCRIPTION:${schuetzen('Bauchbuch: Tag eintragen')}`,
-    'END:VALARM',
+    ...wecker('Bauchbuch: Tag eintragen'),
     'END:VEVENT',
-    'END:VCALENDAR',
-  ];
-
-  // CRLF ist im Format vorgeschrieben, und manche Kalender sind darin streng.
-  return `${zeilen.map(falten).join('\r\n')}\r\n`;
+  ]);
 }
 
 /* ===== js/lage.js ===== */
@@ -11513,6 +11587,7 @@ function planTeil(s, d) {
     ` : ''}
 
     ${b.schritt ? `<p class="klein"><b>Als Nächstes:</b> ${esc(b.schritt.satz)}</p>` : ''}
+    ${terminKnopf(b.schritt)}
 
     <div class="reihe">
       ${b.stand.phase === 'bereit' || b.stand.phase === 'entscheid'
@@ -11643,6 +11718,7 @@ function provokationTeil(s, d) {
     : ''}
       <p>${esc(b.satz)}</p>
       ${schritt && !fertig ? `<p class="klein"><b>Als Nächstes:</b> ${esc(schritt.satz)}</p>` : ''}
+      ${fertig ? '' : terminKnopf(schritt)}
       <div class="reihe">
         ${schritt && schritt.dran
     ? knopf(schritt.leer ? 'prov-leer' : 'prov-lauf',
@@ -12436,6 +12512,29 @@ function zyklusTeil(s) {
  * ohne dass irgendetwas das Gerät verlässt – und er erinnert auch dann noch,
  * wenn die App monatelang nicht geöffnet wird.
  */
+/**
+ * „In den Kalender" für einen Zeitpunkt, auf den die App wartet.
+ *
+ * Stufenplan und Provokationstest bestehen zur Hälfte aus Warten: drei Tage
+ * Pause, zwei Tage Abstand. Das sind genau die Fristen, die im Alltag
+ * verlorengehen – nicht weil sie schwer wären, sondern weil niemand sich einen
+ * Termin in vier Tagen merkt, den ihm keiner sagt. Die App kann nicht
+ * klingeln; der Kalender kann es.
+ *
+ * Erscheint nur, wenn wirklich ein künftiger Tag feststeht. Ein Knopf, der
+ * heute schon anbietet, an heute zu erinnern, wäre Lärm.
+ */
+function terminKnopf(schritt) {
+  if (!schritt || !schritt.am || schritt.am <= heuteISO()) return '';
+  return `<div class="reihe">
+    <button type="button" class="btn btn-ghost" data-act="termin-kalender"
+            data-am="${schritt.am}" data-titel="${esc(schritt.titel || 'Bauchbuch')}"
+            data-text="${esc(schritt.satz || '')}">
+      Am ${esc(fmtDatum(schritt.am, true))} erinnern
+    </button>
+  </div>`;
+}
+
 function erinnerungKarte(s) {
   const gewaehlt = ui.erinnerungZeit || '20:00';
   return `<div class="karte">
@@ -13418,6 +13517,22 @@ const AKTION = {
   'plan-alt-weg': (el) => { store.planLoeschen(el.dataset.id); zeichne(); },
 
   'erinnern-zeit': (el) => { ui.erinnerungZeit = el.dataset.z; zeichne(); },
+  /*
+   * Ein einzelner Termin, kein wiederkehrender: Ein Wecker, der nach dem
+   * Durchgang weiter jeden Tag klingelt, wird gelöscht – und meistens der
+   * tägliche gleich mit.
+   */
+  'termin-kalender': (el) => {
+    const text = terminEintrag({
+      am: el.dataset.am,
+      uhr: '09:00',
+      titel: el.dataset.titel,
+      text: el.dataset.text,
+    });
+    if (!text) { melden('Für diesen Tag geht das nicht.'); return; }
+    datenAusgeben(text, `bauchbuch-${el.dataset.am}.ics`, 'text/calendar;charset=utf-8');
+    melden('Termin erzeugt – dein Kalender fragt gleich, ob er ihn übernehmen soll.');
+  },
   'erinnern-datei': () => {
     datenAusgeben(erinnerungsTermin(ui.erinnerungZeit || '20:00'),
       KALENDER_NAME, 'text/calendar;charset=utf-8');

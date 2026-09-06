@@ -445,6 +445,24 @@ Zeile endete auf einem echten Leerzeichen. Überlebt das den Transport nicht,
 klebt „Eintragungist" zusammen — das Leerzeichen wandert jetzt an den Anfang der
 Fortsetzungszeile, wo es hinter dem Faltzeichen geschützt ist.
 
+Dieselbe Mechanik trägt die **Wartezeiten**: Stufenplan und Provokationstest
+bestehen zur Hälfte aus Warten — drei Tage Pause zwischen zwei Gruppen, zwei
+Tage Abstand zwischen zwei Durchgängen. Genau diese Fristen gehen im Alltag
+verloren, nicht weil sie schwer wären, sondern weil sich niemand einen Termin in
+vier Tagen merkt, den ihm keiner sagt. Steht so ein Tag fest, bietet die Karte
+einen Termin dafür an — einen einzelnen, ausdrücklich **ohne Wiederholung**: Ein
+Wecker, der nach dem Durchgang weiter jeden Tag klingelt, wird gelöscht, und
+meistens der tägliche gleich mit. Das Datum kommt dabei aus dem Modul, das die
+Frist ohnehin rechnet (`js/stufenplan.js`, `js/provokation.js`), und nicht aus
+der Anzeige: Zwei Stellen, die dieselbe Frist nachrechnen, laufen früher oder
+später auseinander.
+
+Für die **Atemübung** gibt es das bewusst nicht. Dort wäre eine Benachrichtigung
+je Phase nur solange sichtbar, wie die App offen und der Bildschirm an ist — und
+dann sieht man den Kreis ohnehin. Sobald der Bildschirm sperrt, friert iOS die
+Zeitgeber der Seite ein, und die Benachrichtigung käme zu spät oder gar nicht.
+Der Ton läuft weiter; genau dafür ist er da.
+
 Und die Ehrlichkeit dazu steht in der App: **Es ist ein Kalendereintrag, keine
 Funktion dieser App.** Wer ihn löscht, wird nicht mehr erinnert, und die App
 merkt davon nichts, weil sie in den Kalender nicht hineinsehen kann. Das ist die

@@ -149,6 +149,89 @@ check(
   'auch eine unmögliche Uhrzeit ergibt eine gültige Datei',
 );
 
+/* ---------- Einzeltermine für das, worauf die App wartet ---------- */
+
+/*
+ * Stufenplan und Provokationstest bestehen zur Hälfte aus Warten: drei Tage
+ * Pause, zwei Tage Abstand. Genau diese Fristen gehen im Alltag verloren –
+ * nicht weil sie schwer wären, sondern weil sich niemand einen Termin in vier
+ * Tagen merkt, den ihm keiner sagt.
+ */
+const einzeln = await page.evaluate(async () => {
+  const m = await import('./js/kalender.js');
+  return m.terminEintrag({
+    am: '2026-04-20',
+    uhr: '09:00',
+    titel: 'Bauchbuch: Laktose – Milchzucker anfangen',
+    text: 'Pause: noch 3 Tage zurück auf die Karenz, damit die nächste Gruppe '
+      + 'nicht misst, was die letzte hinterlassen hat.',
+  }, new Date('2026-04-16T10:00:00'));
+});
+check(/DTSTART:20260420T090000/.test(einzeln), 'der Einzeltermin liegt am richtigen Tag');
+check(/SUMMARY:Bauchbuch: Laktose/.test(einzeln), 'und trägt, worum es geht');
+check(/BEGIN:VALARM/.test(einzeln), 'mit Wecker');
+
+/*
+ * Und ausdrücklich ohne Wiederholung: Ein Wecker, der nach dem Durchgang
+ * weiter jeden Tag klingelt, wird gelöscht – und meistens der tägliche gleich
+ * mit. Das ist der Unterschied zwischen einer Erinnerung und einer Plage.
+ */
+check(!/RRULE/.test(einzeln), 'aber ohne Wiederholung');
+check(
+  !einzeln.split('\r\n').some((z) => new TextEncoder().encode(z).length > 75),
+  'auch hier keine Zeile über 75 Oktette',
+);
+
+/* Ein unbrauchbares Datum ergibt keine kaputte Datei, sondern gar keine. */
+const ohne = await page.evaluate(async () => {
+  const m = await import('./js/kalender.js');
+  return m.terminEintrag({ am: 'irgendwann', titel: 'x' });
+});
+check(ohne === null, 'ohne gültiges Datum kommt kein Termin heraus');
+
+/*
+ * Und die Fristen kommen aus den Modulen, die sie ohnehin rechnen – nicht aus
+ * der Anzeige. Zwei Stellen, die dieselbe Frist nachrechnen, laufen früher
+ * oder später auseinander.
+ */
+const fristen = await page.evaluate(async () => {
+  const sp = await import('./js/stufenplan.js');
+  const pv = await import('./js/provokation.js');
+  const tag = (n) => {
+    const d = new Date('2026-04-20T12:00:00');
+    d.setDate(d.getDate() - n);
+    return d.toISOString().slice(0, 10);
+  };
+  const plan = sp.planBild({
+    id: 'x',
+    start: tag(40),
+    karenzTage: 21,
+    gruppen: ['laktose', 'fruktose'],
+    stufen: [{ gruppe: 'laktose', start: tag(5) }],
+    beendet: null,
+  }, [], {}, tag(0));
+  const prov = pv.naechsterSchritt({
+    was: '250 ml Milch',
+    fenster: 4,
+    laeufe: [{ am: tag(1), um: '08:00', leer: false }],
+  }, tag(0));
+  return { plan: plan.schritt && plan.schritt.am, prov: prov && prov.am };
+});
+/*
+ * Die Stufe lief vom 15. bis 17., der 18. ist Nachklang – und damit schon
+ * wieder ein Karenztag, nur einer, an dem noch beobachtet wird. Vom 18. an
+ * drei Tage Karenz ergibt den 21. Der Nachklangtag zählt also mit, und das ist
+ * richtig so: Gegessen wird an ihm nichts aus der Gruppe mehr.
+ */
+check(
+  fristen.plan === '2026-04-21',
+  `der Stufenplan nennt den Tag der nächsten Gruppe (${fristen.plan})`,
+);
+check(
+  fristen.prov === '2026-04-21',
+  `und der Provokationstest den des nächsten Durchgangs (${fristen.prov})`,
+);
+
 /* ---------- Und in der App ---------- */
 
 await page.evaluate(() => localStorage.setItem('bauchbuch.state.v1',

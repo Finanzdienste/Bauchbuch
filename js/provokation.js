@@ -411,8 +411,16 @@ export function naechsterSchritt(p, heute) {
   const leere = laeufe.filter((l) => l.leer).length;
 
   if (letzter && tageDazwischen(letzter.am, heute) < ABSTAND_TAGE) {
+    /*
+     * `am` ist der Tag, an dem der nächste Durchgang dran ist. Er wird hier
+     * ausgerechnet, weil hier die Frist steht – die Anzeige braucht ihn nur,
+     * um daraus einen Kalendertermin zu machen, und soll sie nicht ein zweites
+     * Mal nachrechnen.
+     */
     return {
       dran: false,
+      am: plusTage(letzter.am, ABSTAND_TAGE),
+      titel: `Bauchbuch: ${p.was || 'Provokationstest'} – nächster Durchgang`,
       satz: `Heute nicht – zwischen zwei Durchgängen liegen ${ABSTAND_TAGE} Tage, `
         + 'sonst hallt der letzte noch nach.',
     };

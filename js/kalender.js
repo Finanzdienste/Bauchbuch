@@ -102,6 +102,73 @@ export const ZEIT_VORSCHLAEGE = ['12:00', '18:00', '20:00', '21:00'];
 
 export const KALENDER_NAME = 'bauchbuch-erinnerung.ics';
 
+/** Der gemeinsame Rahmen, in den ein oder mehrere Termine kommen. */
+function kalender(inhalt) {
+  const zeilen = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Bauchbuch//Erinnerung//DE',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    ...inhalt,
+    'END:VCALENDAR',
+  ];
+  // CRLF ist im Format vorgeschrieben, und manche Kalender sind darin streng.
+  return `${zeilen.map(falten).join('\r\n')}\r\n`;
+}
+
+/** Kopfzeilen, die jeder Termin braucht. */
+function kopf(jetzt) {
+  return [
+    // Die Kennung ist aus Zufall und Zeit gebaut und sagt über niemanden etwas.
+    `UID:bauchbuch-${Math.random().toString(36).slice(2, 10)}-${utcStempel(jetzt)}`,
+    `DTSTAMP:${utcStempel(jetzt)}`,
+  ];
+}
+
+const wecker = (titel) => [
+  'BEGIN:VALARM',
+  'ACTION:DISPLAY',
+  'TRIGGER:PT0S',
+  `DESCRIPTION:${schuetzen(titel)}`,
+  'END:VALARM',
+];
+
+/**
+ * Ein einzelner Termin an einem bestimmten Tag.
+ *
+ * Für alles, worauf die App wartet und was sie nicht selbst anstoßen kann: die
+ * nächste Stufe im Stufenplan, der nächste Durchgang beim Provokationstest.
+ * Beides sind Termine in ein paar Tagen, und beides scheitert im Alltag an
+ * derselben Stelle – man vergisst es. Die App kann nicht klingeln, der
+ * Kalender schon.
+ *
+ * Wichtig ist die Trennung zur täglichen Erinnerung: Das hier wiederholt sich
+ * *nicht*. Ein Termin, der nach dem Durchgang weiter jeden Tag klingelt, wird
+ * gelöscht, und mit ihm meistens der tägliche gleich mit.
+ *
+ * @param {{am: string, uhr?: string, titel: string, text?: string}} was
+ */
+export function terminEintrag(was, jetzt = new Date()) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(was.am || ''));
+  if (!m) return null;
+  const u = /^(\d{1,2}):(\d{2})$/.exec(String(was.uhr || '')) || ['', '09', '00'];
+  const stunde = Math.max(0, Math.min(23, Number(u[1])));
+  const minute = Math.max(0, Math.min(59, Number(u[2])));
+
+  return kalender([
+    'BEGIN:VEVENT',
+    ...kopf(jetzt),
+    `DTSTART:${m[1]}${m[2]}${m[3]}T${zwei(stunde)}${zwei(minute)}00`,
+    'DURATION:PT15M',
+    `SUMMARY:${schuetzen(was.titel)}`,
+    ...(was.text ? [`DESCRIPTION:${schuetzen(was.text)}`] : []),
+    'TRANSP:TRANSPARENT',
+    ...wecker(was.titel),
+    'END:VEVENT',
+  ]);
+}
+
 /**
  * Der Termineintrag als Text.
  *
@@ -133,16 +200,9 @@ export function erinnerungsTermin(uhr, jetzt = new Date()) {
   const lokal = `${start.getFullYear()}${zwei(start.getMonth() + 1)}${zwei(start.getDate())}`
     + `T${zwei(stunde)}${zwei(minute)}00`;
 
-  const zeilen = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Bauchbuch//Erinnerung//DE',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
+  return kalender([
     'BEGIN:VEVENT',
-    // Die Kennung ist aus Zufall und Zeit gebaut und sagt über niemanden etwas.
-    `UID:bauchbuch-${Math.random().toString(36).slice(2, 10)}-${utcStempel(jetzt)}`,
-    `DTSTAMP:${utcStempel(jetzt)}`,
+    ...kopf(jetzt),
     `DTSTART:${lokal}`,
     'DURATION:PT10M',
     'RRULE:FREQ=DAILY',
@@ -154,15 +214,7 @@ export function erinnerungsTermin(uhr, jetzt = new Date()) {
       + 'eingetragene zählt in der Auswertung mit.',
     )}`,
     'TRANSP:TRANSPARENT',
-    'BEGIN:VALARM',
-    'ACTION:DISPLAY',
-    'TRIGGER:PT0S',
-    `DESCRIPTION:${schuetzen('Bauchbuch: Tag eintragen')}`,
-    'END:VALARM',
+    ...wecker('Bauchbuch: Tag eintragen'),
     'END:VEVENT',
-    'END:VCALENDAR',
-  ];
-
-  // CRLF ist im Format vorgeschrieben, und manche Kalender sind darin streng.
-  return `${zeilen.map(falten).join('\r\n')}\r\n`;
+  ]);
 }

@@ -242,9 +242,19 @@ export function planStand(plan, heute) {
 
   const letzte = stufen[stufen.length - 1];
   const seit = tageDazwischen(stufenFenster(letzte).bis, heute);
+  /*
+   * `ab` ist der Tag, an dem die nächste Gruppe drankommt – und er wird hier
+   * ausgerechnet und nicht in der Anzeige. Die Anzeige braucht ihn für den
+   * Kalendereintrag, und eine zweite Stelle, die dieselbe Frist noch einmal
+   * nachrechnet, wäre die sicherste Art, sie irgendwann auseinanderlaufen zu
+   * lassen.
+   */
+  const ab = plusTage(stufenFenster(letzte).bis, PAUSE_TAGE);
   return seit >= PAUSE_TAGE
-    ? { phase: 'bereit', naechste: offen[0], offen }
-    : { phase: 'pause', naechste: offen[0], offen, rest: PAUSE_TAGE - seit };
+    ? { phase: 'bereit', naechste: offen[0], offen, ab }
+    : {
+      phase: 'pause', naechste: offen[0], offen, rest: PAUSE_TAGE - seit, ab,
+    };
 }
 
 export const KARENZ_URTEIL = {
@@ -554,7 +564,11 @@ export function planBild(plan, eintraege, tage, heute) {
           + `${g.womit || ''}. Sonst weiter wie in der Karenz – nur diese eine Sache dazu.`,
       };
   } else if (stand.phase === 'pause') {
+    const g = GRUPPE_VON[stand.naechste] || {};
     schritt = {
+      am: stand.ab,
+      gruppe: stand.naechste,
+      titel: `Bauchbuch: ${g.name || stand.naechste} anfangen`,
       satz: `Pause: noch ${stand.rest} Tage zurück auf die Karenz, damit die `
         + `nächste Gruppe nicht misst, was die letzte hinterlassen hat.`,
     };
