@@ -15,10 +15,23 @@ jobs:
     name: Schichtung und erzeugte Dateien
     runs-on: ubuntu-latest
     steps:
+      # Mit voller Vorgeschichte, weil die Bot-Grenzen unten den Zweig gegen
+      # den Hauptzweig vergleichen.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      # Ein Entwurf, der aus dem Briefkasten stammt, darf die Wächter nicht
+      # anfassen. Das steht hier und nicht im Ablauf des Bots: Was er selbst
+      # ausführt, kann er auch umgehen – diese Stelle entscheidet dagegen
+      # darüber, ob zusammengeführt werden darf.
+      - name: Grenzen für Entwürfe aus dem Briefkasten
+        run: |
+          git fetch origin main --depth=1 2>/dev/null || true
+          python3 tools/pruefung/bot-grenzen.py origin/main
 
       # Die Zusage der App: genau ein Versandweg, an genau eine Adresse, und
       # Gesundheitsdaten gehen nie mit. Der schnelle Nachweis ohne Browser –
