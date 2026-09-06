@@ -46,7 +46,8 @@ Sprechstunde hat dafür niemand zehn Minuten. Dieser Absatz rechnet selbst
 nichts: Er wählt aus den fertigen Befunden aus, und was dort steht, steht
 unten mit seinen Fallzahlen. Danach, und die Reihenfolge ist eine Aussage:
 Warnzeichen, die Einordnung des Bildes, die
-**Kriterien** (Rom IV und GerdQ, siehe unten), der **Auslassversuch**, die
+**Kriterien** (Rom IV und GerdQ, siehe unten), der **Auslassversuch**, der
+**Provokationstest**, die
 Bilanz **nach Wirkweise**, dann die nach einzelnen Zutaten, das **Ansprechen
 auf die Mittel**, Tageszeit, Beschwerdeart, Stuhlgang, **was noch fehlt** und
 die Zyklusphase. Wer nur die ersten beiden Karten liest, hat trotzdem das
@@ -419,6 +420,71 @@ Schönheitsfehler: Ein Eintrag macht einen Tag zu einem *notierten* Tag, und ein
 notierter Tag ohne Beschwerdeeintrag ist in dieser App ein Tag ohne
 Beschwerden. Wer sich nur wiegt, hätte sich sonst lauter beschwerdefreie Tage
 gebucht — und damit die Quote nach unten gerechnet, die den Verlauf beschreibt.
+
+### Der Provokationstest: die Frage stellen, statt auf die Antwort zu warten
+
+Fast alles in dieser App wertet aus, was ohnehin geschieht. Der Auslassversuch
+greift zur Hälfte ein — aber er greift über zwei Wochen ein, und in zwei Wochen
+ändert sich auch Stress, Jahreszeit, Zyklus und Aufmerksamkeit. Ein
+Provokationstest fragt kürzer und schärfer: eine festgelegte Menge, **nüchtern**,
+ein festes Beobachtungsfenster — und das mehrmals. Genau so wird auf Laktose-
+und Fruktoseunverträglichkeit geprüft; in der Klinik misst dabei zusätzlich ein
+Atemtest den Wasserstoff mit, zu Hause bleibt die Beschwerdestärke.
+
+Drei Dinge unterscheiden das von „ich trink mal ein Glas Milch":
+
+1. **Nüchtern.** Vier Stunden nichts davor, nichts im Fenster danach. Sonst
+   steht am Ende ein Bauchweh, das ebenso gut vom Frühstück kommt. `sauber` wird
+   dabei nicht geglaubt, sondern im Tagebuch nachgesehen: Wer im Fenster isst,
+   hat keinen Durchgang gemacht — der fällt heraus, sichtbar und mit Begründung.
+2. **Wiederholung.** Drei auswertbare Durchgänge, mindestens zwei Tage
+   auseinander. Ein einzelner beweist nichts, weil an genau dem Tag auch Schlaf,
+   Anspannung oder der Zyklus schuld sein können.
+3. **Der Leerdurchgang.** Derselbe Ablauf ohne die Sache — nüchtern, gleiche
+   Uhrzeit, gleiches Fenster. Er kostet einen Morgen und ist das Wertvollste am
+   ganzen Verfahren: **Ohne ihn wird das Nüchternsein selbst zum Verdächtigen.**
+   Nüchternschmerz ist bei Magenbeschwerden ein eigenes Muster, das diese App an
+   anderer Stelle sogar auflistet. Wer ohne Leerdurchgang testet, kann einen
+   Magen, der leer wehtut, nicht von einer Unverträglichkeit unterscheiden — und
+   streicht dann Milch, weil er morgens Hunger hat.
+
+Ausgegeben werden zwei Zahlen, weil sie Verschiedenes sagen: wie *stark* im
+Mittel reagiert wurde und in wie *vielen* Durchgängen überhaupt. Dreimal
+mittelmäßig ist ein anderer Befund als einmal heftig und zweimal gar nichts,
+auch wenn der Mittelwert derselbe ist — und der zweite Fall ist der häufigere.
+Er heißt hier „mal so, mal so", und die Folgerung daraus ist nicht Weglassen,
+sondern ein zweiter Satz Durchgänge mit einer kleineren Menge.
+
+**Ein geplanter Test darf einen kleineren Unterschied ernst nehmen als ein Fund
+im Tagebuch.** Das ist kein Nachlassen, sondern der eigentliche Gewinn des
+Verfahrens: `js/zufall.js` hebt die Schwelle, je mehr Vergleiche angestellt
+werden — wer fünfzig Fragen stellt, bekommt eine zufällige Antwort geschenkt.
+Hier steht die eine Frage vorher fest, an einem Morgen, der dafür eingerichtet
+wurde. Niemand musste suchen, also gibt es auch nichts abzuziehen.
+
+Zwei Ehrlichkeiten stehen in jeder Ausgabe:
+
+* **Nicht verblindet.** Wer das Glas trinkt, weiß, was drin ist, und Erwartung
+  erzeugt bei Bauchbeschwerden echte Beschwerden — das ist keine Einbildung
+  zweiter Klasse, das ist Physiologie. Daraus folgt eine Schieflage: **Ein Test,
+  der nichts findet, ist verlässlicher als einer, der etwas findet.** Die
+  Erwartung schiebt nur in eine Richtung. Deshalb steht bei einem negativen
+  Ergebnis, dass es das belastbarste ist, das dieses Verfahren hergibt — sonst
+  liest es sich wie ein Misserfolg, und jemand macht aus Enttäuschung weiter.
+* **Nicht bei Verdacht auf eine Allergie.** Eine Unverträglichkeit ist
+  mengenabhängig und unangenehm; eine Allergie kann in Minuten gefährlich
+  werden. Wer bei einer Sache schon einmal Ausschlag, Schwellung im Mund oder
+  Hals, Atemnot oder Kreislaufprobleme hatte, darf sie nicht auf eigene Faust
+  noch einmal nehmen. Der Satz steht überall dort, wo die App jemanden
+  auffordert, etwas absichtlich zu sich zu nehmen.
+
+Angeboten werden vier Sachen — Laktose, Fruktose, Sorbit, Koffein —, weil nur
+sie eine Menge haben, die man nüchtern zu sich nimmt. „Fettiges" hat keine. Und
+die Mengen sind **kleiner als beim Test in der Klinik**: Dort beantworten 25 g
+Laktose die Frage, ob eine Malabsorption vorliegt; hier beantworten 250 ml Milch
+die Frage, ob das, was jemand tatsächlich trinkt, Beschwerden macht. Nur die
+zweite Antwort ändert etwas am Alltag — und die Klinikdosis auf eigene Faust zu
+nehmen macht vor allem einen scheußlichen Tag.
 
 ### Wie viel verträgst du – nicht ob
 
@@ -805,6 +871,8 @@ js/dosis.js         wie viel du verträgst, nicht ob – aus den Rollen der
                     Zutaten eine Mengenschwelle
 js/gewicht.js       das einzige harte Maß: ungewollter Verlust als
                     Warnzeichen, Wasserschwankung als keines
+js/provokation.js   der Provokationstest mit Protokoll – nüchtern,
+                    wiederholt, gegen einen Leerdurchgang
 
 tools/vorschlaege.mjs        rahmt fremden Text ein, damit er Material
                              bleibt und keine Anweisung wird
@@ -843,7 +911,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Siebenunddreißig Dateien, über 790 Prüfungen, alle in einem echten Chromium. Kein
+Achtunddreißig Dateien, über 820 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -886,6 +954,7 @@ den Rückgabewert.
 | `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
 | `test-gewicht.mjs` | fünf Prozent ungewollt sind ein Warnzeichen, dieselben fünf Prozent gewollt keines – und ein Tag, an dem nur gewogen wurde, ist kein Tag ohne Beschwerden |
+| `test-provokation.mjs` | derselbe Schmerz an den Test- *und* an den Leermorgen darf nicht der Milch angelastet werden – und wer im Fenster frühstückt, hat keinen Durchgang gemacht |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,
 sondern an Verläufen, deren richtiges Ergebnis vorher feststeht. Der wichtigste

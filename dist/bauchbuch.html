@@ -2279,6 +2279,26 @@ const VORGABE = {
    */
   versuche: [],
   /*
+   * Der laufende oder letzte Provokationstest – siehe js/provokation.js:
+   * { id, art, ziel, was, nuechtern, fenster, laeufe: [{ am, um, leer }], beendet }
+   *
+   * Auch hier nur einer zur Zeit, und aus einem schärferen Grund als beim
+   * Auslassversuch: Zwei Provokationen parallel hieße, an denselben Morgen zwei
+   * Sachen nüchtern zu nehmen. Dann misst man beide zusammen und keine davon.
+   *
+   * Gespeichert wird, was sich nicht ausrechnen lässt – was, wie viel, wann
+   * genommen. Ob ein Durchgang sauber war und was danach kam, liest
+   * js/provokation.js jedes Mal neu aus den Eintragungen.
+   */
+  provokation: null,
+  /*
+   * Abgeschlossene Provokationstests, der jüngste zuerst. Aus demselben Grund
+   * aufgehoben wie die Auslassversuche: Ein Test, der *nichts* fand, erspart
+   * den nächsten – und ist für den Termin genauso ein Beleg wie einer, der
+   * etwas fand.
+   */
+  provokationen: [],
+  /*
    * Arzttermine als ISO-Daten, der jüngste zuerst.
    *
    * Der Bericht lief bisher über 30 oder 90 Tage – Fenster, die mit nichts zu
@@ -2675,6 +2695,87 @@ function versuchLoeschen(id) {
   melde();
 }
 
+/* ---------- Provokationstest ---------- */
+
+/**
+ * Einen Provokationstest anlegen.
+ *
+ * `was` ist Freitext und mit Absicht keine Auswahlliste: Die Menge ist der
+ * halbe Test, und „250 ml Milch" oder „ein Apfel" sagt mehr, als eine App
+ * vorgeben könnte. Sie muss nur jedes Mal dieselbe sein – deshalb steht sie
+ * einmal hier und nicht bei jedem Durchgang neu.
+ */
+function provokationStarten(art, ziel, was, opt = {}) {
+  zustand.provokation = {
+    id: neueId(),
+    art,
+    ziel,
+    was: String(was || '').slice(0, 120),
+    // Zwei bis acht Stunden sind der Rahmen, in dem das noch alltagstauglich
+    // ist. Zwölf Stunden nüchtern wären klinisch sauberer und macht niemand.
+    nuechtern: Math.max(2, Math.min(8, Number(opt.nuechtern) || 4)),
+    fenster: Math.max(2, Math.min(8, Number(opt.fenster) || 4)),
+    laeufe: [],
+    beendet: null,
+  };
+  merke();
+  melde();
+  return zustand.provokation.id;
+}
+
+/**
+ * Einen Durchgang eintragen – mit der Sache oder als Leerdurchgang.
+ *
+ * Der Zeitpunkt wird festgehalten und nicht bloß der Tag: Das Fenster hängt an
+ * der Uhrzeit, und „irgendwann am Dienstag" ist kein Protokoll.
+ */
+function provokationLauf(leer = false, iso = null, uhr = null) {
+  if (!zustand.provokation || zustand.provokation.beendet) return;
+  const lauf = { am: iso || heuteISO(), um: uhr || jetztUhr(), leer: !!leer };
+  zustand.provokation = {
+    ...zustand.provokation,
+    laeufe: [...zustand.provokation.laeufe, lauf],
+  };
+  merke();
+  melde();
+}
+
+/** Einen Durchgang zurücknehmen – für den Fehlgriff, nicht für das Ergebnis. */
+function provokationLaufWeg(am, um) {
+  if (!zustand.provokation) return;
+  const laeufe = zustand.provokation.laeufe.filter((l) => !(l.am === am && l.um === um));
+  if (laeufe.length === zustand.provokation.laeufe.length) return;
+  zustand.provokation = { ...zustand.provokation, laeufe };
+  merke();
+  melde();
+}
+
+/** Abbrechen. Bleibt stehen – ein Test, den man nicht durchhält, ist auch eine Auskunft. */
+function provokationBeenden() {
+  if (!zustand.provokation) return;
+  zustand.provokation = { ...zustand.provokation, beendet: heuteISO() };
+  merke();
+  melde();
+}
+
+/** Abhaken und in die Historie legen. */
+function provokationAblegen() {
+  if (!zustand.provokation) return;
+  const abgelegt = { ...zustand.provokation, abgelegt: heuteISO() };
+  zustand.provokationen = [abgelegt, ...zustand.provokationen].slice(0, 40);
+  zustand.provokation = null;
+  merke();
+  melde();
+}
+
+function provokationLoeschen(id) {
+  const vorher = zustand.provokationen.length;
+  zustand.provokationen = zustand.provokationen.filter((p) => p.id !== id);
+  if (zustand.provokationen.length === vorher) return;
+  merke();
+  melde();
+}
+
 /* ---------- Gewicht ---------- */
 
 /**
@@ -2892,6 +2993,22 @@ function ausJSON(text) {
       || typeof v.ziel !== 'string' || !Number.isFinite(Number(v.tage))) {
     frisch.versuch = null;
   }
+  /*
+   * Dasselbe für den Provokationstest, mit einer Zeile mehr: Die Durchgänge
+   * tragen das Fenster, in dem gerechnet wird. Ein Eintrag ohne Uhrzeit ließe
+   * das Fenster auf Mittag rutschen und rechnete dann Beschwerden mit, die
+   * Stunden nach dem Durchgang kamen.
+   */
+  const pv = frisch.provokation;
+  if (!pv || typeof pv !== 'object' || typeof pv.ziel !== 'string'
+      || !Array.isArray(pv.laeufe)) {
+    frisch.provokation = null;
+  } else {
+    frisch.provokation = {
+      ...pv,
+      laeufe: pv.laeufe.filter((l) => l && typeof l.am === 'string' && typeof l.um === 'string'),
+    };
+  }
   zustand = frisch;
   merke();
   melde();
@@ -2908,7 +3025,7 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
+const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
 
 /* ===== js/zufall.js ===== */
 /*
@@ -6380,6 +6497,445 @@ const GEWICHT_WORT = {
   keine: 'nichts gewogen',
 };
 
+/* ===== js/provokation.js ===== */
+/*
+ * Der Provokationstest: die Frage stellen, statt auf die Antwort zu warten
+ *
+ * WAS HIER ANDERS IST ALS ÜBERALL SONST
+ *
+ * Alles Übrige in dieser App wertet aus, was ohnehin geschieht. Das hat eine
+ * Grenze, die auch ein Jahr Tagebuch nicht verschiebt: Wer an schlechten Tagen
+ * anders isst, findet sein Essen auffällig, ohne dass es damit zu tun hätte.
+ * Der Auslassversuch (js/versuch.js) dreht das zur Hälfte um – er greift ein.
+ * Aber er greift über Wochen ein, und in zwei Wochen ändert sich noch anderes:
+ * Stress, Jahreszeit, Zyklus, Aufmerksamkeit.
+ *
+ * Ein Provokationstest macht daraus etwas Kurzes und Wiederholbares. Eine
+ * festgelegte Menge, nüchtern, ein festes Beobachtungsfenster – und das Ganze
+ * mehrmals. Genau so wird auf Laktose- und Fruktoseunverträglichkeit geprüft;
+ * in der Klinik misst dabei ein Atemtest den Wasserstoff mit, zu Hause bleibt
+ * die Beschwerdestärke. Der Aufbau ist derselbe.
+ *
+ * DREI DINGE MACHEN DEN UNTERSCHIED ZU „ICH TRINK MAL EIN GLAS MILCH"
+ *
+ *   1. NÜCHTERN. Vier Stunden nichts davor, nichts während des Fensters. Sonst
+ *      steht am Ende ein Bauchweh, das ebenso gut vom Frühstück kommen kann.
+ *      Praktisch heißt das: morgens nach dem Aufstehen, dann ist die Hälfte
+ *      der Bedingung schon von selbst erfüllt.
+ *   2. WIEDERHOLUNG. Ein einzelner Durchgang beweist nichts, weil an genau dem
+ *      Tag auch Schlaf, Stress oder Zyklus schuld sein können. Erst wenn
+ *      dieselbe Menge mehrfach dasselbe tut, ist es die Menge.
+ *   3. DER LEERDURCHGANG. Derselbe Ablauf ohne die Sache – nüchtern, gleiche
+ *      Uhrzeit, gleiches Fenster, nur ohne Milch. Er kostet einen Morgen und
+ *      ist das Wertvollste am ganzen Test: Ohne ihn wird das Nüchternsein
+ *      selbst zum Verdächtigen. Nüchternschmerz ist bei Magenbeschwerden ein
+ *      eigenes Muster – diese App führt es an anderer Stelle sogar auf. Wer
+ *      ohne Leerdurchgang testet, kann einen Magen, der leer wehtut, nicht von
+ *      einer Unverträglichkeit unterscheiden.
+ *
+ * WARUM EIN GEPLANTER TEST WENIGER VERLANGT ALS EIN FUND IM TAGEBUCH
+ *
+ * js/zufall.js hebt die Schwelle, je mehr Vergleiche angestellt werden – wer
+ * fünfzig Fragen stellt, bekommt eine zufällige Antwort geschenkt. Hier wird
+ * genau eine Frage gestellt, vorher festgelegt, an einem Tag, der dafür
+ * eingerichtet wurde. Deshalb rechnet diese Datei mit `vergleiche = 1`, und das
+ * ist keine Nachlässigkeit, sondern der eigentliche Gewinn des Verfahrens: Ein
+ * geplanter Test darf einen kleineren Unterschied ernst nehmen als eine
+ * Entdeckung in derselben Datenmenge, weil vorher niemand suchen musste.
+ *
+ * WAS ER NICHT IST
+ *
+ * Nicht verblindet. Wer das Glas trinkt, weiß, was drin ist, und Erwartung
+ * erzeugt bei Bauchbeschwerden echte Beschwerden – das ist keine Einbildung
+ * zweiter Klasse, das ist Physiologie. Daraus folgt eine Schieflage, die in
+ * jeder Ausgabe steht: **Ein Test, der nichts findet, ist verlässlicher als
+ * einer, der etwas findet.** Die Erwartung schiebt nur in eine Richtung. Wer
+ * nach drei sauberen Durchgängen nichts merkt, hat eine echte Entlastung; wer
+ * etwas merkt, hat einen starken Verdacht und keinen Beweis.
+ *
+ * Reine Rechnung. Was gestartet und eingetragen wird, steht in js/store.js.
+ */
+
+
+/** So viele Durchgänge mit der Sache, bevor überhaupt ein Urteil fällt. */
+const MINDEST_LAEUFE = 3;
+
+/** Und so viele Leerdurchgänge, damit gegen sie verglichen werden darf. */
+const MINDEST_LEER = 2;
+
+/** Zwischen zwei Durchgängen: so viele Tage, damit nichts nachwirkt. */
+const ABSTAND_TAGE = 2;
+
+/** Eine ganze Stufe – dieselbe Schwelle wie überall in dieser App. */
+const PROVOKATION_SCHWELLE = 1;
+
+/** Vorgaben, die sich beim Anlegen ändern lassen. */
+const NUECHTERN_STD = 4;
+const FENSTER_STD = 4;
+
+const mittelAus = (l) => (l.length ? l.reduce((a, b) => a + b, 0) / l.length : 0);
+
+/**
+ * Was sich zu Hause überhaupt provozieren lässt – und womit.
+ *
+ * Eine kurze feste Liste und keine Ableitung aus der Bilanz, denn nicht jeder
+ * Verdacht taugt für dieses Verfahren. „Fettiges" hat keine Menge, die man
+ * nüchtern zu sich nimmt; Milchzucker, Fruchtzucker, Zuckeralkohole und Koffein
+ * schon. Genau deshalb gibt es für diese vier auch in der Klinik einen Test.
+ *
+ * DIE MENGEN SIND ABSICHTLICH KLEINER ALS IN DER KLINIK. Ein Atemtest arbeitet
+ * mit 25 g Laktose – das sind gut 500 ml Milch, und die Menge beantwortet die
+ * Frage „liegt eine Malabsorption vor". Hier steht eine alltagsübliche Menge,
+ * weil hier die andere Frage zählt: „macht mir das, was ich tatsächlich esse,
+ * Beschwerden". Nur die zweite ändert etwas am Alltag – und die Testdosis
+ * eigenhändig zu Hause zu nehmen, macht vor allem einen scheußlichen Tag.
+ */
+const PRUEFBAR = [
+  {
+    id: 'laktose',
+    name: 'Laktose – Milchzucker',
+    was: '250 ml Milch',
+    warum: 'Fehlt das spaltende Enzym, bleibt der Milchzucker liegen und wird im '
+      + 'Dickdarm vergoren: Gas, Krämpfe, weicher Stuhl, meist ein bis vier '
+      + 'Stunden danach.',
+  },
+  {
+    id: 'fruktose',
+    name: 'Fruktose – Fruchtzucker',
+    was: '200 ml Apfelsaft oder ein großer Apfel',
+    warum: 'Der häufigste und der am meisten übersehene: Fruchtzucker wird nur '
+      + 'begrenzt aufgenommen, und was übrig bleibt, wird vergoren. Apfelsaft '
+      + 'ist die unbarmherzigste Form, weil er viel davon auf einmal liefert.',
+  },
+  {
+    id: 'sorbit',
+    name: 'Sorbit – Zuckeralkohol',
+    was: '3 zuckerfreie Kaugummis oder 5 Trockenpflaumen',
+    warum: 'Steckt in allem „Zuckerfreien" und in getrocknetem Obst. Wird kaum '
+      + 'aufgenommen und zieht Wasser in den Darm – und verstärkt obendrein die '
+      + 'Wirkung von Fruchtzucker, wenn beides zusammen kommt.',
+  },
+  {
+    id: 'koffein',
+    name: 'Koffein',
+    was: 'eine Tasse Kaffee',
+    warum: 'Regt die Säurebildung an und beschleunigt den Darm. Nüchtern trifft '
+      + 'es am deutlichsten – deshalb ist gerade hier der Leerdurchgang wichtig: '
+      + 'Ein leerer Magen tut auch ohne Kaffee weh.',
+  },
+];
+
+/**
+ * Wofür dieses Verfahren *nicht* gedacht ist.
+ *
+ * Der eine Satz, der in dieser Datei aus einem anderen Grund steht als alle
+ * übrigen. Eine Unverträglichkeit ist mengenabhängig und unangenehm; eine
+ * Allergie ist etwas anderes und kann in Minuten gefährlich werden. Wer bei
+ * einem Lebensmittel schon einmal Ausschlag, Schwellung, Atemnot oder
+ * Kreislaufprobleme hatte, darf es nicht auf eigene Faust noch einmal
+ * versuchen – das gehört unter Aufsicht, mit dem Nötigen im Raum.
+ */
+const NICHT_BEI_ALLERGIE = 'Nicht anwenden, wenn du bei dieser Sache '
+  + 'schon einmal Ausschlag, Schwellung im Mund oder Hals, Atemnot oder '
+  + 'Kreislaufprobleme hattest. Das wäre eine Allergie und keine '
+  + 'Unverträglichkeit – die wird nicht zu Hause provoziert, sondern ärztlich '
+  + 'abgeklärt.';
+
+/**
+ * Ein einzelner Durchgang: was danach kam, und ob er zählt.
+ *
+ * `sauber` ist die härteste Bedingung des ganzen Verfahrens, und sie wird
+ * nicht geglaubt, sondern im Tagebuch nachgesehen. Steht im Nüchternfenster
+ * oder im Beobachtungsfenster eine Mahlzeit, ist der Durchgang keine Antwort –
+ * kein Vorwurf, aber auch kein Ergebnis. Ihn trotzdem mitzuzählen hieße, die
+ * eine Eigenschaft wegzuwerfen, für die jemand auf sein Frühstück verzichtet
+ * hat.
+ */
+function laufBild(eintraege, lauf, p, vorheriger = null) {
+  const t0 = zeitpunkt(lauf.am, lauf.um);
+  const nuechtern = Number(p.nuechtern) || NUECHTERN_STD;
+  const fenster = Number(p.fenster) || FENSTER_STD;
+
+  const mahlzeiten = (eintraege || []).filter((e) => e.art === 'essen');
+  const davor = mahlzeiten.filter((e) => {
+    const d = stundenDazwischen(zeitpunkt(e.am, e.um), t0);
+    return d > 0 && d < nuechtern;
+  });
+  const waehrend = mahlzeiten.filter((e) => {
+    const d = stundenDazwischen(t0, zeitpunkt(e.am, e.um));
+    return d > 0 && d <= fenster;
+  });
+
+  const wert = (eintraege || [])
+    .filter((e) => e.art === 'beschwerde')
+    .filter((e) => {
+      const d = stundenDazwischen(t0, zeitpunkt(e.am, e.um));
+      return d >= 0 && d <= fenster;
+    })
+    .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
+
+  /*
+   * Zu dicht am vorherigen Durchgang ist ebenfalls unsauber, und zwar aus
+   * demselben Grund: Was noch von gestern nachhallt, gehört nicht dem heutigen
+   * Glas.
+   */
+  const zuNah = vorheriger ? tageDazwischen(vorheriger.am, lauf.am) < ABSTAND_TAGE : false;
+
+  const warum = [];
+  if (davor.length) warum.push(`${davor.length}× gegessen in den ${nuechtern} Stunden davor`);
+  if (waehrend.length) warum.push(`${waehrend.length}× gegessen im Beobachtungsfenster`);
+  if (zuNah) warum.push(`weniger als ${ABSTAND_TAGE} Tage nach dem vorigen Durchgang`);
+
+  return {
+    am: lauf.am,
+    um: lauf.um,
+    leer: !!lauf.leer,
+    wert,
+    sauber: warum.length === 0,
+    warum,
+  };
+}
+
+/**
+ * Der Alltagsvergleich, wenn keine Leerdurchgänge da sind.
+ *
+ * Genommen wird dasselbe Fenster derselben Uhrzeit an Tagen, an denen kein
+ * Durchgang war – der eigene Normalzustand zur selben Tageszeit. Das ist der
+ * zweitbeste Vergleich und wird auch so benannt: An diesen Tagen wurde
+ * gefrühstückt, an den Testtagen nicht, und dieser Unterschied bleibt in der
+ * Rechnung stehen.
+ */
+function alltagsWerte(eintraege, p, laufTage, heute) {
+  const fenster = Number(p.fenster) || FENSTER_STD;
+  const uhr = (p.laeufe && p.laeufe[0] && p.laeufe[0].um) || '08:00';
+  const werte = [];
+  const tage = new Set(laufTage);
+  const start = p.laeufe && p.laeufe.length ? p.laeufe[p.laeufe.length - 1].am : heute;
+
+  for (let i = 0; i <= tageDazwischen(plusTage(start, -30), heute); i++) {
+    const iso = plusTage(plusTage(start, -30), i);
+    if (tage.has(iso)) continue;
+    const amTag = (eintraege || []).filter((e) => e.am === iso);
+    // Ein Tag ohne jede Eintragung ist kein ruhiger Tag, sondern ein
+    // unbekannter. Er darf den Vergleichswert nicht nach unten ziehen.
+    if (!amTag.length) continue;
+    const t0 = zeitpunkt(iso, uhr);
+    werte.push(amTag
+      .filter((e) => e.art === 'beschwerde')
+      .filter((e) => {
+        const d = stundenDazwischen(t0, zeitpunkt(e.am, e.um));
+        return d >= 0 && d <= fenster;
+      })
+      .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0));
+  }
+  return werte;
+}
+
+const PROVOKATION_WORT = {
+  laeuft: 'läuft noch',
+  unsauber: 'nicht auswertbar',
+  bestaetigt: 'bestätigt sich',
+  wechselhaft: 'mal so, mal so',
+  'nicht-bestaetigt': 'bestätigt sich nicht',
+  abgebrochen: 'abgebrochen',
+};
+
+/**
+ * Das Ergebnis über alle Durchgänge.
+ *
+ * Zwei Zahlen tragen es, und beide stehen in der Ausgabe: wie *stark* im Mittel
+ * reagiert wurde, und in wie *vielen* Durchgängen überhaupt. Sie sagen
+ * Verschiedenes. Dreimal mittelmäßig ist ein anderer Befund als einmal heftig
+ * und zweimal gar nicht, obwohl der Mittelwert derselbe sein kann – und der
+ * zweite Fall ist der häufigere, weil eine Unverträglichkeit von der Menge und
+ * vom Tag abhängt. Nur den Mittelwert zu zeigen hieße, den Unterschied
+ * zwischen „das ist es" und „da ist noch etwas anderes im Spiel" zu verstecken.
+ */
+function provokationsBild(p, eintraege, heute) {
+  if (!p) return null;
+  const eintr = eintraege || [];
+  const laeufe = [...(p.laeufe || [])].sort((a, b) => (a.am < b.am ? -1 : 1));
+
+  const bilder = [];
+  let letzterEcht = null;
+  laeufe.forEach((l) => {
+    const b = laufBild(eintr, l, p, l.leer ? null : letzterEcht);
+    if (!l.leer) letzterEcht = l;
+    bilder.push(b);
+  });
+
+  const echte = bilder.filter((b) => !b.leer && b.sauber);
+  const leere = bilder.filter((b) => b.leer && b.sauber);
+  const verworfen = bilder.filter((b) => !b.sauber);
+
+  const grund = {
+    laeufe: bilder,
+    echte: echte.length,
+    leere: leere.length,
+    verworfen: verworfen.length,
+    was: p.was || '',
+  };
+
+  if (p.beendet) {
+    return {
+      ...grund,
+      urteil: 'abgebrochen',
+      wort: PROVOKATION_WORT.abgebrochen,
+      satz: `Abgebrochen nach ${echte.length} auswertbaren Durchgängen. Auch das ist `
+        + 'eine Auskunft – ein Test, den man nicht durchhält, ist im Alltag keine '
+        + 'Antwort.',
+    };
+  }
+
+  if (echte.length < MINDEST_LAEUFE) {
+    const fehlt = MINDEST_LAEUFE - echte.length;
+    return {
+      ...grund,
+      urteil: 'laeuft',
+      wort: PROVOKATION_WORT.laeuft,
+      satz: `Noch ${fehlt} auswertbare${fehlt === 1 ? 'r' : ''} Durchgang${fehlt === 1 ? '' : 'e'}`
+        + `, dann steht hier ein Ergebnis${verworfen.length
+          ? ` (${verworfen.length} zählt nicht mit, weil dabei gegessen wurde)` : ''}. `
+        + `Ein einzelner Durchgang beweist nichts: An genau dem Tag können auch `
+        + `Schlaf, Anspannung oder der Zyklus schuld sein. Erst die Wiederholung `
+        + `trennt die Sache vom Tag.`,
+    };
+  }
+
+  /*
+   * Woran gemessen wird. Der Leerdurchgang ist der bessere Vergleich, weil er
+   * das Nüchternsein auf beiden Seiten stehen lässt; ohne ihn bleibt der eigene
+   * Alltag zur selben Uhrzeit – und mit ihm ein Rest Unklarheit, der benannt
+   * gehört statt weggerechnet zu werden.
+   */
+  const gegenLeer = leere.length >= MINDEST_LEER;
+  const vergleichsWerte = gegenLeer
+    ? leere.map((b) => b.wert)
+    : alltagsWerte(eintr, p, laeufe.map((l) => l.am), heute);
+  const grundlage = gegenLeer ? 'leerdurchgang' : 'alltag';
+
+  const testWerte = echte.map((b) => b.wert);
+  const schnitt = mittelAus(testWerte);
+  const vergleich = mittelAus(vergleichsWerte);
+  const unterschied = schnitt - vergleich;
+
+  // vergleiche = 1: genau eine Frage, vorher festgelegt. Siehe oben.
+  const { spielraum } = zufallsSpielraum(testWerte, vergleichsWerte, 1);
+  const schranke = Math.max(PROVOKATION_SCHWELLE, spielraum);
+
+  // „Reagiert" heißt: über dem eigenen Vergleichswert, nicht über null.
+  const reagiert = echte.filter((b) => b.wert - vergleich >= PROVOKATION_SCHWELLE).length;
+
+  const zahlen = `${schnitt.toFixed(1).replace('.', ',')} gegen `
+    + `${vergleich.toFixed(1).replace('.', ',')} von 10, aus ${echte.length} Durchgängen `
+    + `gegen ${gegenLeer ? `${leere.length} Leerdurchgänge` : `${vergleichsWerte.length} Alltagstage`}.`;
+
+  const nachsatz = gegenLeer
+    ? ''
+    : ' Verglichen wird hier mit dem eigenen Alltag zur selben Uhrzeit – an diesen '
+      + 'Tagen wurde aber gefrühstückt und an den Testtagen nicht. Zwei '
+      + 'Leerdurchgänge (nüchtern, gleiche Zeit, ohne die Sache) würden genau '
+      + 'diesen Rest ausräumen: Ein Magen, der leer wehtut, sieht sonst aus wie '
+      + 'eine Unverträglichkeit.';
+
+  if (vergleichsWerte.length < 2) {
+    return {
+      ...grund,
+      urteil: 'laeuft',
+      wort: PROVOKATION_WORT.laeuft,
+      grundlage,
+      schnitt,
+      satz: 'Es fehlt der Vergleich. Zwei Leerdurchgänge – nüchtern, gleiche Uhrzeit, '
+        + 'ohne die Sache – machen aus den Durchgängen erst einen Test. Ohne sie '
+        + 'ist nicht zu trennen, ob die Beschwerden von der Sache kommen oder vom '
+        + 'leeren Magen.',
+    };
+  }
+
+  const gemeinsam = {
+    ...grund, grundlage, schnitt, vergleich, unterschied, spielraum, schranke, reagiert,
+  };
+
+  if (unterschied >= schranke && reagiert > echte.length / 2) {
+    return {
+      ...gemeinsam,
+      urteil: 'bestaetigt',
+      wort: PROVOKATION_WORT.bestaetigt,
+      satz: `In ${reagiert} von ${echte.length} Durchgängen kam es, und im Mittel `
+        + `deutlich stärker als ohne: ${zahlen} Weil die Frage vorher feststand, `
+        + `zählt dieser Unterschied schwerer als derselbe Unterschied im Tagebuch – `
+        + `hier musste niemand erst suchen. Was fehlt, ist die Verblindung: Du `
+        + `wusstest jedes Mal, was du zu dir nimmst, und Erwartung erzeugt echte `
+        + `Beschwerden. Das ist ein starker Verdacht und kein Nachweis.${nachsatz}`,
+    };
+  }
+
+  if (reagiert > 0 && reagiert <= echte.length / 2) {
+    return {
+      ...gemeinsam,
+      urteil: 'wechselhaft',
+      wort: PROVOKATION_WORT.wechselhaft,
+      satz: `In ${reagiert} von ${echte.length} Durchgängen kam es, in den übrigen `
+        + `nicht (${zahlen}) Das ist selbst ein Befund und der häufigste: Dann hängt `
+        + `es nicht an der Sache allein, sondern an der Menge oder am Tag – wie viel `
+        + `es war, wie voll der Bauch, welche Zyklusphase. Weglassen wäre hier `
+        + `wahrscheinlich zu viel; eher lohnt ein zweiter Satz Durchgänge mit einer `
+        + `kleineren Menge.${nachsatz}`,
+    };
+  }
+
+  return {
+    ...gemeinsam,
+    urteil: 'nicht-bestaetigt',
+    wort: PROVOKATION_WORT['nicht-bestaetigt'],
+    satz: `Kein Unterschied zum Vergleich: ${zahlen} Das ist das belastbarste `
+      + `Ergebnis, das dieser Test hergibt, und zwar mehr wert als ein positives: `
+      + `Die Erwartung, die hier nicht ausgeschaltet werden kann, schiebt nur in `
+      + `eine Richtung – zur Reaktion hin. Wer nüchtern und mehrfach nichts merkt, `
+      + `hat das trotz dieser Schieflage nicht gemerkt.${nachsatz}`,
+  };
+}
+
+/**
+ * Was jetzt zu tun ist – die eine Zeile für den Tagesreiter.
+ *
+ * Ein Test ohne diese Zeile wird vergessen. Er besteht ja gerade nicht aus
+ * einem Knopf, sondern aus Terminen, die man sich selbst setzt.
+ */
+function naechsterSchritt(p, heute) {
+  if (!p || p.beendet) return null;
+  const laeufe = [...(p.laeufe || [])].sort((a, b) => (a.am < b.am ? -1 : 1));
+  const letzter = laeufe[laeufe.length - 1];
+  const echte = laeufe.filter((l) => !l.leer).length;
+  const leere = laeufe.filter((l) => l.leer).length;
+
+  if (letzter && tageDazwischen(letzter.am, heute) < ABSTAND_TAGE) {
+    return {
+      dran: false,
+      satz: `Heute nicht – zwischen zwei Durchgängen liegen ${ABSTAND_TAGE} Tage, `
+        + 'sonst hallt der letzte noch nach.',
+    };
+  }
+  if (echte < MINDEST_LAEUFE) {
+    return {
+      dran: true,
+      leer: false,
+      satz: `Morgen früh nüchtern: ${p.was || 'die festgelegte Menge'}. Danach `
+        + `${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht.`,
+    };
+  }
+  if (leere < MINDEST_LEER) {
+    return {
+      dran: true,
+      leer: true,
+      satz: 'Jetzt ein Leerdurchgang: derselbe Ablauf, gleiche Uhrzeit, nüchtern – '
+        + 'nur ohne die Sache. Er kostet einen Morgen und ist der Teil, der aus '
+        + 'den Durchgängen einen Test macht.',
+    };
+  }
+  return { dran: false, satz: 'Genug Durchgänge beisammen – das Ergebnis steht unten.' };
+}
+
 /* ===== js/lage.js ===== */
 /*
  * Was Sache ist – drei bis fünf Sätze, ganz oben
@@ -7986,6 +8542,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -8357,6 +8914,33 @@ function arztBericht(zustand, von, bis) {
         + `(${e.nachher.notierte} Tage)` : ', Wiedereinführung steht noch aus'));
     umbrochen(e.satz).forEach((z) => sag(`  ${z}`));
     sag('  (Ein Versuch an einem einzigen Menschen, ohne Verblindung.)');
+    sag();
+  }
+
+  /*
+   * Der Provokationstest gehört in den Bericht, und zwar mitsamt seinen
+   * Leerdurchgängen.
+   *
+   * In der Sprechstunde ist „ich vertrage keine Milch" eine Meinung. „Dreimal
+   * nüchtern 250 ml, dreimal Beschwerden, an zwei Leermorgen nichts" ist eine
+   * Beobachtung mit Protokoll – und sie beantwortet die Frage, die dort als
+   * Nächstes kommt: Lohnt ein Atemtest, oder ist die Sache schon geklärt?
+   * Ohne die Leerdurchgänge wäre es wieder nur eine Meinung.
+   */
+  const prov = [zustand.provokation, ...(zustand.provokationen || [])].filter(Boolean);
+  if (prov.length) {
+    sag('PROVOKATIONSTESTS');
+    prov.slice(0, 6).forEach((p) => {
+      const b = provokationsBild(p, eintraege, bis);
+      sag(`  ${p.was || p.ziel} nüchtern, Fenster ${p.fenster || 4} h – ${b.wort}`);
+      sag(`     ${b.echte} Durchgänge, ${b.leere} Leerdurchgänge`
+        + (b.verworfen ? `, ${b.verworfen} nicht auswertbar (dabei gegessen)` : '')
+        + (Number.isFinite(b.unterschied)
+          ? `; ${fmtZahl(b.schnitt)} gegen ${fmtZahl(b.vergleich)} von 10` : ''));
+      umbrochen(b.satz).forEach((z) => sag(`     ${z}`));
+    });
+    sag('  (Nicht verblindet. Ein Test ohne Befund wiegt hier schwerer als einer');
+    sag('   mit: Die Erwartung schiebt nur in eine Richtung.)');
     sag();
   }
 
@@ -8868,7 +9452,7 @@ function tagAnsicht(s) {
     ${stand.laenge ? ` · deine Zyklen dauern im Mittel ${stand.laenge} Tage` : ''}
   </p>` : '';
 
-  return kopf + sicherungKarte(iso) + versuchZeile(s, iso) + bilanz + zyklusZeile
+  return kopf + sicherungKarte(iso) + versuchZeile(s, iso) + provokationZeile(s, iso) + bilanz + zyklusZeile
     + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + anlegen + zeilen + umstaende;
 }
 
@@ -8909,6 +9493,35 @@ function versuchZeile(s, iso) {
     : `Tag ${st.tag} von ${st.von} – heute ohne <b>${esc(was)}</b>.`
       + (heutigeVerstoesse ? ` Heute steht es ${heutigeVerstoesse}× im Tagebuch; das ist kein Vorwurf, es geht nur in die Auswertung ein.` : '')}</p>
     ${knopf('versuch-beenden', 'Abbrechen', 'btn-ghost')}
+  </div>`;
+}
+
+/**
+ * Der laufende Provokationstest, auf dem Tagesreiter.
+ *
+ * Anders als beim Auslassversuch besteht dieser Test nicht aus Durchhalten,
+ * sondern aus einzelnen Terminen, die man sich selbst setzt – und genau daran
+ * scheitert er ohne diese Zeile. Sie sagt jeden Morgen eines von drei Dingen:
+ * heute dran, heute nicht (weil der letzte Durchgang nachhallt), oder: jetzt
+ * fehlt noch der Leerdurchgang.
+ */
+function provokationZeile(s, iso) {
+  const p = s.provokation;
+  if (!p || p.beendet || iso !== heuteISO()) return '';
+  const schritt = naechsterSchritt(p, heuteISO());
+  if (!schritt || !schritt.dran) {
+    return schritt ? `<div class="karte provokation-zeile">
+      <h3>Provokationstest</h3>
+      <p class="klein">${esc(schritt.satz)}</p>
+    </div>` : '';
+  }
+  return `<div class="karte karte-merk provokation-zeile">
+    <h3>${schritt.leer ? 'Heute der Leerdurchgang' : 'Heute ein Durchgang'}</h3>
+    <p class="klein">${esc(schritt.satz)}</p>
+    <div class="reihe">
+      ${knopf(schritt.leer ? 'prov-leer' : 'prov-lauf',
+    schritt.leer ? 'Leerdurchgang gemacht' : 'Jetzt genommen', 'btn-primary')}
+    </div>
   </div>`;
 }
 
@@ -9748,6 +10361,102 @@ function versuchTeil(s, d) {
 }
 
 /**
+ * Der Provokationstest: laufend, fertig oder noch nicht angefangen.
+ *
+ * Er steht direkt hinter dem Auslassversuch, weil er dieselbe Bewegung macht –
+ * eingreifen statt beobachten –, nur kürzer und wiederholbar. Und er steht nur
+ * dort, wo man ohnehin nach Antworten sucht: Wer ihn nie anfängt, sieht eine
+ * Karte, wer ihn laufen hat, sieht das Protokoll.
+ */
+function provokationTeil(s, d) {
+  const p = s.provokation;
+  const zahl = (x) => x.toFixed(1).replace('.', ',');
+
+  if (p) {
+    const b = provokationsBild(p, s.eintraege, d.heute);
+    const schritt = naechsterSchritt(p, d.heute);
+    const fertig = p.beendet || b.urteil !== 'laeuft';
+    return `<div class="karte provokation p-${b.urteil}">
+      <div class="fund-kopf">
+        <b>Provokationstest: ${esc(p.was || p.ziel)}</b>
+        <span class="fund-urteil">${esc(b.wort)}</span>
+      </div>
+      ${b.laeufe.length ? `<ul class="wartend prov-laeufe">${b.laeufe.map((l) => `<li${l.sauber ? '' : ' class="prov-weg"'}>
+        <span>${esc(fmtDatum(l.am, true))} ${esc(l.um)}
+          <span class="zeile-tags">${l.leer ? 'Leerdurchgang' : 'mit'}${l.sauber ? '' : ` · zählt nicht: ${esc(l.warum.join(', '))}`}</span></span>
+        <span class="klein">${l.sauber ? `${l.wert} von 10` : '–'}
+          <button type="button" class="strang-weg" data-act="prov-lauf-weg"
+                  data-am="${l.am}" data-um="${esc(l.um)}"
+                  aria-label="Durchgang zurücknehmen">×</button></span>
+      </li>`).join('')}</ul>` : ''}
+      ${Number.isFinite(b.unterschied)
+    ? vergleichBalken(b.schnitt, b.vergleich,
+      { mit: 'mit', ohne: b.grundlage === 'leerdurchgang' ? 'leer' : 'Alltag' })
+    : ''}
+      <p>${esc(b.satz)}</p>
+      ${schritt && !fertig ? `<p class="klein"><b>Als Nächstes:</b> ${esc(schritt.satz)}</p>` : ''}
+      <div class="reihe">
+        ${schritt && schritt.dran
+    ? knopf(schritt.leer ? 'prov-leer' : 'prov-lauf',
+      schritt.leer ? 'Leerdurchgang gemacht' : 'Jetzt genommen', 'btn-primary') : ''}
+        ${p.beendet
+    ? knopf('prov-ablegen', 'Abhaken und behalten', 'btn-primary')
+    : knopf('prov-beenden', 'Abbrechen', 'btn-ghost')}
+      </div>
+      <p class="klein">${esc(NICHT_BEI_ALLERGIE)}</p>
+    </div>${provokationHistorie(s, d)}`;
+  }
+
+  /*
+   * Angeboten wird der Test nicht von Anfang an. Er verlangt vier Morgen und
+   * ist die falsche Antwort auf „ich trage seit drei Tagen ein" – erst wenn
+   * genug dasteht, dass es überhaupt etwas zu prüfen gibt, lohnt der Aufwand.
+   */
+  if (d.bilanz.filter((b) => b.genug).length < 3) return provokationHistorie(s, d);
+
+  return `<div class="karte karte-merk">
+    <h3>Eine Sache gezielt prüfen</h3>
+    <p class="klein">Der Auslassversuch dauert zwei Wochen, und in zwei Wochen
+    ändert sich auch anderes. Ein Provokationstest fragt kürzer und schärfer:
+    eine festgelegte Menge, <b>nüchtern</b>, dann vier Stunden nichts essen und
+    aufschreiben, wie es geht – und das dreimal. Genau so wird auf Laktose und
+    Fruktose geprüft; in der Klinik misst dabei zusätzlich ein Atemtest mit.</p>
+    <ul class="versuch-wahl">${PRUEFBAR.map((x) => `<li>
+      <div><b>${esc(x.name)}</b>
+        <span class="klein">${esc(x.was)} · ${esc(x.warum)}</span></div>
+      <div class="wahl">
+        <button type="button" class="wahl-btn" data-act="prov-start"
+                data-id="${esc(x.id)}">Diesen Test anfangen</button></div>
+    </li>`).join('')}</ul>
+    <p class="klein">Die Mengen sind kleiner als beim Test in der Klinik, und
+    zwar mit Absicht: Dort geht es um die Frage, ob eine Malabsorption vorliegt,
+    hier um die, ob dir das Beschwerden macht, was du tatsächlich isst. Nur die
+    zweite Antwort ändert etwas – und die Klinikmenge auf eigene Faust zu nehmen
+    macht vor allem einen scheußlichen Tag.</p>
+    <p class="klein">${esc(NICHT_BEI_ALLERGIE)}</p>
+  </div>${provokationHistorie(s, d)}`;
+}
+
+/** Was schon durchprovoziert wurde – aus denselben Gründen wie „Schon geprüft". */
+function provokationHistorie(s, d) {
+  const alte = s.provokationen || [];
+  if (!alte.length) return '';
+  return `<div class="karte karte-geprueft">
+    <h3>Schon getestet</h3>
+    <ul class="wartend">${alte.map((p) => {
+    const b = provokationsBild(p, s.eintraege, d.heute);
+    return `<li class="geprueft g-${b.urteil}">
+      <span><b>${esc(p.was || p.ziel)}</b><span class="zeile-tags">${b.echte} Durchgänge,
+        ${b.leere} leer</span></span>
+      <span class="klein">${esc(b.wort)}
+        <button type="button" class="strang-weg" data-act="prov-alt-weg"
+                data-id="${esc(p.id)}" aria-label="Aus der Liste nehmen">×</button></span>
+    </li>`;
+  }).join('')}</ul>
+  </div>`;
+}
+
+/**
  * Was die Mittel bewirken – gemessen, nicht behauptet.
  *
  * Sie trägt ein, was sie nimmt, und niemand rechnet nach. Ausbleibendes
@@ -9914,9 +10623,16 @@ function musterAnsicht(s) {
    * Medikamenten und wäre auch ohne eine einzige Mahlzeit vollständig. Diese
    * Abkürzung hat schon einmal die Warnzeichen verschluckt; sie darf nicht
    * auch noch die Kriterien und den Stuhlgang verschlucken.
+   *
+   * Und erst recht nichts, was gerade *läuft*. Ein Auslassversuch und ein
+   * Provokationstest hängen an keiner einzigen Mahlzeit – der eine misst
+   * Tageswerte, der andere ein Fenster nach einem Durchgang. Fehlten sie hier,
+   * verschwände mitten im Versuch die einzige Stelle, an der sein Ergebnis
+   * steht, und zwar ausgerechnet bei dem, der gerade weniger einträgt, weil er
+   * gerade weniger isst. Dieselbe Falle wie damals, eine Tür weiter.
    */
   if (!mahlzeiten) {
-    return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}<p class="leer">Noch keine Mahlzeit
+    return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}${versuchTeil(s, d)}${provokationTeil(s, d)}<p class="leer">Noch keine Mahlzeit
       eingetragen. Sobald ein paar Tage beisammen sind, steht hier, was
       auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
   }
@@ -10002,7 +10718,7 @@ function musterAnsicht(s) {
    * hat trotzdem das Wichtigste.
    */
   return lageTeil(s, d) + bildTeil(s, d) + unterleibVorschlag(s)
-    + kriterienTeil(s, d) + versuchTeil(s, d)
+    + kriterienTeil(s, d) + versuchTeil(s, d) + provokationTeil(s, d)
     + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wechselTeil(s, d)
     + wartet + ansprechenTeil(s, d)
     + zeitTeil(d) + wann + wie + stuhlTeil(s) + brauchtTeil(s, d)
@@ -11226,6 +11942,49 @@ const AKTION = {
     zeichne();
   },
   'versuch-alt-weg': (el) => { store.versuchLoeschen(el.dataset.id); zeichne(); },
+
+  'prov-start': (el) => {
+    const x = PRUEFBAR.find((k) => k.id === el.dataset.id);
+    if (!x) return;
+    const s = store.zustandLesen();
+    if (s.provokation && !s.provokation.beendet
+        && !window.confirm('Es läuft schon ein Test. Der neue ersetzt ihn – die bisherigen Durchgänge sind dann weg. Trotzdem?')) return;
+    store.provokationStarten('klasse', x.id, x.was);
+    store.einstellen('tab', 'heute');
+    melden('Angelegt. Der erste Durchgang ist morgen früh, nüchtern.');
+    zeichne();
+  },
+  /*
+   * Der Durchgang wird mit der *jetzigen* Uhrzeit festgehalten und nicht
+   * nachträglich gesetzt. Daran hängt das ganze Beobachtungsfenster: Ein
+   * Durchgang „irgendwann am Dienstag" ließe die Rechnung auf Mittag raten und
+   * damit Beschwerden mitzählen, die Stunden davor kamen.
+   */
+  'prov-lauf': () => {
+    store.provokationLauf(false);
+    melden(`Notiert. Jetzt nichts essen und eintragen, wie es dir geht.`);
+    zeichne();
+  },
+  'prov-leer': () => {
+    store.provokationLauf(true);
+    melden('Leerdurchgang notiert – derselbe Ablauf, nur ohne die Sache.');
+    zeichne();
+  },
+  'prov-lauf-weg': (el) => {
+    store.provokationLaufWeg(el.dataset.am, el.dataset.um);
+    zeichne();
+  },
+  'prov-beenden': () => {
+    if (!window.confirm('Test abbrechen? Er bleibt mit den bisherigen Durchgängen stehen.')) return;
+    store.provokationBeenden();
+    zeichne();
+  },
+  'prov-ablegen': () => {
+    store.provokationAblegen();
+    melden('Abgehakt – bleibt unter „Schon getestet" stehen.');
+    zeichne();
+  },
+  'prov-alt-weg': (el) => { store.provokationLoeschen(el.dataset.id); zeichne(); },
 
   'tag-blaettern': (el) => {
     ui.tag = plusTage(ui.tag, Number(el.dataset.d));

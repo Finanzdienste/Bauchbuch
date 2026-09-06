@@ -81,6 +81,26 @@ const VORGABE = {
    */
   versuche: [],
   /*
+   * Der laufende oder letzte Provokationstest – siehe js/provokation.js:
+   * { id, art, ziel, was, nuechtern, fenster, laeufe: [{ am, um, leer }], beendet }
+   *
+   * Auch hier nur einer zur Zeit, und aus einem schärferen Grund als beim
+   * Auslassversuch: Zwei Provokationen parallel hieße, an denselben Morgen zwei
+   * Sachen nüchtern zu nehmen. Dann misst man beide zusammen und keine davon.
+   *
+   * Gespeichert wird, was sich nicht ausrechnen lässt – was, wie viel, wann
+   * genommen. Ob ein Durchgang sauber war und was danach kam, liest
+   * js/provokation.js jedes Mal neu aus den Eintragungen.
+   */
+  provokation: null,
+  /*
+   * Abgeschlossene Provokationstests, der jüngste zuerst. Aus demselben Grund
+   * aufgehoben wie die Auslassversuche: Ein Test, der *nichts* fand, erspart
+   * den nächsten – und ist für den Termin genauso ein Beleg wie einer, der
+   * etwas fand.
+   */
+  provokationen: [],
+  /*
    * Arzttermine als ISO-Daten, der jüngste zuerst.
    *
    * Der Bericht lief bisher über 30 oder 90 Tage – Fenster, die mit nichts zu
@@ -477,6 +497,87 @@ export function versuchLoeschen(id) {
   melde();
 }
 
+/* ---------- Provokationstest ---------- */
+
+/**
+ * Einen Provokationstest anlegen.
+ *
+ * `was` ist Freitext und mit Absicht keine Auswahlliste: Die Menge ist der
+ * halbe Test, und „250 ml Milch" oder „ein Apfel" sagt mehr, als eine App
+ * vorgeben könnte. Sie muss nur jedes Mal dieselbe sein – deshalb steht sie
+ * einmal hier und nicht bei jedem Durchgang neu.
+ */
+export function provokationStarten(art, ziel, was, opt = {}) {
+  zustand.provokation = {
+    id: neueId(),
+    art,
+    ziel,
+    was: String(was || '').slice(0, 120),
+    // Zwei bis acht Stunden sind der Rahmen, in dem das noch alltagstauglich
+    // ist. Zwölf Stunden nüchtern wären klinisch sauberer und macht niemand.
+    nuechtern: Math.max(2, Math.min(8, Number(opt.nuechtern) || 4)),
+    fenster: Math.max(2, Math.min(8, Number(opt.fenster) || 4)),
+    laeufe: [],
+    beendet: null,
+  };
+  merke();
+  melde();
+  return zustand.provokation.id;
+}
+
+/**
+ * Einen Durchgang eintragen – mit der Sache oder als Leerdurchgang.
+ *
+ * Der Zeitpunkt wird festgehalten und nicht bloß der Tag: Das Fenster hängt an
+ * der Uhrzeit, und „irgendwann am Dienstag" ist kein Protokoll.
+ */
+export function provokationLauf(leer = false, iso = null, uhr = null) {
+  if (!zustand.provokation || zustand.provokation.beendet) return;
+  const lauf = { am: iso || heuteISO(), um: uhr || jetztUhr(), leer: !!leer };
+  zustand.provokation = {
+    ...zustand.provokation,
+    laeufe: [...zustand.provokation.laeufe, lauf],
+  };
+  merke();
+  melde();
+}
+
+/** Einen Durchgang zurücknehmen – für den Fehlgriff, nicht für das Ergebnis. */
+export function provokationLaufWeg(am, um) {
+  if (!zustand.provokation) return;
+  const laeufe = zustand.provokation.laeufe.filter((l) => !(l.am === am && l.um === um));
+  if (laeufe.length === zustand.provokation.laeufe.length) return;
+  zustand.provokation = { ...zustand.provokation, laeufe };
+  merke();
+  melde();
+}
+
+/** Abbrechen. Bleibt stehen – ein Test, den man nicht durchhält, ist auch eine Auskunft. */
+export function provokationBeenden() {
+  if (!zustand.provokation) return;
+  zustand.provokation = { ...zustand.provokation, beendet: heuteISO() };
+  merke();
+  melde();
+}
+
+/** Abhaken und in die Historie legen. */
+export function provokationAblegen() {
+  if (!zustand.provokation) return;
+  const abgelegt = { ...zustand.provokation, abgelegt: heuteISO() };
+  zustand.provokationen = [abgelegt, ...zustand.provokationen].slice(0, 40);
+  zustand.provokation = null;
+  merke();
+  melde();
+}
+
+export function provokationLoeschen(id) {
+  const vorher = zustand.provokationen.length;
+  zustand.provokationen = zustand.provokationen.filter((p) => p.id !== id);
+  if (zustand.provokationen.length === vorher) return;
+  merke();
+  melde();
+}
+
 /* ---------- Gewicht ---------- */
 
 /**
@@ -693,6 +794,22 @@ export function ausJSON(text) {
   if (!v || typeof v !== 'object' || typeof v.start !== 'string'
       || typeof v.ziel !== 'string' || !Number.isFinite(Number(v.tage))) {
     frisch.versuch = null;
+  }
+  /*
+   * Dasselbe für den Provokationstest, mit einer Zeile mehr: Die Durchgänge
+   * tragen das Fenster, in dem gerechnet wird. Ein Eintrag ohne Uhrzeit ließe
+   * das Fenster auf Mittag rutschen und rechnete dann Beschwerden mit, die
+   * Stunden nach dem Durchgang kamen.
+   */
+  const pv = frisch.provokation;
+  if (!pv || typeof pv !== 'object' || typeof pv.ziel !== 'string'
+      || !Array.isArray(pv.laeufe)) {
+    frisch.provokation = null;
+  } else {
+    frisch.provokation = {
+      ...pv,
+      laeufe: pv.laeufe.filter((l) => l && typeof l.am === 'string' && typeof l.um === 'string'),
+    };
   }
   zustand = frisch;
   merke();
