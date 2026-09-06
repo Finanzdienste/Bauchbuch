@@ -53,6 +53,7 @@ import {
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
 import { spielraumSatz } from './zufall.js';
+import { dosisBild, DOSIS_WORT } from './dosis.js';
 import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
@@ -599,6 +600,36 @@ function unterleibVorschlag(s) {
 }
 
 /*
+ * Wie viel davon – die Frage, die über eine Streichliste entscheidet.
+ *
+ * „Zwiebeln sind auffällig" legt genau eine Handlung nahe: streichen. Und das
+ * ist fast immer zu viel. Steht daneben, dass es als Würze unauffällig war und
+ * erst als Hauptzutat auffällt, wird aus einem Verbot eine Faustregel – und
+ * die hält jemand auch nach vier Wochen noch ein.
+ *
+ * Der Block steht nicht zugeklappt wie die anderen beiden, wenn er eine
+ * Schwelle gefunden hat: Das ist die Auskunft, die den Alltag ändert, und sie
+ * hinter einem Dreieck zu verstecken hieße, sie nicht ernst zu nehmen.
+ */
+function dosisBlock(d) {
+  const geprueft = d.stufen.filter((st) => st.pruefbar);
+  const liste = geprueft.length ? `<ul class="schichten">${geprueft.map((st) => `<li>
+    <span>${esc(st.name)}${st.auffaellig ? ' ⚠' : ''}</span>
+    <span class="klein">${fmtZahl(st.schnitt)} gegen ${fmtZahl(st.schnittOhne)}
+      · ${st.faelle} Mahlzeiten</span>
+  </li>`).join('')}</ul>` : '';
+
+  return `<details class="stand d-${d.urteil}" ${d.urteil === 'schwelle' ? 'open' : ''}>
+    <summary>Wie viel davon? <b>${DOSIS_WORT[d.urteil]}</b></summary>
+    <p class="klein">${esc(d.satz)}</p>
+    ${liste}
+    <p class="klein">Verglichen wird jede Menge gegen dieselbe Gruppe: die
+    ${d.gegenFaelle} Mahlzeiten ohne diese Zutat. „Getränk dazu" zählt hier
+    nicht mit – ein Glas Wein ist keine kleinere Menge, sondern etwas anderes.</p>
+  </details>`;
+}
+
+/*
  * Was von einem Verdacht übrig bleibt, wenn man die Umstände gleich hält.
  *
  * Der wichtigste Teil dieser Anzeige ist nicht das Urteil, sondern die Liste
@@ -738,6 +769,7 @@ function musterDaten(s) {
       b,
       stand: haeltStand(bewertet, b.id, s.tage),
       profil: zeitProfil(fenster, b.id),
+      dosis: dosisBild(s.eintraege, b.id, s.fenster),
     }));
 
   return {
@@ -789,12 +821,14 @@ function lageTeil(s, d) {
   const l = wasSacheIst({
     warnungen: d.bild.warnungen,
     trend: t,
-    funde: d.gepruefte.map(({ b, stand }) => ({
+    funde: d.gepruefte.map(({ b, stand, dosis }) => ({
       name: ausloeserName(b.id, s.eigeneAusloeser),
       differenz: b.differenz,
       faelle: b.faelle,
       gegenFaelle: b.gegenFaelle,
       urteil: stand.urteil,
+      menge: dosis.urteil,
+      mengeSatz: dosis.satz,
     })),
     spaet: d.uebersehen.map((x) => ({
       name: ausloeserName(x.id, s.eigeneAusloeser),
@@ -1371,6 +1405,9 @@ function musterAnsicht(s) {
       <span>als ${esc(rolleName(r.rolle))}</span>
       <span class="klein">${mehrzahl(r.faelle, 'Mal', 'Mal')}, danach ${fmtZahl(r.schnitt)}</span>
     </li>`).join('')}</ul>` : '';
+    // Und die eigentliche Frage dahinter: wie viel, nicht ob – auch das kommt
+    // aus musterDaten, damit oben und unten dasselbe steht.
+    const dosis = g ? g.dosis : null;
     return `<li class="fund f-${art}">
       <div class="fund-kopf">
         <b>${esc(ausloeserName(b.id, s.eigeneAusloeser))}</b>
@@ -1381,6 +1418,7 @@ function musterAnsicht(s) {
         ${b.gegenFaelle} ohne · danach ${Math.round(b.quoteMit * 100)} % mit
         Beschwerden, sonst ${Math.round(b.quoteOhne * 100)} %</p>
       ${nachRolle}
+      ${dosis ? dosisBlock(dosis) : ''}
       ${stand ? schichtBlock(stand) : ''}
       ${profil ? zeitBlock(profil) : ''}
     </li>`;

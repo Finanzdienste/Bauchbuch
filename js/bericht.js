@@ -27,6 +27,7 @@ import {
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
 import { spielraumSatz } from './zufall.js';
+import { dosisBild } from './dosis.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
 import { wissenZu } from './mittel.js';
@@ -200,6 +201,7 @@ export function arztBericht(zustand, von, bis) {
     b,
     stand: haeltStand(bewertet, b.id, tage),
     zeit: zeitProfil(fenster, b.id),
+    dosis: dosisBild(imZeitraum, b.id, zustand.fenster),
   }));
   const bleibt = gehalten.filter((x) => x.stand.urteil !== 'verschwindet');
   const zerfallen = gehalten.filter((x) => x.stand.urteil === 'verschwindet');
@@ -217,7 +219,7 @@ export function arztBericht(zustand, von, bis) {
       umbrochen(spielraumSatz(b0.spielraum, b0.vergleiche), 66)
         .forEach((zl) => sag(`  ${zl}`));
     }
-    bleibt.slice(0, 8).forEach(({ b, stand, zeit }) => {
+    bleibt.slice(0, 8).forEach(({ b, stand, zeit, dosis }) => {
       sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
       const wo = stand.urteil === 'nur-dann' ? ` (${(stand.wo || []).join(', ')})` : '';
       sag(`    unter gleichen Umständen: ${SCHICHT_WORT[stand.urteil]}${wo}`
@@ -228,6 +230,20 @@ export function arztBericht(zustand, von, bis) {
       if (zeit.schwerpunkt) {
         const f = zeit.teile.find((t) => t.id === zeit.schwerpunkt);
         sag(`    auffällig vor allem ${f.name.toLowerCase()} (${f.ort})`);
+      }
+      /*
+       * Und die Menge – für die Sprechstunde oft die entscheidende Zeile.
+       *
+       * „Zwiebeln auffällig" führt zu einer Streichliste, die nach vier Wochen
+       * niemand mehr einhält. „Als Würze unauffällig, als Hauptzutat nicht"
+       * führt zu einer Empfehlung, die jemand leben kann – und die Angabe
+       * kostet den Zettel eine Zeile.
+       */
+      if (dosis.urteil === 'schwelle') {
+        sag(`    ${dosis.gehtBis.satz}: unauffällig (${dosis.gehtBis.faelle} Mahlzeiten), `
+          + `${dosis.abStufe.satz}: auffällig (${dosis.abStufe.faelle})`);
+      } else if (dosis.urteil === 'ab-hier') {
+        sag(`    bisher nur ${dosis.abStufe.satz} geprüft – kleinere Mengen sind offen`);
       }
     });
     sag();

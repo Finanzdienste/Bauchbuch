@@ -371,6 +371,43 @@ Vier Regeln halten das davon ab, Kaffeesatzleserei zu werden:
 Was dabei herauskommt, ist eine Häufigkeit. Die App stellt keine Diagnose und
 ersetzt keine ärztliche Beratung.
 
+### Wie viel verträgst du – nicht ob
+
+„Zwiebeln sind auffällig" legt genau eine Handlung nahe: streichen. Und das ist
+fast immer zu viel. Die meisten Unverträglichkeiten sind **Mengenfragen** — wer
+eine Zwiebelsuppe nicht verträgt, verträgt oft drei Ringe auf dem Brot
+problemlos. Der Unterschied zwischen diesen beiden Auskünften ist der zwischen
+einem Leben mit einer Streichliste und einem mit einer Faustregel, und er
+entscheidet, ob nach vier Wochen überhaupt noch jemand mitmacht: Streichlisten
+werden aufgegeben, weil sie das Essen unmöglich machen und meistens mehr
+streichen als nötig.
+
+Die Menge kommt dabei ohne Waage zustande. Jede Zutat trägt beim Eintragen
+ihre **Rolle** — Hauptzutat, Beilage, Topping, Würze —, und das ist für diese
+Frage die bessere Angabe als Gramm: Ob eine Zwiebel stört, hängt weniger an
+ihrem Gewicht als daran, ob sie die Suppe war oder die Garnitur. Jede Stufe
+wird gegen dieselbe Gruppe gehalten, die Mahlzeiten ohne diese Zutat, und
+daraus wird eines von fünf Urteilen:
+
+| | |
+| --- | --- |
+| **kommt auf die Menge an** | als Würze unauffällig, als Hauptzutat nicht — mit dem ausdrücklichen Zusatz, dass Weglassen zu viel wäre |
+| **auch in kleiner Menge** | schon als Würze oder Topping auffällig |
+| **ab dieser Menge** | auffällig als Beilage oder Hauptzutat, kleinere Mengen kamen nie vor — also **nicht** geprüft |
+| **in jeder geprüften Menge unauffällig** | die stärkste Entlastung, die es hier gibt — aber nur so viel wert wie die größte geprüfte Menge |
+| **Menge nicht prüfbar** | zu selten eingetragen |
+
+Der dritte Fall ist der, an dem sich der Wert des Ganzen entscheidet, und im
+ersten Entwurf war er falsch: Dort hieß er „auch in kleiner Menge", auch wenn
+die auffällige Stufe die Hauptzutat war. „Schon als Hauptzutat fällt es auf"
+ist aber gar keine Aussage über Mengen — und hätte jemanden dazu gebracht, eine
+Zutat zu streichen, ohne dass je eine kleinere Menge geprüft worden wäre. Genau
+das soll diese Rechnung verhindern. Jetzt steht dort, was zu tun ist: es einmal
+in kleinerer Rolle essen.
+
+„Getränk dazu" zählt in dieser Reihe nicht mit. Ein Glas Wein ist keine
+kleinere Fassung von Wein als Hauptzutat, und ein Kaffee ist nie eine Beilage.
+
 ### Der Zufallsspielraum
 
 Die App vergleicht inzwischen viel: zwei Dutzend Auslöser, dazu Klassen, drei
@@ -715,6 +752,8 @@ js/lage.js          „Was Sache ist": wählt aus den fertigen Befunden drei
                     bis fünf Sätze aus und rechnet selbst nichts
 js/zufall.js        wie groß ein Unterschied allein durch Zufall ausfällt
                     – die Schranke, die mit der Zahl der Vergleiche wächst
+js/dosis.js         wie viel du verträgst, nicht ob – aus den Rollen der
+                    Zutaten eine Mengenschwelle
 
 tools/vorschlaege.mjs        rahmt fremden Text ein, damit er Material
                              bleibt und keine Anweisung wird
@@ -753,7 +792,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Fünfunddreißig Dateien, über 740 Prüfungen, alle in einem echten Chromium. Kein
+Sechsunddreißig Dateien, über 760 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -789,6 +828,7 @@ den Rückgabewert.
 | `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
 | `test-unterleib.mjs` | die Fragen bleiben aus, bis jemand sie einschaltet; und Regelschmerz allein ergibt noch kein Muster |
 | `test-vorschlaege.mjs` | fremder Text bricht nicht aus seinem Block aus, und ein Bot-Zweig kommt nicht an die Wächter |
+| `test-dosis.mjs` | als Würze harmlos, als Hauptzutat nicht – und kein Urteil über Mengen, die nie vorkamen |
 | `test-zufall.mjs` | acht Tagebücher aus reinem Zufall – die App muss schweigen, und einen echten Fund trotzdem finden |
 | `test-lage.mjs` | die Zusammenfassung sagt nichts, was unten nicht mit Zahlen steht – und schweigt, wo nichts ist |
 | `test-wechsel.mjs` | ein Auslöser, der nur in einer Zyklusphase wirkt – und kein Wechsel, wo keiner ist |

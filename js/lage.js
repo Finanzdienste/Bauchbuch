@@ -48,8 +48,9 @@ const HOECHSTENS = 5;
  * @param {object} q
  * @param {object[]} [q.warnungen]  aus bildLesen(): { name, dringlichkeit }
  * @param {object} [q.trend]        aus trend(): { pruefbar, richtung, ... }
- * @param {object[]} [q.funde]      { name, differenz, faelle, gegenFaelle, urteil }
- *                                  urteil ist das der Schichtung
+ * @param {object[]} [q.funde]      { name, differenz, faelle, gegenFaelle, urteil,
+ *                                  menge, mengeSatz } – urteil ist das der
+ *                                  Schichtung, menge das der Dosisrechnung
  * @param {object[]} [q.spaet]      { name, fensterName, ort }
  * @param {object[]} [q.wechsel]    { name, phase }
  * @param {object} [q.zeit]         aus zeitBild()
@@ -114,9 +115,24 @@ export function wasSacheIst(q = {}) {
       ? ' Der Unterschied bleibt auch bestehen, wenn man nur Tage mit gleicher '
         + 'Anspannung, gleichem Schlaf und gleicher Zyklusphase vergleicht.'
       : ' Ob das an den Umständen liegt, ließ sich noch nicht prüfen.';
+    /*
+     * Und wenn es eine Menge gibt, gehört sie in denselben Satz.
+     *
+     * „Zwiebeln fallen auf" führt zum Streichen; „Zwiebeln fallen als
+     * Hauptzutat auf, als Würze nicht" führt zu einer Faustregel, die jemand
+     * auch in vier Wochen noch einhält. Der Zusatz ist deshalb keine
+     * Verfeinerung, sondern der Unterschied zwischen einer brauchbaren und
+     * einer schädlichen Auskunft.
+     */
+    const menge = bester.menge === 'schwelle'
+      ? ` Es kommt dabei auf die Menge an: ${bester.mengeSatz}`
+      : (bester.menge === 'ab-hier'
+        ? ' Ob kleinere Mengen davon durchgehen, ist noch nicht geprüft – ganz '
+          + 'weglassen wäre womöglich mehr als nötig.'
+        : '');
     sag('fund', `Am deutlichsten fällt ${bester.name} auf: danach war es im `
       + `Mittel um ${bester.differenz.toFixed(1)} Stufen schlechter `
-      + `(${bester.faelle} Mahlzeiten damit, ${bester.gegenFaelle} ohne).${gehalten}`);
+      + `(${bester.faelle} Mahlzeiten damit, ${bester.gegenFaelle} ohne).${gehalten}${menge}`);
   }
 
   /*
