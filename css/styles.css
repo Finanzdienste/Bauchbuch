@@ -418,6 +418,11 @@ p { margin: 0 0 8px; }
 .stand.s-verschwindet summary b { color: var(--ok); }
 .stand.s-nur-dann summary b { color: var(--warn); }
 .stand.s-zeit summary b { color: var(--accent); }
+/* Die Mengenfrage. „Kommt auf die Menge an" ist die Auskunft, die eine
+   Streichliste verhindert – die darf hervorstechen. */
+.stand.d-schwelle summary b { color: var(--ok); }
+.stand.d-auch-wenig summary b { color: var(--bad); }
+.stand.d-unauffaellig summary b { color: var(--ok); }
 /* Die Zeile im Zeitprofil trägt drei Angaben; auf einem schmalen Gerät darf sie
    umbrechen, sonst schiebt sie die Namensspalte aus dem Bild. */
 .karte-zeit .wartend li > .klein { white-space: normal; text-align: right; }

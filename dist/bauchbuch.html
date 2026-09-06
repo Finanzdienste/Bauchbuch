@@ -438,6 +438,11 @@ p { margin: 0 0 8px; }
 .stand.s-verschwindet summary b { color: var(--ok); }
 .stand.s-nur-dann summary b { color: var(--warn); }
 .stand.s-zeit summary b { color: var(--accent); }
+/* Die Mengenfrage. „Kommt auf die Menge an" ist die Auskunft, die eine
+   Streichliste verhindert – die darf hervorstechen. */
+.stand.d-schwelle summary b { color: var(--ok); }
+.stand.d-auch-wenig summary b { color: var(--bad); }
+.stand.d-unauffaellig summary b { color: var(--ok); }
 /* Die Zeile im Zeitprofil trägt drei Angaben; auf einem schmalen Gerät darf sie
    umbrechen, sonst schiebt sie die Namensspalte aus dem Bild. */
 .karte-zeit .wartend li > .klein { white-space: normal; text-align: right; }
@@ -5928,6 +5933,222 @@ const WECHSEL_WORT = {
   unklar: 'nicht prüfbar',
 };
 
+/* ===== js/dosis.js ===== */
+/*
+ * Wie viel verträgst du – nicht ob
+ *
+ * DER UNTERSCHIED, UM DEN ES GEHT
+ *
+ * „Zwiebeln sind auffällig" ist eine Auskunft, die im Alltag genau eine
+ * Handlung nahelegt: Zwiebeln streichen. Und das ist fast immer zu viel.
+ *
+ * Die meisten Unverträglichkeiten sind keine Allergien, sondern
+ * Mengenfragen. Wer eine Zwiebelsuppe nicht verträgt, verträgt oft drei Ringe
+ * auf dem Brot problemlos; wer nach einem Glas Milch Beschwerden bekommt,
+ * kommt mit einem Schuss im Kaffee meist zurecht. Der Unterschied zwischen
+ * diesen beiden Auskünften ist der Unterschied zwischen einem Leben mit einer
+ * Streichliste und einem Leben mit einer Faustregel.
+ *
+ * Und er entscheidet, ob jemand dabeibleibt. Streichlisten werden aufgegeben –
+ * nicht aus Nachlässigkeit, sondern weil sie das Essen unmöglich machen und
+ * weil sie meistens mehr streichen, als nötig wäre.
+ *
+ * WOHER DIE MENGE KOMMT, OHNE DASS JEMAND WIEGT
+ *
+ * Beim Eintragen bekommt jede Zutat eine **Rolle**: Hauptzutat, Beilage,
+ * Topping, Würze. Das ist keine Grammangabe und soll auch keine sein – es ist
+ * die Angabe, die man beim Eintragen ohne Nachdenken trifft, und für diese
+ * Frage ist sie die richtige: Ob eine Zwiebel stört, hängt weniger an ihren
+ * Gramm als daran, ob sie die Suppe war oder die Garnitur.
+ *
+ * Diese vier Rollen sind eine Reihenfolge von viel nach wenig, und damit
+ * lässt sich fragen: Ab welcher Stufe fällt es auf? Verglichen wird jede Stufe
+ * gegen dieselbe Gruppe – die Mahlzeiten ohne diese Zutat.
+ *
+ * WAS AUSDRÜCKLICH NICHT MITZÄHLT
+ *
+ * „Getränk dazu" ist keine Menge, sondern eine Art. Ein Glas Wein ist nicht
+ * die kleinere Fassung von Wein als Hauptzutat, und ein Kaffee ist nie eine
+ * Beilage. Diese Rolle steht deshalb außerhalb der Reihe.
+ */
+
+
+/**
+ * Die Mengenreihe, von wenig nach viel.
+ *
+ * `rang` ist die Reihenfolge, nicht eine Menge – zwischen „Topping" und
+ * „Beilage" liegt kein festes Verhältnis, und so zu tun wäre eine Genauigkeit,
+ * die die Angabe nicht hergibt.
+ */
+const STUFEN = [
+  { id: 'wuerze', rang: 0, name: 'als Würze', satz: 'nur als Würze' },
+  { id: 'topping', rang: 1, name: 'als Topping', satz: 'als Topping' },
+  { id: 'beilage', rang: 2, name: 'als Beilage', satz: 'als Beilage' },
+  { id: 'haupt', rang: 3, name: 'als Hauptzutat', satz: 'als Hauptzutat' },
+];
+
+/** Mahlzeiten je Stufe, ab denen sie überhaupt zählt. */
+const MINDEST_JE_STUFE = 5;
+
+/** Und so viele Mahlzeiten ohne die Zutat als Vergleich. */
+const MINDEST_OHNE = 8;
+
+/** Ab welchem Unterschied eine Stufe auffällt – wie in der Auslöserbilanz. */
+const STUFEN_SCHWELLE = 1;
+
+const schnittVon = (l) => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0);
+
+/**
+ * Ab welcher Menge fällt dieser Auslöser auf?
+ *
+ * @param {object[]} eintraege
+ * @param {string} id       der Auslöser
+ * @param {number} fenster  Stunden nach dem Essen
+ */
+function dosisBild(eintraege, id, fenster = 4) {
+  const mahlzeiten = eintraege.filter((e) => e.art === 'essen').map((m) => ({
+    wert: wertNach(eintraege, m, fenster),
+    rolle: (zutatenVon(m).find((z) => z.id === id) || {}).rolle || null,
+  }));
+
+  // Die Vergleichsgruppe ist für alle Stufen dieselbe: Mahlzeiten, in denen
+  // diese Zutat gar nicht vorkam. Jede Stufe gegen ihre eigene Gruppe zu
+  // halten, hieße vier verschiedene Maßstäbe an dieselbe Frage anzulegen.
+  const ohne = mahlzeiten.filter((x) => x.rolle === null).map((x) => x.wert);
+  const schnittOhne = schnittVon(ohne);
+
+  const stufen = STUFEN.map((st) => {
+    const werte = mahlzeiten.filter((x) => x.rolle === st.id).map((x) => x.wert);
+    const pruefbar = werte.length >= MINDEST_JE_STUFE && ohne.length >= MINDEST_OHNE;
+    const r = zufallsSpielraum(werte, ohne, STUFEN.length);
+    return {
+      ...st,
+      pruefbar,
+      faelle: werte.length,
+      schnitt: schnittVon(werte),
+      schnittOhne,
+      differenz: pruefbar ? schnittVon(werte) - schnittOhne : 0,
+      spielraum: r.spielraum,
+      // Auffällig heißt hier dasselbe wie überall: groß genug, um jemanden zu
+      // interessieren, und größer als das, was der Zufall ohnehin hergibt.
+      auffaellig: pruefbar && (schnittVon(werte) - schnittOhne) >= Math.max(STUFEN_SCHWELLE, r.spielraum),
+    };
+  });
+
+  const pruefbare = stufen.filter((s) => s.pruefbar);
+  const gegenFaelle = ohne.length;
+
+  if (!pruefbare.length) {
+    /*
+     * Der häufigste Fall, und er hat eine nützliche Antwort.
+     *
+     * Meistens kommt eine Zutat immer in derselben Rolle vor – wer Zwiebeln
+     * isst, isst sie fast immer mitgekocht. Dann gibt es keine Mengenfrage zu
+     * beantworten, aber sehr wohl etwas zu tun: Es einmal in kleinerer Menge
+     * essen und eintragen. Das ist eine Handlung, kein Achselzucken.
+     */
+    const haeufigste = [...stufen].sort((a, b) => b.faelle - a.faelle)[0];
+    return {
+      urteil: 'unklar',
+      stufen,
+      gegenFaelle,
+      satz: haeufigste && haeufigste.faelle
+        ? `Bisher kam das fast immer ${haeufigste.satz} vor `
+          + `(${haeufigste.faelle} Mal). Um eine Menge zu finden, müsste es auch `
+          + 'mal in kleinerer Rolle vorkommen – als Beilage, Topping oder Würze.'
+        : 'Dafür ist es noch zu selten eingetragen.',
+    };
+  }
+
+  const auffaellige = pruefbare.filter((s) => s.auffaellig);
+  const harmlose = pruefbare.filter((s) => !s.auffaellig);
+
+  if (!auffaellige.length) {
+    /*
+     * Keine Stufe fällt auf – aber „unauffällig" ist nur so viel wert wie die
+     * größte geprüfte Menge. Wer bloß die Würze geprüft hat, hat nichts über
+     * die Suppe gesagt.
+     */
+    const groesste = pruefbare[pruefbare.length - 1];
+    return {
+      urteil: 'unauffaellig',
+      stufen,
+      gegenFaelle,
+      bisStufe: groesste,
+      satz: `Bis hin zu „${groesste.name}" ist nichts aufgefallen `
+        + `(${groesste.faelle} Mahlzeiten). ${groesste.rang === 3
+          ? 'Größere Mengen als eine Hauptzutat gibt es nicht – das spricht gegen '
+            + 'diese Zutat als Auslöser.'
+          : 'Über größere Mengen sagt das nichts; die sind noch nicht geprüft.'}`,
+    };
+  }
+
+  const niedrigsteAuffaellig = auffaellige[0];
+  const hoechsteHarmlos = harmlose.filter((s) => s.rang < niedrigsteAuffaellig.rang).pop();
+
+  if (hoechsteHarmlos) {
+    return {
+      urteil: 'schwelle',
+      stufen,
+      gegenFaelle,
+      gehtBis: hoechsteHarmlos,
+      abStufe: niedrigsteAuffaellig,
+      satz: `${hoechsteHarmlos.satz.replace(/^./, (c) => c.toUpperCase())} `
+        + `war es unauffällig (${hoechsteHarmlos.faelle} Mahlzeiten), `
+        + `${niedrigsteAuffaellig.satz} dagegen um `
+        + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter `
+        + `(${niedrigsteAuffaellig.faelle} Mahlzeiten). Es sieht also nach einer `
+        + 'Menge aus, nicht nach der Zutat selbst – was heißt, dass Weglassen '
+        + 'vermutlich zu viel wäre.',
+    };
+  }
+
+  /*
+   * Auffällig, ohne dass darunter etwas Geprüftes liegt – und jetzt kommt es
+   * darauf an, *welche* Stufe das ist. Das war im ersten Entwurf falsch: Der
+   * Fall hieß pauschal „auch in kleiner Menge", auch wenn die auffällige
+   * Stufe die Hauptzutat war. „Schon als Hauptzutat fällt es auf" ist aber
+   * keine Aussage über kleine Mengen, sondern gar keine Aussage über Mengen –
+   * und sie hätte jemanden dazu gebracht, eine Zutat ganz zu streichen, ohne
+   * dass je eine kleinere Menge geprüft worden wäre. Genau das soll diese
+   * Datei verhindern.
+   */
+  if (niedrigsteAuffaellig.rang <= 1) {
+    return {
+      urteil: 'auch-wenig',
+      stufen,
+      gegenFaelle,
+      abStufe: niedrigsteAuffaellig,
+      satz: `Schon ${niedrigsteAuffaellig.satz} fällt es auf `
+        + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
+        + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter). Eine `
+        + 'Menge, die durchgeht, ist bisher nicht dabei.',
+    };
+  }
+
+  return {
+    urteil: 'ab-hier',
+    stufen,
+    gegenFaelle,
+    abStufe: niedrigsteAuffaellig,
+    satz: `Auffällig wird es ${niedrigsteAuffaellig.satz} `
+      + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
+      + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter). Ob `
+      + 'kleinere Mengen durchgehen, ist damit nicht gesagt – dafür müsste es '
+      + 'auch mal in kleinerer Rolle vorkommen, als Beilage, Topping oder Würze. '
+      + 'Bis dahin wäre ganz weglassen womöglich mehr als nötig.',
+  };
+}
+
+/** Für die Anzeige: das Urteil in einem Wort. */
+const DOSIS_WORT = {
+  schwelle: 'kommt auf die Menge an',
+  'auch-wenig': 'auch in kleiner Menge',
+  'ab-hier': 'ab dieser Menge',
+  unauffaellig: 'in jeder geprüften Menge unauffällig',
+  unklar: 'Menge nicht prüfbar',
+};
+
 /* ===== js/lage.js ===== */
 /*
  * Was Sache ist – drei bis fünf Sätze, ganz oben
@@ -5979,8 +6200,9 @@ const HOECHSTENS = 5;
  * @param {object} q
  * @param {object[]} [q.warnungen]  aus bildLesen(): { name, dringlichkeit }
  * @param {object} [q.trend]        aus trend(): { pruefbar, richtung, ... }
- * @param {object[]} [q.funde]      { name, differenz, faelle, gegenFaelle, urteil }
- *                                  urteil ist das der Schichtung
+ * @param {object[]} [q.funde]      { name, differenz, faelle, gegenFaelle, urteil,
+ *                                  menge, mengeSatz } – urteil ist das der
+ *                                  Schichtung, menge das der Dosisrechnung
  * @param {object[]} [q.spaet]      { name, fensterName, ort }
  * @param {object[]} [q.wechsel]    { name, phase }
  * @param {object} [q.zeit]         aus zeitBild()
@@ -6045,9 +6267,24 @@ function wasSacheIst(q = {}) {
       ? ' Der Unterschied bleibt auch bestehen, wenn man nur Tage mit gleicher '
         + 'Anspannung, gleichem Schlaf und gleicher Zyklusphase vergleicht.'
       : ' Ob das an den Umständen liegt, ließ sich noch nicht prüfen.';
+    /*
+     * Und wenn es eine Menge gibt, gehört sie in denselben Satz.
+     *
+     * „Zwiebeln fallen auf" führt zum Streichen; „Zwiebeln fallen als
+     * Hauptzutat auf, als Würze nicht" führt zu einer Faustregel, die jemand
+     * auch in vier Wochen noch einhält. Der Zusatz ist deshalb keine
+     * Verfeinerung, sondern der Unterschied zwischen einer brauchbaren und
+     * einer schädlichen Auskunft.
+     */
+    const menge = bester.menge === 'schwelle'
+      ? ` Es kommt dabei auf die Menge an: ${bester.mengeSatz}`
+      : (bester.menge === 'ab-hier'
+        ? ' Ob kleinere Mengen davon durchgehen, ist noch nicht geprüft – ganz '
+          + 'weglassen wäre womöglich mehr als nötig.'
+        : '');
     sag('fund', `Am deutlichsten fällt ${bester.name} auf: danach war es im `
       + `Mittel um ${bester.differenz.toFixed(1)} Stufen schlechter `
-      + `(${bester.faelle} Mahlzeiten damit, ${bester.gegenFaelle} ohne).${gehalten}`);
+      + `(${bester.faelle} Mahlzeiten damit, ${bester.gegenFaelle} ohne).${gehalten}${menge}`);
   }
 
   /*
@@ -7503,6 +7740,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -7668,6 +7906,7 @@ function arztBericht(zustand, von, bis) {
     b,
     stand: haeltStand(bewertet, b.id, tage),
     zeit: zeitProfil(fenster, b.id),
+    dosis: dosisBild(imZeitraum, b.id, zustand.fenster),
   }));
   const bleibt = gehalten.filter((x) => x.stand.urteil !== 'verschwindet');
   const zerfallen = gehalten.filter((x) => x.stand.urteil === 'verschwindet');
@@ -7685,7 +7924,7 @@ function arztBericht(zustand, von, bis) {
       umbrochen(spielraumSatz(b0.spielraum, b0.vergleiche), 66)
         .forEach((zl) => sag(`  ${zl}`));
     }
-    bleibt.slice(0, 8).forEach(({ b, stand, zeit }) => {
+    bleibt.slice(0, 8).forEach(({ b, stand, zeit, dosis }) => {
       sag(`  ${ausloeserName(b.id, zustand.eigeneAusloeser).padEnd(24)} ${zahlen(b)}`);
       const wo = stand.urteil === 'nur-dann' ? ` (${(stand.wo || []).join(', ')})` : '';
       sag(`    unter gleichen Umständen: ${SCHICHT_WORT[stand.urteil]}${wo}`
@@ -7696,6 +7935,20 @@ function arztBericht(zustand, von, bis) {
       if (zeit.schwerpunkt) {
         const f = zeit.teile.find((t) => t.id === zeit.schwerpunkt);
         sag(`    auffällig vor allem ${f.name.toLowerCase()} (${f.ort})`);
+      }
+      /*
+       * Und die Menge – für die Sprechstunde oft die entscheidende Zeile.
+       *
+       * „Zwiebeln auffällig" führt zu einer Streichliste, die nach vier Wochen
+       * niemand mehr einhält. „Als Würze unauffällig, als Hauptzutat nicht"
+       * führt zu einer Empfehlung, die jemand leben kann – und die Angabe
+       * kostet den Zettel eine Zeile.
+       */
+      if (dosis.urteil === 'schwelle') {
+        sag(`    ${dosis.gehtBis.satz}: unauffällig (${dosis.gehtBis.faelle} Mahlzeiten), `
+          + `${dosis.abStufe.satz}: auffällig (${dosis.abStufe.faelle})`);
+      } else if (dosis.urteil === 'ab-hier') {
+        sag(`    bisher nur ${dosis.abStufe.satz} geprüft – kleinere Mengen sind offen`);
       }
     });
     sag();
@@ -8621,6 +8874,36 @@ function unterleibVorschlag(s) {
 }
 
 /*
+ * Wie viel davon – die Frage, die über eine Streichliste entscheidet.
+ *
+ * „Zwiebeln sind auffällig" legt genau eine Handlung nahe: streichen. Und das
+ * ist fast immer zu viel. Steht daneben, dass es als Würze unauffällig war und
+ * erst als Hauptzutat auffällt, wird aus einem Verbot eine Faustregel – und
+ * die hält jemand auch nach vier Wochen noch ein.
+ *
+ * Der Block steht nicht zugeklappt wie die anderen beiden, wenn er eine
+ * Schwelle gefunden hat: Das ist die Auskunft, die den Alltag ändert, und sie
+ * hinter einem Dreieck zu verstecken hieße, sie nicht ernst zu nehmen.
+ */
+function dosisBlock(d) {
+  const geprueft = d.stufen.filter((st) => st.pruefbar);
+  const liste = geprueft.length ? `<ul class="schichten">${geprueft.map((st) => `<li>
+    <span>${esc(st.name)}${st.auffaellig ? ' ⚠' : ''}</span>
+    <span class="klein">${fmtZahl(st.schnitt)} gegen ${fmtZahl(st.schnittOhne)}
+      · ${st.faelle} Mahlzeiten</span>
+  </li>`).join('')}</ul>` : '';
+
+  return `<details class="stand d-${d.urteil}" ${d.urteil === 'schwelle' ? 'open' : ''}>
+    <summary>Wie viel davon? <b>${DOSIS_WORT[d.urteil]}</b></summary>
+    <p class="klein">${esc(d.satz)}</p>
+    ${liste}
+    <p class="klein">Verglichen wird jede Menge gegen dieselbe Gruppe: die
+    ${d.gegenFaelle} Mahlzeiten ohne diese Zutat. „Getränk dazu" zählt hier
+    nicht mit – ein Glas Wein ist keine kleinere Menge, sondern etwas anderes.</p>
+  </details>`;
+}
+
+/*
  * Was von einem Verdacht übrig bleibt, wenn man die Umstände gleich hält.
  *
  * Der wichtigste Teil dieser Anzeige ist nicht das Urteil, sondern die Liste
@@ -8760,6 +9043,7 @@ function musterDaten(s) {
       b,
       stand: haeltStand(bewertet, b.id, s.tage),
       profil: zeitProfil(fenster, b.id),
+      dosis: dosisBild(s.eintraege, b.id, s.fenster),
     }));
 
   return {
@@ -8811,12 +9095,14 @@ function lageTeil(s, d) {
   const l = wasSacheIst({
     warnungen: d.bild.warnungen,
     trend: t,
-    funde: d.gepruefte.map(({ b, stand }) => ({
+    funde: d.gepruefte.map(({ b, stand, dosis }) => ({
       name: ausloeserName(b.id, s.eigeneAusloeser),
       differenz: b.differenz,
       faelle: b.faelle,
       gegenFaelle: b.gegenFaelle,
       urteil: stand.urteil,
+      menge: dosis.urteil,
+      mengeSatz: dosis.satz,
     })),
     spaet: d.uebersehen.map((x) => ({
       name: ausloeserName(x.id, s.eigeneAusloeser),
@@ -9393,6 +9679,9 @@ function musterAnsicht(s) {
       <span>als ${esc(rolleName(r.rolle))}</span>
       <span class="klein">${mehrzahl(r.faelle, 'Mal', 'Mal')}, danach ${fmtZahl(r.schnitt)}</span>
     </li>`).join('')}</ul>` : '';
+    // Und die eigentliche Frage dahinter: wie viel, nicht ob – auch das kommt
+    // aus musterDaten, damit oben und unten dasselbe steht.
+    const dosis = g ? g.dosis : null;
     return `<li class="fund f-${art}">
       <div class="fund-kopf">
         <b>${esc(ausloeserName(b.id, s.eigeneAusloeser))}</b>
@@ -9403,6 +9692,7 @@ function musterAnsicht(s) {
         ${b.gegenFaelle} ohne · danach ${Math.round(b.quoteMit * 100)} % mit
         Beschwerden, sonst ${Math.round(b.quoteOhne * 100)} %</p>
       ${nachRolle}
+      ${dosis ? dosisBlock(dosis) : ''}
       ${stand ? schichtBlock(stand) : ''}
       ${profil ? zeitBlock(profil) : ''}
     </li>`;

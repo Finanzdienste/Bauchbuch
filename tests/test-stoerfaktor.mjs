@@ -238,9 +238,15 @@ check(anzeige.includes('verschwindet'), 'mit dem Urteil für diesen Scheinbefund
 
 // Die Grundlage muss aufklappbar dabeistehen – ein Urteil ohne seine Zahlen
 // ist ein Orakel.
-await page.locator('.stand summary').first().click();
+//
+// Gesucht wird ausdrücklich der Schichtungsblock (.s-…) und nicht bloß „der
+// erste .stand": Unter einem Fund stehen inzwischen drei solche Blöcke – die
+// Menge, die Schichtung und das Zeitfenster –, und ein Test, der auf die
+// Reihenfolge baut, prüft irgendwann klaglos das Falsche.
+const schicht = page.locator('.stand.s-verschwindet').first();
+await schicht.locator('summary').click();
 await page.waitForTimeout(200);
-const offen = (await page.locator('.stand').first().textContent()).replace(/\s+/g, ' ');
+const offen = (await schicht.textContent()).replace(/\s+/g, ' ');
 check(/an ruhigen Tagen|an angespannten Tagen/.test(offen), 'aufgeklappt stehen die Schichten da');
 check(/\d+\/\d+ Mahlzeiten/.test(offen), 'mit den Fallzahlen je Schicht');
 
