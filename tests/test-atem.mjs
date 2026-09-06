@@ -105,6 +105,28 @@ check(
   await page.locator('[data-act="atem-uebung"]').count() === 0,
   'während der Übung steht nichts auf dem Bildschirm als der Kreis – keine Auswahl',
 );
+/*
+ * Der Bildschirm muss anbleiben – und wenn nicht, muss es dastehen.
+ *
+ * Das ist der eigentliche Sinn der Übung: Telefon weglegen, Augen zu. Schaltet
+ * der Bildschirm ab, friert das Betriebssystem die Zeitgeber dieser Seite ein,
+ * der nächste Ton kommt zu spät oder gar nicht, und die Übung steht mitten im
+ * Ausatmen still. Die Sperre ist aber nur eine Bitte – im Stromsparmodus wird
+ * sie abgelehnt. Beides ist in Ordnung; nicht in Ordnung wäre, „du kannst das
+ * Telefon weglegen" zu behaupten, wo es gleich abschaltet.
+ */
+const wachSatz = (await page.locator('.atem').textContent()).replace(/\s+/g, ' ');
+check(
+  /Bildschirm bleibt an/.test(wachSatz) || /nicht anhalten/.test(wachSatz),
+  `während der Übung steht da, ob der Bildschirm anbleibt (${wachSatz.slice(-90)})`,
+);
+check(
+  !/Bildschirm bleibt an/.test(wachSatz) || await page.evaluate(
+    () => !!(navigator.wakeLock && navigator.wakeLock.request),
+  ),
+  'und „bleibt an" steht nur da, wo der Browser das überhaupt kann',
+);
+
 await page.screenshot({ path: `${SHOT}/93-atem.png` });
 
 await page.waitForTimeout(4200);
@@ -120,6 +142,18 @@ await page.waitForTimeout(300);
 check(
   (await page.locator('#atemWort').textContent()).includes('Bereit'),
   'nach dem Abbrechen steht wieder die Einladung da',
+);
+/*
+ * Und die Bildschirmsperre ist wieder los. Eine, die nach der Übung stehen
+ * bleibt, hält den Bildschirm an, bis der Akku leer ist – und niemand käme
+ * auf die Idee, das einer Atem-App anzulasten.
+ */
+check(
+  await page.evaluate(async () => {
+    const m = await import('./js/wach.js');
+    return m.istWach();
+  }) === false,
+  'und die Bildschirmsperre ist wieder losgelassen',
 );
 
 await page.locator('[data-act="atem-start"]').click();
@@ -157,6 +191,93 @@ check(
   'die Übung läuft trotzdem, nur stumm',
 );
 await page.locator('[data-act="atem-stopp"]').click();
+
+/* ---------- Wenn der Bildschirm sich anhalten lässt ---------- */
+
+/*
+ * Bis hierher hat dieser Test nur den Fehlerfall geprüft, und zwar ohne es zu
+ * merken: Ein Browser ohne Bildschirm lehnt die Sperre ab (NotAllowedError),
+ * also stand jedes Mal „lässt sich hier nicht anhalten" da – und der Zweig,
+ * der auf Amys Telefon tatsächlich läuft, wurde nie ausgeführt.
+ *
+ * Deshalb hier eine gestellte Sperre. Geprüft wird damit nicht der Browser –
+ * der kann, was er kann –, sondern das eigene Verhalten: dass die Sperre
+ * erbeten, gemeldet und am Ende auch wieder losgelassen wird. Das Loslassen
+ * ist der Teil, den man still falsch machen kann: Bleibt sie stehen, hält
+ * eine Atemübung den Bildschirm an, bis der Akku leer ist.
+ */
+const ctx2 = await browser.newContext({ viewport: HANDY });
+await ctx2.addInitScript(() => {
+  window.__wach = { erbeten: 0, losgelassen: 0 };
+  const hoerer = [];
+  const sperre = {
+    release() { window.__wach.losgelassen += 1; return Promise.resolve(); },
+    addEventListener(art, fn) { if (art === 'release') hoerer.push(fn); },
+  };
+  /*
+   * Damit die Attrappe nachstellt, was ein Betriebssystem wirklich tut: Es
+   * nimmt die Sperre weg, sobald die Seite verdeckt wird, und meldet das über
+   * das release-Ereignis. Ohne diesen Teil prüfte der Test unter sich – die
+   * App hielte die Sperre für gültig und bäte nie wieder um eine.
+   */
+  window.__wachWegnehmen = () => hoerer.splice(0).forEach((fn) => fn());
+  Object.defineProperty(navigator, 'wakeLock', {
+    configurable: true,
+    value: {
+      request() {
+        window.__wach.erbeten += 1;
+        return Promise.resolve(sperre);
+      },
+    },
+  });
+});
+const seite2 = await ctx2.newPage();
+seite2.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
+await seite2.goto(URL, { waitUntil: 'networkidle' });
+await seite2.evaluate((k) => localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'ruhe' })), KEY);
+await seite2.reload({ waitUntil: 'networkidle' });
+
+await seite2.locator('[data-act="atem-start"]').click();
+await seite2.waitForTimeout(500);
+
+check(
+  await seite2.evaluate(() => window.__wach.erbeten) === 1,
+  'zum Start wird der Bildschirm angehalten',
+);
+check(
+  /Bildschirm bleibt an/.test((await seite2.locator('.atem').textContent()).replace(/\s+/g, ' ')),
+  'und die App sagt, dass man das Telefon jetzt weglegen kann',
+);
+
+await seite2.locator('[data-act="atem-stopp"]').click();
+await seite2.waitForTimeout(300);
+check(
+  await seite2.evaluate(() => window.__wach.losgelassen) === 1,
+  'nach dem Abbrechen wird sie wieder losgelassen',
+);
+
+/*
+ * Und beim Zurückkommen aus dem Hintergrund neu erbeten: Das Betriebssystem
+ * nimmt die Sperre weg, sobald die Seite verdeckt wird, und gibt sie nicht von
+ * allein zurück. Wer hier nicht neu bittet, hat sie still verloren – die App
+ * hielte sich für wach und wäre es nicht.
+ */
+await seite2.locator('[data-act="atem-start"]').click();
+await seite2.waitForTimeout(300);
+const vorWechsel = await seite2.evaluate(() => window.__wach.erbeten);
+await seite2.evaluate(() => {
+  // Erst nimmt das System die Sperre weg (so wie beim Verdecken der Seite),
+  // dann kommt die Seite zurück.
+  window.__wachWegnehmen();
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  document.dispatchEvent(new Event('visibilitychange'));
+});
+await seite2.waitForTimeout(300);
+check(
+  await seite2.evaluate(() => window.__wach.erbeten) > vorWechsel,
+  'und nach der Rückkehr aus dem Hintergrund erneut erbeten',
+);
+await seite2.locator('[data-act="atem-stopp"]').click();
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

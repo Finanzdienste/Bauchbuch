@@ -8012,6 +8012,84 @@ function erinnerungsTermin(uhr, jetzt = new Date()) {
   ]);
 }
 
+/* ===== js/wach.js ===== */
+/*
+ * Den Bildschirm wach halten, solange die Atemübung läuft
+ *
+ * DAS EIGENTLICHE PROBLEM
+ *
+ * Die Übung führt jemand mit geschlossenen Augen durch, das Telefon liegt
+ * daneben. Nach zwanzig, dreißig Sekunden schaltet der Bildschirm ab – und
+ * damit friert das Betriebssystem die Zeitgeber dieser Seite ein. Der nächste
+ * Ton kommt zu spät oder gar nicht, und die Übung, die gerade beim Ausatmen
+ * war, steht still. Genau in dem Moment, in dem sie am ehesten wirkt.
+ *
+ * Der erste Gedanke war, den Phasenwechsel als Benachrichtigung zu schicken.
+ * Das löst es nicht, sondern beschreibt es nur aus einer anderen Richtung: Eine
+ * Benachrichtigung, die aus einem eingefrorenen Zeitgeber kommt, kommt genauso
+ * spät. Die Frage ist nicht, wie die Nachricht herauskommt, sondern wie die Uhr
+ * weiterläuft.
+ *
+ * DIE ANTWORT
+ *
+ * `navigator.wakeLock` – eine Bitte an das Betriebssystem, den Bildschirm
+ * anzulassen. Damit läuft alles weiter: der Kreis, der Ton, die Zeitrechnung.
+ * Man kann das Telefon weglegen und die Augen zumachen, und genau darum ging es.
+ *
+ * DREI DINGE, DIE MAN DABEI FALSCH MACHEN KANN
+ *
+ *   1. Sie nicht wieder loslassen. Eine Sperre, die nach der Übung stehen
+ *      bleibt, hält den Bildschirm für immer an und leert den Akku. Sie wird
+ *      deshalb an *jedem* Ende der Übung gelöst – auch beim Abbrechen.
+ *   2. Vergessen, dass das Betriebssystem sie von sich aus wegnimmt. Sobald
+ *      die Seite in den Hintergrund geht, ist die Sperre weg und kommt nicht
+ *      von allein zurück; wer beim Zurückkehren nicht neu bittet, hat sie
+ *      still verloren.
+ *   3. Sich darauf verlassen. Es ist eine Bitte, keine Garantie: bei niedrigem
+ *      Akku, im Stromsparmodus oder in einem Browser ohne diese Schnittstelle
+ *      wird sie abgelehnt. Deshalb gibt jede Funktion hier zurück, ob es
+ *      geklappt hat, und die Anzeige sagt es weiter – statt zu versprechen,
+ *      was sie nicht halten kann.
+ */
+
+let sperre = null;
+
+/**
+ * Den Bildschirm anlassen. Gibt zurück, ob es geklappt hat.
+ *
+ * Muss aus einer Nutzergeste heraus aufgerufen werden – „Anfangen" ist diese
+ * Geste.
+ */
+export async function wachHalten() {
+  if (sperre) return true;
+  try {
+    if (!navigator.wakeLock || !navigator.wakeLock.request) return false;
+    sperre = await navigator.wakeLock.request('screen');
+    // Das Betriebssystem kann jederzeit loslassen. Dann darf hier keine
+    // Leiche stehen bleiben, sonst hält sich die App für wach und ist es nicht.
+    sperre.addEventListener('release', () => { sperre = null; });
+    return true;
+  } catch {
+    sperre = null;
+    return false;
+  }
+}
+
+/** Wieder loslassen. Ohne das bleibt der Bildschirm an, bis der Akku leer ist. */
+export async function wachLoslassen() {
+  const s = sperre;
+  sperre = null;
+  if (!s) return;
+  try {
+    await s.release();
+  } catch { /* schon weg – dann ist ja gut */ }
+}
+
+/** Ob die Sperre gerade steht. */
+function istWach() {
+  return !!sperre;
+}
+
 /* ===== js/lage.js ===== */
 /*
  * Was Sache ist – drei bis fünf Sätze, ganz oben
@@ -12116,10 +12194,27 @@ function ruheAnsicht(s) {
               data-act="atem-runden" data-n="${n}">${n}</button>`).join('')}</div>
   </div>`;
 
+  /*
+   * Ob der Bildschirm anbleibt, steht dabei – und zwar als Tatsache und nicht
+   * als Versprechen. Die Sperre ist eine Bitte ans Betriebssystem, die im
+   * Stromsparmodus oder bei wenig Akku abgelehnt wird. „Du kannst das Handy
+   * weglegen" zu behaupten, wo es gleich abschaltet, wäre schlimmer als nichts
+   * zu sagen: Man macht die Augen zu und wundert sich hinterher.
+   */
+  const wachZeile = laeuft
+    ? (ui.atem.wach
+      ? '<p class="klein">Der Bildschirm bleibt an, solange die Übung läuft – '
+        + 'du kannst das Telefon weglegen und die Augen zumachen.</p>'
+      : '<p class="klein">Der Bildschirm lässt sich hier nicht anhalten '
+        + '(Stromsparmodus oder ein Browser ohne diese Möglichkeit). Schaltet '
+        + 'er ab, hält die Übung an – dann lieber kurz wach halten.</p>')
+    : '';
+
   const kreis = `<div class="atem${laeuft ? ' laeuft' : ''}">
     <div class="atem-kreis" id="atemKreis"><span id="atemZahl">${laeuft ? '' : '·'}</span></div>
     <p class="atem-wort" id="atemWort">${laeuft ? '' : 'Bereit, wenn du bist'}</p>
     <p class="klein" id="atemRunde">${laeuft ? '' : `${runden} Runden, ${esc(u.name)}`}</p>
+    ${wachZeile}
   </div>`;
 
   return `
@@ -12194,7 +12289,21 @@ function atemStart(s) {
   // Der Tonkontext darf erst hier entstehen: Browser lassen Audio nur nach
   // einer Nutzergeste zu, und "Anfangen" ist diese Geste.
   const ton = s.ton !== false && weckKlang();
-  ui.atem = { schritte: ablauf(u, runden), i: 0, ton, wecker: null, uhr: null };
+  ui.atem = {
+    schritte: ablauf(u, runden), i: 0, ton, wecker: null, uhr: null, wach: false,
+  };
+  /*
+   * Den Bildschirm anlassen – dieselbe Geste, dieselbe Gelegenheit.
+   *
+   * Ohne das schaltet das Telefon nach einer halben Minute ab und friert
+   * damit die Zeitgeber dieser Seite ein: Der nächste Ton käme zu spät oder
+   * gar nicht, und die Übung stünde mitten im Ausatmen still. Es ist eine
+   * Bitte und keine Garantie, deshalb wird das Ergebnis gemerkt und angezeigt
+   * statt angenommen.
+   */
+  wachHalten().then((ok) => {
+    if (ui.atem) { ui.atem.wach = ok; zeichne(); }
+  });
   zeichne();
   // Erst zeichnen, dann anfangen – sonst greift der erste Schritt auf Elemente
   // zu, die es noch nicht gibt.
@@ -12214,8 +12323,25 @@ function atemStopp() {
   clearTimeout(ui.atem.wecker);
   clearInterval(ui.atem.uhr);
   ui.atem = null;
+  // An jedem Ende, auch beim Abbrechen: Eine Sperre, die stehen bleibt, hält
+  // den Bildschirm an, bis der Akku leer ist.
+  wachLoslassen();
   zeichne();
 }
+
+/*
+ * Zurück aus dem Hintergrund: die Sperre neu erbitten.
+ *
+ * Das Betriebssystem nimmt sie weg, sobald die Seite verdeckt wird, und gibt
+ * sie nicht von allein zurück. Wer hier nicht neu bittet, hat sie still
+ * verloren – die App hielte sich für wach und wäre es nicht.
+ */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !ui.atem) return;
+  wachHalten().then((ok) => {
+    if (ui.atem && ui.atem.wach !== ok) { ui.atem.wach = ok; zeichne(); }
+  });
+});
 
 /* ==================== Reiter: Ideen ==================== */
 
