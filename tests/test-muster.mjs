@@ -111,9 +111,19 @@ check(
 await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'muster' })), KEY);
 await page.reload({ waitUntil: 'networkidle' });
 check(await page.locator('.funde-zutaten').count() === 0, 'ohne Eintragungen gibt es keine Funde');
+/*
+ * Sondern eine Auskunft darüber, was fehlt. Früher stand hier „Noch keine
+ * Mahlzeit eingetragen"; jetzt steht die Fallzahl, die eine Bilanz braucht.
+ * Beides sagt dasselbe – das zweite sagt zusätzlich, wie viel.
+ */
+const nichts = (await page.locator('#view').textContent()).replace(/\s+/g, ' ');
 check(
-  (await page.locator('#view').textContent()).includes('Noch keine Mahlzeit'),
-  'sondern einen Satz, der das erklärt',
+  /0 Mahlzeiten eingetragen/.test(nichts),
+  'sondern die Auskunft, dass noch keine Mahlzeit dasteht',
+);
+check(
+  /je Merkmal braucht es 5 damit und 5 ohne/.test(nichts),
+  'und wie viele es für eine Aussage bräuchte',
 );
 check(
   (await page.locator('#view').textContent()).includes('keine Ursache'),

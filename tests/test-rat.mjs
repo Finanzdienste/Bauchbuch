@@ -66,9 +66,43 @@ check(
   'bei starken Beschwerden heute kein intensives Training',
 );
 
+/*
+ * Ein leerer Tag ist kein guter Tag.
+ *
+ * Genau das stand hier einmal, und der Rat glaubte es: Ist der Tageswert 0,
+ * hieß es „beschwerdefrei und ausgeruht – heute ist der Tag fürs intensive
+ * Training". Ein Tag fängt aber immer leer an. Der Satz erschien deshalb jeden
+ * Morgen, auch bei jemandem, der an jedem der letzten Tage eine Sechs
+ * eingetragen hatte. Diese Prüfung hielt das nicht auf, sondern schrieb es
+ * fest – sie nannte den leeren Tag selbst „beschwerdefrei".
+ */
 await setze({ eintraege: [] });
+const leer = await page.locator('.rat-sport').textContent();
+check(
+  !/Beschwerdefrei und ausgeruht/.test(leer),
+  'ein leerer Tag wird nicht als beschwerdefrei ausgegeben',
+);
+check(
+  /Wenn es dir heute gut geht/.test(leer),
+  'sondern als Bedingung formuliert',
+);
+check(
+  /noch nichts eingetragen/.test(leer) && /nicht, dass nichts war/.test(leer),
+  'mit dem Unterschied ausgeschrieben, der hier gilt',
+);
+
+/*
+ * Und die Gegenprobe: Steht für heute etwas da – hier eine Tagesangabe ohne
+ * jede Beschwerde –, dann darf der Rat sich darauf berufen. Sonst hätte die
+ * Korrektur oben die Aussage nur abgeschafft statt sie richtig zu machen.
+ */
+await setze({ eintraege: [], tage: { [heute]: { stimmung: 1, stress: 0 } } });
 const gut = await page.locator('.rat-sport').textContent();
-check(gut.includes('auch intensiv'), 'an einem beschwerdefreien Tag spricht nichts dagegen');
+check(gut.includes('auch intensiv'), 'an einem eingetragenen Tag ohne Beschwerden geht es');
+check(
+  /etwas eingetragen/.test(gut),
+  'und der Beleg sagt, worauf er sich stützt',
+);
 
 await setze({
   eintraege: [{ id: 'e1', am: heute, um: '23:59', art: 'essen', was: 'gerade eben', portion: 'normal', zutaten: [] }],

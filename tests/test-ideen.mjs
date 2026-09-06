@@ -102,8 +102,16 @@ check(
 );
 await page.locator('[data-act="tab"][data-tab="muster"]').click();
 await page.waitForTimeout(250);
+/*
+ * Der Reiter zählt weiterhin null Mahlzeiten, obwohl zwei Ideen im Speicher
+ * stehen. Der Wortlaut hat sich geändert – früher „Noch keine Mahlzeit
+ * eingetragen", jetzt die Fallzahl im Fortschrittsblock –, die Aussage nicht,
+ * und die Zahl ist nachprüfbarer als der Satz.
+ */
 check(
-  (await page.locator('#view').textContent()).includes('Noch keine Mahlzeit'),
+  /0 Mahlzeiten eingetragen/.test(
+    (await page.locator('#view').textContent()).replace(/\s+/g, ' '),
+  ),
   'und tauchen in der Auswertung nicht auf',
 );
 

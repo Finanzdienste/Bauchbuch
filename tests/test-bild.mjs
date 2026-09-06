@@ -128,9 +128,22 @@ await setze({
 });
 check(await page.locator('.muster').count() === 0,
   'zwei Eintragungen ergeben kein Bild, auch wenn sie eindeutig aussehen');
+/*
+ * Und es bleibt nicht bei einem Nein: Es muss dastehen, wie weit es noch ist.
+ *
+ * Der Wortlaut hat sich geändert – früher zehn Karten, die nacheinander „noch
+ * nicht genug" sagten, jetzt ein Fortschrittsblock. Die Bedingung ist
+ * dieselbe geblieben und wird hier schärfer geprüft als vorher: nicht
+ * irgendein Hinweis, sondern die Zahlen, die fehlen.
+ */
+const zuwenig = (await page.locator('#view').textContent()).replace(/\s+/g, ' ');
 check(
-  (await page.locator('#view').textContent()).includes('fehlt noch Material'),
-  'stattdessen steht da, was noch fehlt',
+  /2 von 10 notierten Tagen/.test(zuwenig),
+  'stattdessen steht da, wie weit es bis zur Einordnung noch ist',
+);
+check(
+  /2 von 5 Eintragungen zu Beschwerden/.test(zuwenig),
+  'und zwar für beide Bedingungen, nicht nur für eine',
 );
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);

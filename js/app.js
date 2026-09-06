@@ -45,6 +45,8 @@ import {
   belastbar, heutigerStand, mittlereLaenge, phasenBilanz, phasenName, schwankung,
 } from './zyklus.js';
 import { WARNZEICHEN, bildLesen, genugFuerBild } from './bild.js';
+import { freischaltung, naechsteSchwelle } from './anfang.js';
+import { KALENDER_NAME, ZEIT_VORSCHLAEGE, erinnerungsTermin } from './kalender.js';
 import { fragenVorschlagen } from './unterleib.js';
 import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import {
@@ -1694,6 +1696,31 @@ function musterAnsicht(s) {
    * steht, und zwar ausgerechnet bei dem, der gerade weniger einträgt, weil er
    * gerade weniger isst. Dieselbe Falle wie damals, eine Tür weiter.
    */
+  /*
+   * Die Frühphase: solange nichts auswertbar ist, eine kurze Fassung.
+   *
+   * Am fünften Tag standen hier über neuntausend Zeichen, und fast alles davon
+   * war eine Absage – zehn Karten, die nacheinander „noch nicht" sagten. Jede
+   * für sich richtig, zusammen die beste Art, jemanden das Eintragen aufgeben
+   * zu lassen. Gezeigt wird deshalb: die Lage, die Warnzeichen, ein
+   * Fortschrittsblock – und alles, was schon etwas zu sagen hat.
+   *
+   * Was hier NICHT passiert: Es wird nichts früher behauptet. Die Schwellen
+   * sind dieselben geblieben. Und die Warnzeichen stehen weiter ganz oben, ohne
+   * Schwelle und ohne Fortschritt: Ein einziges Mal Blut ist ein einziges Mal
+   * zu viel, auch am zweiten Tag.
+   *
+   * Versuch, Plan und Provokation stehen mit in der Liste, obwohl sie in dieser
+   * Phase fast immer leer sind: Sie melden sich, sobald einer davon *läuft* –
+   * und ein laufender Versuch darf nie an einer Anzeigebedingung hängen.
+   */
+  const frueh = !genugFuerBild(d.bild.basis) && !bilanz.some((b) => b.genug);
+  if (frueh) {
+    return `${lageTeil(s, d)}${warnTeil(d)}${fortschrittTeil(s, d)}`
+      + `${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}`
+      + `${ansprechenTeil(s, d)}${stuhlTeil(s)}${zyklusTeil(s)}${erklaerung}`;
+  }
+
   if (!mahlzeiten) {
     return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}<p class="leer">Noch keine Mahlzeit
       eingetragen. Sobald ein paar Tage beisammen sind, steht hier, was
@@ -2052,12 +2079,68 @@ function ideenAnsicht(s) {
  * Warnzeichen und die Einordnung – das, was am nächsten an eine Diagnose
  * herankommt, ohne eine zu sein.
  */
-function bildTeil(s, d) {
-  // Gerechnet wird das in musterDaten, einmal für alle – siehe dort.
-  const b = d.bild;
+/**
+ * Die Frühphase: ein Ziel statt zehnmal „noch nicht".
+ *
+ * Solange nichts auswertbar ist, sagten zehn Karten dasselbe. Jede für sich
+ * richtig, zusammen eine Wand – und zwar genau in den Wochen, in denen sich
+ * entscheidet, ob überhaupt weiter eingetragen wird. Hier steht dieselbe
+ * Auskunft einmal, in die andere Richtung formuliert: nicht „dafür reicht es
+ * nicht", sondern „dafür fehlen noch vier Tage".
+ */
+function fortschrittTeil(s, d) {
+  const f = freischaltung({
+    notierteTage: tageMitEintrag(s, d.heute),
+    beschwerden: d.bild.basis.beschwerden,
+    zuordenbar: d.bild.basis.zuordenbar,
+    mahlzeiten: s.eintraege.filter((e) => e.art === 'essen').length,
+    mindestFaelle: s.mindestFaelle,
+    naechsteBilanz: naechsteBilanzZeile(s, d),
+  });
+  const naechst = naechsteSchwelle(f.schritte);
 
-  // Warnzeichen stehen vor allem anderen und ohne Statistik daneben.
-  const warn = b.warnungen.length ? `<div class="karte karte-warn">
+  return `<div class="karte karte-merk">
+    <h3>Was als Nächstes dazukommt</h3>
+    ${naechst ? `<p><b>${esc(naechst.satz)}</b></p>` : ''}
+    <ul class="wartend fortschritt">${f.schritte.map((x) => `<li class="fs-${x.offen ? 'offen' : 'da'}">
+      <span><b>${esc(x.titel)}</b><span class="zeile-tags">${esc(x.was)}</span></span>
+      <span class="klein">${x.offen ? esc(x.stand) : 'steht unten'}</span>
+    </li>`).join('')}</ul>
+    <p class="klein">Das sind keine Punkte zum Sammeln, sondern die Fallzahlen,
+    die eine Aussage braucht. Was hier noch fehlt, fehlt wirklich – eine App,
+    die aus vier Tagen einen Auslöser macht, schickt dich hinterher auf eine
+    Streichliste, die niemandem hilft. Zwei bis drei Wochen ist der ehrliche
+    Preis, und danach steht hier deutlich mehr.</p>
+    <p class="klein">Warnzeichen sind davon ausgenommen: Die stehen ab dem
+    ersten Tag ganz oben, ohne Schwelle.</p>
+  </div>`;
+}
+
+/** Der Auslöser, der der ersten Bilanz am nächsten ist – oder nichts. */
+function naechsteBilanzZeile(s, d) {
+  const offen = (d.bilanz || []).filter((b) => !b.genug)
+    .sort((a, b) => (b.faelle + b.gegenFaelle) - (a.faelle + a.gegenFaelle))[0];
+  if (!offen) return null;
+  return {
+    name: ausloeserName(offen.id, s.eigeneAusloeser),
+    faelle: offen.faelle,
+    gegen: offen.gegenFaelle,
+  };
+}
+
+/*
+ * Die Warnzeichen für sich, damit sie nirgends mitgeschluckt werden.
+ *
+ * Sie standen bisher als lokale Variable in bildTeil. Seit der Muster-Reiter in
+ * der Frühphase eine kurze Fassung zeigt, braucht auch die sie – und zwar
+ * unverändert. Ein Warnzeichen hat keine Fallzahl und keine Schwelle: Ein
+ * einziges Mal Blut ist ein einziges Mal zu viel, ganz gleich, ob das Tagebuch
+ * seit fünf Tagen oder seit fünf Monaten läuft.
+ */
+function warnTeil(d) {
+  const b = d.bild;
+  if (!b.warnungen.length) return '';
+  return `<div class="karte karte-warn">
     <h3>${b.warnungen.some((w) => w.dringlichkeit === 'sofort')
     ? 'Das gehört heute abgeklärt' : 'Das gehört zeitnah abgeklärt'}</h3>
     <ul class="warnliste">${b.warnungen.map((w) => `<li class="w-${w.dringlichkeit}">
@@ -2068,7 +2151,13 @@ function bildTeil(s, d) {
     </li>`).join('')}</ul>
     <p class="klein">Bei Blut, schwarzem Stuhl oder Schmerz mit Ausstrahlung in
     Arm oder Kiefer nicht auf einen Termin warten – Notaufnahme oder 112.</p>
-  </div>` : '';
+  </div>`;
+}
+
+function bildTeil(s, d) {
+  // Gerechnet wird das in musterDaten, einmal für alle – siehe dort.
+  const b = d.bild;
+  const warn = warnTeil(d);
 
   if (!b.muster.length) {
     return warn + (genugFuerBild(b.basis) ? '' : `<div class="karte">
@@ -2155,6 +2244,43 @@ function zyklusTeil(s) {
  * Fünf Prozent weniger sind ein Warnzeichen, wenn sie ungewollt kommen, und
  * ein Erfolg, wenn jemand dafür gearbeitet hat.
  */
+/*
+ * Die tägliche Erinnerung – über den Kalender, weil es anders nicht ginge.
+ *
+ * Eine Benachrichtigung, die ankommt, während die App zu ist, bräuchte auf dem
+ * iPhone einen Server, der sie verschickt, und eine Gerätekennung, die dort
+ * liegt. Beides widerspricht der Zusage dieser App. Der Kalender kann dasselbe,
+ * ohne dass irgendetwas das Gerät verlässt – und er erinnert auch dann noch,
+ * wenn die App monatelang nicht geöffnet wird.
+ */
+function erinnerungKarte(s) {
+  const gewaehlt = ui.erinnerungZeit || '20:00';
+  return `<div class="karte">
+    <h3>Täglich erinnern lassen</h3>
+    <p class="klein">Das Wichtigste an einem Tagebuch ist nicht die Auswertung,
+    sondern dass es geführt wird. Hier entsteht ein ganz gewöhnlicher
+    Kalendereintrag – täglich, mit Wecker –, den du einmal in deinen Kalender
+    legst. Ab da erinnert dich das Telefon selbst, auch offline.</p>
+    <p class="feld-name">Wann?</p>
+    <div class="wahl">${ZEIT_VORSCHLAEGE.map((z) => `
+      <button type="button" class="wahl-btn${z === gewaehlt ? ' an' : ''}"
+              data-act="erinnern-zeit" data-z="${z}">${z} Uhr</button>`).join('')}</div>
+    <div class="reihe">
+      ${knopf('erinnern-datei', 'In den Kalender legen', 'btn-primary')}
+      ${knopf('erinnern-teilen', 'Anders öffnen', 'btn-ghost')}
+    </div>
+    <p class="klein">Abends ist meist besser als morgens: Dann liegt der Tag
+    hinter dir und du trägst ihn ein, statt ihn vorherzusagen.</p>
+    <p class="klein">Zwei Ehrlichkeiten dazu. <b>Es ist ein Kalendereintrag,
+    keine Funktion dieser App</b> – wer ihn löscht oder verschiebt, ändert damit
+    die Erinnerung, und die App merkt davon nichts: Sie kann in deinen Kalender
+    nicht hineinsehen. Und <b>eine echte Push-Nachricht gibt es hier bewusst
+    nicht</b>: Die bräuchte einen Server, der sie verschickt, und eine Kennung
+    deines Geräts, die dort liegt. Beides gibt es in dieser App nicht, und
+    genau deshalb kann dein Tagebuch nirgendwo landen.</p>
+  </div>`;
+}
+
 function gewichtKarte(s) {
   const g = gewichtsBild(s.gewicht, heuteISO(), s.abnehmenGewollt);
   const letzte = (s.gewicht || []).slice(0, 6);
@@ -2354,6 +2480,8 @@ function mehrAnsicht(s) {
   ${bericht}
 
   ${gewichtKarte(s)}
+
+  ${erinnerungKarte(s)}
 
   <div class="karte">
     <h3>Arzttermine</h3>
@@ -3105,6 +3233,34 @@ const AKTION = {
     zeichne();
   },
   'plan-alt-weg': (el) => { store.planLoeschen(el.dataset.id); zeichne(); },
+
+  'erinnern-zeit': (el) => { ui.erinnerungZeit = el.dataset.z; zeichne(); },
+  'erinnern-datei': () => {
+    datenAusgeben(erinnerungsTermin(ui.erinnerungZeit || '20:00'),
+      KALENDER_NAME, 'text/calendar;charset=utf-8');
+    melden('Datei erzeugt – dein Kalender fragt gleich, ob er sie übernehmen soll.');
+  },
+  /*
+   * Der zweite Weg, und er ist kein Beiwerk: In einer eingebetteten Fassung
+   * unterbindet der Rahmen jeden Download, den die Seite selbst auslöst –
+   * derselbe Grund, aus dem es die Sicherung auch als Text gibt. Dann ist das
+   * Teilen-Menü der einzige Ausgang.
+   */
+  'erinnern-teilen': async () => {
+    const text = erinnerungsTermin(ui.erinnerungZeit || '20:00');
+    try {
+      const datei = new File([text], KALENDER_NAME, { type: 'text/calendar' });
+      if (navigator.canShare && navigator.canShare({ files: [datei] })) {
+        await navigator.share({ files: [datei], title: 'Bauchbuch – Erinnerung' });
+        return;
+      }
+      throw new Error('kein Teilen von Dateien');
+    } catch {
+      // Auch das kann scheitern (abgebrochen, nicht erlaubt) – dann bleibt der
+      // gewöhnliche Weg, und der wird hier genannt statt verschwiegen.
+      melden('Das Teilen ging nicht. Nimm „In den Kalender legen".');
+    }
+  },
 
   'tag-blaettern': (el) => {
     ui.tag = plusTage(ui.tag, Number(el.dataset.d));

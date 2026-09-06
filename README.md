@@ -87,7 +87,8 @@ Eintragungen, nicht in ihnen, und tauchen in keiner Auswertung auf.
 
 **Mehr.** Sicherung als JSON-Datei und zurück – **wahlweise mit Passwort
 verschlüsselt** (siehe unten) –, der Bericht für den Arzttermin, die
-**Arzttermine** selbst, das **Gewicht** (siehe unten), die Übersicht „Was die
+**Arzttermine** selbst, das **Gewicht** (siehe unten), die **tägliche
+Erinnerung** als Kalendereintrag (siehe unten), die Übersicht „Was die
 Mittel bewirken", seit wann die Beschwerden bestehen, die Einstellungen der
 Auswertung, welche Tagesfragen erscheinen sollen, eigene Auslöser, Ton, vier
 Farbvarianten.
@@ -372,6 +373,82 @@ Vier Regeln halten das davon ab, Kaffeesatzleserei zu werden:
 
 Was dabei herauskommt, ist eine Häufigkeit. Die App stellt keine Diagnose und
 ersetzt keine ärztliche Beratung.
+
+### Die ersten Wochen: einmal „noch nicht" statt zehnmal
+
+Am fünften Tag hatte der Muster-Reiter **über neuntausend Zeichen**, und fast
+alles davon war eine Absage: *noch nichts Belastbares · fehlt noch Material · ab
+etwa zwei Wochen · noch keine Klasse mit genug Fällen · zu wenige · zählt noch*.
+Zehn Karten hintereinander, die alle dasselbe sagten.
+
+Jede einzelne war richtig. Zusammen waren sie die wirksamste Art, jemanden das
+Eintragen aufgeben zu lassen — und zwar genau in den Wochen, die über alles
+Weitere entscheiden. Weiter oben steht der Satz, der das ganze Projekt trägt:
+*Das größte Risiko für ein Tagebuch ist nicht ein Fehler in der Auswertung,
+sondern dass nach drei Wochen niemand mehr etwas einträgt.* Genau dagegen
+arbeitete dieser Reiter.
+
+`js/anfang.js` macht daraus **eine** Auskunft, in die andere Richtung
+formuliert: nicht „dafür reicht es noch nicht", sondern „dafür fehlen noch vier
+Tage". Ein Block mit den vier Schwellen und ihrem Stand, darüber genau *eine*
+nächste — eine Liste aus vier Entfernungen wäre wieder nur eine Wand. Aus 9.338
+Zeichen werden 1.881.
+
+Drei Dinge ändern sich dabei ausdrücklich **nicht**:
+
+* **Die Schwellen.** Es wird nichts früher behauptet. Der Test prüft eigens,
+  dass in der Frühphase weder eine Einordnung noch ein erfülltes Kriterium noch
+  ein auffälliger Auslöser auftaucht.
+* **Die Zahlen.** Statt „fehlt noch Material" steht jetzt „5 von 10 notierten
+  Tagen, 5 von 5 Eintragungen zu Beschwerden". Das ist nachprüfbarer als vorher,
+  nicht weniger.
+* **Die Warnzeichen.** Die haben keine Fallzahl und keine Frühphase. Ein
+  einziges Mal Blut ist ein einziges Mal zu viel, auch am zweiten Tag. Eine
+  eigene Prüfung stellt sicher, dass die Kürzung sie nicht mitgenommen hat —
+  sonst hätte diese Verbesserung ausgerechnet den Teil beschädigt, bei dem es
+  auf Stunden ankommt.
+
+Dazu der Satz, der den Block ehrlich hält: *Das sind keine Punkte zum Sammeln,
+sondern die Fallzahlen, die eine Aussage braucht.*
+
+### Die Erinnerung: warum sie im Kalender steht und nicht in der App
+
+Das Wichtigste an einem Tagebuch ist nicht die Auswertung, sondern dass es
+geführt wird. Eine Erinnerung bringt damit messbar mehr als jede weitere
+Rechnung — und ausgerechnet sie kollidiert mit der Zusage dieser App.
+
+Denn eine Benachrichtigung, die ankommt, während die App geschlossen ist,
+braucht auf dem iPhone die Push-API. Die braucht einen **Server**, der sie
+verschickt, und eine **Kennung des Geräts**, die dort liegt. Beides gibt es hier
+nicht und soll es nicht geben; „kein Server" ist keine Sparmaßnahme, sondern der
+Grund, warum das Tagebuch nirgendwo landen kann.
+
+Also der Kalender, den das Telefon ohnehin hat. `js/kalender.js` baut einen ganz
+gewöhnlichen Termineintrag nach RFC 5545 — täglich, mit Wecker —, der einmal in
+den Kalender gelegt wird. Ab da erinnert das Telefon selbst, auch offline, auch
+wenn die App monatelang nicht geöffnet wird, und ohne dass irgendwo eine
+Adresse, ein Konto oder ein Gerät vermerkt wäre.
+
+Der Termin steht bewusst **ohne Zeitzone** da (Form 1 nach RFC 5545): So ist die
+Erinnerung um 20 Uhr dort, wo das Telefon gerade steht, und klingelt im Urlaub
+nicht mitten in der Nacht. Und wer sie abends um 22 Uhr für 20 Uhr einrichtet,
+bekommt den ersten Termin auf morgen — sonst wäre er vorbei, bevor er angelegt
+ist, und es sähe aus, als funktioniere es nicht.
+
+Diese Lösung ist entweder korrekt oder wertlos: Eine `.ics`, die der Kalender
+nicht annimmt, sieht im Browser genauso aus wie eine, die er annimmt — man merkt
+es erst auf dem Telefon. `test-kalender.mjs` prüft deshalb die Kleinigkeiten, an
+denen ein Import wirklich scheitert: CRLF an jedem Zeilenende, keine Zeile über
+**75 Oktette** (ein Umlaut zählt zwei), Kommas in Textfeldern maskiert. Dabei
+fiel noch ein Fehler auf, den keine dieser Regeln abdeckt: Eine umgebrochene
+Zeile endete auf einem echten Leerzeichen. Überlebt das den Transport nicht,
+klebt „Eintragungist" zusammen — das Leerzeichen wandert jetzt an den Anfang der
+Fortsetzungszeile, wo es hinter dem Faltzeichen geschützt ist.
+
+Und die Ehrlichkeit dazu steht in der App: **Es ist ein Kalendereintrag, keine
+Funktion dieser App.** Wer ihn löscht, wird nicht mehr erinnert, und die App
+merkt davon nichts, weil sie in den Kalender nicht hineinsehen kann. Das ist die
+Kehrseite davon, dass sie auch sonst nirgends hineinsieht.
 
 ### Die Waage: die einzige Zahl, die nicht aus dem Gefühl kommt
 
@@ -942,6 +1019,9 @@ js/provokation.js   der Provokationstest mit Protokoll – nüchtern,
                     wiederholt, gegen einen Leerdurchgang
 js/stufenplan.js    Karenz, die Weiche danach, und die Wiedereinführung
                     Gruppe für Gruppe
+js/anfang.js        die ersten Wochen: was noch fehlt, einmal statt zehnmal
+js/kalender.js      die tägliche Erinnerung als Kalendereintrag – ohne
+                    Server, ohne Push
 
 tools/vorschlaege.mjs        rahmt fremden Text ein, damit er Material
                              bleibt und keine Anweisung wird
@@ -980,7 +1060,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Neununddreißig Dateien, über 850 Prüfungen, alle in einem echten Chromium. Kein
+Einundvierzig Dateien, über 900 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -1023,6 +1103,8 @@ den Rückgabewert.
 | `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
 | `test-gewicht.mjs` | fünf Prozent ungewollt sind ein Warnzeichen, dieselben fünf Prozent gewollt keines – und ein Tag, an dem nur gewogen wurde, ist kein Tag ohne Beschwerden |
+| `test-anfang.mjs` | die Frühphase ist kürzer, sagt aber genauso genau, was fehlt – und die Warnzeichen überleben die Kürzung |
+| `test-kalender.mjs` | CRLF, 75 Oktette, maskierte Kommas: eine `.ics`, die der Kalender nicht annimmt, sieht im Browser aus wie eine, die er annimmt |
 | `test-stufenplan.mjs` | eine Karenz ohne Wirkung muss den Plan beenden, nicht weiterführen – und ein fehlender erster Tag darf kein Urteil über die kleine Menge ergeben |
 | `test-provokation.mjs` | derselbe Schmerz an den Test- *und* an den Leermorgen darf nicht der Milch angelastet werden – und wer im Fenster frühstückt, hat keinen Durchgang gemacht |
 
