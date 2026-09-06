@@ -85,10 +85,29 @@ jobs:
           LESESCHLUESSEL: ${{ secrets.LESESCHLUESSEL }}
         run: node tools/vorschlaege-holen.mjs
 
+      # Liegt schon ein Entwurf offen, wird keiner angelegt.
+      #
+      # Das Gedächtnis (vorschlaege/erledigt.json) liegt auf dem Entwurfszweig
+      # und wird erst mit dem Zusammenführen Teil des Hauptzweigs. Bis dahin
+      # holt jeder Lauf dieselben Zettel erneut – und legte ohne diese Abfrage
+      # jeden Tag einen weiteren Zweig mit demselben Inhalt an. Nach einer Woche
+      # Urlaub stünden sieben gleiche Entwürfe da, und niemand sähe mehr einen
+      # davon durch.
+      - id: offen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          anzahl=$(gh pr list --state open --json headRefName \
+            --jq '[.[] | select(.headRefName | startswith("vorschlag/"))] | length')
+          echo "anzahl=$anzahl" >> "$GITHUB_OUTPUT"
+          if [ "$anzahl" != "0" ]; then
+            echo "::notice::Es liegt schon ein Entwurf aus dem Briefkasten offen. Erst den durchsehen."
+          fi
+
       # Ab hier nur noch, wenn wirklich etwas gekommen ist. Ein leerer Entwurf
       # jeden Morgen wäre der schnellste Weg, dass niemand mehr hinsieht.
       - name: Zweig anlegen
-        if: steps.holen.outputs.neu != '0'
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0'
         run: |
           git config user.name "Briefkasten"
           git config user.email "noreply@anthropic.com"
@@ -101,13 +120,13 @@ jobs:
       # Damit der Agent die Tests wirklich laufen lassen kann, statt sie zu
       # überspringen und „sieht gut aus" zu schreiben.
       - name: Testumgebung bereitstellen
-        if: steps.holen.outputs.neu != '0' && env.AGENT_AN == 'true'
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0' && env.AGENT_AN == 'true'
         run: |
           npm ci
           npx playwright install --with-deps chromium
 
       - name: Kleine Sachen gleich umsetzen
-        if: steps.holen.outputs.neu != '0' && env.AGENT_AN == 'true'
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0' && env.AGENT_AN == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -154,15 +173,33 @@ jobs:
             --allowedTools "Read,Glob,Grep,Edit,Write,Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(python3:*),Bash(git:*)"
 
       - name: Entwurf anlegen
-        if: steps.holen.outputs.neu != '0'
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0'
         env:
           GH_TOKEN: ${{ github.token }}
+          ZWEIG: ${{ steps.zweig.outputs.name }}
         run: |
-          gh pr create --draft \
-            --base main --head "${{ steps.zweig.outputs.name }}" \
+          # Der eine Fehler, der hier erwartbar ist und den die nackte
+          # GraphQL-Meldung nicht erklärt: Eine Action darf standardmäßig keine
+          # Pull Requests anlegen. Das ist eine Checkbox, kein Programmfehler –
+          # also steht hier, wo sie ist, statt einer Zeile, die niemandem hilft.
+          if ! gh pr create --draft \
+            --base main --head "$ZWEIG" \
             --title "Vorschläge aus dem Briefkasten (${{ steps.holen.outputs.neu }})" \
-            --body-file vorschlaege/entwurf-hinweis.md
+            --body-file vorschlaege/entwurf-hinweis.md 2> fehler.txt
+          then
+            cat fehler.txt
+            if grep -q "not permitted to create or approve pull requests" fehler.txt; then
+              echo "::error::Die Zettel sind abgeholt und liegen im Zweig $ZWEIG – nur den Entwurf darf diese Action nicht anlegen. Einmal einschalten: Settings -> Actions -> General -> Workflow permissions -> Haken bei 'Allow GitHub Actions to create and approve pull requests'. Bis dahin von Hand: https://github.com/${{ github.repository }}/pull/new/$ZWEIG"
+            fi
+            exit 1
+          fi
 
       - name: Nichts Neues
         if: steps.holen.outputs.neu == '0'
         run: echo "Keine neuen Zettel. Kein Entwurf angelegt."
+
+      - name: Entwurf liegt schon offen
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl != '0'
+        run: |
+          echo "Es liegen ${{ steps.offen.outputs.anzahl }} Entwürfe aus dem Briefkasten offen."
+          echo "Solange die nicht durchgesehen sind, kommt kein weiterer dazu."
