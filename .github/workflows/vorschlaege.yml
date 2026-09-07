@@ -40,10 +40,19 @@
 name: Vorschläge
 
 on:
+  # Der Kasten stößt selbst an, sobald ein Zettel ankommt – dann steht der
+  # Entwurf nach einer Minute statt nach bis zu einem Tag. Wer eine Idee hat
+  # und wochenlang nichts davon hört, hat die letzte gehabt.
+  #
+  # Dafür braucht der Kasten einen Schlüssel, der ausschließlich
+  # „Actions: write" auf diesem Repository kann (siehe seine README). Fehlt er,
+  # bleibt es beim Zeitplan darunter: langsamer, aber es funktioniert. Der
+  # Anstoß trägt nichts als sein eigenes Kommen – der Inhalt wird weiterhin
+  # unten mit dem Leseschlüssel geholt.
+  repository_dispatch:
+    types: [zettel]
   schedule:
-    # Täglich früh. Öfter brächte nichts – Vorschläge kommen nicht im
-    # Minutentakt, und ein Entwurf, der dreimal am Tag aufgeht, wird nicht
-    # dreimal gelesen.
+    # Der Boden, falls der Anstoß nicht ankommt oder nicht eingerichtet ist.
     - cron: '17 5 * * *'
   workflow_dispatch:
 
@@ -102,10 +111,44 @@ jobs:
         run: |
           anzahl=$(gh pr list --state open --json headRefName \
             --jq '[.[] | select(.headRefName | startswith("vorschlag/"))] | length')
+          nummer=$(gh pr list --state open --json number,headRefName \
+            --jq 'first(.[] | select(.headRefName | startswith("vorschlag/")) | .number) // empty')
           echo "anzahl=$anzahl" >> "$GITHUB_OUTPUT"
+          echo "nummer=$nummer" >> "$GITHUB_OUTPUT"
           if [ "$anzahl" != "0" ]; then
             echo "::notice::Es liegt schon ein Entwurf aus dem Briefkasten offen. Erst den durchsehen."
           fi
+
+      # Liegt schon einer offen, entsteht kein zweiter – und damit käme für
+      # neue Zettel auch keine Meldung mehr. Genau das war der Sinn der Sache:
+      # zu erfahren, dass etwas dasteht. Deshalb hier eine Notiz am offenen
+      # Entwurf, an der GitHub eine Benachrichtigung hängt.
+      #
+      # Nur wenn sich die Zahl geändert hat. Ohne diese Bedingung schriebe der
+      # tägliche Lauf jeden Morgen dieselbe Zeile an denselben Entwurf, bis
+      # niemand mehr hinsieht – wogegen das Ganze ja gerade helfen soll.
+      - name: Am offenen Entwurf Bescheid sagen
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEU: ${{ steps.holen.outputs.neu }}
+          NR: ${{ steps.offen.outputs.nummer }}
+        run: |
+          marke="<!-- briefkasten-stand:$NEU -->"
+          if gh pr view "$NR" --json comments \
+              --jq '.comments[].body' | grep -qF "$marke"; then
+            echo "::notice::Der Stand ($NEU) steht schon am Entwurf."
+            exit 0
+          fi
+          gh pr comment "$NR" --body "$marke
+          Im Briefkasten liegen **$NEU Vorschläge**, die hier noch nicht drin sind.
+
+          Sie kommen erst mit dem nächsten Entwurf dazu – und der entsteht erst,
+          wenn dieser hier zusammengeführt oder geschlossen ist. Das ist Absicht:
+          Sonst stünden nach einer Woche sieben Entwürfe nebeneinander und
+          niemand sähe mehr einen davon durch.
+
+          _Automatisch vom Ablauf „Vorschläge"._"
 
       # Ab hier nur noch, wenn wirklich etwas gekommen ist. Ein leerer Entwurf
       # jeden Morgen wäre der schnellste Weg, dass niemand mehr hinsieht.

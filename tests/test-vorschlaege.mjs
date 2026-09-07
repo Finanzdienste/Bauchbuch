@@ -217,4 +217,38 @@ check(
   'und prüft, bevor ein Entwurf angelegt wird – nicht danach',
 );
 
+/*
+ * Der Rückkanal muss auch ohne den Kasten funktionieren.
+ *
+ * Seit der Briefkasten den Ablauf selbst anstoßen kann, steht der Entwurf nach
+ * einer Minute statt nach bis zu einem Tag. Das hängt aber an einem Schlüssel,
+ * der im Kasten liegen muss – fehlt er, ist er abgelaufen oder ist GitHub
+ * gerade nicht erreichbar, darf der Weg nicht stillstehen. Der Zeitplan ist
+ * der Boden darunter und muss stehen bleiben. Dieselbe Bauart wie beim Agenten:
+ * Der Teil, der zuverlässig laufen muss, hängt nicht am Teil, der schnell ist.
+ */
+check(
+  /repository_dispatch:\s*\n\s*types:\s*\[zettel\]/.test(ablauf),
+  'der Ablauf lässt sich vom Briefkasten anstoßen',
+);
+check(
+  /cron: '[^']+'/.test(ablauf),
+  'und der Zeitplan bleibt als Boden darunter stehen',
+);
+
+/*
+ * Und die Lücke, die dabei fast entstanden wäre: Liegt schon ein Entwurf
+ * offen, legt der Ablauf mit Absicht keinen zweiten an – dann käme für neue
+ * Zettel aber auch keine Meldung mehr, und genau darum ging es ja. Also eine
+ * Notiz am offenen Entwurf, an der GitHub eine Benachrichtigung hängt.
+ */
+check(
+  /gh pr comment/.test(ablauf),
+  'liegt schon ein Entwurf offen, wird dort Bescheid gesagt',
+);
+check(
+  /briefkasten-stand:/.test(ablauf) && /grep -qF/.test(ablauf),
+  'aber nur bei geänderter Zahl – sonst schriebe der tägliche Lauf jeden Morgen dasselbe',
+);
+
 ende();
