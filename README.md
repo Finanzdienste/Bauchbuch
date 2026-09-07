@@ -1164,10 +1164,25 @@ dafür einen Grund gibt.
 
 Was Amy unter „Ideen" einträgt, geht von selbst in den
 [Briefkasten](https://github.com/Finanzdienste/Briefkasten). Von dort holt es
-ein täglicher Ablauf (`.github/workflows/vorschlaege.yml`) ab und macht daraus
-einen **Entwurf** — einen Draft-Pull-Request mit den Zetteln, und, wenn ein
+ein Ablauf (`.github/workflows/vorschlaege.yml`) ab und macht daraus einen
+**Entwurf** — einen Draft-Pull-Request mit den Zetteln, und, wenn ein
 `ANTHROPIC_API_KEY` hinterlegt ist, mit den kleinen und eindeutigen Sachen
 gleich umgesetzt.
+
+**Wann er läuft, entscheidet der Kasten.** Ist er dafür eingerichtet, stößt er
+den Ablauf an, sobald ein Zettel ankommt (`repository_dispatch`), und der
+Entwurf steht nach einer Minute statt nach bis zu einem Tag — an dem Entwurf
+hängt dann auch die Benachrichtigung, die einen überhaupt hinsehen lässt. Wer
+eine Idee hat und wochenlang nichts davon hört, hat die letzte gehabt. Der
+tägliche Zeitplan bleibt als Boden darunter stehen: Dieselbe Bauart wie beim
+Agenten — der Teil, der zuverlässig laufen muss, hängt nicht am Teil, der
+schnell ist. Was dabei aus dem Kasten hinausgeht, ist die bloße Tatsache, dass
+etwas angekommen ist; der Inhalt nimmt weiter den alten Weg.
+
+Liegt schon ein Entwurf offen, entsteht mit Absicht kein zweiter — sonst
+stünden nach einer Woche sieben nebeneinander. Damit die Meldung darüber nicht
+verlorengeht, schreibt der Ablauf sie stattdessen als Notiz an den offenen
+Entwurf, und auch nur dann, wenn sich die Zahl geändert hat.
 
 **Zusammengeführt wird nichts automatisch, und das ist die ganze Idee.** Der
 Kasten nimmt Text von jedem an, der die Adresse kennt. Ein Agent mit
