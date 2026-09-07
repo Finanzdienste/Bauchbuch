@@ -228,12 +228,32 @@ check(
  * Der Teil, der zuverlässig laufen muss, hängt nicht am Teil, der schnell ist.
  */
 check(
-  /repository_dispatch:\s*\n\s*types:\s*\[zettel\]/.test(ablauf),
-  'der Ablauf lässt sich vom Briefkasten anstoßen',
+  /^\s*workflow_dispatch:/m.test(ablauf),
+  'der Ablauf lässt sich von außen anstoßen',
 );
 check(
   /cron: '[^']+'/.test(ablauf),
   'und der Zeitplan bleibt als Boden darunter stehen',
+);
+/*
+ * Und ausdrücklich *nicht* über `repository_dispatch`. Das wäre der
+ * naheliegende Auslöser – er heißt sogar so –, aber ein fein eingestellter
+ * Schlüssel braucht dafür Schreibrecht auf den Code. Der Schlüssel liegt in
+ * einem Kasten unter öffentlicher Adresse; was er im Verlustfall anrichten
+ * kann, entscheidet hier und nicht die Eleganz des Namens.
+ */
+/*
+ * Kommentare dürfen erklären, was der Ablauf *nicht* tut – und hier steht
+ * genau das: warum nicht repository_dispatch. Geprüft wird deshalb der
+ * Ablauf ohne seine Kommentarzeilen. (Dieselbe Unterscheidung wie im Wächter
+ * des Briefkastens; sie ist mir beim ersten Versuch durchgerutscht und die
+ * Prüfung schlug auf ihre eigene Begründung an.)
+ */
+const ohneKommentar = ablauf.split('\n')
+  .filter((z) => !z.trim().startsWith('#')).join('\n');
+check(
+  !/repository_dispatch/.test(ohneKommentar),
+  'und nicht über repository_dispatch, das einen Schlüssel mit Schreibrecht auf den Code verlangte',
 );
 
 /*

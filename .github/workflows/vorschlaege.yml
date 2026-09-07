@@ -40,20 +40,24 @@
 name: Vorschläge
 
 on:
-  # Der Kasten stößt selbst an, sobald ein Zettel ankommt – dann steht der
-  # Entwurf nach einer Minute statt nach bis zu einem Tag. Wer eine Idee hat
-  # und wochenlang nichts davon hört, hat die letzte gehabt.
-  #
-  # Dafür braucht der Kasten einen Schlüssel, der ausschließlich
-  # „Actions: write" auf diesem Repository kann (siehe seine README). Fehlt er,
-  # bleibt es beim Zeitplan darunter: langsamer, aber es funktioniert. Der
-  # Anstoß trägt nichts als sein eigenes Kommen – der Inhalt wird weiterhin
-  # unten mit dem Leseschlüssel geholt.
-  repository_dispatch:
-    types: [zettel]
   schedule:
-    # Der Boden, falls der Anstoß nicht ankommt oder nicht eingerichtet ist.
+    # Der Boden, falls der Anstoß von außen nicht ankommt oder gar nicht
+    # eingerichtet ist.
     - cron: '17 5 * * *'
+
+  # Von Hand – und vom Briefkasten, sobald dort ein Zettel ankommt. Dann steht
+  # der Entwurf nach einer Minute statt nach bis zu einem Tag; wer eine Idee
+  # hat und wochenlang nichts davon hört, hat die letzte gehabt.
+  #
+  # Dass der Kasten ausgerechnet *diesen* Auslöser benutzt und nicht
+  # `repository_dispatch`, hat einen Grund, der nicht hier steht, sondern in
+  # seinem Schlüssel: Ein fein eingestellter Schlüssel braucht für
+  # `repository_dispatch` Schreibrecht auf den Code (Contents: write), für
+  # diesen hier nur „Actions: write". Der Kasten ist eine öffentliche Adresse –
+  # da entscheidet, was ein verlorener Schlüssel anrichten könnte.
+  #
+  # Der Anstoß trägt nichts als sein eigenes Kommen. Den Inhalt holt der
+  # Schritt „holen" weiter unten mit dem Leseschlüssel.
   workflow_dispatch:
 
 # Weniger geht nicht: Der Zweig muss geschrieben und der Entwurf angelegt
