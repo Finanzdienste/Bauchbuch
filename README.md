@@ -1170,7 +1170,7 @@ ein Ablauf (`.github/workflows/vorschlaege.yml`) ab und macht daraus einen
 gleich umgesetzt.
 
 **Wann er läuft, entscheidet der Kasten.** Ist er dafür eingerichtet, stößt er
-den Ablauf an, sobald ein Zettel ankommt (`repository_dispatch`), und der
+den Ablauf an, sobald ein Zettel ankommt, und der
 Entwurf steht nach einer Minute statt nach bis zu einem Tag — an dem Entwurf
 hängt dann auch die Benachrichtigung, die einen überhaupt hinsehen lässt. Wer
 eine Idee hat und wochenlang nichts davon hört, hat die letzte gehabt. Der
@@ -1178,6 +1178,17 @@ tägliche Zeitplan bleibt als Boden darunter stehen: Dieselbe Bauart wie beim
 Agenten — der Teil, der zuverlässig laufen muss, hängt nicht am Teil, der
 schnell ist. Was dabei aus dem Kasten hinausgeht, ist die bloße Tatsache, dass
 etwas angekommen ist; der Inhalt nimmt weiter den alten Weg.
+
+Angestoßen wird dabei über `workflow_dispatch` und ausdrücklich **nicht** über
+`repository_dispatch`, obwohl der Auslöser genau dafür gemacht ist und sogar so
+heißt. Der Grund steht nicht im Ablauf, sondern im Schlüssel, den der Kasten
+dafür braucht: Für `repository_dispatch` verlangt GitHub von einem fein
+eingestellten Schlüssel `Contents: write`, also Schreibrecht auf den Code. Der
+Kasten ist eine öffentliche Adresse — dort entscheidet, was ein verlorener
+Schlüssel anrichten könnte, und nicht, welcher Auslöser den passenderen Namen
+hat. Über den Umweg reicht `Actions: write`, und der schlimmste Fall ist dann,
+dass jemand diesen einen Ablauf startet. Eine Prüfung hält fest, dass es dabei
+bleibt.
 
 Liegt schon ein Entwurf offen, entsteht mit Absicht kein zweiter — sonst
 stünden nach einer Woche sieben nebeneinander. Damit die Meldung darüber nicht
