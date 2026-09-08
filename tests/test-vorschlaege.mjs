@@ -271,4 +271,23 @@ check(
   'aber nur bei geänderter Zahl – sonst schriebe der tägliche Lauf jeden Morgen dasselbe',
 );
 
+/*
+ * Und die Meldung muss beim Menschen ankommen, nicht nur bei GitHub liegen.
+ *
+ * Das war beinahe der Fehler, der den ganzen Rückkanal wieder wertlos gemacht
+ * hätte: GitHub verschickt nach der Voreinstellung nur, woran jemand
+ * *beteiligt* ist. Ein Entwurf, den ein Bot in einem beobachteten Repository
+ * aufmacht, fällt nicht darunter – er stünde da und niemand erführe es. Eine
+ * Zuweisung und eine @-Nennung gehen dagegen auch bei der vorsichtigsten
+ * Einstellung durch und brauchen beim Empfänger gar nichts.
+ */
+check(
+  /--assignee "\$\{\{ github\.repository_owner \}\}"/.test(ablauf),
+  'der Entwurf wird dem zugewiesen, dem das Repository gehört',
+);
+check(
+  /@\$\{\{ github\.repository_owner \}\}/.test(ablauf),
+  'und die Notiz am offenen Entwurf nennt ihn beim Namen',
+);
+
 ende();
