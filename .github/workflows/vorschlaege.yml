@@ -144,8 +144,12 @@ jobs:
             echo "::notice::Der Stand ($NEU) steht schon am Entwurf."
             exit 0
           fi
+          # Mit @-Nennung, aus demselben Grund wie die Zuweisung oben: Eine
+          # Erwähnung geht auch bei der vorsichtigsten Benachrichtigungs-
+          # einstellung durch, ein Kommentar in einem beobachteten Repository
+          # nicht unbedingt.
           gh pr comment "$NR" --body "$marke
-          Im Briefkasten liegen **$NEU Vorschläge**, die hier noch nicht drin sind.
+          @${{ github.repository_owner }} — im Briefkasten liegen **$NEU Vorschläge**, die hier noch nicht drin sind.
 
           Sie kommen erst mit dem nächsten Entwurf dazu – und der entsteht erst,
           wenn dieser hier zusammengeführt oder geschlossen ist. Das ist Absicht:
@@ -256,8 +260,16 @@ jobs:
           # GraphQL-Meldung nicht erklärt: Eine Action darf standardmäßig keine
           # Pull Requests anlegen. Das ist eine Checkbox, kein Programmfehler –
           # also steht hier, wo sie ist, statt einer Zeile, die niemandem hilft.
+          # Zugewiesen an den, dem das Repository gehört – und das ist keine
+          # Ordnungsliebe, sondern der Unterschied zwischen „die Meldung liegt
+          # bei GitHub" und „sie kommt an". GitHub schickt nach der
+          # Voreinstellung nur, woran man beteiligt ist; ein Entwurf, den ein
+          # Bot in einem beobachteten Repository aufmacht, fällt nicht darunter.
+          # Eine Zuweisung schon, und die braucht keine Einstellung beim
+          # Empfänger.
           if ! gh pr create --draft \
             --base main --head "$ZWEIG" \
+            --assignee "${{ github.repository_owner }}" \
             --title "Vorschläge aus dem Briefkasten (${{ steps.holen.outputs.neu }})" \
             --body-file vorschlaege/entwurf-hinweis.md 2> fehler.txt
           then

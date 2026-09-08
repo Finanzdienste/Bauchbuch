@@ -1195,6 +1195,15 @@ stünden nach einer Woche sieben nebeneinander. Damit die Meldung darüber nicht
 verlorengeht, schreibt der Ablauf sie stattdessen als Notiz an den offenen
 Entwurf, und auch nur dann, wenn sich die Zahl geändert hat.
 
+**Und sie muss beim Menschen ankommen, nicht bloß bei GitHub liegen.** Das war
+beinahe der Fehler, der den ganzen schnellen Weg wieder wertlos gemacht hätte:
+GitHub verschickt nach der Voreinstellung nur, woran jemand *beteiligt* ist —
+ein Entwurf, den ein Bot in einem beobachteten Repository aufmacht, fällt nicht
+darunter. Er stünde da, und niemand erführe es. Deshalb wird der Entwurf dem
+zugewiesen, dem das Repository gehört, und die Notiz am offenen Entwurf nennt
+ihn mit `@`. Beides geht auch bei der vorsichtigsten Einstellung durch und
+verlangt beim Empfänger keine.
+
 **Zusammengeführt wird nichts automatisch, und das ist die ganze Idee.** Der
 Kasten nimmt Text von jedem an, der die Adresse kennt. Ein Agent mit
 Schreibrecht, der solchem Text folgt, ist keine Bequemlichkeit, sondern eine
