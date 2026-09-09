@@ -33,3 +33,14 @@ Bauchbuch – Ideen und Verbesserungsvorschläge
 
 Im Tagesbogen fehlt ein Knopf für Wasser
 ```
+
+## Der Agent ist nicht durchgekommen
+
+Stufe 2 ist gescheitert – **hier ist nichts umgesetzt**, die
+Zettel stehen nur als Liste da. Das ist Absicht des Ablaufs:
+Der Eingang hängt nicht daran, ob ein Modell erreichbar ist.
+
+Woran es lag, steht im [Protokoll dieses Laufs](https://github.com/Finanzdienste/Bauchbuch/actions/runs/34397862830).
+Häufigster Grund ist ein abgelehnter Schlüssel:
+`CLAUDE_CODE_OAUTH_TOKEN` abgelaufen oder unvollständig
+eingetragen, oder `ANTHROPIC_API_KEY` ohne Guthaben.
