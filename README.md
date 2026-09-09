@@ -1166,9 +1166,9 @@ dafür einen Grund gibt.
 Was Amy unter „Ideen" einträgt, geht von selbst in den
 [Briefkasten](https://github.com/Finanzdienste/Briefkasten). Von dort holt es
 ein Ablauf (`.github/workflows/vorschlaege.yml`) ab und macht daraus einen
-**Entwurf** — einen Draft-Pull-Request mit den Zetteln, und, wenn ein
-`ANTHROPIC_API_KEY` hinterlegt ist, mit den kleinen und eindeutigen Sachen
-gleich umgesetzt.
+**Entwurf** — einen Draft-Pull-Request mit den Zetteln, und, wenn ein Schlüssel
+für ein Modell hinterlegt ist, mit den kleinen und eindeutigen Sachen gleich
+umgesetzt.
 
 **Wann er läuft, entscheidet der Kasten.** Ist er dafür eingerichtet, stößt er
 den Ablauf an, sobald ein Zettel ankommt, und der
@@ -1245,10 +1245,37 @@ mehr geprüft, sondern nur noch behauptet. Drei Dinge stehen dagegen:
    etwas steht, das sich wie eine Anweisung an ein Programm liest.
 
 Ohne die beiden Secrets `BRIEFKASTEN` und `LESESCHLUESSEL` tut der Ablauf
-nichts und sagt das ruhig. Ohne `ANTHROPIC_API_KEY` bleibt es bei Stufe 1: Die
+nichts und sagt das ruhig. Ohne Modellschlüssel bleibt es bei Stufe 1: Die
 Zettel kommen an, umgesetzt wird von Hand. Das ist Absicht — der Teil, der
 zuverlässig laufen muss, hängt nicht daran, ob gerade ein Modell erreichbar
 ist.
+
+### Stufe 2 freischalten — zwei Wege, einer davon ohne zusätzliche Kosten
+
+Der Ablauf nimmt **eines von beiden** Secrets; gesetzt sein muss nur eines:
+
+| Secret | Was es kostet |
+|---|---|
+| `ANTHROPIC_API_KEY` | wird je Lauf abgerechnet, braucht API-Guthaben |
+| `CLAUDE_CODE_OAUTH_TOKEN` | läuft über ein vorhandenes Claude-Abo, keine zweite Rechnung |
+
+Der zweite Weg braucht einmal einen **Rechner mit installiertem Claude Code** —
+vom Telefon aus geht er nicht. Dort einmal
+
+```
+claude setup-token
+```
+
+ausführen; der ausgegebene Wert kommt unter *Settings → Secrets and variables →
+Actions → New repository secret* als `CLAUDE_CODE_OAUTH_TOKEN` in dieses
+Verzeichnis. Der Wert gehört ausschließlich dorthin — nicht in eine Nachricht,
+nicht in eine Datei, nicht in einen Kommentar.
+
+**Was der Agent auch dann nicht darf:** zusammenführen. Er schreibt in einen
+Zweig und legt einen Entwurf an, mehr nicht. Der Kasten nimmt Text von jedem
+entgegen, der die Adresse kennt; dieser Text steuert dann ein Programm, das
+Code schreiben darf. Dass am Ende ein Mensch draufsieht, ist nicht Bequemlichkeit,
+sondern die einzige Stelle, an der eine als Idee getarnte Anweisung auffällt.
 
 ## Herkunft
 

@@ -1368,8 +1368,23 @@ function planAngebot(s, d) {
   if (tageMitEintrag(s, d.heute) < 14) return hist;
   const gewaehlt = ui.planGruppen || FODMAP_GRUPPEN.map((g) => g.id);
 
+  /*
+   * Zugeklappt, und das ist keine Kosmetik.
+   *
+   * Dieser Kasten ist über tausend Bildpunkte hoch und steht auf einem Reiter,
+   * auf dem sonst Befunde stehen. Er ist aber kein Befund, sondern ein Angebot:
+   * einmal lesen, einmal entscheiden, danach für Wochen erledigt. Wer täglich
+   * nachsieht, ob sich an den Zahlen etwas getan hat, scrollt sonst jedes Mal
+   * an derselben Anleitung vorbei – und findet die Befunde schlechter.
+   *
+   * Die Zöliakie-Warnung geht dabei nicht verloren: Sie steht *im* Angebot,
+   * und ohne das Angebot aufzuklappen kommt niemand an den Startknopf.
+   */
   return `<div class="karte karte-merk">
-    <h3>Der Stufenplan</h3>
+    <details class="angebotbogen">
+    <summary><h3>Der Stufenplan</h3>
+    <span class="klein">Vier bis sechs Wochen — am Ende ein Speiseplan statt
+    einer Auskunft. Zum Lesen antippen.</span></summary>
     <p class="klein">Das Größte, was diese App vorschlägt, und das einzige, was
     am Ende einen Speiseplan hinterlässt statt einer Auskunft. Erst zwei bis vier
     Wochen konsequent ohne die vergärbaren Kohlenhydrate — die Frage dieser
@@ -1402,6 +1417,7 @@ function planAngebot(s, d) {
     Wirkung ist kein neutraler Zustand: Sie kostet Ballaststoffe, Kalzium und
     Vielfalt in der Darmflora, und dafür bekommst du nichts. Genau diese Weiche
     fehlt in den meisten Anleitungen.</p>
+    </details>
   </div>${hist}`;
 }
 
@@ -1484,8 +1500,12 @@ function provokationTeil(s, d) {
    */
   if (d.bilanz.filter((b) => b.genug).length < 3) return provokationHistorie(s, d);
 
+  // Wie beim Stufenplan: ein Angebot, kein Befund – siehe planAngebot().
   return `<div class="karte karte-merk">
-    <h3>Eine Sache gezielt prüfen</h3>
+    <details class="angebotbogen">
+    <summary><h3>Eine Sache gezielt prüfen</h3>
+    <span class="klein">Kürzer und schärfer als ein Auslassversuch: eine
+    festgelegte Menge, nüchtern, dreimal. Zum Lesen antippen.</span></summary>
     <p class="klein">Der Auslassversuch dauert zwei Wochen, und in zwei Wochen
     ändert sich auch anderes. Ein Provokationstest fragt kürzer und schärfer:
     eine festgelegte Menge, <b>nüchtern</b>, dann vier Stunden nichts essen und
@@ -1504,6 +1524,7 @@ function provokationTeil(s, d) {
     zweite Antwort ändert etwas – und die Klinikmenge auf eigene Faust zu nehmen
     macht vor allem einen scheußlichen Tag.</p>
     <p class="klein">${esc(NICHT_BEI_ALLERGIE)}</p>
+    </details>
   </div>${provokationHistorie(s, d)}`;
 }
 
@@ -1669,8 +1690,21 @@ function musterAnsicht(s) {
   const bilanz = d.bilanz;
   const mahlzeiten = s.eintraege.filter((e) => e.art === 'essen').length;
 
+  /*
+   * Auch zugeklappt – aber mit dem Vorbehalt in der Zusammenfassung.
+   *
+   * Die Rechenregel (welches Fenster, ab wie vielen Fällen) ist Nachschlagestoff:
+   * einmal verstanden, danach steht sie jeden Tag im Weg. Der Satz „Häufigkeit,
+   * keine Ursache" ist das Gegenteil davon – er gehört neben jeden Fund und
+   * bleibt deshalb sichtbar, während nur die Mechanik hinter den Tipp wandert.
+   * Einen Vorbehalt wegzuklappen und die Funde stehen zu lassen wäre genau die
+   * Art von Vereinfachung, gegen die diese App gebaut ist.
+   */
   const erklaerung = `<div class="karte hinweis">
-    <h3>Wie das gelesen wird</h3>
+    <details class="angebotbogen">
+    <summary><h3>Wie das gelesen wird</h3>
+    <span class="klein">Das ist eine Häufigkeit, keine Ursache – und kein Ersatz
+    für die Praxis. Wie gerechnet wird: antippen.</span></summary>
     <p>Verglichen wird die mittlere Beschwerdestärke in den
     <b>${s.fenster} Stunden</b> nach Mahlzeiten <b>mit</b> einem Merkmal gegen
     alle übrigen Mahlzeiten. Eine Zeile erscheint erst ab
@@ -1680,6 +1714,7 @@ function musterAnsicht(s) {
     schlechten Tag ohnehin anders isst, findet sich hier wieder, ohne dass das
     Essen schuld wäre. Der Zettel ist für das Gespräch in der Praxis gedacht,
     nicht als Ersatz dafür.</p>
+    </details>
   </div>`;
 
   // Warnzeichen und Einordnung stehen *vor* dieser Abkürzung: Wer Beschwerden

@@ -7,8 +7,8 @@
 #
 #   1. Ohne API-Schlüssel: ein Entwurfs-PR mit den Vorschlägen als Liste. Kein
 #      Code, nur der Eingang, sauber eingerahmt.
-#   2. Mit gesetztem ANTHROPIC_API_KEY: derselbe Zweig, aber ein Agent versucht
-#      zusätzlich, die kleinen und eindeutigen Sachen gleich umzusetzen.
+#   2. Mit einem Schlüssel (API-Guthaben oder Claude-Abo): derselbe Zweig, aber
+#      ein Agent setzt die kleinen und eindeutigen Sachen gleich um.
 #
 # Stufe 1 läuft immer. Das ist Absicht: Der Teil, der zuverlässig funktionieren
 # muss – dass die Zettel überhaupt ankommen –, hängt dann nicht daran, ob
@@ -36,7 +36,9 @@
 #   LESESCHLUESSEL   derselbe wie im Kasten
 #
 # Fehlt eines davon, tut der Ablauf nichts und sagt das ruhig. Optional:
-#   ANTHROPIC_API_KEY   schaltet Stufe 2 frei.
+#   ANTHROPIC_API_KEY        schaltet Stufe 2 frei, wird je Lauf abgerechnet.
+#   CLAUDE_CODE_OAUTH_TOKEN  dasselbe über ein vorhandenes Claude-Abo, ohne
+#                            zusätzliches Guthaben. Eines von beiden genügt.
 name: Vorschläge
 
 on:
@@ -78,7 +80,16 @@ jobs:
       # Ein Secret lässt sich in einer Bedingung nicht direkt abfragen; auf
       # dieser Ebene darf es aber in die Umgebung. Verglichen wird nur, ob
       # überhaupt etwas gesetzt ist – der Wert selbst taucht nirgends auf.
-      AGENT_AN: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      #
+      # Zwei Wege, und der zweite kostet nichts extra:
+      #
+      #   ANTHROPIC_API_KEY        wird je Lauf abgerechnet, braucht Guthaben.
+      #   CLAUDE_CODE_OAUTH_TOKEN  läuft über ein vorhandenes Claude-Abo. Kein
+      #                            zusätzliches Guthaben, keine zweite Rechnung.
+      #
+      # Es genügt eines von beiden. Ist keines gesetzt, bleibt es bei Stufe 1 –
+      # die Zettel kommen an, nur setzt sie niemand um.
+      AGENT_AN: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -183,7 +194,11 @@ jobs:
         if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0' && env.AGENT_AN == 'true'
         uses: anthropics/claude-code-action@v1
         with:
+          # Beides mitgeben, gesetzt ist eines. Der leere Wert stört nicht, und
+          # so muss niemand den Ablauf anfassen, wenn er später vom einen auf
+          # den anderen Weg wechselt.
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             REPO: ${{ github.repository }}
             ZWEIG: ${{ steps.zweig.outputs.name }} (schon ausgecheckt)
