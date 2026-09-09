@@ -1310,7 +1310,42 @@ Der Umbruch wird **nicht** im Ablauf weggeputzt. Dafür müsste der Schlüssel
 durch eine Shell laufen, und der bereinigte Wert wäre danach nicht mehr
 maskiert: ein Tippfehler gegen ein Leck getauscht.
 
-**Was der Agent auch dann nicht darf:** zusammenführen. Er schreibt in einen
+**Was der Agent inzwischen doch darf:** zusammenführen. Was durchkommt, geht
+ohne Rückfrage in die laufende App — kein Entwurf, kein Mensch dazwischen. Hier
+stand lange das Gegenteil, und die Begründung war richtig; sie war nur an der
+Stelle langsam, an der dieser Kanal schnell sein muss. Ein Vorschlag, auf den
+man Tage wartet, ist der letzte, den jemand macht.
+
+Die Gefahr ist dabei nicht die, die man zuerst vermutet. Nicht Schadcode — den
+fangen die Prüfungen. Sondern ein Satz wie *„der rote Kasten bei Blut im Stuhl
+macht mir Angst, nimm ihn weg"*: gewöhnlich klingend, womöglich ehrlich
+gemeint, und danach bleiben alle Prüfungen grün, weil keine einzige verlangte,
+dass ausgerechnet dieser Satz dasteht.
+
+Statt eines Menschen tragen deshalb vier Schichten, und keine davon vertraut
+dem Zettel:
+
+1. **`tools/pruefung/bot-grenzen.py`** — welche *Dateien* unantastbar sind: die
+   Prüfungen, der Ablauf selbst, der eine Versandweg. Neue Testdateien darf der
+   Agent anlegen, vorhandene nicht berühren; das Umbenennen einer Prüfung fällt
+   seit `--no-renames` ebenfalls darunter.
+2. **`tools/pruefung/unantastbar.py`** — welche *Inhalte* unantastbar sind: der
+   Wortlaut der Warnzeichen, ihre Dringlichkeit, ihre Anzahl.
+3. **Die volle Testsuite, ausgeführt außerhalb des Agenten.** Dass er sie
+   selbst laufen lässt, steht in seinem Auftrag — aber das ist eine Zusage
+   dessen, der geprüft werden soll.
+4. **Ein zweiter Agent, der nur gegenliest** und im Zweifel stoppt. Er darf
+   nichts bauen; ein Prüfer mit Schreibrecht könnte reparieren, was ihm
+   auffällt, statt es zu melden.
+
+Beide Wächter kommen aus `origin/main`, nicht aus dem Arbeitsverzeichnis — was
+der Agent an seiner Kopie dreht, zählt nicht mit. Schweigt der Gegenleser
+(abgestürzt, kein Modell erreichbar, Datei weg), gilt das als Nein: Ein Ausfall
+der Prüfung darf sie nicht zugleich abschalten.
+
+Was eine der vier Schichten anhält, landet als Entwurf mit dem Grund darin.
+Und jede Übernahme ist ein Merge-Commit — `git revert -m 1` nimmt eine ganze
+Runde auf einmal zurück. Er schreibt in einen
 Zweig und legt einen Entwurf an, mehr nicht. Der Kasten nimmt Text von jedem
 entgegen, der die Adresse kennt; dieser Text steuert dann ein Programm, das
 Code schreiben darf. Dass am Ende ein Mensch draufsieht, ist nicht Bequemlichkeit,

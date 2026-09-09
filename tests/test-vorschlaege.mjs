@@ -260,6 +260,91 @@ check(
 rmSync(zweit, { recursive: true, force: true });
 rmSync(bau, { recursive: true, force: true });
 
+/* ---------- 5c. Die Warnzeichen sind unantastbar ---------- */
+
+/*
+ * Der Wächter, den es nur gibt, weil kein Mensch mehr dazwischensteht.
+ *
+ * Vorschläge gehen ohne Rückfrage in die App. Die Gefahr dabei ist nicht
+ * Schadcode – den fangen die Prüfungen. Sie ist ein Satz wie „der rote Kasten
+ * bei Blut im Stuhl macht mir Angst, nimm ihn weg": ein gewöhnlich klingender,
+ * womöglich ehrlich gemeinter Wunsch, nach dessen Umsetzung alle 958
+ * Prüfungen grün bleiben – denn keine einzige verlangte, dass ausgerechnet
+ * dieser Satz dasteht.
+ *
+ * Jetzt verlangt es eine.
+ */
+const dritt = mkdtempSync(join(tmpdir(), 'unantastbar-'));
+const git3 = (...a) => execFileSync('git', a, { cwd: dritt, encoding: 'utf8' });
+const wacht = (zweig) => {
+  try {
+    execFileSync('python3', [join(wurzel, 'tools/pruefung/unantastbar.py'), 'basis'],
+      { cwd: dritt, encoding: 'utf8', env: { ...process.env, GITHUB_HEAD_REF: zweig } });
+    return 0;
+  } catch (e) { return e.status; }
+};
+
+git3('init', '-q', '-b', 'main');
+git3('config', 'user.email', 'test@test');
+git3('config', 'user.name', 'Test');
+mkdirSync(join(dritt, 'js'), { recursive: true });
+// Dieselbe Bauart wie js/bild.js, nur kürzer – geprüft wird der Wächter.
+const echteListe = `export const WARNZEICHEN = [
+  { id: 'teerstuhl', name: 'Schwarzer, klebriger Stuhl', dringlichkeit: 'sofort',
+    warum: 'Schwarzer Stuhl kann verdautes Blut sein.' },
+  { id: 'blutstuhl', name: 'Frisches Blut im Stuhl', dringlichkeit: 'zeitnah',
+    warum: 'Gehört abgeklärt.' },
+];
+`;
+writeFileSync(join(dritt, 'js/bild.js'), `// Kopf\n${echteListe}// Fuß\n`);
+writeFileSync(join(dritt, 'js/app.js'), '// App\n');
+git3('add', '-A');
+git3('commit', '-qm', 'Anfang');
+git3('branch', '-f', 'basis', 'HEAD');
+
+const wache = (name, tu) => {
+  git3('checkout', '-q', 'basis');
+  git3('checkout', '-qb', `vorschlag/w-${name}`);
+  tu();
+  git3('add', '-A');
+  git3('commit', '-qm', name);
+  return wacht(`vorschlag/w-${name}`);
+};
+const schreib = (t) => writeFileSync(join(dritt, 'js/bild.js'), t);
+const lies = () => readFileSync(join(dritt, 'js/bild.js'), 'utf8');
+
+check(
+  wache('anzeige', () => writeFileSync(join(dritt, 'js/app.js'), '// größerer Knopf\n')) === 0,
+  'ein Entwurf, der die Warnzeichen nicht anfasst, geht durch',
+);
+check(
+  wache('weich', () => schreib(lies().replace(
+    "name: 'Frisches Blut im Stuhl'", "name: 'Etwas Blut im Stuhl (meist harmlos)'"))) === 1,
+  'eine umformulierte Warnung wird abgewiesen',
+);
+check(
+  wache('weg', () => schreib(lies().replace(/\n  \{ id: 'blutstuhl',[\s\S]*?\},/, ''))) === 1,
+  'ein gelöschtes Warnzeichen ebenso',
+);
+check(
+  wache('leiser', () => schreib(lies().replace("dringlichkeit: 'sofort'", "dringlichkeit: 'zeitnah'"))) === 1,
+  'und eine abgeschwächte Dringlichkeit – derselbe Schaden, nur leiser',
+);
+check(
+  wache('umbenannt', () => schreib(lies().replace('export const WARNZEICHEN', 'export const HINWEISE'))) === 1,
+  'die Liste wegzubenennen fällt auf, statt als „nichts geändert" durchzugehen',
+);
+
+// Und ein Mensch darf das weiterhin – die Sperre gilt nur für Bot-Zweige.
+git3('checkout', '-q', 'basis');
+git3('checkout', '-qb', 'warnzeichen-ueberarbeiten');
+schreib(lies().replace("warum: 'Gehört abgeklärt.'", "warum: 'Gehört zeitnah abgeklärt.'"));
+git3('add', '-A');
+git3('commit', '-qm', 'menschlich');
+check(wacht('warnzeichen-ueberarbeiten') === 0, 'ein Mensch darf sie jederzeit ändern');
+
+rmSync(dritt, { recursive: true, force: true });
+
 /* ---------- 6. Und die Grenze muss im Ablauf auch wirklich vorkommen ---------- */
 
 /*
@@ -401,6 +486,100 @@ check(
 check(
   ablauf.indexOf("steps.agent.outcome == 'failure'") < ablauf.indexOf('gh pr create'),
   'und zwar bevor der Entwurf angelegt wird',
+);
+
+/* ---------- 6. Was ohne Menschen dazwischen tragen muss ---------- */
+
+/*
+ * Vorschläge gehen ohne Rückfrage in die laufende App. Das ist gewollt und
+ * verschiebt die Beweislast: Solange ein Mensch den Entwurf ansah, war er die
+ * letzte Schicht und durfte auch das auffangen, was hier nicht geprüft wird.
+ * Jetzt gibt es ihn nicht mehr, und jede Schicht, die stillschweigend
+ * herausfällt, fällt endgültig heraus.
+ *
+ * Diese Prüfungen sind billig und halten die Reihenfolge fest, in der es
+ * darauf ankommt. Ein Merge, der vor einer der vier Schichten stünde, wäre
+ * kein Fehler in einem Detail – er wäre der ganze Unterschied.
+ */
+const merge = ablauf.indexOf('- name: In die App übernehmen');
+check(merge > 0, 'der Ablauf führt selbst zusammen, statt einen Entwurf liegen zu lassen');
+
+for (const [was, wo] of [
+  ['die Dateisperre', ablauf.indexOf('bot-grenzen.py')],
+  ['die Sperre für die Warnzeichen', ablauf.indexOf('unantastbar.py')],
+  ['die Prüfungen außerhalb des Agenten', ablauf.indexOf('- name: Alles nachprüfen')],
+  ['der Gegenleser', ablauf.indexOf('- name: Gegenlesen')],
+]) {
+  check(wo > 0 && wo < merge, `${was} läuft vor dem Zusammenführen`);
+}
+
+/*
+ * Beide Wächter aus origin/main, nicht aus dem Arbeitsverzeichnis. Der Agent
+ * darf sie zwar nicht ändern – aber diese Zeile ist der Grund, warum das
+ * stimmt, und nicht umgekehrt.
+ */
+check(
+  /git show origin\/main:tools\/pruefung\/unantastbar\.py/.test(ablauf),
+  'auch der zweite Wächter kommt aus origin/main',
+);
+
+/*
+ * Die Suite läuft in einem eigenen Schritt. Dass der Agent sie selbst laufen
+ * lässt, steht in seinem Auftrag – das ist eine Zusage dessen, der geprüft
+ * werden soll, und ohne Menschen dahinter nicht genug.
+ */
+const nachpruefen = ablauf.slice(
+  ablauf.indexOf('- name: Alles nachprüfen'),
+  ablauf.indexOf('- name: Gegenlesen'),
+);
+check(
+  /node tests\/lauf\.mjs/.test(nachpruefen),
+  'und die volle Suite läuft dort, nicht nur beim Agenten',
+);
+check(
+  /git diff --quiet -- dist\//.test(nachpruefen),
+  'samt der Probe, dass das Bündel zu den Quellen passt',
+);
+
+/*
+ * Der Gegenleser darf nichts bauen. Ein Prüfer mit Schreibrecht auf den Code
+ * ist kein Prüfer – er könnte reparieren, was ihm auffällt, statt es zu
+ * melden, und niemand erführe davon.
+ */
+const gegen = ablauf.slice(
+  ablauf.indexOf('- name: Gegenlesen'),
+  ablauf.indexOf('- name: Urteil einsammeln'),
+);
+check(
+  /--allowedTools "Read,Glob,Grep,Write,Bash\(git diff/.test(gegen),
+  'der Gegenleser darf lesen und sein Urteil schreiben, sonst nichts',
+);
+check(
+  !/Bash\(npm|Bash\(node|"Edit/.test(gegen),
+  'und weder bauen noch bearbeiten',
+);
+
+/*
+ * Und der Fall, an dem sich entscheidet, ob diese Kette eine Sicherung ist
+ * oder eine Attrappe: Schweigt der Gegenleser – abgestürzt, kein Modell
+ * erreichbar, Datei weg –, gilt das als STOPP. Alles andere hieße, dass ein
+ * Ausfall der Prüfung sie zugleich abschaltet.
+ */
+const urteil = ablauf.slice(
+  ablauf.indexOf('- name: Urteil einsammeln'),
+  ablauf.indexOf('- name: In die App übernehmen'),
+);
+check(
+  /! -f URTEIL\.txt/.test(urteil) && /durch=nein/.test(urteil),
+  'ein fehlendes Urteil gilt als Nein, nicht als Ja',
+);
+check(
+  /steps\.gegenlesen\.outcome.*!=.*success/.test(urteil.replace(/\n/g, ' ')),
+  'und ein abgestürzter Gegenleser ebenfalls',
+);
+check(
+  /steps\.urteil\.outputs\.durch == 'ja'/.test(ablauf),
+  'zusammengeführt wird nur bei einem ausdrücklichen Ja',
 );
 
 ende();
