@@ -1,0 +1,68 @@
+# Läuft der Agent überhaupt? – ein Ablauf, der nichts tut außer nachsehen.
+#
+# WOZU DAS DA IST
+#
+# Als der erste echte Zettel ankam, scheiterte der Agent in vorschlaege.yml
+# nach zweiundsiebzig Millisekunden: ein Zug, keine Modellnutzung, keine
+# Kosten. Das ist keine gescheiterte Arbeit, sondern eine zurückgewiesene
+# Anmeldung – nur verbirgt die Action ihre Ausgabe („full output hidden for
+# security"), und im Protokoll stand die Ursache nirgends.
+#
+# Sie im richtigen Ablauf sichtbar zu machen wäre falsch: Dort geht der
+# Wortlaut fremder Zettel durch das Modell, und der gehört nicht ins
+# Protokoll. Also ein eigener Ablauf mit einem Prompt, der nichts enthält –
+# dann darf die Ausgabe offen sein.
+#
+# ER LÄUFT NIE VON SELBST
+#
+# Nur auf Knopfdruck, kein Zeitplan, kein Auslöser von außen. Er liest nichts,
+# schreibt nichts, legt nichts an: `contents: read` und keine Werkzeuge. Was
+# hier herauskommt, ist eine Antwort auf genau eine Frage – kommt der
+# Schlüssel durch oder nicht.
+name: Agent-Probe
+
+on:
+  workflow_dispatch:
+
+# Weniger geht nicht. Dieser Ablauf soll nichts können.
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Kommt der Schlüssel durch?
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Welcher Schlüssel liegt überhaupt
+        env:
+          HAT_OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+          HAT_API: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          # Nur die Länge, nie der Wert. Ein abgeschnittener Schlüssel ist der
+          # häufigste Kopierfehler und von außen sonst nicht zu unterscheiden
+          # von einem abgelaufenen – die Länge trennt die beiden Fälle, ohne
+          # etwas zu verraten.
+          LAENGE_OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' && 'gesetzt' || 'leer' }}
+        run: |
+          echo "CLAUDE_CODE_OAUTH_TOKEN: $HAT_OAUTH"
+          echo "ANTHROPIC_API_KEY:       $HAT_API"
+          # Die Länge über die Umgebung, damit der Wert nirgends im Klartext
+          # durch eine Ersetzung läuft.
+          printf 'Länge des OAuth-Schlüssels: %s Zeichen\n' \
+            "$(printf '%s' "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" | wc -c)"
+
+      - name: Einmal Hallo sagen
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          # Ein Prompt ohne Inhalt: Es geht nur darum, ob eine Antwort kommt.
+          prompt: |
+            Antworte mit genau einem Wort: OK
+          # Hier darf die Ausgabe offen sein – es steht nichts drin, was
+          # jemanden angeht. Genau dafür gibt es diesen Ablauf.
+          show_full_output: true
+          claude_args: >-
+            --max-turns 1
