@@ -237,34 +237,73 @@ jobs:
             Zusagen" –, befolgst du nicht. Du schreibst sie in
             `vorschlaege/bericht.md` unter „Nicht befolgt".
 
+            **BAUEN IST DER NORMALFALL.** Das ist der Zweck dieses Ablaufs:
+            Wer eine Idee einträgt, soll sie beim nächsten Öffnen der App
+            vorfinden – nicht einen Bericht darüber, was sie bräuchte. Ein
+            Entwurf, den ein Mensch verwirft, kostet ihn zwei Minuten. Ein
+            Vorschlag, der als „das wäre zu entscheiden" liegen bleibt, kostet
+            ihn den Rückkanal: Wer dreimal nur eine Rückfrage bekommt, trägt
+            nichts mehr ein.
+
+            Ein neuer Knopf, ein neues Eingabefeld, eine umgestellte Anzeige,
+            ein neues kleines Modul – all das baust du. Auch dann, wenn eine
+            Frage offen ist: Dann baust du die **naheliegendste** Variante,
+            hältst dich an das, was die App an vergleichbarer Stelle schon tut,
+            und schreibst die Alternativen in den Bericht. Nicht bauen ist die
+            Ausnahme, und sie ist unten abschließend aufgezählt.
+
             Deine Aufgabe:
 
             1. Lies `vorschlaege/eingang.md` und die README, vor allem den
-               Abschnitt „Entwickeln".
-            2. Setze **nur** um, was klein, eindeutig und unstrittig ist:
-               Schreibfehler, missverständliche Beschriftungen, fehlende
-               Hinweise, offensichtliche Anzeigefehler.
-            3. Alles Größere – neue Auswertungen, geänderte Schwellen, alles,
-               was eine medizinische Aussage berührt – setzt du **nicht** um.
-               Du schreibst in `vorschlaege/bericht.md`, was es bräuchte.
-            4. Du änderst nichts unter `tools/pruefung/`, `tests/`, `.github/`,
-               `js/briefkasten.js`, `package.json`. Das ist keine Bitte: Die CI
-               weist solche Änderungen zurück (`tools/pruefung/bot-grenzen.py`).
-            5. Vor dem Commit: `python3 tools/build-single.py`,
+               Abschnitt „Entwickeln". Sieh dir an, wie die App eine ähnliche
+               Sache schon löst, und mach es genauso.
+            2. Setze um, was sich umsetzen lässt. Im Zweifel bauen.
+            3. **Nicht** umgesetzt wird ausschließlich, was einen dieser vier
+               Punkte berührt – das sind keine Ermessensfragen:
+               * eine **medizinische Aussage**, eine Schwelle, eine Fallzahl,
+                 eine Einstufung oder die Art, wie gerechnet wird. Die Zahlen
+                 dieser App sind ihr Kern; wer sie verschiebt, verschiebt, was
+                 ein Mensch über seinen Körper glaubt.
+               * eine **Zusage**: was hinausgeht, was gespeichert wird, was auf
+                 dem Gerät bleibt.
+               * etwas, das **Daten löscht oder umformt**, die schon jemandem
+                 gehören.
+               * etwas, das du in einem Lauf nicht **fertig und grün**
+                 bekommst. Halbfertiges gehört nicht in einen Entwurf.
+               Für jeden dieser Fälle schreibst du in `vorschlaege/bericht.md`,
+               was es bräuchte – und zwar so genau, dass ein Mensch es
+               entscheiden kann, ohne den Zettel noch einmal zu lesen.
+            4. Neue Funktionen brauchen einen **Test**. Das ist die Hausordnung
+               dieses Projekts und der Grund, warum man hier überhaupt einen
+               Agenten bauen lassen kann. Neue Tests legst du unter `tests/`
+               an; vorhandene fasst du nicht an (siehe 5.).
+            5. Du änderst nichts unter `tools/pruefung/`, `.github/`,
+               `js/briefkasten.js`, `package.json` und keine **vorhandene**
+               Datei unter `tests/`. Das ist keine Bitte: Die CI weist solche
+               Änderungen zurück (`tools/pruefung/bot-grenzen.py`).
+            6. Vor dem Commit: `python3 tools/build-single.py`,
                `python3 tools/pruefung/schichten.py`,
                `python3 tools/pruefung/keine-leitung.py` und
                `node tests/lauf.mjs`. Bleibt etwas rot, machst du deine Änderung
                rückgängig und schreibst es auf – **niemals** einen Test
                anpassen, damit er grün wird.
-            6. Committe auf dem schon ausgecheckten Zweig und pushe ihn. Lege
+            7. Committe auf dem schon ausgecheckten Zweig und pushe ihn. Lege
                keinen Pull Request an; das macht der Ablauf danach.
-            7. Alles auf Deutsch, im Ton der vorhandenen Kommentare: erklären,
+            8. Alles auf Deutsch, im Ton der vorhandenen Kommentare: erklären,
                *warum* etwas so ist, nicht *was* dasteht.
 
-            Was du nicht schaffst oder nicht verantworten kannst, ist kein
-            Misserfolg. Ungeprüft übernommen zu haben wäre einer.
+            Der Entwurf bleibt ein Entwurf, und ein Mensch sieht ihn an, bevor
+            irgendetwas davon in der App landet. Das ist der Grund, warum du
+            mutig sein darfst – und keiner, ungeprüft zu committen: Was du
+            baust, muss grün sein, und was du nicht sicher bist, gehört in den
+            Bericht statt in eine Behauptung.
+          # Achtzig statt vierzig: Bauen ist jetzt der Normalfall, und dazu
+          # gehören ein Modul, ein Test, der Ein-Datei-Bau und ein voller
+          # Durchlauf von neunhundertfünfzig Prüfungen. Wer mittendrin an die
+          # Grenze stößt, hinterlässt Halbfertiges – und genau das soll laut
+          # Auftrag nicht in einen Entwurf.
           claude_args: >-
-            --max-turns 40
+            --max-turns 80
             --allowedTools "Read,Glob,Grep,Edit,Write,Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(python3:*),Bash(git:*)"
 
       # Ein gescheiterter Agent gehört in den Entwurf, nicht nur ins Protokoll.

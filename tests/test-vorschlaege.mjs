@@ -184,6 +184,80 @@ check(
   `derselbe Stand unter menschlichem Zweignamen ist erlaubt (${mensch.code})`,
 );
 
+/* ---------- 5b. Neue Tests ja, vorhandene nein ---------- */
+
+/*
+ * Die eine Lockerung an dieser Sperre, und die vier Proben, ohne die sie eine
+ * Attrappe wäre.
+ *
+ * Der Agent soll neue Funktionen bauen, und in diesem Projekt gehört zu jeder
+ * neuen Funktion ein Test. Dürfte er unter `tests/` gar nichts anlegen,
+ * lieferte er entweder ungeprüften Code oder gar keinen. Also: neue Datei ja,
+ * jede Berührung einer vorhandenen nein.
+ *
+ * Beim Gegenprüfen fiel dabei ein Loch auf, das der Kommentar im Wächter zu
+ * dem Zeitpunkt schon bestritt: `git diff --name-only` fasst ein Umbenennen
+ * zusammen und nennt nur den *neuen* Pfad. Ein
+ * `git mv tests/test-still.mjs tests/test-still-alt.mjs` sah damit aus wie das
+ * Anlegen einer neuen Datei – erlaubt –, während die Prüfung, die den einen
+ * Versandweg dieser App bewacht, verschwunden war. Der Wächter benutzt jetzt
+ * `--no-renames`; die dritte Probe unten ist genau dieser Fall.
+ */
+const zweit = mkdtempSync(join(tmpdir(), 'grenzen2-'));
+const git2 = (...args) => execFileSync('git', args, { cwd: zweit, encoding: 'utf8' });
+const pruefen2 = (zweig) => {
+  try {
+    execFileSync('python3', [join(wurzel, 'tools/pruefung/bot-grenzen.py'), 'main'],
+      { cwd: zweit, encoding: 'utf8', env: { ...process.env, GITHUB_HEAD_REF: zweig } });
+    return 0;
+  } catch (e) { return e.status; }
+};
+
+git2('init', '-q', '-b', 'main');
+git2('config', 'user.email', 'test@test');
+git2('config', 'user.name', 'Test');
+mkdirSync(join(zweit, 'tests'), { recursive: true });
+mkdirSync(join(zweit, 'js'), { recursive: true });
+writeFileSync(join(zweit, 'tests/test-still.mjs'), '// die Prüfung, die alles trägt\n');
+writeFileSync(join(zweit, 'js/app.js'), '// App\n');
+git2('add', '-A');
+git2('commit', '-qm', 'Anfang');
+
+/** Einen Zweig ab `main` anlegen, etwas tun, prüfen. */
+const probe = (name, tu) => {
+  git2('checkout', '-q', 'main');
+  git2('checkout', '-qb', `vorschlag/${name}`);
+  tu();
+  git2('add', '-A');
+  git2('commit', '-qm', name);
+  return pruefen2(`vorschlag/${name}`);
+};
+
+check(
+  probe('neu', () => writeFileSync(join(zweit, 'tests/test-wasser.mjs'), '// neu\n')) === 0,
+  'eine neue Testdatei darf dazukommen – sonst kann der Agent nichts Geprüftes liefern',
+);
+check(
+  probe('geaendert', () => writeFileSync(join(zweit, 'tests/test-still.mjs'), '// entschärft\n')) === 1,
+  'eine vorhandene Prüfung zu ändern bleibt verboten',
+);
+check(
+  probe('umbenannt', () => git2('mv', 'tests/test-still.mjs', 'tests/test-still-alt.mjs')) === 1,
+  'und sie wegzubenennen auch – der Weg, der vorher offen stand',
+);
+check(
+  probe('geloescht', () => git2('rm', '-q', 'tests/test-still.mjs')) === 1,
+  'und sie zu löschen erst recht',
+);
+check(
+  probe('modul', () => {
+    writeFileSync(join(zweit, 'js/wasser.js'), '// neues Modul\n');
+    writeFileSync(join(zweit, 'tests/test-wasser.mjs'), '// samt Prüfung\n');
+  }) === 0,
+  'ein neues Modul mit eigener Prüfung ist genau das, was hier durchgehen soll',
+);
+
+rmSync(zweit, { recursive: true, force: true });
 rmSync(bau, { recursive: true, force: true });
 
 /* ---------- 6. Und die Grenze muss im Ablauf auch wirklich vorkommen ---------- */

@@ -24,7 +24,15 @@ also an der Stelle, die ueber das Zusammenfuehren entscheidet.
 WAS GESPERRT IST, UND WARUM GERADE DAS
 
   tools/pruefung/   die Waechter selbst
-  tests/            die Pruefungen -- ein geloeschter Test ist ein gruener Lauf
+  tests/            die *vorhandenen* Pruefungen -- ein geaenderter Test ist
+                    ein gruener Lauf, der nichts mehr beweist. Eine *neue*
+                    Testdatei darf dazukommen, und zwar aus einem Grund, der
+                    diese Sperre sonst wertlos machen wuerde: Der Agent soll
+                    neue Funktionen bauen, und in diesem Projekt gehoert zu
+                    jeder neuen Funktion ein Test. Duerfte er keinen anlegen,
+                    lieferte er entweder ungeprueften Code oder gar keinen.
+                    Die Gefahr ist nie die neue Datei -- sie ist das Entschaerfen
+                    einer bestehenden.
   js/briefkasten.js die eine Stelle, die nach draussen spricht
   .github/          der Ablauf selbst, samt der Regel, welche Zweige das hier
                     trifft; ohne ihn koennte sich ein Entwurf umbenennen
@@ -54,6 +62,26 @@ GESPERRT = (
     'package-lock.json',
 )
 
+# Unter `tests/` zaehlt nicht der Ort, sondern die Art der Aenderung: Eine neu
+# angelegte Datei ist erlaubt, jede Beruehrung einer vorhandenen nicht. Siehe
+# die Begruendung oben.
+NEUES_ERLAUBT = ('tests/',)
+
+
+def nur_neu(basis, datei):
+    """Ist die Datei auf diesem Zweig erst entstanden?
+
+    Gefragt wird die Basis, nicht der Zweig: Existiert sie dort nicht, kann der
+    Zweig sie nur angelegt haben. Ein Umbenennen zaehlt damit als Loeschen der
+    alten (die faellt auf) plus Anlegen der neuen -- genau richtig, denn der
+    Weg, eine Pruefung loszuwerden, ist sie wegzubenennen.
+    """
+    fertig = subprocess.run(
+        ['git', 'cat-file', '-e', f'{basis}:{datei}'],
+        capture_output=True, text=True,
+    )
+    return fertig.returncode != 0
+
 
 def zweig():
     """Der Zweig, um den es geht -- in der Action steht er in der Umgebung."""
@@ -71,8 +99,22 @@ def zweig():
 
 
 def geaendert(basis):
+    """Alle beruehrten Pfade -- und zwar ohne Umbenennungen zusammenzufassen.
+
+    `--no-renames` ist hier keine Feinheit, sondern der Unterschied zwischen
+    einer Sperre und einer Attrappe. Ohne die Option erkennt git ein
+    Umbenennen als solches und nennt nur den *neuen* Pfad. Ein
+    `git mv tests/test-still.mjs tests/test-still-alt.mjs` sah damit aus wie
+    das Anlegen einer neuen Datei -- erlaubt --, waehrend die Pruefung, die
+    den einen Versandweg dieser App bewacht, verschwunden war.
+
+    Genau so ist es beim Gegenpruefen dieser Lockerung passiert: Der
+    Kommentar daneben behauptete, ein Umbenennen falle auf, und es fiel
+    nicht auf. Mit `--no-renames` stehen beide Pfade da, das Loeschen des
+    alten faellt unter die Sperre, und die Behauptung stimmt wieder.
+    """
     roh = subprocess.run(
-        ['git', 'diff', '--name-only', f'{basis}...HEAD'],
+        ['git', 'diff', '--name-only', '--no-renames', f'{basis}...HEAD'],
         capture_output=True, text=True, check=True,
     ).stdout
     return [z.strip() for z in roh.splitlines() if z.strip()]
@@ -92,7 +134,11 @@ def main():
         print(f'Vergleich mit {basis} nicht moeglich: {e}', file=sys.stderr)
         return 2
 
-    verletzt = [d for d in dateien if any(d.startswith(g) for g in GESPERRT)]
+    verletzt = [
+        d for d in dateien
+        if any(d.startswith(g) for g in GESPERRT)
+        and not (any(d.startswith(n) for n in NEUES_ERLAUBT) and nur_neu(basis, d))
+    ]
     if verletzt:
         print('Bot-Grenzen: FEHLER', file=sys.stderr)
         print(f'  Der Zweig "{z}" stammt aus dem Briefkasten und darf diese', file=sys.stderr)
