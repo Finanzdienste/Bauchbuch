@@ -13,10 +13,12 @@
 
 Eingegangen: 1
 
-## 1. Zettel vom 05.09.2026, 16:51 UTC
+## 1. Zettel vom 09.09.2026, 19:30 UTC
 
-Kennung: `idee:01788627118574:f480265e48b1`
+Kennung: `idee:01788982202258:d190edc61d93`
 
 ```text
-Test
+Bauchbuch – Ideen und Verbesserungsvorschläge
+
+Im Tagesbogen fehlt ein Knopf für Wasser
 ```
