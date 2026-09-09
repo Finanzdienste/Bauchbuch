@@ -23,7 +23,7 @@
  * daran hängt das Aufräumen alter Zwischenspeicher.
  */
 
-const VERSION = 'v19';
+const VERSION = 'v20';
 const CACHE = `bauchbuch-${VERSION}`;
 
 const SHELL = [

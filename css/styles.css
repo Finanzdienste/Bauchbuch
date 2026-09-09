@@ -609,6 +609,18 @@ p { margin: 0 0 8px; }
 .verdachtbogen > summary { cursor: pointer; list-style-position: inside; }
 .verdachtbogen > summary > h3 { display: inline; }
 
+/*
+ * Angebote und Lesehilfen – zugeklappt, aber mit einem Satz Inhalt davor.
+ *
+ * Eine Klappe, die nur ihre Überschrift zeigt, ist eine Wundertüte: Man tippt
+ * darauf, um herauszufinden, ob sich das Tippen lohnt. Deshalb steht in der
+ * Zusammenfassung immer eine Zeile, die die Frage schon beantwortet.
+ */
+.angebotbogen > summary { cursor: pointer; list-style-position: inside; }
+.angebotbogen > summary > h3 { display: inline; }
+.angebotbogen > summary > .klein { display: block; margin-top: 4px; }
+.angebotbogen[open] > summary { margin-bottom: 10px; }
+
 /* ---------- Atemübung ---------- */
 .atem {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
