@@ -909,12 +909,11 @@ Satz in einer README ist keine Eigenschaft, also halten ihn drei Prüfungen:
   `sendBeacon`, kein `WebSocket`, keine eingebundene Schrift, kein CSS-Import.
 * **`tests/test-still.mjs`** — was hinausgeht und was dabei nicht mitgeht. Ein
   Browser geht durch die ganze App, jede Anfrage wird mitgeschrieben. Das ganze
-  Tagebuch anfassen: null. Eine Idee eintragen und innerhalb der Bedenkzeit
-  wieder löschen: immer noch null — **was zurückgenommen wird, geht nicht
-  hinaus.** Nach der Bedenkzeit: genau eine Anfrage, an genau eine Adresse, mit
-  genau einem Feld, und ihr Rumpf wird gegen das Tagebuch im Speicher gehalten.
-  Taucht daraus auch nur ein Wort auf, ist der Test rot. Danach zehn Minuten
-  und viel Herumblättern: kein zweiter Aufruf.
+  Tagebuch anfassen: null. Den Ideenreiter öffnen: immer noch null — **vom
+  Hinsehen geht nichts hinaus.** Nach „Eintragen": genau eine Anfrage, an genau
+  eine Adresse, mit genau einem Feld, und ihr Rumpf wird gegen das Tagebuch im
+  Speicher gehalten. Taucht daraus auch nur ein Wort auf, ist der Test rot.
+  Danach zehn Minuten und viel Herumblättern: kein zweiter Aufruf.
 * **`tests/test-schweigen.mjs`** — dass das Tagebuch nie etwas auslöst. Ein
   volles Tagebuch über 90 Tage *ohne* offene Idee, dann wird alles angefasst,
   was sich anfassen lässt: Reiter, Zeiträume, Monate, Aufklapper, Bericht,
@@ -934,12 +933,28 @@ Zeile davon entfernt, **mehr** zu verschicken — beim Starten, beim
 Reiterwechsel, „einmal nachts zum Sichern". Jede dieser Zeilen wäre für sich
 harmlos gemeint und würde diese App zu einer anderen machen.
 
-**Die Bedenkzeit.** Vorschläge gehen nicht in dem Moment hinaus, in dem der
-Satz fertig getippt ist, sondern eine Minute nach der letzten Änderung. Wer
-„Die Uhrzeit ist blö" schreibt und kurz überlegt, soll das noch ausbessern
-können; wer eine Idee gleich wieder löscht, soll sie nicht schon verschickt
-haben. Die Uhr läuft nur, solange die App offen ist — es gibt keinen Dienst im
-Hintergrund und keine Warteschlange, die später doch noch sendet.
+**Die Bedenkzeit, und warum sie wieder weg ist.** Hier stand einmal eine
+Minute: Zeit, einen Satz auszubessern oder zurückzunehmen, bevor er draußen
+ist. Der Preis war eine Uhr, die in der offenen Seite lief. Wer eintippte und
+die App zumachte — der Normalfall, nicht der Sonderfall — verschickte nie
+etwas, und beim nächsten Öffnen fing die Minute von vorn an. Angestoßen wurde
+obendrein nur beim Zeichnen des Ideenreiters: Ein Vorschlag ging also nur dann
+hinaus, wenn jemand nach dem Eintippen noch eine Minute auf diesem Reiter
+stehen blieb. Das tut niemand.
+
+Aufgefallen ist es beim ersten echten Versuch — ein Zettel eingetragen, der
+Kasten blieb leer. Bis dahin war alles grün: `test-still.mjs` prüfte die
+Bedenkzeit gründlich und nie, ob überhaupt je etwas ankommt. Eine
+Vorsichtsmaßnahme, die den Vorgang verhindert, den sie absichern soll, ist
+keine; sie ist ersatzlos gestrichen. Der Knopf „Eintragen" ist die
+Entscheidung.
+
+Was damit wegfällt, steht auch so auf dem Reiter: Danach ist der Satz draußen.
+Ihn in der App zu löschen nimmt ihn aus der eigenen Liste, nicht mehr aus dem
+Kasten. Eine Zusage, die man nicht halten kann, ist schlimmer als keine.
+
+Es gibt weiterhin keinen Dienst im Hintergrund und keine Warteschlange, die
+später doch noch sendet: Zwischen Zumachen und Wiederöffnen passiert nichts.
 
 Wohin die Ideen gehen: in einen eigenen kleinen Kasten
 ([Finanzdienste/Briefkasten](https://github.com/Finanzdienste/Briefkasten)),
@@ -947,12 +962,20 @@ der einen Text entgegennimmt und sonst nichts kann — kein Feld für ein
 Tagebuch, keins für einen Namen, keins für eine Kennung. Er speichert den
 Wortlaut und wann er ankam.
 
-Klappt es nicht, wird nicht in einer Schleife weiterprobiert: In der Anzeige
-steht, dass noch etwas unterwegs ist, und der nächste Anlass — eine Änderung,
-ein Blick auf den Reiter — nimmt einen neuen Anlauf. „Jetzt gleich" überspringt
-die Bedenkzeit; „Anders schicken" übergibt den Text stattdessen an das
-Teilen-Menü des Geräts, das *den Nutzer* fragt, wohin, und „Kopieren" an die
-Zwischenablage.
+**Klappt es nicht, steht der Grund da.** Auch das ist eine Lehre aus demselben
+Abend: Der Sendeversuch fing seinen Fehler ab und tat nichts damit — ein leeres
+`catch`, begründet damit, in der Anzeige stehe ohnehin, dass etwas offen sei.
+Das stimmte und half niemandem. Ob gerade gar nicht gesendet wird oder ob der
+Kasten die Annahme verweigert, sind zwei völlig verschiedene Lagen, und die App
+sagte beide Male dasselbe: „geht gleich raus". Jetzt steht die Absage im
+Wortlaut auf dem Reiter, samt einem Knopf, es sofort noch einmal zu versuchen.
+`test-ideen.mjs` hält das fest, gegengeprüft mit einem wieder eingebauten
+leeren `catch`.
+
+Weiterprobiert wird trotzdem nicht in einer Schleife: Der nächste Anlass — eine
+Änderung, ein Start der App, ein Blick auf den Reiter — nimmt einen neuen
+Anlauf. „Anders schicken" übergibt den Text stattdessen an das Teilen-Menü des
+Geräts, das *den Nutzer* fragt, wohin, und „Kopieren" an die Zwischenablage.
 
 ## Benutzen
 

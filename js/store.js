@@ -151,6 +151,11 @@ const VORGABE = {
   // Wie viele Ideen beim letzten Weitergeben in der Liste standen. Daran
   // erkennt die App, welche noch niemand gesehen hat – siehe ideenOffen().
   ideenGeschickt: 0,
+  /*
+   * Woran die letzte Abgabe gescheitert ist – oder null, wenn nichts offen
+   * ist. Wird angezeigt, nicht bloß gespeichert; siehe ideenAnsicht().
+   */
+  ideenFehler: null,
   // Wurde der Hinweis auf die Unterleibsfragen schon einmal weggetippt? Dann
   // kommt er nicht wieder – ein Vorschlag, den man mehrfach abwehren muss,
   // ist keiner.
@@ -753,17 +758,45 @@ export function ideenOffen() {
 
 export function ideenGeschicktMerken() {
   zustand.ideenGeschickt = zustand.ideen.length;
+  zustand.ideenFehler = null;
+  merke();
+  melde();
+}
+
+/**
+ * Warum die Abgabe nicht geklappt hat.
+ *
+ * Das hier ist die Lehre aus einem Abend Fehlersuche: Der Sendeversuch fing
+ * seinen Fehler ab und tat nichts damit – kein Wort in der Anzeige, keine
+ * Zeile irgendwo. In der App stand weiter „noch nicht weitergegeben", und
+ * das stimmte ja auch, sagte aber nicht, ob gerade gar nicht gesendet wurde
+ * oder ob der Kasten die Annahme verweigert. Ein Vorschlag, der stillschweigend
+ * liegen bleibt, ist genau die Sackgasse, gegen die dieser Rückkanal gebaut
+ * wurde.
+ */
+export function ideenFehlerMerken(text) {
+  zustand.ideenFehler = text ? String(text) : null;
   merke();
   melde();
 }
 
 /* ---------- Ideen zur App ---------- */
 
+/*
+ * Eine Änderung an den Ideen räumt die alte Fehlermeldung weg. Sie gehört zu
+ * einem Versuch, der vorbei ist; stehen zu lassen, was gerade nicht mehr
+ * stimmt, ist schlimmer als nichts zu sagen.
+ */
+function ideenBeruehrt() {
+  zustand.ideenFehler = null;
+}
+
 export function ideeAnlegen(text) {
   const sauber = String(text || '').trim();
   if (!sauber) return null;
   const neu = { id: neueId(), am: heuteISO(), text: sauber, erledigt: false };
   zustand.ideen = [neu, ...zustand.ideen];
+  ideenBeruehrt();
   merke();
   melde();
   return neu.id;
@@ -774,6 +807,7 @@ export function ideeUmschalten(id) {
   const i = zustand.ideen.findIndex((x) => x.id === id);
   if (i < 0) return;
   zustand.ideen[i] = { ...zustand.ideen[i], erledigt: !zustand.ideen[i].erledigt };
+  ideenBeruehrt();
   merke();
   melde();
 }
@@ -782,6 +816,7 @@ export function ideeLoeschen(id) {
   const vorher = zustand.ideen.length;
   zustand.ideen = zustand.ideen.filter((x) => x.id !== id);
   if (zustand.ideen.length === vorher) return;
+  ideenBeruehrt();
   merke();
   melde();
 }
