@@ -19,6 +19,28 @@ const page = await ctx.newPage();
 const fehler = [];
 page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
 
+/*
+ * Der Kasten wird abgefangen und hingehalten – die Anfrage kommt an und wird
+ * nie beantwortet.
+ *
+ * Ohne das hinge dieser Test an einem Rennen: Die App schickt jetzt sofort,
+ * der Aufruf scheitert im Testnetz an der Namensauflösung, und je nachdem, ob
+ * das vor oder nach der nächsten Prüfung passiert, steht auf dem Reiter
+ * „geht raus" oder eine Fehlermeldung. Beides wäre richtig und der Test mal
+ * grün, mal rot, ohne dass sich an der App etwas geändert hätte. Genau diese
+ * Sorte Testfehler hat in diesem Projekt schon zweimal eine falsche Zahl in
+ * eine Zusage geschrieben.
+ *
+ * Hingehalten heißt: Die Lage bleibt „unterwegs", und das ist die Lage, um
+ * die es auf diesem Reiter geht. Der Fehlerfall kommt am Ende dran, dann mit
+ * einer eigenen Antwort.
+ */
+let kastenAntwort = null;
+await page.route('**/idee', async (route) => {
+  if (kastenAntwort) return route.fulfill(kastenAntwort);
+  return new Promise(() => {});
+});
+
 await page.goto(URL, { waitUntil: 'networkidle' });
 await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'ideen' })), KEY);
 await page.reload({ waitUntil: 'networkidle' });
@@ -150,24 +172,32 @@ await page.locator('#ideeText').fill('Noch eine Sache.');
 await page.locator('[data-act="idee-neu"]').click();
 await page.waitForTimeout(250);
 check(
-  (await page.locator('#toast').textContent()).includes('etwa einer Minute'),
-  'beim Eintragen sagt die App, dass es gleich von selbst rausgeht',
+  (await page.locator('#toast').textContent()).includes('Geht raus'),
+  'beim Eintragen sagt die App, dass es rausgeht',
 );
 check(
   (await page.locator('.karte.karte-merk').first().textContent()).replace(/\s+/g, ' ')
-    .includes('1 Idee geht gleich raus'),
+    .includes('1 Idee geht raus'),
   'und die Karte sagt es noch einmal – nur für die eine neue',
 );
 
 /*
- * Und sie sagt auch, dass man es noch zurücknehmen kann. Der Satz ist der
- * Unterschied zwischen „schickt automatisch" und „nimmt einem die Möglichkeit,
- * es sich anders zu überlegen" – wer ihn streicht, ändert die Zusage.
+ * UND SIE SAGT, WAS DANACH NICHT MEHR GEHT.
+ *
+ * Hier stand einmal die Zusage, man könne den Satz noch eine Minute lang
+ * zurücknehmen. Die Bedenkzeit ist weg, weil sie den Versand verhinderte,
+ * den sie absichern sollte – aber die Stelle bleibt geprüft, nur mit dem
+ * umgekehrten Vorzeichen: Der Reiter muss sagen, dass Löschen die Idee aus
+ * der eigenen Liste nimmt und nicht mehr aus dem Kasten.
+ *
+ * Das ist der unangenehmere Satz, und genau deshalb steht er da. Eine Zusage
+ * stillschweigend fallen zu lassen und die alte Beschriftung stehen zu
+ * lassen, wäre die schlechtere Hälfte von beidem.
  */
 check(
   (await page.locator('.karte.karte-merk').first().textContent()).replace(/\s+/g, ' ')
-    .includes('kannst du noch ausbessern oder löschen'),
-  'samt dem Hinweis, dass bis dahin noch etwas zu machen ist',
+    .includes('nicht mehr aus seinem Kasten'),
+  'und sagt ehrlich, dass Löschen sie dort nicht mehr herausholt',
 );
 
 /* ---------- Löschen ---------- */
@@ -175,6 +205,65 @@ check(
 await page.locator('.idee').first().locator('[data-act="idee-weg"]').click();
 await page.waitForTimeout(250);
 check(await page.locator('.idee').count() === 2, 'löschen geht auch');
+
+/* ---------- Wenn der Kasten nein sagt ---------- */
+
+/*
+ * DER TEIL, DEN ES VORHER NICHT GAB, UND SEIN PREIS WAR EIN ABEND.
+ *
+ * Der Sendeversuch fing seinen Fehler ab und tat nichts damit – ein leeres
+ * `catch`, begründet damit, in der Anzeige stehe ohnehin, dass etwas offen
+ * sei. Das stimmte und half niemandem. Ein Zettel wurde eingetragen, kam
+ * nicht an, und die App sagte weiter freundlich „geht gleich raus". Gesucht
+ * wurde die Ursache dann an drei falschen Stellen, weil die einzige Stelle,
+ * die sie kannte, schwieg.
+ *
+ * Wer den Grund sieht, kann etwas tun: ein anderes Netz nehmen, den Text
+ * kürzen, ihn anders schicken. Wer ihn nicht sieht, hält die App für heil.
+ */
+kastenAntwort = {
+  status: 413,
+  contentType: 'application/json',
+  body: JSON.stringify({ fehler: 'Das ist zu lang – höchstens 2000 Zeichen.' }),
+};
+
+await page.locator('#ideeText').fill('Ein Vorschlag, den der Kasten ablehnt.');
+await page.locator('[data-act="idee-neu"]').click();
+
+const karte = page.locator('.karte.karte-merk').first();
+await karte.getByText('Das ist zu lang', { exact: false }).waitFor({ timeout: 5000 })
+  .catch(() => {});
+const stand = (await karte.textContent()).replace(/\s+/g, ' ');
+
+check(
+  stand.includes('Das ist zu lang – höchstens 2000 Zeichen.'),
+  `der Grund der Absage steht auf dem Reiter (${stand.slice(0, 60)})`,
+);
+check(
+  stand.includes('nicht rausgegangen'),
+  'und die Überschrift behauptet nicht mehr, es ginge gleich raus',
+);
+check(
+  stand.includes('nicht verloren'),
+  'dazu, dass der Text dasteht und es wieder versucht wird',
+);
+check(
+  await karte.locator('[data-act="ideen-senden"]').count() === 1,
+  'und ein Knopf, es sofort noch einmal zu versuchen',
+);
+
+/*
+ * Gegenprobe: Ohne sie prüfte das Obige nur, dass irgendein Text dasteht.
+ * Eine Änderung an den Ideen räumt die alte Meldung weg – sie gehört zu einem
+ * Versuch, der vorbei ist.
+ */
+kastenAntwort = null;
+await page.locator('.idee').first().locator('[data-act="idee-weg"]').click();
+await page.waitForTimeout(300);
+check(
+  !(await page.locator('#view').textContent()).includes('Das ist zu lang'),
+  'nach einer Änderung ist die alte Meldung weg',
+);
 
 await page.screenshot({ path: `${SHOT}/60-ideen.png` });
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);

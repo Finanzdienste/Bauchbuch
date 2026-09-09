@@ -50,20 +50,21 @@ export const KASTEN = 'https://briefkasten.tobias-kruse-184.workers.dev/idee';
 /** Länger nimmt der Kasten nicht an. */
 export const MAX_ZEICHEN = 2000;
 
-/**
- * Die Bedenkzeit: eine Minute nach der letzten Änderung.
+/*
+ * Hier stand eine Bedenkzeit von einer Minute, und sie ist ersatzlos weg.
  *
- * Vorschläge gehen von selbst hinaus, ohne dass jemand einen Knopf sucht –
- * aber nicht in dem Moment, in dem der Satz fertig getippt ist. Wer „Die
- * Uhrzeit ist blö" schreibt und kurz überlegt, soll das noch ausbessern
- * können; wer eine Idee gleich wieder löscht, soll sie nicht schon
- * verschickt haben.
+ * Der Gedanke war: Wer „Die Uhrzeit ist blö" schreibt und kurz überlegt, soll
+ * das noch ausbessern können. Der Preis war eine Uhr, die in der offenen
+ * Seite lief und mit dem Zumachen verschwand – wer eintippte und die App
+ * schloss, verschickte nie etwas. Eine Vorsichtsmaßnahme, die den Vorgang
+ * verhindert, den sie absichern soll, ist keine.
  *
- * Die Uhr läuft nur, solange die App offen ist. Es gibt keinen Dienst im
- * Hintergrund, der später doch noch sendet – wird die App zugemacht, passiert
- * nichts, und beim nächsten Öffnen fängt die Minute von vorn an.
+ * Der Knopf „Eintragen" ist die Entscheidung. Was damit wegfällt, wird nicht
+ * schöngeredet: Danach ist der Satz draußen. Ihn in der App zu löschen nimmt
+ * ihn aus der eigenen Liste, nicht mehr aus dem Kasten. Genau so steht es
+ * auch auf dem Reiter – eine Zusage, die man nicht halten kann, ist schlimmer
+ * als keine.
  */
-export const BEDENKZEIT = 60000;
 
 /**
  * Einen Text abschicken.

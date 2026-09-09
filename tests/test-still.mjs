@@ -4,8 +4,8 @@
  * Die Zusage lautet:
  *
  *     „Gesundheitsdaten verlassen dieses Gerät nie. Das Einzige, was
- *      hinausgeht, sind die Verbesserungsvorschläge unter Ideen – und die
- *      von selbst, kurz nachdem sie eingetragen wurden."
+ *      hinausgeht, sind die Verbesserungsvorschläge unter Ideen – und die,
+ *      sobald sie eingetragen wurden."
  *
  * Der zweite Halbsatz ist neu und macht den ersten *wichtiger*, nicht
  * unwichtiger: Sobald ein Programm etwas verschicken kann, entscheidet sich an
@@ -15,17 +15,12 @@
  *
  *   1. BIS DAHIN NICHTS. Eintragen, blättern, auswerten, Bericht bauen – das
  *      ganze Tagebuch anfassen erzeugt **null** Anfragen.
- *   2. BEDENKZEIT. Eine eingetragene Idee geht nicht sofort hinaus. Wer sie
- *      innerhalb der Minute wieder löscht, hat sie nie verschickt.
- *   3. DANN VON SELBST. Nach der Bedenkzeit geht genau eine Anfrage hinaus, an
- *      genau eine Adresse, mit genau einem Feld – und ihr Rumpf wird gegen das
- *      Tagebuch im Speicher gehalten. Taucht daraus auch nur ein Wort auf, ist
- *      der Test rot.
+ *   2. NICHT VOM HINSEHEN. Den Ideenreiter zu öffnen schickt nichts.
+ *   3. AUF DEN KNOPF, UND SOFORT. Nach „Eintragen" geht genau eine Anfrage
+ *      hinaus, an genau eine Adresse, mit genau einem Feld – und ihr Rumpf
+ *      wird gegen das Tagebuch im Speicher gehalten. Taucht daraus auch nur
+ *      ein Wort auf, ist der Test rot.
  *   4. UND SONST NICHTS. Kein zweiter Aufruf, solange nichts Neues dazukommt.
- *
- * Die Zeit wird dabei vorgestellt (page.clock), nicht abgewartet – ein Test,
- * der eine Minute schläft, wird irgendwann herausgenommen, und dann prüft
- * niemand mehr etwas.
  *
  * Es gibt eine Vorgeschichte dazu, aus dem Schwesterprojekt: Dort meldeten die
  * Testläufe monatelang erfundene Geräte an einen echten Server, weil niemand
@@ -104,39 +99,45 @@ check(
   `das ganze Tagebuch angefasst, keine einzige Anfrage${fremd.length ? `: ${fremd.slice(0, 5).map((f) => `${f.methode} ${f.url}`).join(' | ')}` : ''}`,
 );
 
-/* ==================== 2. Bedenkzeit ==================== */
-
-await page.locator('[data-act="tab"][data-tab="ideen"]').click();
-await page.waitForTimeout(200);
-await page.locator('#ideeText').fill('Ein Satz, den ich gleich zurücknehme.');
-await page.locator('[data-act="idee-neu"]').click();
-await page.waitForTimeout(250);
-check(await page.locator('.idee').count() === 1, 'die Idee steht in der Liste');
-
-await page.clock.fastForward(20000);
-await page.waitForTimeout(300);
-check(fremd.length === 0, `nach 20 Sekunden noch nichts hinausgegangen (${fremd.length})`);
+/* ==================== 2. Der Reiter allein sendet nichts ==================== */
 
 /*
- * Und wieder gelöscht. Das ist der Fall, für den es die Bedenkzeit gibt: Wer
- * einen Satz zurücknimmt, soll ihn nicht schon verschickt haben.
+ * Hier stand einmal die Bedenkzeit: eine Minute, in der sich ein Satz noch
+ * zurücknehmen ließ. Sie ist weg, und der Grund gehört in diesen Test, weil
+ * er von einer Vorsichtsmaßnahme handelt, die das Gegenteil bewirkte.
+ *
+ * Die Minute lief als Zeitgeber in der offenen Seite. Wer eine Idee eintippte
+ * und die App zumachte – der Normalfall –, verschickte nie etwas; beim
+ * nächsten Öffnen fing sie von vorn an. Angestoßen wurde außerdem nur beim
+ * Zeichnen des Ideenreiters. Ein Vorschlag ging also nur hinaus, wenn jemand
+ * nach dem Eintippen noch eine Minute auf diesem Reiter stehen blieb.
+ * Aufgefallen ist es, als ein Zettel zum Prüfen eingetragen wurde und der
+ * Kasten leer blieb – und dieser Test war grün, weil er die Bedenkzeit prüfte
+ * und nicht, ob je etwas ankommt.
+ *
+ * Geblieben ist die Grenze, auf die es wirklich ankommt: Das Öffnen des
+ * Reiters allein schickt nichts. Erst der Knopf.
  */
-await page.locator('.idee').first().locator('[data-act="idee-weg"]').click();
-await page.waitForTimeout(250);
-await page.clock.fastForward(120000);
+await page.locator('[data-act="tab"][data-tab="ideen"]').click();
 await page.waitForTimeout(400);
-check(fremd.length === 0, `zurückgenommen heißt nicht verschickt (${fremd.length})`);
+check(fremd.length === 0, `den Ideenreiter offen, noch nichts hinausgegangen (${fremd.length})`);
 
-/* ==================== 3. Dann von selbst ==================== */
+/* ==================== 3. Auf den Knopf, und sofort ==================== */
 
 await page.locator('#ideeText').fill('Die Uhrzeit sollte man schneller ändern können.');
 await page.locator('[data-act="idee-neu"]').click();
-await page.waitForTimeout(250);
 
-await page.clock.fastForward(70000);
-await page.waitForTimeout(600);
+/*
+ * Gewartet wird auf die Anfrage, nicht auf die Uhr – und großzügig. Geprüft
+ * wird, *dass* sie kommt, ohne dass jemand etwas weiter antippt; wie schnell
+ * die Testmaschine ist, gehört nicht zur Zusage.
+ */
+for (let n = 0; n < 40 && fremd.length === 0; n++) {
+  // eslint-disable-next-line no-await-in-loop
+  await page.waitForTimeout(100);
+}
 
-check(fremd.length === 1, `nach der Bedenkzeit geht sie von selbst hinaus (${fremd.length})`);
+check(fremd.length === 1, `sie geht von selbst hinaus, ohne weiteres Zutun (${fremd.length})`);
 
 const raus = fremd[0] || {};
 check(raus.methode === 'POST', 'sie geht als POST hinaus');

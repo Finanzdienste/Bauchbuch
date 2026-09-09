@@ -2372,6 +2372,11 @@ const VORGABE = {
   // Wie viele Ideen beim letzten Weitergeben in der Liste standen. Daran
   // erkennt die App, welche noch niemand gesehen hat – siehe ideenOffen().
   ideenGeschickt: 0,
+  /*
+   * Woran die letzte Abgabe gescheitert ist – oder null, wenn nichts offen
+   * ist. Wird angezeigt, nicht bloß gespeichert; siehe ideenAnsicht().
+   */
+  ideenFehler: null,
   // Wurde der Hinweis auf die Unterleibsfragen schon einmal weggetippt? Dann
   // kommt er nicht wieder – ein Vorschlag, den man mehrfach abwehren muss,
   // ist keiner.
@@ -2974,17 +2979,45 @@ function ideenOffen() {
 
 function ideenGeschicktMerken() {
   zustand.ideenGeschickt = zustand.ideen.length;
+  zustand.ideenFehler = null;
+  merke();
+  melde();
+}
+
+/**
+ * Warum die Abgabe nicht geklappt hat.
+ *
+ * Das hier ist die Lehre aus einem Abend Fehlersuche: Der Sendeversuch fing
+ * seinen Fehler ab und tat nichts damit – kein Wort in der Anzeige, keine
+ * Zeile irgendwo. In der App stand weiter „noch nicht weitergegeben", und
+ * das stimmte ja auch, sagte aber nicht, ob gerade gar nicht gesendet wurde
+ * oder ob der Kasten die Annahme verweigert. Ein Vorschlag, der stillschweigend
+ * liegen bleibt, ist genau die Sackgasse, gegen die dieser Rückkanal gebaut
+ * wurde.
+ */
+function ideenFehlerMerken(text) {
+  zustand.ideenFehler = text ? String(text) : null;
   merke();
   melde();
 }
 
 /* ---------- Ideen zur App ---------- */
 
+/*
+ * Eine Änderung an den Ideen räumt die alte Fehlermeldung weg. Sie gehört zu
+ * einem Versuch, der vorbei ist; stehen zu lassen, was gerade nicht mehr
+ * stimmt, ist schlimmer als nichts zu sagen.
+ */
+function ideenBeruehrt() {
+  zustand.ideenFehler = null;
+}
+
 function ideeAnlegen(text) {
   const sauber = String(text || '').trim();
   if (!sauber) return null;
   const neu = { id: neueId(), am: heuteISO(), text: sauber, erledigt: false };
   zustand.ideen = [neu, ...zustand.ideen];
+  ideenBeruehrt();
   merke();
   melde();
   return neu.id;
@@ -2995,6 +3028,7 @@ function ideeUmschalten(id) {
   const i = zustand.ideen.findIndex((x) => x.id === id);
   if (i < 0) return;
   zustand.ideen[i] = { ...zustand.ideen[i], erledigt: !zustand.ideen[i].erledigt };
+  ideenBeruehrt();
   merke();
   melde();
 }
@@ -3003,6 +3037,7 @@ function ideeLoeschen(id) {
   const vorher = zustand.ideen.length;
   zustand.ideen = zustand.ideen.filter((x) => x.id !== id);
   if (zustand.ideen.length === vorher) return;
+  ideenBeruehrt();
   merke();
   melde();
 }
@@ -3158,7 +3193,7 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
+const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
 
 /* ===== js/zufall.js ===== */
 /*
@@ -9643,20 +9678,21 @@ const KASTEN = 'https://briefkasten.tobias-kruse-184.workers.dev/idee';
 /** Länger nimmt der Kasten nicht an. */
 const MAX_ZEICHEN = 2000;
 
-/**
- * Die Bedenkzeit: eine Minute nach der letzten Änderung.
+/*
+ * Hier stand eine Bedenkzeit von einer Minute, und sie ist ersatzlos weg.
  *
- * Vorschläge gehen von selbst hinaus, ohne dass jemand einen Knopf sucht –
- * aber nicht in dem Moment, in dem der Satz fertig getippt ist. Wer „Die
- * Uhrzeit ist blö" schreibt und kurz überlegt, soll das noch ausbessern
- * können; wer eine Idee gleich wieder löscht, soll sie nicht schon
- * verschickt haben.
+ * Der Gedanke war: Wer „Die Uhrzeit ist blö" schreibt und kurz überlegt, soll
+ * das noch ausbessern können. Der Preis war eine Uhr, die in der offenen
+ * Seite lief und mit dem Zumachen verschwand – wer eintippte und die App
+ * schloss, verschickte nie etwas. Eine Vorsichtsmaßnahme, die den Vorgang
+ * verhindert, den sie absichern soll, ist keine.
  *
- * Die Uhr läuft nur, solange die App offen ist. Es gibt keinen Dienst im
- * Hintergrund, der später doch noch sendet – wird die App zugemacht, passiert
- * nichts, und beim nächsten Öffnen fängt die Minute von vorn an.
+ * Der Knopf „Eintragen" ist die Entscheidung. Was damit wegfällt, wird nicht
+ * schöngeredet: Danach ist der Satz draußen. Ihn in der App zu löschen nimmt
+ * ihn aus der eigenen Liste, nicht mehr aus dem Kasten. Genau so steht es
+ * auch auf dem Reiter – eine Zusage, die man nicht halten kann, ist schlimmer
+ * als keine.
  */
-const BEDENKZEIT = 60000;
 
 /**
  * Einen Text abschicken.
@@ -12400,42 +12436,64 @@ function ideenText(s) {
 }
 
 /*
- * Vorschläge gehen von selbst hinaus.
+ * Vorschläge gehen hinaus, sobald einer eingetragen ist.
  *
- * Nicht sofort: erst eine Minute nach der letzten Änderung. Wer einen Satz
- * ausbessert oder eine Idee gleich wieder löscht, soll sie nicht schon
- * verschickt haben – die Bedenkzeit ist der ganze Unterschied zwischen
- * „schickt automatisch" und „nimmt einem die Möglichkeit, es sich anders zu
- * überlegen".
+ * ZWEI FEHLER, DIE ERST ZUSAMMEN AUFFIELEN
  *
- * Die Uhr läuft nur, solange die App offen ist. Kein Dienst im Hintergrund,
- * keine Warteschlange, die später doch noch sendet: Wird die App zugemacht,
- * passiert nichts. Und geht es schief, wird nicht in einer Schleife weiter
- * probiert – der nächste Anlass (eine Änderung, ein Blick auf den Reiter)
- * versucht es erneut, und bis dahin steht sichtbar, dass noch etwas offen ist.
+ * Hier stand eine Bedenkzeit von einer Minute: Zeit, einen Tippfehler
+ * auszubessern oder eine Idee zurückzunehmen, bevor sie draußen ist. Gut
+ * gemeint, und in der Praxis eine Falle. Die Minute lief als Zeitgeber in
+ * der offenen Seite – wer eintippte und die App zumachte, verschickte nie
+ * etwas, und beim nächsten Öffnen fing sie von vorn an. Angestoßen wurde
+ * obendrein nur beim Zeichnen des Ideenreiters; wer die App aufmachte und
+ * auf dem Tagesbogen landete, stieß gar nicht an. Ein Vorschlag ging also
+ * nur dann hinaus, wenn jemand nach dem Eintippen noch eine Minute auf
+ * diesem Reiter stehen blieb. Das tut niemand.
+ *
+ * Die Bedenkzeit ist deshalb weg. Wer auf „Eintragen" tippt, hat entschieden;
+ * das ist der Knopfdruck, auf den es ankommt. Zurücknehmen geht weiter – die
+ * Idee lässt sich löschen, und der Kasten hat einen Weg dafür.
+ *
+ * Was unverändert gilt: kein Dienst im Hintergrund, keine Warteschlange, die
+ * später doch noch sendet. Zwischen Zumachen und Wiederöffnen passiert
+ * nichts. Geht es schief, wird nicht in einer Schleife weiter probiert – der
+ * nächste Anlass (eine Änderung, ein Start, ein Blick auf den Reiter) nimmt
+ * einen neuen Anlauf.
+ *
+ * UND DER FEHLER WIRD NICHT MEHR VERSCHLUCKT
+ *
+ * Hier stand einmal ein leeres `catch`, mit der Begründung, in der Anzeige
+ * stehe ohnehin, dass etwas offen sei. Das stimmte und half niemandem: Ob
+ * gerade gar nicht gesendet wird oder ob der Kasten die Annahme verweigert,
+ * sind zwei völlig verschiedene Lagen, und die App sagte beide Male
+ * dasselbe. Einen Abend Fehlersuche später steht der Grund jetzt da, wo er
+ * hingehört – auf dem Reiter, bei der Idee, für den, der etwas ändern kann.
  */
 let sendeUhr = null;
 
 function sendenAnstossen() {
   clearTimeout(sendeUhr);
   if (!store.ideenOffen()) return;
+
+  /*
+   * Ein Sprung ans Ende der Warteschlange, keine Wartezeit: Der Anstoß kommt
+   * mitten aus dem Zeichnen, und ein Netzaufruf hat da nichts zu suchen.
+   */
   sendeUhr = setTimeout(async () => {
     if (!store.ideenOffen()) return;
     try {
       await schicken(ideenText(store.zustandLesen()));
       store.ideenGeschicktMerken();
-      zeichne();
-    } catch {
-      // Kein Netz oder der Kasten mag nicht. Nichts abhaken, nichts melden –
-      // in der Anzeige steht ohnehin, dass noch etwas unterwegs ist, und der
-      // nächste Anlass nimmt einen neuen Anlauf.
+    } catch (e) {
+      store.ideenFehlerMerken(e && e.message ? e.message : 'Ging nicht.');
     }
-  }, BEDENKZEIT);
+    zeichne();
+  }, 0);
 }
 
 function ideenAnsicht(s) {
-  // Beim Ansehen des Reiters die Uhr (neu) stellen: Das ist der Anlass, an
-  // dem ein früher gescheiterter Versuch wieder eine Chance bekommt.
+  // Ein Blick auf den Reiter ist ein Anlass, einen gescheiterten Versuch zu
+  // wiederholen. Der andere ist der Start der App – siehe ganz unten.
   sendenAnstossen();
   const offen = s.ideen.filter((i) => !i.erledigt);
   const fertig = s.ideen.filter((i) => i.erledigt);
@@ -12460,13 +12518,29 @@ function ideenAnsicht(s) {
    * es dort, wo man es liest, bevor man den ersten Satz schreibt.
    */
   const nichtGeschickt = store.ideenOffen();
+  /*
+   * Der Grund, wenn es nicht geklappt hat – und zwar im Klartext.
+   *
+   * Vorher stand hier in jedem Fall „geht gleich raus", auch wenn der Kasten
+   * seit Stunden ablehnte. Das ist die schlimmere Art von Falschauskunft:
+   * beruhigend und falsch. Wer den Grund sieht, kann etwas tun – ein anderes
+   * Netz nehmen, den Text kürzen, oder ihn eben anders schicken.
+   */
   const versand = nichtGeschickt ? `<div class="karte karte-merk">
-    <h3>${mehrzahl(nichtGeschickt, 'Idee geht', 'Ideen gehen')} gleich raus</h3>
-    <p class="klein">In etwa einer Minute geht ${nichtGeschickt === 1 ? 'sie' : 'die Liste'}
-    von selbst an Tobi – du musst nichts antippen. <b>Bis dahin kannst du noch
-    ausbessern oder löschen</b>; was du wegnimmst, geht nicht mehr mit.</p>
+    <h3>${s.ideenFehler
+    ? `${mehrzahl(nichtGeschickt, 'Idee ist', 'Ideen sind')} nicht rausgegangen`
+    : `${mehrzahl(nichtGeschickt, 'Idee geht', 'Ideen gehen')} raus`}</h3>
+    ${s.ideenFehler
+    ? `<p class="klein"><b>${esc(s.ideenFehler)}</b></p>
+       <p class="klein">Der Text steht weiter da und ist nicht verloren. Beim
+       nächsten Öffnen versucht die App es von selbst noch einmal; du kannst
+       auch gleich „Nochmal" antippen oder ihn anders schicken.</p>`
+    : `<p class="klein">${nichtGeschickt === 1 ? 'Sie geht' : 'Die Liste geht'}
+       von selbst an Tobi, du musst nichts antippen. Danach hier zu löschen
+       nimmt sie aus deiner Liste, aber nicht mehr aus seinem Kasten – dafür
+       müsstest du ihm Bescheid sagen.</p>`}
     <div class="reihe">
-      ${knopf('ideen-senden', 'Jetzt gleich', 'btn-primary')}
+      ${knopf('ideen-senden', s.ideenFehler ? 'Nochmal' : 'Jetzt gleich', 'btn-primary')}
       ${knopf('ideen-teilen', 'Anders schicken')}
       ${knopf('ideen-kopieren', 'Kopieren')}
     </div>
@@ -12475,8 +12549,7 @@ function ideenAnsicht(s) {
   return `
   <h2>Ideen fürs Bauchbuch</h2>
   <p class="klein">Was fehlt, was stört, was du anders hättest. <b>Was du hier
-  einträgst, geht automatisch an Tobi</b> – etwa eine Minute nachdem du fertig
-  getippt hast, damit du es vorher noch ändern oder löschen kannst.</p>
+  einträgst, geht automatisch an Tobi</b>, sobald du auf „Eintragen" tippst.</p>
   <p class="klein">Es geht <b>nur diese Liste</b> raus, sonst nichts.
   Beschwerden, Mahlzeiten, Medikamente und alles andere aus deinem Tagebuch
   bleiben auf diesem Gerät.</p>
@@ -13820,7 +13893,7 @@ const AKTION = {
     feld.value = '';
     // „Notiert" wäre die falsche Auskunft: Notiert ist sie, aber gelesen hat
     // sie niemand, und das ist der Unterschied, um den es hier geht.
-    melden('Notiert. Geht in etwa einer Minute raus.');
+    melden('Notiert. Geht raus.');
     zeichne();
   },
   'idee-haken': (el) => { store.ideeUmschalten(el.dataset.id); zeichne(); },
@@ -14122,6 +14195,22 @@ async function speicherFestnageln() {
 }
 
 speicherFestnageln();
+
+/*
+ * Beim Start nachsehen, ob noch ein Vorschlag liegen geblieben ist.
+ *
+ * Der zweite Teil desselben Fehlers: Angestoßen wurde bisher nur beim
+ * Zeichnen des Ideenreiters. Wer die App aufmacht und – wie üblich – auf dem
+ * Tagesbogen landet, stieß nie an. Zusammen mit der Uhr, die das Zumachen
+ * nicht überlebte, hieß das: Ein Vorschlag ging nur hinaus, wenn jemand nach
+ * dem Eintippen noch eine Minute auf dem Ideenreiter stehen blieb. Das tut
+ * niemand.
+ *
+ * Hier gilt dieselbe Bedenkzeit wie überall – sendenAnstossen() rechnet sie
+ * aus dem gespeicherten Zeitpunkt aus. Ist noch etwas von der Minute übrig,
+ * wartet es die ab.
+ */
+sendenAnstossen();
 
 window.addEventListener('beforeinstallprompt', (ev) => {
   // Ohne preventDefault zeigt der Browser seinen eigenen Streifen und das

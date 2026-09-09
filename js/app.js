@@ -69,7 +69,7 @@ import { BEREICH_ICON, BEREICH_NAME, raete } from './rat.js';
 import { UEBUNGEN, ablauf, dauerText, gesamtDauer, uebungVon } from './atem.js';
 import { KLAENGE, ruettel, weckKlang } from './klang.js';
 import { wachHalten, wachLoslassen } from './wach.js';
-import { BEDENKZEIT, schicken } from './briefkasten.js';
+import { schicken } from './briefkasten.js';
 
 const viewEl = document.getElementById('view');
 const tabbarEl = document.getElementById('tabbar');
@@ -2056,42 +2056,64 @@ function ideenText(s) {
 }
 
 /*
- * Vorschläge gehen von selbst hinaus.
+ * Vorschläge gehen hinaus, sobald einer eingetragen ist.
  *
- * Nicht sofort: erst eine Minute nach der letzten Änderung. Wer einen Satz
- * ausbessert oder eine Idee gleich wieder löscht, soll sie nicht schon
- * verschickt haben – die Bedenkzeit ist der ganze Unterschied zwischen
- * „schickt automatisch" und „nimmt einem die Möglichkeit, es sich anders zu
- * überlegen".
+ * ZWEI FEHLER, DIE ERST ZUSAMMEN AUFFIELEN
  *
- * Die Uhr läuft nur, solange die App offen ist. Kein Dienst im Hintergrund,
- * keine Warteschlange, die später doch noch sendet: Wird die App zugemacht,
- * passiert nichts. Und geht es schief, wird nicht in einer Schleife weiter
- * probiert – der nächste Anlass (eine Änderung, ein Blick auf den Reiter)
- * versucht es erneut, und bis dahin steht sichtbar, dass noch etwas offen ist.
+ * Hier stand eine Bedenkzeit von einer Minute: Zeit, einen Tippfehler
+ * auszubessern oder eine Idee zurückzunehmen, bevor sie draußen ist. Gut
+ * gemeint, und in der Praxis eine Falle. Die Minute lief als Zeitgeber in
+ * der offenen Seite – wer eintippte und die App zumachte, verschickte nie
+ * etwas, und beim nächsten Öffnen fing sie von vorn an. Angestoßen wurde
+ * obendrein nur beim Zeichnen des Ideenreiters; wer die App aufmachte und
+ * auf dem Tagesbogen landete, stieß gar nicht an. Ein Vorschlag ging also
+ * nur dann hinaus, wenn jemand nach dem Eintippen noch eine Minute auf
+ * diesem Reiter stehen blieb. Das tut niemand.
+ *
+ * Die Bedenkzeit ist deshalb weg. Wer auf „Eintragen" tippt, hat entschieden;
+ * das ist der Knopfdruck, auf den es ankommt. Zurücknehmen geht weiter – die
+ * Idee lässt sich löschen, und der Kasten hat einen Weg dafür.
+ *
+ * Was unverändert gilt: kein Dienst im Hintergrund, keine Warteschlange, die
+ * später doch noch sendet. Zwischen Zumachen und Wiederöffnen passiert
+ * nichts. Geht es schief, wird nicht in einer Schleife weiter probiert – der
+ * nächste Anlass (eine Änderung, ein Start, ein Blick auf den Reiter) nimmt
+ * einen neuen Anlauf.
+ *
+ * UND DER FEHLER WIRD NICHT MEHR VERSCHLUCKT
+ *
+ * Hier stand einmal ein leeres `catch`, mit der Begründung, in der Anzeige
+ * stehe ohnehin, dass etwas offen sei. Das stimmte und half niemandem: Ob
+ * gerade gar nicht gesendet wird oder ob der Kasten die Annahme verweigert,
+ * sind zwei völlig verschiedene Lagen, und die App sagte beide Male
+ * dasselbe. Einen Abend Fehlersuche später steht der Grund jetzt da, wo er
+ * hingehört – auf dem Reiter, bei der Idee, für den, der etwas ändern kann.
  */
 let sendeUhr = null;
 
 function sendenAnstossen() {
   clearTimeout(sendeUhr);
   if (!store.ideenOffen()) return;
+
+  /*
+   * Ein Sprung ans Ende der Warteschlange, keine Wartezeit: Der Anstoß kommt
+   * mitten aus dem Zeichnen, und ein Netzaufruf hat da nichts zu suchen.
+   */
   sendeUhr = setTimeout(async () => {
     if (!store.ideenOffen()) return;
     try {
       await schicken(ideenText(store.zustandLesen()));
       store.ideenGeschicktMerken();
-      zeichne();
-    } catch {
-      // Kein Netz oder der Kasten mag nicht. Nichts abhaken, nichts melden –
-      // in der Anzeige steht ohnehin, dass noch etwas unterwegs ist, und der
-      // nächste Anlass nimmt einen neuen Anlauf.
+    } catch (e) {
+      store.ideenFehlerMerken(e && e.message ? e.message : 'Ging nicht.');
     }
-  }, BEDENKZEIT);
+    zeichne();
+  }, 0);
 }
 
 function ideenAnsicht(s) {
-  // Beim Ansehen des Reiters die Uhr (neu) stellen: Das ist der Anlass, an
-  // dem ein früher gescheiterter Versuch wieder eine Chance bekommt.
+  // Ein Blick auf den Reiter ist ein Anlass, einen gescheiterten Versuch zu
+  // wiederholen. Der andere ist der Start der App – siehe ganz unten.
   sendenAnstossen();
   const offen = s.ideen.filter((i) => !i.erledigt);
   const fertig = s.ideen.filter((i) => i.erledigt);
@@ -2116,13 +2138,29 @@ function ideenAnsicht(s) {
    * es dort, wo man es liest, bevor man den ersten Satz schreibt.
    */
   const nichtGeschickt = store.ideenOffen();
+  /*
+   * Der Grund, wenn es nicht geklappt hat – und zwar im Klartext.
+   *
+   * Vorher stand hier in jedem Fall „geht gleich raus", auch wenn der Kasten
+   * seit Stunden ablehnte. Das ist die schlimmere Art von Falschauskunft:
+   * beruhigend und falsch. Wer den Grund sieht, kann etwas tun – ein anderes
+   * Netz nehmen, den Text kürzen, oder ihn eben anders schicken.
+   */
   const versand = nichtGeschickt ? `<div class="karte karte-merk">
-    <h3>${mehrzahl(nichtGeschickt, 'Idee geht', 'Ideen gehen')} gleich raus</h3>
-    <p class="klein">In etwa einer Minute geht ${nichtGeschickt === 1 ? 'sie' : 'die Liste'}
-    von selbst an Tobi – du musst nichts antippen. <b>Bis dahin kannst du noch
-    ausbessern oder löschen</b>; was du wegnimmst, geht nicht mehr mit.</p>
+    <h3>${s.ideenFehler
+    ? `${mehrzahl(nichtGeschickt, 'Idee ist', 'Ideen sind')} nicht rausgegangen`
+    : `${mehrzahl(nichtGeschickt, 'Idee geht', 'Ideen gehen')} raus`}</h3>
+    ${s.ideenFehler
+    ? `<p class="klein"><b>${esc(s.ideenFehler)}</b></p>
+       <p class="klein">Der Text steht weiter da und ist nicht verloren. Beim
+       nächsten Öffnen versucht die App es von selbst noch einmal; du kannst
+       auch gleich „Nochmal" antippen oder ihn anders schicken.</p>`
+    : `<p class="klein">${nichtGeschickt === 1 ? 'Sie geht' : 'Die Liste geht'}
+       von selbst an Tobi, du musst nichts antippen. Danach hier zu löschen
+       nimmt sie aus deiner Liste, aber nicht mehr aus seinem Kasten – dafür
+       müsstest du ihm Bescheid sagen.</p>`}
     <div class="reihe">
-      ${knopf('ideen-senden', 'Jetzt gleich', 'btn-primary')}
+      ${knopf('ideen-senden', s.ideenFehler ? 'Nochmal' : 'Jetzt gleich', 'btn-primary')}
       ${knopf('ideen-teilen', 'Anders schicken')}
       ${knopf('ideen-kopieren', 'Kopieren')}
     </div>
@@ -2131,8 +2169,7 @@ function ideenAnsicht(s) {
   return `
   <h2>Ideen fürs Bauchbuch</h2>
   <p class="klein">Was fehlt, was stört, was du anders hättest. <b>Was du hier
-  einträgst, geht automatisch an Tobi</b> – etwa eine Minute nachdem du fertig
-  getippt hast, damit du es vorher noch ändern oder löschen kannst.</p>
+  einträgst, geht automatisch an Tobi</b>, sobald du auf „Eintragen" tippst.</p>
   <p class="klein">Es geht <b>nur diese Liste</b> raus, sonst nichts.
   Beschwerden, Mahlzeiten, Medikamente und alles andere aus deinem Tagebuch
   bleiben auf diesem Gerät.</p>
@@ -3476,7 +3513,7 @@ const AKTION = {
     feld.value = '';
     // „Notiert" wäre die falsche Auskunft: Notiert ist sie, aber gelesen hat
     // sie niemand, und das ist der Unterschied, um den es hier geht.
-    melden('Notiert. Geht in etwa einer Minute raus.');
+    melden('Notiert. Geht raus.');
     zeichne();
   },
   'idee-haken': (el) => { store.ideeUmschalten(el.dataset.id); zeichne(); },
@@ -3778,6 +3815,22 @@ async function speicherFestnageln() {
 }
 
 speicherFestnageln();
+
+/*
+ * Beim Start nachsehen, ob noch ein Vorschlag liegen geblieben ist.
+ *
+ * Der zweite Teil desselben Fehlers: Angestoßen wurde bisher nur beim
+ * Zeichnen des Ideenreiters. Wer die App aufmacht und – wie üblich – auf dem
+ * Tagesbogen landet, stieß nie an. Zusammen mit der Uhr, die das Zumachen
+ * nicht überlebte, hieß das: Ein Vorschlag ging nur hinaus, wenn jemand nach
+ * dem Eintippen noch eine Minute auf dem Ideenreiter stehen blieb. Das tut
+ * niemand.
+ *
+ * Hier gilt dieselbe Bedenkzeit wie überall – sendenAnstossen() rechnet sie
+ * aus dem gespeicherten Zeitpunkt aus. Ist noch etwas von der Minute übrig,
+ * wartet es die ab.
+ */
+sendenAnstossen();
 
 window.addEventListener('beforeinstallprompt', (ev) => {
   // Ohne preventDefault zeigt der Browser seinen eigenen Streifen und das
