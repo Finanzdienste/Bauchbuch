@@ -1105,7 +1105,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Einundvierzig Dateien, über 910 Prüfungen, alle in einem echten Chromium. Kein
+Zweiundvierzig Dateien, über 930 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -1148,6 +1148,7 @@ den Rückgabewert.
 | `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
 | `test-gewicht.mjs` | fünf Prozent ungewollt sind ein Warnzeichen, dieselben fünf Prozent gewollt keines – und ein Tag, an dem nur gewogen wurde, ist kein Tag ohne Beschwerden |
+| `test-nachschub.mjs` | kommt eine neue Fassung überhaupt an – über einen Server mit `max-age=600`, wie GitHub Pages ihn schickt, und ohne das Tagebuch mitzunehmen |
 | `test-anfang.mjs` | die Frühphase ist kürzer, sagt aber genauso genau, was fehlt – und die Warnzeichen überleben die Kürzung |
 | `test-kalender.mjs` | CRLF, 75 Oktette, maskierte Kommas: eine `.ics`, die der Kalender nicht annimmt, sieht im Browser aus wie eine, die er annimmt |
 | `test-stufenplan.mjs` | eine Karenz ohne Wirkung muss den Plan beenden, nicht weiterführen – und ein fehlender erster Tag darf kein Urteil über die kleine Menge ergeben |
