@@ -1294,6 +1294,22 @@ Actions → New repository secret* als `CLAUDE_CODE_OAUTH_TOKEN` in dieses
 Verzeichnis. Der Wert gehört ausschließlich dorthin — nicht in eine Nachricht,
 nicht in eine Datei, nicht in einen Kommentar.
 
+**Der Fehler, der hier zuerst passiert ist:** ein Zeilenumbruch im Schlüssel.
+`cmd.exe` bricht lange Zeilen hart um, und beim Markieren mit der Maus kommt
+der Umbruch als echtes Zeilenende mit — das Secret hatte dann 110 Zeichen auf
+zwei Zeilen, und die Anmeldung wurde nach 72 Millisekunden abgewiesen. Der
+Schlüssel muss **eine einzige Zeile** sein.
+
+Sichtbar wurde das erst durch `.github/workflows/agent-probe.yml`: ein Ablauf,
+der nur auf Knopfdruck läuft, nichts lesen und nichts schreiben darf und dem
+Modell einen inhaltslosen Satz schickt. Weil dort kein fremder Zettel durchgeht,
+darf seine Ausgabe offen sein — im echten Ablauf ist sie zu Recht verborgen.
+Wer den Agenten neu einrichtet, drückt dort zuerst.
+
+Der Umbruch wird **nicht** im Ablauf weggeputzt. Dafür müsste der Schlüssel
+durch eine Shell laufen, und der bereinigte Wert wäre danach nicht mehr
+maskiert: ein Tippfehler gegen ein Leck getauscht.
+
 **Was der Agent auch dann nicht darf:** zusammenführen. Er schreibt in einen
 Zweig und legt einen Entwurf an, mehr nicht. Der Kasten nimmt Text von jedem
 entgegen, der die Adresse kennt; dieser Text steuert dann ein Programm, das
