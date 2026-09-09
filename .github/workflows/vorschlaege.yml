@@ -199,6 +199,20 @@ jobs:
           # den anderen Weg wechselt.
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Der Schlüssel dieses Laufs, nicht der der Claude-GitHub-App.
+          #
+          # Ohne diese Zeile meldet sich die Action als App an – die müsste
+          # erst installiert werden und brächte org-weit Rechte mit, die hier
+          # nichts zu suchen haben: Actions, Workflows und Repository-Hooks je
+          # schreibend, und zwar für alles, worauf die App installiert ist. Der
+          # Agent verarbeitet Text aus einem öffentlichen Briefkasten. Wer den
+          # engsten Schlüssel haben kann, nimmt nicht den breitesten.
+          #
+          # `github.token` gilt nur für diesen Lauf und dieses Verzeichnis und
+          # kann nur, was oben unter `permissions:` steht. Zum Pushen braucht
+          # der Agent ihn nicht einmal von hier – `actions/checkout` hat ihn
+          # schon hinterlegt.
+          github_token: ${{ github.token }}
           prompt: |
             REPO: ${{ github.repository }}
             ZWEIG: ${{ steps.zweig.outputs.name }} (schon ausgecheckt)
