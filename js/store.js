@@ -27,7 +27,7 @@ const VORGABE = {
   eintraege: [],
   // Was für einen ganzen Tag gilt, nicht für einen Zeitpunkt. Welche Angaben
   // es gibt, steht in TAGESFRAGEN (js/daten.js):
-  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, blutung, sex, nachtwach, notiz } }
+  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, wasser, blutung, sex, nachtwach, notiz } }
   tage: {},
   // In wie vielen Stunden nach einer Mahlzeit eine Beschwerde ihr noch
   // zugerechnet wird. Vier Stunden sind der Vorschlag, nicht das Gesetz –
@@ -45,7 +45,7 @@ const VORGABE = {
   zuletztMittel: [],     // zuletzt eingetragene Medikamente, als Vorschlag
   // Welche Tagesfragen erscheinen. Im Auslieferungszustand alle – wer eine
   // davon nicht beantworten will, schaltet sie unter Mehr ab.
-  tagesfragen: ['stimmung', 'stress', 'schlaf', 'bewegung', 'blutung', 'sex', 'nachtwach'],
+  tagesfragen: ['stimmung', 'stress', 'schlaf', 'bewegung', 'wasser', 'blutung', 'sex', 'nachtwach'],
   /*
    * Seit wann die Beschwerden bestehen, als 'YYYY-MM'.
    *
