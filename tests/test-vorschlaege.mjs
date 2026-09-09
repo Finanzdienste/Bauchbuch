@@ -290,4 +290,43 @@ check(
   'und die Notiz am offenen Entwurf nennt ihn beim Namen',
 );
 
+/* ---------- 5. Stufe 1 hängt nicht an Stufe 2 ---------- */
+
+/*
+ * Ganz oben in der Ablaufdatei steht seit jeher der Satz „Stufe 1 läuft
+ * immer" – der Eingang soll nicht daran hängen, ob gerade ein Modell
+ * erreichbar ist. Er stand da als Absicht und war nicht gebaut.
+ *
+ * Beim ersten echten Zettel schlug es zu: Der Agent scheiterte nach zwölf
+ * Sekunden an einer abgelehnten Anmeldung, und weil ein gescheiterter Schritt
+ * den ganzen Ablauf abbricht, wurde kein Entwurf angelegt und niemand
+ * benachrichtigt. Der Zettel war da, der Zweig war da – und die Kette endete
+ * still, genau wie in der Zeit vor dem Rückkanal.
+ *
+ * Zwei Zeilen halten das jetzt fest. Sie sind billig und sie prüfen den Satz,
+ * der über allem steht: Eine Absicht im Kommentar, die keine Prüfung hat, ist
+ * eine Absichtserklärung.
+ */
+const agentBlock = ablauf.slice(
+  ablauf.indexOf('- name: Kleine Sachen gleich umsetzen'),
+  ablauf.indexOf('- name: Grenzen für Entwürfe prüfen'),
+);
+check(
+  /^\s*continue-on-error: true$/m.test(agentBlock),
+  'ein gescheiterter Agent bricht den Ablauf nicht ab',
+);
+check(
+  /steps\.agent\.outcome == 'failure'/.test(ablauf),
+  'und der Entwurf sagt es, statt es nur ins Protokoll zu schreiben',
+);
+
+/*
+ * Und die Gegenprobe zur Reihenfolge: Der Vermerk muss *vor* dem Anlegen des
+ * Entwurfs geschrieben werden, sonst steht er in keinem.
+ */
+check(
+  ablauf.indexOf("steps.agent.outcome == 'failure'") < ablauf.indexOf('gh pr create'),
+  'und zwar bevor der Entwurf angelegt wird',
+);
+
 ende();

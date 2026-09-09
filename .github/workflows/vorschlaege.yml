@@ -191,7 +191,19 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Kleine Sachen gleich umsetzen
+        id: agent
         if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0' && env.AGENT_AN == 'true'
+        # Der Satz ganz oben – „Stufe 1 läuft immer" – stand hier als Absicht
+        # und war nicht gebaut. Beim ersten echten Zettel scheiterte der Agent
+        # an einer Anmeldung, und damit scheiterte der ganze Ablauf: kein
+        # Entwurf, keine Benachrichtigung, obwohl der Zettel längst abgeholt
+        # und der Zweig angelegt war. Genau die Kopplung, die dieser Ablauf
+        # ausschließen sollte.
+        #
+        # Stufe 2 darf danebengehen. Was dann bleibt, ist Stufe 1: die Zettel
+        # als Liste, von Hand umzusetzen. Das ist der Zustand, für den dieser
+        # Ablauf ohnehin gebaut ist, und deutlich besser als gar nichts.
+        continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
           # Beides mitgeben, gesetzt ist eines. Der leere Wert stört nicht, und
@@ -254,6 +266,35 @@ jobs:
           claude_args: >-
             --max-turns 40
             --allowedTools "Read,Glob,Grep,Edit,Write,Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(python3:*),Bash(git:*)"
+
+      # Ein gescheiterter Agent gehört in den Entwurf, nicht nur ins Protokoll.
+      #
+      # Wer den Entwurf durchsieht, muss wissen, woran er ist: Steht hier
+      # nichts, hat ein Agent die kleinen Sachen versucht; steht dieser Absatz
+      # da, ist gar nichts umgesetzt und die Liste ist von Hand abzuarbeiten.
+      # Ohne den Hinweis sähen beide Entwürfe gleich aus, und der Unterschied
+      # fiele erst auf, wenn man sich über den leeren Diff wundert.
+      - name: Vermerken, dass der Agent nicht durchkam
+        if: steps.agent.outcome == 'failure'
+        env:
+          LAUF: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo
+            echo '## Der Agent ist nicht durchgekommen'
+            echo
+            echo 'Stufe 2 ist gescheitert – **hier ist nichts umgesetzt**, die'
+            echo 'Zettel stehen nur als Liste da. Das ist Absicht des Ablaufs:'
+            echo 'Der Eingang hängt nicht daran, ob ein Modell erreichbar ist.'
+            echo
+            echo "Woran es lag, steht im [Protokoll dieses Laufs]($LAUF)."
+            echo 'Häufigster Grund ist ein abgelehnter Schlüssel:'
+            echo '`CLAUDE_CODE_OAUTH_TOKEN` abgelaufen oder unvollständig'
+            echo 'eingetragen, oder `ANTHROPIC_API_KEY` ohne Guthaben.'
+          } >> vorschlaege/eingang.md
+          git add vorschlaege/eingang.md
+          git commit -m "Vermerk: Stufe 2 ist gescheitert"
+          git push origin "HEAD:${{ steps.zweig.outputs.name }}"
 
       # Die Grenze – und zwar hier, weil sie sonst nirgends greift.
       #
