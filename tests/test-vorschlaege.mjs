@@ -582,4 +582,54 @@ check(
   'zusammengeführt wird nur bei einem ausdrücklichen Ja',
 );
 
+/* ---------- 7. Ein leerer Lauf ist kein Erfolg ---------- */
+
+/*
+ * Der erste vollautomatische Lauf war grün, zusammengeführt und ausgeliefert
+ * – und der Agent hatte nichts gebaut. Kein einziger Commit von ihm. Der
+ * Wunsch war damit abgehakt, ohne erfüllt zu sein, und von außen sah der Lauf
+ * aus wie ein Erfolg.
+ *
+ * Das ist dieselbe stille Sackgasse, gegen die dieser ganze Kanal gebaut ist,
+ * nur am anderen Ende: Vorher kam die Idee nicht an, jetzt kommt sie an und
+ * verschwindet im Gedächtnis, ohne dass etwas passiert.
+ *
+ * Der Gegenleser fängt das nicht – nach seinem Auftrag zu Recht. Er prüft, ob
+ * etwas Schädliches drin ist, nicht ob etwas fehlt. Also braucht es eine
+ * eigene Zeile dafür.
+ */
+const stand = ablauf.slice(
+  ablauf.indexOf('- name: Was der Agent hinterlassen hat'),
+  ablauf.indexOf('- name: Alles nachprüfen'),
+);
+check(stand.length > 0, 'der Ablauf sieht nach, was der Agent hinterlassen hat');
+check(
+  /git rev-list --count origin\/main\.\.HEAD/.test(stand),
+  'und zählt dafür die Commits, statt es zu vermuten',
+);
+check(
+  /steps\.stand\.outputs\.commits == '0'/.test(ablauf) && /gh issue create/.test(ablauf),
+  'ein Vorschlag, der ungebaut durchläuft, bleibt als Aufgabe sichtbar liegen',
+);
+check(
+  /issues: write/.test(ablauf),
+  'und der Ablauf darf das auch',
+);
+
+/*
+ * Und der Fall, der bis dahin gar nicht auffiel und schwerer wiegt: Die
+ * Prüfungen laufen über den Arbeitsbaum, zusammengeführt wird der Commit.
+ * Lässt der Agent etwas Uncommittetes liegen, sind das zwei verschiedene
+ * Stände – und dieser Ablauf meldete das Ergebnis der einen Sache als grün,
+ * während er die andere ausliefert.
+ */
+check(
+  /git status --porcelain/.test(stand) && /exit 1/.test(stand),
+  'ein verschmutzter Arbeitsbaum hält den ganzen Lauf an',
+);
+check(
+  ablauf.indexOf('- name: Was der Agent hinterlassen hat') < ablauf.indexOf('- name: Alles nachprüfen'),
+  'und zwar bevor geprüft wird, nicht danach',
+);
+
 ende();

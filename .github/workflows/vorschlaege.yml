@@ -99,11 +99,13 @@ on:
   # Schritt „holen" weiter unten mit dem Leseschlüssel.
   workflow_dispatch:
 
-# Weniger geht nicht: Der Zweig muss geschrieben und der Entwurf angelegt
-# werden. Was hier nicht steht, kann auch nicht getan werden.
+# Weniger geht nicht: Der Zweig muss geschrieben, der Entwurf angelegt und
+# ein Vermerk hinterlassen werden, wenn ein Vorschlag ungebaut durchläuft.
+# Was hier nicht steht, kann auch nicht getan werden.
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 concurrency:
   group: vorschlaege
@@ -326,6 +328,14 @@ jobs:
                anpassen, damit er grün wird.
             7. Committe auf dem schon ausgecheckten Zweig und pushe ihn. Lege
                keinen Pull Request an; das macht der Ablauf danach.
+
+               **Auch wenn du nichts gebaut hast, committest du etwas.** Dann
+               schreibst du in `vorschlaege/bericht.md`, warum – und zwar
+               bevor du aufhörst. Ein Lauf ohne einen einzigen Commit ist von
+               außen nicht von einem Ausfall zu unterscheiden, und ein Wunsch,
+               der ohne Begründung im Nichts verschwindet, ist genau das, was
+               dieser Kanal verhindern soll. Es gibt keinen Ausgang hier, bei
+               dem nichts dasteht.
             8. Alles auf Deutsch, im Ton der vorhandenen Kommentare: erklären,
                *warum* etwas so ist, nicht *was* dasteht.
 
@@ -401,6 +411,41 @@ jobs:
           # der eine Warnung wegnimmt.
           git show origin/main:tools/pruefung/unantastbar.py > "$RUNNER_TEMP/unantastbar.py"
           python3 "$RUNNER_TEMP/unantastbar.py" origin/main
+
+      # Was hat der Agent eigentlich hinterlassen?
+      #
+      # Beim ersten vollautomatischen Lauf war er nach 83 Sekunden fertig und
+      # hatte keinen einzigen Commit gemacht. Der Vorschlag wurde trotzdem
+      # abgehakt, zusammengeführt und ausgeliefert – von außen sah der Lauf
+      # aus wie ein Erfolg. Dass nichts gebaut wurde, stand nirgends.
+      #
+      # ZWEI ZUSTÄNDE, DIE MAN AUSEINANDERHALTEN MUSS
+      #
+      # `commits` = 0 heißt: Der Agent hat nichts zustande gebracht. Das ist
+      # kein Beinbruch, aber es gehört gemeldet – sonst gilt ein Wunsch als
+      # erfüllt, den niemand erfüllt hat.
+      #
+      # `schmutz` heißt: Es liegen Änderungen herum, die nicht committet sind.
+      # Das ist der gefährlichere Fall, und er war bis hierher unsichtbar: Die
+      # Prüfungen laufen über den Arbeitsbaum, zusammengeführt wird der
+      # Commit. Wären beide verschieden, prüfte dieser Ablauf etwas anderes,
+      # als er ausliefert – und meldete das Ergebnis der falschen Sache als
+      # grün. Dann wird gar nichts übernommen.
+      - name: Was der Agent hinterlassen hat
+        id: stand
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0' && env.AGENT_AN == 'true'
+        run: |
+          git fetch origin main --depth=1
+          commits=$(git rev-list --count origin/main..HEAD)
+          schmutz=$(git status --porcelain)
+          echo "commits=$commits" >> "$GITHUB_OUTPUT"
+          echo "Commits auf dem Zweig: $commits"
+          git log --oneline origin/main..HEAD || true
+          if [ -n "$schmutz" ]; then
+            echo "$schmutz"
+            echo "::error::Der Agent hat Änderungen liegen lassen, ohne sie zu committen. Geprüft würde der Arbeitsbaum, übernommen der Commit – zwei verschiedene Stände. Es wird nichts übernommen."
+            exit 1
+          fi
 
       # Die Prüfungen laufen hier, nicht beim Agenten.
       #
@@ -571,6 +616,42 @@ jobs:
             -m "Gebaut, geprüft und gegengelesen ohne Rückfrage. Rückweg: git revert -m 1 HEAD"
           git push origin main
           echo "stand=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      # Ein Vorschlag, der durchläuft, ohne gebaut zu werden.
+      #
+      # Der Zettel wird trotzdem abgehakt – sonst holte ihn jeder Lauf erneut
+      # und legte täglich denselben Zweig an. Aber „abgehakt" hieße dann
+      # „erledigt", und das stimmt nicht: Amy hat sich etwas gewünscht, und
+      # bekommen hat sie nichts.
+      #
+      # Also bleibt der Wunsch sichtbar liegen, als Aufgabe mit Namen. Kein
+      # Entwurf – der blockierte den nächsten Lauf –, sondern ein Eintrag, der
+      # so lange offen steht, bis jemand ihn zumacht.
+      #
+      # Genau diese Stelle hat der erste vollautomatische Lauf verschluckt:
+      # grün, zusammengeführt, ausgeliefert, und der Wunsch war weg.
+      - name: Vermerken, was ungebaut durchgelaufen ist
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0'
+          && steps.urteil.outputs.durch == 'ja' && steps.stand.outputs.commits == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LAUF: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            printf 'Der Ablauf hat %s Vorschläge abgeholt und sie sind in der App\n' \
+              "${{ steps.holen.outputs.neu }}"
+            printf 'gelandet – **aber der Agent hat nichts daraus gebaut.** Auf dem\n'
+            printf 'Zweig stand kein einziger Commit von ihm.\n\n'
+            printf 'Die Zettel sind trotzdem abgehakt, damit nicht jeder Lauf\n'
+            printf 'denselben Zweig neu anlegt. Abgehakt heißt hier also **nicht**\n'
+            printf 'erledigt: Der Wunsch steht weiter offen und wartet auf jemanden.\n\n'
+            printf 'Der Wortlaut steht in `vorschlaege/eingang.md`.\n'
+            printf 'Was der Lauf gemacht hat: %s\n' "$LAUF"
+          } > "$RUNNER_TEMP/offen.md"
+          gh issue create \
+            --title "Ungebaut durchgelaufen: ${{ steps.holen.outputs.neu }} Vorschläge" \
+            --assignee "${{ github.repository_owner }}" \
+            --body-file "$RUNNER_TEMP/offen.md"
 
       # Wenn nicht übernommen wurde, bleibt der Entwurf – und der Grund steht
       # drin. Das ist kein Rückschritt, sondern der vorgesehene Ausgang für
