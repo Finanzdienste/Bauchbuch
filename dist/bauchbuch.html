@@ -865,6 +865,40 @@ p { margin: 0 0 8px; }
   }
 }
 
+/* ---------- Die Küche: was geht, was nicht ---------- */
+
+/*
+ * Die eine Liste in dieser App, die nichts auswertet. Deshalb sieht sie auch
+ * anders aus als die Funde: keine Balken, keine Urteilsspalte, keine Farbe
+ * nach Einstufung – nur zwei Daumen und Text. Wer hier etwas einträgt, soll
+ * nicht das Gefühl haben, etwas zu messen.
+ */
+.kueche-teil { margin-top: 14px; }
+.kueche-teil:first-of-type { margin-top: 8px; }
+.kueche { list-style: none; margin: 6px 0 8px; padding: 0; }
+.kueche-zeile {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--line);
+}
+.kueche-zeile:last-child { border-bottom: 0; }
+.kueche-dreh {
+  flex: 0 0 auto; width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 50%; background: var(--bg-elev);
+  font-size: 16px; line-height: 1; cursor: pointer;
+}
+.kueche-dreh:hover { background: var(--line); }
+.kueche-text { flex: 1 1 auto; font-size: 15px; }
+/* Was nicht geht, steht gedämpft da – es ist eine Erinnerung, keine Mahnung. */
+.k-nicht .kueche-text { color: var(--muted); }
+.kueche-feld { flex: 1 1 auto; min-width: 0; }
+
+/* ---------- Was schon feststeht ---------- */
+.befunde { list-style: none; margin: 8px 0; padding: 0; }
+.befund {
+  padding: 10px 0; border-bottom: 1px solid var(--line);
+}
+.befund:last-child { border-bottom: 0; }
+
 </style>
 </head>
 <body>
@@ -1704,6 +1738,331 @@ function wissenZu(name) {
     || null;
 }
 
+/* ===== js/kueche.js ===== */
+/*
+ * Die Küche: was geht und was nicht – als Merkliste, nicht als Rechnung.
+ *
+ * WARUM DAS HIER UND NICHT IN DER AUSWERTUNG STEHT
+ *
+ * Diese App konnte bisher nur eine Richtung: was Beschwerden macht. Und sie
+ * konnte es erst nach Wochen, ab einer Mindestzahl Fälle, mit Zufallsschranke.
+ * Das ist richtig für einen Befund und nutzlos für die Frage, die abends um
+ * sieben tatsächlich ansteht:
+ *
+ *     „Was kann ich jetzt essen, ohne darüber nachzudenken?"
+ *
+ * Darauf antwortet keine Statistik rechtzeitig. Wer eine Gastritis hat und auf
+ * die meisten Sachen keinen Appetit, hat nach drei Tagen eine klare Vorstellung
+ * davon, was geht – nur steht sie nirgends, und beim nächsten Einkauf fängt
+ * das Überlegen wieder von vorn an.
+ *
+ * Deshalb: keine Fallzahl, keine Schwelle, kein Urteil. Zwei Listen, die man
+ * selbst füllt. Das Gegenstück zu allem anderen in dieser App – und das Stück,
+ * das vom ersten Tag an etwas wert ist.
+ *
+ * WAS DIE APP TROTZDEM BEITRÄGT
+ *
+ * Sobald die Auswertung genug Material hat, kann sie der eigenen Liste
+ * widersprechen: „Du hast Haferbrei als ‚geht gut‘ notiert, nach Mahlzeiten
+ * damit war es aber auffällig schlechter." Dieser Widerspruch ist das
+ * Wertvollste, was hier herauskommen kann – er zeigt genau die Stelle, an der
+ * jemand sich täuscht, und zwar in der Richtung, die er selbst nicht sieht.
+ *
+ * Er wird deshalb gezeigt und nicht aufgelöst. Die App überschreibt die Liste
+ * nicht und streicht nichts durch: Was jemand über seinen eigenen Körper weiß,
+ * hat Vorrang vor achtzehn Mahlzeiten Datenlage. Sie sagt nur, dass beides
+ * nicht zusammenpasst.
+ */
+
+/**
+ * Die beiden Listen.
+ *
+ * „Geht nicht" ist bewusst dabei, obwohl die Auswertung Auslöser ohnehin
+ * sucht: Was jemand sicher weiß, muss er nicht erst herausrechnen lassen.
+ * Eine App, die auf ihrer eigenen Rechnung besteht, wo längst eine Antwort da
+ * ist, macht sich lästig.
+ */
+const KUECHEN_ARTEN = [
+  {
+    id: 'geht',
+    name: 'Geht gut',
+    frage: 'Was verträgst du, worauf hast du Appetit?',
+    icon: '👍',
+  },
+  {
+    id: 'nicht',
+    name: 'Geht nicht',
+    frage: 'Was lässt du lieber weg?',
+    icon: '👎',
+  },
+];
+
+/** Höchstens so viele je Liste – darüber findet niemand mehr etwas wieder. */
+const JE_LISTE = 40;
+
+/** Länger nimmt kein Eintrag an. Eine Merkliste, kein Rezeptbuch. */
+const MAX_NAME = 60;
+
+/**
+ * Ab wann die Auswertung der Liste überhaupt widersprechen darf.
+ *
+ * Dieselbe Zurückhaltung wie überall sonst: Eine Zeile ohne genug Fälle sagt
+ * nichts, und jemandem seine eigene Erfahrung mit vier Mahlzeiten Datenlage
+ * auszureden wäre schlimmer als zu schweigen.
+ */
+function widersprechendeFunde(kueche, bilanz, namen) {
+  if (!Array.isArray(kueche) || !Array.isArray(bilanz)) return [];
+
+  /*
+   * Verglichen wird über den Namen, kleingeschrieben und ohne Ränder.
+   *
+   * Grob, und mit Absicht: Die Liste ist frei getippt („Haferbrei"), die
+   * Auswertung kennt Kennungen („hafer"). Ein unscharfer Abgleich fände mehr
+   * und läge öfter daneben – und ein falscher Widerspruch ist hier teurer als
+   * ein übersehener. Wer „Haferbrei mit Banane" notiert, bekommt keinen
+   * Hinweis; das ist besser, als ihm die Banane auszureden.
+   */
+  const schluessel = (t) => String(t || '').trim().toLowerCase();
+  const nachName = new Map();
+  bilanz.forEach((z) => {
+    const name = namen(z.id);
+    if (name) nachName.set(schluessel(name), z);
+  });
+
+  const treffer = [];
+  kueche.forEach((e) => {
+    const z = nachName.get(schluessel(e.name));
+    if (!z || !z.genug) return;
+
+    /*
+     * Nur der *deutliche* Widerspruch, und nur in beide Richtungen echt:
+     *
+     *   „geht gut"  + die Auswertung sieht es auffällig schlechter
+     *   „geht nicht" + die Auswertung sieht keinen Unterschied
+     *
+     * Die zweite Richtung ist die freundlichere und wird oft vergessen: Wer
+     * sich etwas verbietet, das gar nichts macht, isst ohne Grund enger.
+     */
+    if (e.art === 'geht' && z.differenz >= 1) {
+      treffer.push({ ...e, zeile: z, richtung: 'schlechter' });
+    } else if (e.art === 'nicht' && Math.abs(z.differenz) < 0.5) {
+      treffer.push({ ...e, zeile: z, richtung: 'unauffaellig' });
+    }
+  });
+  return treffer;
+}
+
+/** Der Satz zu einem Widerspruch – je Richtung einer, beide ohne Urteil. */
+function widerspruchsSatz(t) {
+  const n = t.zeile.faelle;
+  if (t.richtung === 'schlechter') {
+    return `Nach den ${n} Mahlzeiten damit war es im Schnitt `
+      + `${t.zeile.differenz.toFixed(1).replace('.', ',')} Stufen schlechter als sonst. `
+      + 'Das muss nicht heißen, dass du dich irrst – vielleicht isst du es an '
+      + 'Tagen, an denen ohnehin wenig geht. Aber es ist einen Blick wert.';
+  }
+  return `Aus ${n} Mahlzeiten damit lässt sich kein Unterschied erkennen. `
+    + 'Vielleicht lohnt ein Versuch, es wieder zu probieren – wer etwas '
+    + 'weglässt, das nichts macht, isst ohne Grund enger.';
+}
+
+/* ===== js/befunde.js ===== */
+/*
+ * Was schon feststeht – und warum eine App das wissen muss.
+ *
+ * DER FEHLER, DEN DIESE DATEI BEHEBT
+ *
+ * Diese App rechnet bisher so, als sei nichts bekannt. An mehreren Stellen
+ * steht derselbe Vorbehalt, und er ist richtig:
+ *
+ *     „Die Regelwerke setzen ausdrücklich voraus, dass nichts Organisches
+ *      dahintersteckt – und das weiß nur eine Untersuchung."
+ *
+ * Nur gilt er nicht für jeden. Wer eine Spiegelung hinter sich hat und einen
+ * Befund bekommen hat, bei dem *steckt* etwas Organisches dahinter. Die App
+ * redet trotzdem weiter, als sei die Frage offen: Sie zeigt „Kriterien
+ * erfüllt", wo die Kriterien gar nicht mehr anwendbar sind, und schlägt unter
+ * „Was keine App beantwortet" Untersuchungen vor, die längst gelaufen sind.
+ *
+ * Das ist ungenau an der heikelsten Stelle, und zwar in die unangenehme
+ * Richtung: Sie behandelt Bekanntes als unbekannt. Wer das liest, hält seinen
+ * Befund für eine von mehreren Möglichkeiten – und geht womöglich zweimal zur
+ * selben Untersuchung oder einmal zu wenig zur nächsten.
+ *
+ * WAS HIER NICHT PASSIERT
+ *
+ * Keine Diagnose, kein Verdacht, keine Einstufung. Was hier steht, hat jemand
+ * gesagt bekommen; die App beurteilt es nicht und rechnet nichts daraus. Sie
+ * ändert nur, was sie selbst behauptet:
+ *
+ *   * Die Kriterien bekommen den Vorbehalt, der dann zutrifft.
+ *   * „Was noch fehlt" streicht, was schon geklärt ist.
+ *   * Der Praxisbericht nennt die Befunde oben, wo sie hingehören.
+ *
+ * Die Liste ist bewusst kurz und grob. Sie ist kein Arztbrief und soll keiner
+ * werden – wer seine ganze Krankengeschichte hier einträgt, hat am Ende eine
+ * zweite Akte, die niemand pflegt.
+ */
+
+/**
+ * Was die App über einen Befund wissen muss, um anders zu reden.
+ *
+ * `klaert` sagt, welche offenen Fragen damit beantwortet sind – daran hängt,
+ * was aus „Was noch fehlt" verschwindet. Die Kennungen sind die der Verdachte
+ * in js/luecken.js.
+ *
+ * Diese Liste ist mit Absicht knauserig. Gestrichen wird nur, was mit dem
+ * Befund *definitionsgemäß* erledigt ist: Eine Gastritis Typ C ist eine
+ * chemisch verursachte, also keine bakterielle – Helicobacter ist damit keine
+ * offene Frage mehr. Dass ein Befund meist bei einer Spiegelung entsteht und
+ * dabei auch anderes aufgefallen wäre, reicht nicht: „meist" ist keine
+ * Grundlage, einem Menschen eine Untersuchung aus der Liste zu nehmen.
+ *
+ * Die Richtung des Irrtums ist hier nicht gleichgültig. Ein Verdacht, der zu
+ * viel dasteht, kostet eine Nachfrage in der Sprechstunde. Einer, der zu
+ * Unrecht verschwindet, kostet die Untersuchung.
+ *
+ * `organisch` ist die Angabe, auf die es bei den Kriterien ankommt: Rom IV
+ * gilt ausdrücklich nur, solange nichts Organisches gefunden wurde.
+ */
+const BEFUNDE = [
+  {
+    id: 'hiatushernie',
+    name: 'Zwerchfellbruch (Hiatushernie)',
+    was: 'Ein Teil des Magens rutscht durch das Zwerchfell nach oben.',
+    organisch: true,
+    klaert: ['reflux'],
+    bedeutet: 'Ein bekannter Grund für Reflux: Der Verschluss zwischen Magen '
+      + 'und Speiseröhre hält schlechter. Was die App an Sodbrennen und '
+      + 'Aufstoßen zählt, hat damit eine Erklärung, die schon feststeht.',
+  },
+  {
+    id: 'gastritis-c',
+    name: 'Gastritis Typ C',
+    was: 'Magenschleimhautentzündung durch Reizstoffe – nicht durch Bakterien.',
+    organisch: true,
+    klaert: ['hpylori'],
+    bedeutet: 'Typ C heißt: chemisch gereizt. Die häufigsten Ursachen sind '
+      + 'Schmerzmittel vom NSAR-Typ (Ibuprofen, Diclofenac, ASS), Gallensaft, '
+      + 'der in den Magen zurückläuft, und Alkohol. Was davon bei dir zutrifft, '
+      + 'steht in deinem Befund – und die Medikamentenspalte dieser App ist '
+      + 'dann die interessanteste Spalte, die sie hat.',
+  },
+  {
+    id: 'gastritis-a',
+    name: 'Gastritis Typ A',
+    was: 'Magenschleimhautentzündung, bei der sich die Abwehr gegen den '
+      + 'eigenen Magen richtet.',
+    organisch: true,
+    klaert: [],
+    bedeutet: 'Hier gehört regelmäßig das Blutbild dazu – Vitamin B12 wird im '
+      + 'Magen aufgenommen, und das geht dabei verloren.',
+  },
+  {
+    id: 'gastritis-b',
+    name: 'Gastritis Typ B (Helicobacter)',
+    was: 'Magenschleimhautentzündung durch das Bakterium Helicobacter pylori.',
+    organisch: true,
+    klaert: ['hpylori'],
+    bedeutet: 'Der eine Fall, in dem eine Behandlung die Ursache beseitigt '
+      + 'statt die Beschwerden zu dämpfen.',
+  },
+  {
+    id: 'refluxkrankheit',
+    name: 'Refluxkrankheit',
+    was: 'Magensaft läuft zurück in die Speiseröhre.',
+    organisch: true,
+    klaert: ['reflux'],
+    bedeutet: 'Die GerdQ-Punktzahl dieser App misst dann nicht mehr, *ob* es '
+      + 'Reflux ist, sondern wie es gerade läuft.',
+  },
+  {
+    id: 'zoeliakie',
+    name: 'Zöliakie',
+    was: 'Unverträglichkeit von Gluten mit Schaden an der Dünndarmschleimhaut.',
+    organisch: true,
+    klaert: ['zoeliakie'],
+    bedeutet: 'Eine Diagnose, die lebenslang gilt und bei der Weglassen keine '
+      + 'Erprobung ist, sondern Behandlung.',
+  },
+  {
+    id: 'laktose',
+    name: 'Laktoseintoleranz (nachgewiesen)',
+    was: 'Milchzucker wird nicht ausreichend gespalten – mit Test bestätigt.',
+    organisch: false,
+    klaert: ['unvertraeglich'],
+    bedeutet: 'Ein Provokationstest auf Laktose erübrigt sich damit; die '
+      + 'interessante Frage ist nur noch, wie viel du verträgst.',
+  },
+  {
+    id: 'fruktose',
+    name: 'Fruktosemalabsorption (nachgewiesen)',
+    was: 'Fruchtzucker wird im Dünndarm schlecht aufgenommen – mit Test bestätigt.',
+    organisch: false,
+    klaert: ['unvertraeglich'],
+    bedeutet: 'Wie bei Laktose: Die Frage ist nicht mehr ob, sondern wie viel.',
+  },
+  {
+    id: 'reizdarm',
+    name: 'Reizdarmsyndrom (ärztlich gestellt)',
+    was: 'Die Diagnose wurde gestellt, nachdem anderes ausgeschlossen war.',
+    organisch: false,
+    klaert: ['reizdarm'],
+    bedeutet: 'Dann sind die Rom-IV-Kriterien in dieser App keine Suche mehr, '
+      + 'sondern eine Verlaufsbeobachtung.',
+  },
+];
+
+const BEFUND_VON = Object.fromEntries(BEFUNDE.map((b) => [b.id, b]));
+
+/** Höchstens so viele – die Liste ist eine Einordnung, keine Krankenakte. */
+const JE_BEFUNDE = 12;
+
+/**
+ * Ist etwas Organisches bekannt?
+ *
+ * Die eine Frage, an der die Kriterien hängen. Sie wird hier beantwortet und
+ * nicht in js/kriterien.js, damit die Rechnung dort unverändert bleibt: Die
+ * Punktzahl ist dieselbe, nur ihre Lesart ändert sich.
+ */
+function organischBekannt(befunde) {
+  if (!Array.isArray(befunde)) return false;
+  return befunde.some((b) => {
+    const w = BEFUND_VON[b.id];
+    return w ? w.organisch : false;
+  });
+}
+
+/** Welche offenen Fragen durch die eingetragenen Befunde erledigt sind. */
+function geklaert(befunde) {
+  if (!Array.isArray(befunde)) return new Set();
+  const raus = new Set();
+  befunde.forEach((b) => {
+    const w = BEFUND_VON[b.id];
+    if (w) (w.klaert || []).forEach((k) => raus.add(k));
+  });
+  return raus;
+}
+
+/**
+ * Der Satz, der an die Kriterien gehört, wenn etwas Organisches feststeht.
+ *
+ * Nicht „die Kriterien gelten nicht" – das wäre zu grob und auch nicht wahr.
+ * Sie werden in der Sprechstunde durchaus weiter benutzt, nur beantworten sie
+ * dann eine andere Frage: nicht mehr „was ist das", sondern „wie läuft es".
+ */
+function kriterienVorbehalt(befunde) {
+  const organische = (befunde || [])
+    .map((b) => BEFUND_VON[b.id])
+    .filter((w) => w && w.organisch);
+  if (!organische.length) return '';
+  const namen = organische.map((w) => w.name).join(', ');
+  return `Bei dir steht schon etwas fest: ${namen}. Diese Regelwerke setzen `
+    + 'voraus, dass nichts Organisches dahintersteckt – das ist hier nicht mehr '
+    + 'die offene Frage. Was unten steht, ist deshalb keine Einordnung, sondern '
+    + 'eine Verlaufsbeobachtung: wie stark, wie oft, und ob es besser wird.';
+}
+
 /* ===== js/klang.js ===== */
 /*
  * Töne – erzeugt, nicht geladen.
@@ -2235,6 +2594,8 @@ function vergleichBalken(mit, ohne, worte = {}) {
  * JSON-Datei, die man auch ohne diese App noch lesen kann.
  */
 
+
+
 const KEY = 'bauchbuch.state.v1';
 
 const VORGABE = {
@@ -2263,6 +2624,25 @@ const VORGABE = {
   // Tagebucheintrag und hat in keiner Auswertung etwas zu suchen.
   ideen: [],
   eigeneAusloeser: [],   // [{ id: 'x:...', name }]
+  /*
+   * Was geht und was nicht – selbst notiert, nicht gerechnet.
+   *
+   * [{ id, name, art: 'geht'|'nicht', am }]
+   *
+   * Steht neben den Eintragungen und nicht in ihnen: Das hier ist kein
+   * Tagebucheintrag und hat in keiner Auswertung etwas zu suchen. Es ist das
+   * Gegenstück dazu – was jemand über sich selbst weiß, ohne dass es
+   * jemand nachrechnen muss. Siehe js/kueche.js.
+   */
+  kueche: [],
+  /*
+   * Was schon feststeht: [{ id, am }] – siehe js/befunde.js.
+   *
+   * Keine Rechengrundlage, sondern eine Angabe darüber, was diese App noch
+   * behaupten darf. Ohne sie redet sie weiter, als sei alles offen, und
+   * schlägt Untersuchungen vor, die längst gelaufen sind.
+   */
+  befunde: [],
   zuletztMittel: [],     // zuletzt eingetragene Medikamente, als Vorschlag
   // Welche Tagesfragen erscheinen. Im Auslieferungszustand alle – wer eine
   // davon nicht beantworten will, schaltet sie unter Mehr ab.
@@ -2959,6 +3339,80 @@ function letzterTermin(bis) {
   return zustand.termine.find((t) => t <= bis) || null;
 }
 
+/* ---------- Was schon feststeht ---------- */
+
+function befundNotieren(id) {
+  if (!BEFUND_VON[id]) return false;
+  if (zustand.befunde.some((b) => b.id === id)) return false;
+  if (zustand.befunde.length >= JE_BEFUNDE) return false;
+  zustand.befunde = [...zustand.befunde, { id, am: heuteISO() }];
+  merke();
+  melde();
+  return true;
+}
+
+function befundLoeschen(id) {
+  const vorher = zustand.befunde.length;
+  zustand.befunde = zustand.befunde.filter((b) => b.id !== id);
+  if (zustand.befunde.length === vorher) return;
+  merke();
+  melde();
+}
+
+/* ---------- Die Küche: was geht, was nicht ---------- */
+
+/**
+ * Etwas auf eine der beiden Listen setzen.
+ *
+ * Steht derselbe Name schon auf der *anderen* Liste, wandert er hinüber statt
+ * doppelt dazustehen. Das ist der häufige Fall und kein Sonderfall: Was im
+ * Januar nicht ging, geht im März vielleicht wieder, und wer dann zweimal
+ * „Kaffee" dastehen hat, glaubt der Liste nicht mehr.
+ */
+function kuecheNotieren(name, art) {
+  const sauber = String(name || '').trim().slice(0, MAX_NAME);
+  if (!sauber) return null;
+  if (!KUECHEN_ARTEN.some((a) => a.id === art)) return null;
+
+  const gleich = (x) => x.name.toLowerCase() === sauber.toLowerCase();
+  const vorhanden = zustand.kueche.find(gleich);
+  if (vorhanden) {
+    if (vorhanden.art === art) return vorhanden.id;
+    zustand.kueche = zustand.kueche.map((x) => (gleich(x) ? { ...x, art, am: heuteISO() } : x));
+    merke();
+    melde();
+    return vorhanden.id;
+  }
+
+  // Die Obergrenze gilt je Liste, nicht insgesamt: Wer vierzig Sachen hat, die
+  // gehen, soll deshalb nichts aufschreiben können, das nicht geht.
+  if (zustand.kueche.filter((x) => x.art === art).length >= JE_LISTE) return null;
+
+  const neu = { id: neueId(), name: sauber, art, am: heuteISO() };
+  zustand.kueche = [neu, ...zustand.kueche];
+  merke();
+  melde();
+  return neu.id;
+}
+
+/** Von einer Liste auf die andere – der Weg, den „geht wieder" nimmt. */
+function kuecheUmschalten(id) {
+  const i = zustand.kueche.findIndex((x) => x.id === id);
+  if (i < 0) return;
+  const art = zustand.kueche[i].art === 'geht' ? 'nicht' : 'geht';
+  zustand.kueche[i] = { ...zustand.kueche[i], art, am: heuteISO() };
+  merke();
+  melde();
+}
+
+function kuecheLoeschen(id) {
+  const vorher = zustand.kueche.length;
+  zustand.kueche = zustand.kueche.filter((x) => x.id !== id);
+  if (zustand.kueche.length === vorher) return;
+  merke();
+  melde();
+}
+
 /* ---------- Ideen weitergeben ---------- */
 
 /**
@@ -3193,7 +3647,7 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, kannSpeichern, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
+const store = { allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, befundLoeschen, befundNotieren, einstellen, eintraegeAm, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, kannSpeichern, kuecheLoeschen, kuecheNotieren, kuecheUmschalten, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, zustandLesen };
 
 /* ===== js/zufall.js ===== */
 /*
@@ -10488,6 +10942,16 @@ const ui = {
   // Ansichten, der Browser in einer Messenger-App, manche Verwaltungsgeräte.
   // Dort wäre die einzige Kopie, die es je geben wird, sonst nicht erreichbar.
   sicherung: null,
+  /*
+   * Bleibt die Küchenliste beim Neuzeichnen offen?
+   *
+   * Klingt nach Kosmetik und war ein echter Bedienfehler: Die Karte klappt
+   * zu, sobald etwas darin steht – richtig beim Öffnen der App, falsch direkt
+   * nach einem Eintrag. Wer zwei Sachen hintereinander notieren wollte, musste
+   * nach jeder wieder aufklappen, weil mit der Klappe auch das Eingabefeld
+   * verschwand. Beim ersten Testlauf aufgefallen, nicht beim Lesen.
+   */
+  kuecheOffen: false,
   // Steht die Passwortabfrage offen, und was ist eingetippt? Das Passwort
   // steht nur hier und nirgends sonst: im Speicher abgelegt wäre es dasselbe,
   // als läge die Sicherung wieder offen da.
@@ -10728,7 +11192,100 @@ function tagAnsicht(s) {
 
   return kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
     + provokationZeile(s, iso) + bilanz + zyklusZeile
-    + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + anlegen + zeilen + umstaende;
+    + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + anlegen + zeilen + umstaende
+    // Ans Ende und zugeklappt: Die Liste ist zum Nachsehen da, nicht zum
+    // täglichen Durchscrollen. Wer sie sucht, findet sie an derselben Stelle.
+    + (iso === heuteISO() ? kuecheKarte(s) : '');
+}
+
+/**
+ * „Geht gut" und „Geht nicht" – die Liste, die vom ersten Tag an etwas wert ist.
+ *
+ * Steht auf dem Tagesreiter, weil das der Reiter ist, den man aufmacht, und
+ * zugeklappt, weil er sonst jeden Tag vor den Eintragungen stünde. Die Zahlen
+ * in der Zusammenfassung sind der ganze Trick: Man sieht, dass da etwas ist,
+ * ohne hinzusehen.
+ *
+ * Warum überhaupt auf dem Tagesreiter und nicht unter „Mehr": Unter „Mehr"
+ * stehen Einstellungen, und das hier ist keine. Es ist die Antwort auf die
+ * Frage, die abends tatsächlich ansteht – die gehört einen Tipp vom Start
+ * entfernt und nicht zwei.
+ */
+function kuecheKarte(s) {
+  const liste = s.kueche || [];
+  const nach = (art) => liste.filter((x) => x.art === art);
+
+  const zeile = (x) => `<li class="kueche-zeile k-${x.art}">
+    <button type="button" class="kueche-dreh" data-act="kueche-dreh" data-id="${x.id}"
+            aria-label="Auf die andere Liste setzen">
+      ${x.art === 'geht' ? '👍' : '👎'}</button>
+    <span class="kueche-text">${esc(x.name)}</span>
+    <button type="button" class="strang-weg" data-act="kueche-weg" data-id="${x.id}"
+            aria-label="Von der Liste nehmen">×</button>
+  </li>`;
+
+  const teil = (a) => {
+    const meine = nach(a.id);
+    return `<div class="kueche-teil">
+      <p class="feld-name">${a.icon} ${esc(a.name)}${meine.length ? ` (${meine.length})` : ''}</p>
+      ${meine.length ? `<ul class="kueche">${meine.map(zeile).join('')}</ul>`
+    : `<p class="klein">${esc(a.frage)}</p>`}
+      <div class="reihe">
+        <input type="text" class="feld kueche-feld" id="kueche-${a.id}"
+               maxlength="60" placeholder="${esc(a.name === 'Geht gut' ? 'Haferbrei' : 'Kaffee')}"
+               aria-label="${esc(a.frage)}">
+        ${knopf('kueche-neu', 'Dazu', '', `data-art="${a.id}"`)}
+      </div>
+    </div>`;
+  };
+
+  const gesamt = liste.length;
+  return `<div class="karte">
+    <details class="angebotbogen"${gesamt && !ui.kuecheOffen ? '' : ' open'}>
+      <summary><h3>Was geht und was nicht</h3>
+      <span class="klein">${gesamt
+    ? `${nach('geht').length} × geht gut, ${nach('nicht').length} × lieber nicht. Zum Nachsehen antippen.`
+    : 'Deine eigene Liste – ohne Rechnerei, ab dem ersten Tag.'}</span></summary>
+      <p class="klein">Was du hier einträgst, wird <b>nicht ausgewertet</b> und
+      zählt in keiner Statistik mit. Es ist eine Merkliste für den Moment, in
+      dem du vor dem Kühlschrank stehst.</p>
+      ${KUECHEN_ARTEN.map(teil).join('')}
+      <p class="klein">Der Daumen schiebt etwas auf die andere Liste – was im
+      Januar nicht ging, geht im März vielleicht wieder.</p>
+    </details>
+  </div>`;
+}
+
+/**
+ * Wo die Auswertung der eigenen Liste widerspricht.
+ *
+ * Das Wertvollste, was aus der Verbindung von beidem herauskommen kann: Es
+ * zeigt genau die Stelle, an der jemand sich täuscht – und zwar in der
+ * Richtung, die er selbst nicht sehen kann, weil sie seiner Erfahrung
+ * widerspricht.
+ *
+ * Aufgelöst wird der Widerspruch nicht. Die Liste bleibt, wie sie ist; die App
+ * streicht nichts durch. Was jemand über seinen eigenen Körper weiß, hat
+ * Vorrang vor achtzehn Mahlzeiten Datenlage – sie sagt nur, dass beides nicht
+ * zusammenpasst, und überlässt den Schluss dem Menschen.
+ */
+function kuecheWiderspruchTeil(s, d) {
+  const treffer = widersprechendeFunde(
+    s.kueche || [], d.bilanz, (id) => ausloeserName(id, s.eigeneAusloeser),
+  );
+  if (!treffer.length) return '';
+
+  return `<div class="karte karte-merk">
+    <h3>Das passt nicht zu deiner Liste</h3>
+    <p class="klein">Du hast das selbst eingeordnet, und die Zahlen sagen etwas
+    anderes. Beides kann stimmen – deine Liste bleibt, wie sie ist.</p>
+    <ul class="wartend">${treffer.map((t) => `<li class="geprueft g-${t.richtung}">
+      <span><b>${esc(t.name)}</b>
+        <span class="zeile-tags">steht bei dir unter
+          „${t.art === 'geht' ? 'Geht gut' : 'Geht nicht'}"</span></span>
+      <p class="klein">${esc(widerspruchsSatz(t))}</p>
+    </li>`).join('')}</ul>
+  </div>`;
 }
 
 /**
@@ -11571,14 +12128,29 @@ function kriterienTeil(s, d) {
        vor mindestens sechs Monaten" ist damit
        ${k.dauer.erfuellt ? 'erfüllt' : '<b>noch nicht</b> erfüllt'}.</p>`;
 
+  /*
+   * Der Vorbehalt richtet sich danach, was feststeht.
+   *
+   * Hier stand bisher in jedem Fall derselbe Satz: „setzen voraus, dass nichts
+   * Organisches dahintersteckt – und das weiß nur eine Untersuchung". Richtig
+   * für jemanden, bei dem die Frage offen ist, und falsch für jemanden, der
+   * eine Spiegelung und einen Befund hinter sich hat. Dem erzählte die App,
+   * seine Diagnose sei eine von mehreren Möglichkeiten.
+   *
+   * Die Rechnung darunter ändert sich nicht – dieselben Punkte, dieselben
+   * Haken. Nur ihre Lesart: aus einer Einordnung wird eine Verlaufsbeobachtung.
+   */
+  const vorbehalt = kriterienVorbehalt(s.befunde || []);
   return `<div class="karte">
     <h3>Kriterien</h3>
-    <p class="klein"><b>Erfüllte Kriterien sind keine Diagnose.</b> Beide
+    ${vorbehalt
+    ? `<p class="klein"><b>Das hier ordnet nichts mehr ein.</b> ${esc(vorbehalt)}</p>`
+    : `<p class="klein"><b>Erfüllte Kriterien sind keine Diagnose.</b> Beide
     Regelwerke setzen ausdrücklich voraus, dass nichts Organisches
     dahintersteckt – und das weiß nur eine Untersuchung. „Erfüllt" heißt hier:
     Wenn Spiegelung und Blutbild unauffällig sind, passt dieser Name. Das ist
     weniger als eine Diagnose und mehr als ein Gefühl, und es ist genau der
-    Satz, mit dem sich ein Termin anfangen lässt.</p>
+    Satz, mit dem sich ein Termin anfangen lässt.</p>`}
     ${dauer}
     <ul class="krit-liste">${reizdarmKasten}${dyspepsieKasten}${gerdqKasten}</ul>
     <p class="klein">Grundlage: ${mehrzahl(k.zeitraum.notierteTage, 'notierter Tag', 'notierte Tage')}
@@ -12019,6 +12591,21 @@ function brauchtTeil(s, d) {
       + 'tun kannst: Jede Woche macht jede Zahl hier belastbarer.</p>'}
   </div>`;
 
+  /*
+   * Was feststeht, steht nicht mehr unter „noch zu klären".
+   *
+   * Eine Liste offener Möglichkeiten, in der die eigene Diagnose als Frage
+   * auftaucht, ist schlimmer als keine: Sie lässt jemanden nach etwas suchen,
+   * das er schon gefunden hat, und verdeckt das, was wirklich noch offen ist.
+   *
+   * Gestrichen wird dabei nur, was mit dem Befund definitionsgemäß erledigt
+   * ist – siehe die Begründung in js/befunde.js. Im Zweifel bleibt eine Zeile
+   * stehen: Ein Verdacht zu viel kostet eine Nachfrage, einer zu wenig die
+   * Untersuchung.
+   */
+  const erledigt = geklaert(s.befunde || []);
+  const sichtbar = l.verdaechte.filter((v) => !erledigt.has(v.id));
+
   const zeile = (v) => `<li class="verdacht s-${v.stand}">
     <div class="fund-kopf">
       <b>${esc(v.name)}</b>
@@ -12047,7 +12634,11 @@ function brauchtTeil(s, d) {
       <p class="klein">Je Möglichkeit: was im Tagebuch dafür spricht, was dagegen,
       und die Untersuchung, die es entscheidet. Die letzte Zeile ist jeweils der
       Satz zum Vorlesen – dafür ist der ganze Aufwand gut.</p>
-      <ul class="verdaechte">${l.verdaechte.map(zeile).join('')}</ul>
+      <ul class="verdaechte">${sichtbar.map(zeile).join('')}</ul>
+      ${erledigt.size ? `<p class="klein">${mehrzahl(l.verdaechte.length - sichtbar.length,
+    'Möglichkeit steht', 'Möglichkeiten stehen')} nicht mehr hier, weil sie bei
+      dir schon geklärt ${l.verdaechte.length - sichtbar.length === 1 ? 'ist' : 'sind'} –
+      siehe „Was schon feststeht" unter Mehr.</p>` : ''}
       <p class="klein">Keine Reihenfolge nach Wahrscheinlichkeit. Oben steht, wozu
       das Tagebuch am meisten zu sagen hat, nicht, was am ehesten zutrifft – das
       ist ein Unterschied, und ihn zu verwischen wäre genau die Art von Rat, die
@@ -12228,6 +12819,10 @@ function musterAnsicht(s) {
    * hat trotzdem das Wichtigste.
    */
   return lageTeil(s, d) + bildTeil(s, d) + unterleibVorschlag(s)
+    // Der Widerspruch steht weit oben, direkt bei der Einordnung: Er ist kein
+    // Nebenbefund, sondern die eine Stelle, an der die Zahlen etwas sagen, das
+    // man selbst nicht sehen kann – seiner eigenen Erfahrung zum Trotz.
+    + kuecheWiderspruchTeil(s, d)
     + kriterienTeil(s, d) + versuchTeil(s, d) + planTeil(s, d) + provokationTeil(s, d)
     + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wechselTeil(s, d)
     + wartet + ansprechenTeil(s, d)
@@ -12926,6 +13521,57 @@ function schlossKarte() {
 
 /* ==================== Reiter: Mehr ==================== */
 
+/**
+ * „Was schon feststeht" – die Angabe, ohne die diese App zu viel behauptet.
+ *
+ * Sie steht unter „Mehr" und nicht auf dem Tagesreiter, weil sie sich fast nie
+ * ändert: Ein Befund wird einmal eingetragen und bleibt. Was sich täglich
+ * ändert, gehört nach vorn; was einmal im Jahr dazukommt, hierher.
+ *
+ * Bewusst eine feste Auswahl und kein Freitextfeld. Nicht aus Bequemlichkeit:
+ * Die App muss aus dem Eintrag etwas folgern – welche Vorbehalte gelten, was
+ * aus „Was noch fehlt" verschwindet –, und das kann sie nur, wenn sie weiß,
+ * was dasteht. Ein frei getippter Befund wäre eine Notiz, die nichts bewirkt,
+ * und das wäre schlimmer als das Feld nicht zu haben.
+ */
+function befundeKarte(s) {
+  const meine = s.befunde || [];
+  const hat = (id) => meine.some((b) => b.id === id);
+  const offenZurWahl = BEFUNDE.filter((b) => !hat(b.id));
+
+  return `<div class="karte">
+    <h3>Was schon feststeht</h3>
+    <p class="klein">Diagnosen, die du <b>von einer Ärztin bekommen hast</b> –
+    keine Vermutungen. Die App beurteilt sie nicht und rechnet nichts daraus.
+    Sie ändert nur, was sie selbst behauptet: Was hier steht, taucht unter
+    „Muster" nicht mehr als offene Frage auf, und die Kriterien ordnen dann
+    nicht mehr ein, sondern beobachten den Verlauf.</p>
+
+    ${meine.length ? `<ul class="befunde">${meine.map((b) => {
+    const w = BEFUND_VON[b.id];
+    if (!w) return '';
+    return `<li class="befund">
+      <div class="fund-kopf">
+        <b>${esc(w.name)}</b>
+        <button type="button" class="strang-weg" data-act="befund-weg" data-id="${esc(b.id)}"
+                aria-label="Aus der Liste nehmen">×</button>
+      </div>
+      <p class="zeile-tags">${esc(w.was)}</p>
+      <p class="klein">${esc(w.bedeutet)}</p>
+    </li>`;
+  }).join('')}</ul>` : '<p class="klein">Noch nichts eingetragen – dann rechnet die App weiter so, als sei alles offen.</p>'}
+
+    ${offenZurWahl.length ? `<p class="feld-name">Dazu</p>
+    <div class="marken marken-eng">${offenZurWahl.map((b) => `
+      <button type="button" class="marke" data-act="befund-neu" data-id="${esc(b.id)}">
+        ${esc(b.name)}</button>`).join('')}</div>` : ''}
+
+    <p class="klein">Steht deine Diagnose nicht dabei, ist das kein Versehen:
+    Die Liste führt nur, woraus diese App etwas folgern kann. Alles andere
+    gehört in den Arztbericht und nicht hierher.</p>
+  </div>`;
+}
+
 function mehrAnsicht(s) {
   const gesichert = s.lastBackup
     ? `zuletzt am ${fmtDatum(s.lastBackup.on, true)} mit ${mehrzahl(s.lastBackup.anzahl, 'Eintrag', 'Einträgen')}`
@@ -13065,6 +13711,8 @@ function mehrAnsicht(s) {
     ${s.beschwerdenSeit ? `<p class="klein">Notiert: seit ${esc(s.beschwerdenSeit)}.
       ${knopf('seit-weg', 'Löschen', 'btn-ghost')}</p>` : ''}
   </div>
+
+  ${befundeKarte(s)}
 
   <div class="karte">
     <h3>Welche Fragen stellt der Tag?</h3>
@@ -13896,6 +14544,26 @@ const AKTION = {
     melden('Notiert. Geht raus.');
     zeichne();
   },
+  'kueche-neu': (el) => {
+    const art = el.dataset.art;
+    const feld = document.getElementById(`kueche-${art}`);
+    // Offen bleiben, egal wie es ausgeht: Auch nach „Da steht noch nichts"
+    // soll das Feld dastehen, in das man gerade tippen wollte.
+    ui.kuecheOffen = true;
+    if (!store.kuecheNotieren(feld.value, art)) {
+      // Zwei Gründe, und der zweite will erklärt werden: ein leeres Feld, oder
+      // die Liste ist voll. „Ging nicht" ohne Grund wäre hier besonders
+      // ärgerlich, weil der Text dann einfach stehen bleibt.
+      melden(feld.value.trim() ? 'Die Liste ist voll – nimm erst etwas heraus.' : 'Da steht noch nichts.');
+      return;
+    }
+    feld.value = '';
+    zeichne();
+  },
+  'befund-neu': (el) => { store.befundNotieren(el.dataset.id); zeichne(); },
+  'befund-weg': (el) => { store.befundLoeschen(el.dataset.id); zeichne(); },
+  'kueche-dreh': (el) => { store.kuecheUmschalten(el.dataset.id); zeichne(); },
+  'kueche-weg': (el) => { store.kuecheLoeschen(el.dataset.id); zeichne(); },
   'idee-haken': (el) => { store.ideeUmschalten(el.dataset.id); zeichne(); },
   'idee-weg': (el) => { store.ideeLoeschen(el.dataset.id); zeichne(); },
   /*

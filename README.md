@@ -186,6 +186,84 @@ davon weiß die App, und keines davon kann sie erfragen, ohne so zu tun, als
 wüsste sie es dann. Was stattdessen kommt: was sie selbst eingenommen hat, wann
 zuletzt, was es bewirkt, und die Frage dazu für den nächsten Termin.
 
+### Was geht und was nicht – die Liste, die nichts auswertet
+
+Diese App konnte lange nur eine Richtung: was Beschwerden macht, ab acht Fällen,
+mit Zufallsschranke. Das ist richtig für einen Befund und nutzlos für die Frage,
+die abends um sieben ansteht: *Was kann ich jetzt essen, ohne nachzudenken?*
+
+Darauf antwortet keine Statistik rechtzeitig. Wer eine Gastritis hat und auf die
+meisten Sachen keinen Appetit, weiß nach drei Tagen, was geht — nur stand es
+nirgends, und beim nächsten Einkauf fing das Überlegen von vorn an.
+
+Auf dem Tagesreiter stehen deshalb zwei Listen, die man selbst füllt: **Geht
+gut** und **Geht nicht**. Keine Fallzahl, keine Schwelle, kein Urteil. Ein
+Daumen schiebt etwas auf die andere Liste — was im Januar nicht ging, geht im
+März vielleicht wieder.
+
+Was dort steht, wird **nicht ausgewertet**: kein Tagebucheintrag, kein notierter
+Tag, keine Fallzahl. Sonst hätte jemand mit einem Tipp auf „Haferbrei" seine
+eigenen Zahlen verschoben, ohne es zu merken — `test-kueche.mjs` prüft genau das.
+
+**Und dann der Teil, für den sich der Aufwand lohnt:** Sobald die Auswertung
+genug Material hat, kann sie der eigenen Liste widersprechen. *„Du hast Kaffee
+als ‚geht gut' notiert, nach den 20 Mahlzeiten damit war es 6,0 Stufen
+schlechter."* Das ist die eine Stelle, an der die Zahlen etwas sagen, das man
+selbst nicht sehen kann — es widerspricht ja der eigenen Erfahrung.
+
+Aufgelöst wird der Widerspruch nicht. Die Liste bleibt, wie sie ist; die App
+streicht nichts durch. Was jemand über seinen eigenen Körper weiß, hat Vorrang
+vor achtzehn Mahlzeiten Datenlage — sie sagt nur, dass beides nicht zusammenpasst.
+
+Die andere Richtung gehört dazu und wird oft vergessen: Steht etwas auf „Geht
+nicht", das in den Zahlen gar nichts macht, sagt die App auch das. Wer sich
+etwas verbietet, das nichts bewirkt, isst ohne Grund enger.
+
+### Was schon feststeht
+
+Die App rechnete bisher so, als sei nichts bekannt. An mehreren Stellen steht
+derselbe Vorbehalt, und er ist richtig:
+
+> „Die Regelwerke setzen ausdrücklich voraus, dass nichts Organisches
+> dahintersteckt — und das weiß nur eine Untersuchung."
+
+**Nur gilt er nicht für jeden.** Wer eine Spiegelung hinter sich hat und einen
+Befund bekommen hat, bei dem *steckt* etwas Organisches dahinter. Die App redete
+trotzdem weiter, als sei die Frage offen: Sie zeigte „Kriterien erfüllt", wo die
+Kriterien gar nicht mehr anwendbar sind, und schlug unter „Was keine App
+beantwortet" Untersuchungen vor, die längst gelaufen waren.
+
+Ungenau an der heikelsten Stelle, und in die unangenehme Richtung: **Bekanntes
+als unbekannt.** Wer das liest, hält seinen eigenen Befund für eine von mehreren
+Möglichkeiten.
+
+Unter „Mehr" steht deshalb jetzt, was feststeht — Diagnosen, die eine Ärztin
+gestellt hat, aus einer festen Auswahl. Bewusst kein Freitextfeld: Die App muss
+aus dem Eintrag etwas folgern können, und ein frei getippter Befund wäre eine
+Notiz, die nichts bewirkt. Was dann anders ist:
+
+* **Die Kriterien ordnen nicht mehr ein, sondern beobachten den Verlauf.** Die
+  Rechnung bleibt dieselbe — dieselben Punkte, dieselben Haken. Nur ihre Lesart
+  ändert sich. `test-befunde.mjs` prüft ausdrücklich, dass sich die GerdQ-Zahl
+  **nicht** ändert: Sonst wäre aus einer Einordnung eine sich selbst
+  bestätigende geworden.
+* **Geklärtes verschwindet aus „Was noch fehlt".** Eine Liste offener
+  Möglichkeiten, in der die eigene Diagnose als Frage auftaucht, ist schlimmer
+  als keine.
+* **Die Warnzeichen bleiben.** Keine Diagnose der Welt macht Blut im Stuhl zu
+  etwas, das nicht angesehen gehört.
+
+Gestrichen wird nur, was mit dem Befund *definitionsgemäß* erledigt ist: Eine
+Gastritis Typ C ist eine chemisch verursachte, also keine bakterielle —
+Helicobacter ist damit keine offene Frage mehr. Dass ein Befund meist bei einer
+Spiegelung entsteht und dabei auch anderes aufgefallen wäre, reicht nicht.
+„Meist" ist keine Grundlage, einem Menschen eine Untersuchung aus der Liste zu
+nehmen.
+
+Die Richtung des Irrtums ist hier nicht gleichgültig: **Ein Verdacht, der zu
+viel dasteht, kostet eine Nachfrage in der Sprechstunde. Einer, der zu Unrecht
+verschwindet, kostet die Untersuchung.**
+
 ### Wie weit Richtung Diagnose
 
 So weit, wie ein Tagebuch ehrlich kommt – und keinen Schritt weiter.
