@@ -13,6 +13,8 @@
  * JSON-Datei, die man auch ohne diese App noch lesen kann.
  */
 import { heuteISO, jetztUhr, minutenAmTag, zeitpunkt } from './datum.js';
+import { KUECHEN_ARTEN, JE_LISTE, MAX_NAME } from './kueche.js';
+import { BEFUND_VON, JE_BEFUNDE } from './befunde.js';
 
 const KEY = 'bauchbuch.state.v1';
 
@@ -42,6 +44,25 @@ const VORGABE = {
   // Tagebucheintrag und hat in keiner Auswertung etwas zu suchen.
   ideen: [],
   eigeneAusloeser: [],   // [{ id: 'x:...', name }]
+  /*
+   * Was geht und was nicht – selbst notiert, nicht gerechnet.
+   *
+   * [{ id, name, art: 'geht'|'nicht', am }]
+   *
+   * Steht neben den Eintragungen und nicht in ihnen: Das hier ist kein
+   * Tagebucheintrag und hat in keiner Auswertung etwas zu suchen. Es ist das
+   * Gegenstück dazu – was jemand über sich selbst weiß, ohne dass es
+   * jemand nachrechnen muss. Siehe js/kueche.js.
+   */
+  kueche: [],
+  /*
+   * Was schon feststeht: [{ id, am }] – siehe js/befunde.js.
+   *
+   * Keine Rechengrundlage, sondern eine Angabe darüber, was diese App noch
+   * behaupten darf. Ohne sie redet sie weiter, als sei alles offen, und
+   * schlägt Untersuchungen vor, die längst gelaufen sind.
+   */
+  befunde: [],
   zuletztMittel: [],     // zuletzt eingetragene Medikamente, als Vorschlag
   // Welche Tagesfragen erscheinen. Im Auslieferungszustand alle – wer eine
   // davon nicht beantworten will, schaltet sie unter Mehr ab.
@@ -736,6 +757,80 @@ export function terminLoeschen(iso) {
  */
 export function letzterTermin(bis) {
   return zustand.termine.find((t) => t <= bis) || null;
+}
+
+/* ---------- Was schon feststeht ---------- */
+
+export function befundNotieren(id) {
+  if (!BEFUND_VON[id]) return false;
+  if (zustand.befunde.some((b) => b.id === id)) return false;
+  if (zustand.befunde.length >= JE_BEFUNDE) return false;
+  zustand.befunde = [...zustand.befunde, { id, am: heuteISO() }];
+  merke();
+  melde();
+  return true;
+}
+
+export function befundLoeschen(id) {
+  const vorher = zustand.befunde.length;
+  zustand.befunde = zustand.befunde.filter((b) => b.id !== id);
+  if (zustand.befunde.length === vorher) return;
+  merke();
+  melde();
+}
+
+/* ---------- Die Küche: was geht, was nicht ---------- */
+
+/**
+ * Etwas auf eine der beiden Listen setzen.
+ *
+ * Steht derselbe Name schon auf der *anderen* Liste, wandert er hinüber statt
+ * doppelt dazustehen. Das ist der häufige Fall und kein Sonderfall: Was im
+ * Januar nicht ging, geht im März vielleicht wieder, und wer dann zweimal
+ * „Kaffee" dastehen hat, glaubt der Liste nicht mehr.
+ */
+export function kuecheNotieren(name, art) {
+  const sauber = String(name || '').trim().slice(0, MAX_NAME);
+  if (!sauber) return null;
+  if (!KUECHEN_ARTEN.some((a) => a.id === art)) return null;
+
+  const gleich = (x) => x.name.toLowerCase() === sauber.toLowerCase();
+  const vorhanden = zustand.kueche.find(gleich);
+  if (vorhanden) {
+    if (vorhanden.art === art) return vorhanden.id;
+    zustand.kueche = zustand.kueche.map((x) => (gleich(x) ? { ...x, art, am: heuteISO() } : x));
+    merke();
+    melde();
+    return vorhanden.id;
+  }
+
+  // Die Obergrenze gilt je Liste, nicht insgesamt: Wer vierzig Sachen hat, die
+  // gehen, soll deshalb nichts aufschreiben können, das nicht geht.
+  if (zustand.kueche.filter((x) => x.art === art).length >= JE_LISTE) return null;
+
+  const neu = { id: neueId(), name: sauber, art, am: heuteISO() };
+  zustand.kueche = [neu, ...zustand.kueche];
+  merke();
+  melde();
+  return neu.id;
+}
+
+/** Von einer Liste auf die andere – der Weg, den „geht wieder" nimmt. */
+export function kuecheUmschalten(id) {
+  const i = zustand.kueche.findIndex((x) => x.id === id);
+  if (i < 0) return;
+  const art = zustand.kueche[i].art === 'geht' ? 'nicht' : 'geht';
+  zustand.kueche[i] = { ...zustand.kueche[i], art, am: heuteISO() };
+  merke();
+  melde();
+}
+
+export function kuecheLoeschen(id) {
+  const vorher = zustand.kueche.length;
+  zustand.kueche = zustand.kueche.filter((x) => x.id !== id);
+  if (zustand.kueche.length === vorher) return;
+  merke();
+  melde();
 }
 
 /* ---------- Ideen weitergeben ---------- */

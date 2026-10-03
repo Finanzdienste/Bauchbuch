@@ -844,3 +844,37 @@ p { margin: 0 0 8px; }
     color: #444;
   }
 }
+
+/* ---------- Die Küche: was geht, was nicht ---------- */
+
+/*
+ * Die eine Liste in dieser App, die nichts auswertet. Deshalb sieht sie auch
+ * anders aus als die Funde: keine Balken, keine Urteilsspalte, keine Farbe
+ * nach Einstufung – nur zwei Daumen und Text. Wer hier etwas einträgt, soll
+ * nicht das Gefühl haben, etwas zu messen.
+ */
+.kueche-teil { margin-top: 14px; }
+.kueche-teil:first-of-type { margin-top: 8px; }
+.kueche { list-style: none; margin: 6px 0 8px; padding: 0; }
+.kueche-zeile {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--line);
+}
+.kueche-zeile:last-child { border-bottom: 0; }
+.kueche-dreh {
+  flex: 0 0 auto; width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 50%; background: var(--bg-elev);
+  font-size: 16px; line-height: 1; cursor: pointer;
+}
+.kueche-dreh:hover { background: var(--line); }
+.kueche-text { flex: 1 1 auto; font-size: 15px; }
+/* Was nicht geht, steht gedämpft da – es ist eine Erinnerung, keine Mahnung. */
+.k-nicht .kueche-text { color: var(--muted); }
+.kueche-feld { flex: 1 1 auto; min-width: 0; }
+
+/* ---------- Was schon feststeht ---------- */
+.befunde { list-style: none; margin: 8px 0; padding: 0; }
+.befund {
+  padding: 10px 0; border-bottom: 1px solid var(--line);
+}
+.befund:last-child { border-bottom: 0; }
