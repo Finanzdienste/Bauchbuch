@@ -5,6 +5,14 @@
 # wird: dass nichts das Gerät verlässt.
 name: Prüfung
 
+# Lesen genügt. Dieser Ablauf führt bei jedem Push den Code des Zweiges aus –
+# npm ci, die Testsuite, den Ein-Datei-Bau. Auf einem Zweig aus dem Briefkasten
+# ist das Code, der aus fremden Zetteln entstanden ist. Ohne diesen Block gilt
+# die Voreinstellung des Repositories, und die kann Schreibrecht sein: Dann
+# hinge an der Prüfung mehr, als sie prüfen soll.
+permissions:
+  contents: read
+
 on:
   push:
   pull_request:
