@@ -632,4 +632,97 @@ check(
   'und zwar bevor geprüft wird, nicht danach',
 );
 
+/* ---------- 8. Der Agent ist abgeschaltet ---------- */
+
+/*
+ * Ausdrücklich gewollt, nicht kaputt. Die Kette bis zum Entwurf bleibt
+ * stehen; nur baut und merged niemand mehr von selbst.
+ *
+ * Geprüft wird das hier und nicht nur im Kommentar, weil ein Schalter, der
+ * nirgends festgehalten ist, beim nächsten Umbau mitwandert — und zwar in die
+ * Richtung, die niemand bemerkt: Ein versehentlich wieder scharfer Agent
+ * meldet sich nicht, er legt einfach eines Tages wieder Code in die App.
+ */
+check(
+  /^\s*AGENT_GEWOLLT: 'nein'$/m.test(ablauf),
+  'der Schalter steht auf nein',
+);
+
+/*
+ * Und der Schalter steht VOR dem Schlüssel. Beides muss zutreffen, damit ein
+ * vergessenes Secret allein nichts anschaltet.
+ */
+const bedingungen = ablauf.match(/env\.AGENT_GEWOLLT == 'ja' && env\.SCHLUESSEL_DA == 'true'/g) || [];
+check(
+  bedingungen.length >= 5,
+  `jeder Agentenschritt hängt an beidem (${bedingungen.length} Stellen)`,
+);
+check(
+  !/env\.AGENT_AN/.test(ablauf),
+  'und die alte Bedingung, die nur den Schlüssel prüfte, ist nirgends mehr übrig',
+);
+
+/*
+ * Die Prüfung, auf die es ankommt: Kein Pfad führt mehr zum Zusammenführen.
+ * `durch` wird nur auf „ja" gesetzt, wenn der Gegenleser DURCH sagt — und der
+ * läuft nur, wenn der Schalter an ist. Steht er auf nein, setzt der
+ * Urteilsschritt vor allem anderen „nein" und steigt aus.
+ */
+const urteilBlock = ablauf.slice(
+  ablauf.indexOf('- name: Urteil einsammeln'),
+  ablauf.indexOf('- name: In die App übernehmen'),
+);
+check(
+  urteilBlock.indexOf('AGENT_GEWOLLT') < urteilBlock.indexOf('SCHLUESSEL_DA'),
+  'der Schalter wird zuerst geprüft, noch vor dem Schlüssel',
+);
+check(
+  /AGENT_GEWOLLT.*!=.*ja/s.test(urteilBlock) && /durch=nein/.test(urteilBlock),
+  'und ein abgeschalteter Agent heißt ausdrücklich: wird nicht übernommen',
+);
+
+/*
+ * Was bleiben muss: Stufe 1. Der Entwurf wird weiter angelegt und zugewiesen,
+ * sonst wäre mit dem Agenten auch der Rückkanal abgeschaltet — und dann käme
+ * die Idee der Nutzerin wieder nirgends an.
+ */
+const entwurf = ablauf.slice(ablauf.indexOf('- name: Entwurf anlegen'));
+check(
+  !/AGENT_GEWOLLT/.test(entwurf.slice(0, entwurf.indexOf('run:'))),
+  'der Entwurf hängt nicht am Schalter – Stufe 1 läuft weiter',
+);
+
+/*
+ * Was eine adversarische Nachprüfung gefunden hat, nachdem der Schalter stand.
+ *
+ * Vier Blickwinkel suchten unabhängig nach Wegen, auf denen trotzdem noch
+ * etwas von selbst in die App gelangt. Drei Funde hielten stand, und keiner
+ * davon war der Schalter selbst — alle drei waren Stellen, an denen der
+ * Schutz nur *mittelbar* wirkte:
+ *
+ *   * „In die App übernehmen" hing am Schalter nur über eine Zeichenkette aus
+ *     einem anderen Schritt (`steps.urteil.outputs.durch`).
+ *   * „Vermerken, dass der Agent nicht durchkam" committet und pusht, hing
+ *     aber an keiner Schalterbedingung — er feuerte nur deshalb nicht, weil
+ *     ein übersprungener Schritt in GitHub Actions 'skipped' ergibt und nicht
+ *     'failure'. Das muss man wissen, um den Schutz überhaupt zu sehen.
+ *   * agent-probe.yml startete einen eigenen Agenten, völlig unabhängig vom
+ *     Schalter. Diese Datei ist weg; sie war ein Diagnosewerkzeug für das
+ *     Einrichten und hatte keine Schutzlogik, die beim Ausbauen verlorengehen
+ *     könnte.
+ *
+ * Ein mittelbarer Schutz hält, bis jemand die Stelle anfasst, über die er
+ * läuft. Jeder schreibende Schritt sagt jetzt selbst, wann er schreiben darf.
+ */
+for (const [was, block] of [
+  ['In die App übernehmen', ablauf.slice(ablauf.indexOf('- name: In die App übernehmen'), ablauf.indexOf('- name: Vermerken, was ungebaut'))],
+  ['Vermerken, dass der Agent nicht durchkam', ablauf.slice(ablauf.indexOf('- name: Vermerken, dass der Agent nicht durchkam'), ablauf.indexOf('- name: Grenzen für Entwürfe prüfen'))],
+]) {
+  const bedingung = block.slice(0, block.indexOf('run:') > 0 ? block.indexOf('run:') : block.length);
+  check(
+    /env\.AGENT_GEWOLLT == 'ja'/.test(bedingung),
+    `„${was}" nennt den Schalter selbst, statt sich auf einen anderen Schritt zu verlassen`,
+  );
+}
+
 ende();

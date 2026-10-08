@@ -1351,7 +1351,62 @@ Zettel kommen an, umgesetzt wird von Hand. Das ist Absicht — der Teil, der
 zuverlässig laufen muss, hängt nicht daran, ob gerade ein Modell erreichbar
 ist.
 
-### Stufe 2 freischalten — zwei Wege, einer davon ohne zusätzliche Kosten
+### Stufe 2 ist abgeschaltet
+
+Oben in `.github/workflows/vorschlaege.yml` steht:
+
+```yaml
+AGENT_GEWOLLT: 'nein'
+```
+
+Damit baut und ändert **kein Agent mehr etwas**. Die Kette bis dahin bleibt
+vollständig stehen: Die Zettel werden abgeholt, eingerahmt, als Entwurf
+angelegt und dem Besitzer zugewiesen. Nur setzt sie niemand mehr von selbst
+um, und nichts geht ohne Rückfrage nach `main`.
+
+Wieder einschalten ist eine Zeile — `'ja'` statt `'nein'`. Der Agent, der
+Gegenleser, die vier Schichten und das Zusammenführen stehen alle noch da und
+warten. Das ist mit Absicht so und kein halber Rückbau: Was ausgebaut wird,
+muss beim nächsten Mal neu geschrieben werden, und beim Neuschreiben gehen
+zuerst die Grenzen verloren.
+
+Der Schalter steht **vor** dem Schlüssel, und beides muss zutreffen. Ein
+vergessenes Secret schaltet allein nichts an. `test-vorschlaege.mjs` hält den
+Zustand fest — auch das mit Absicht: Ein Schalter, der nirgends geprüft wird,
+wandert beim nächsten Umbau mit, und zwar in die Richtung, die niemand
+bemerkt. Ein versehentlich wieder scharfer Agent meldet sich nicht; er legt
+eines Tages wieder Code in die App.
+
+Das Modell-Secret kann liegen bleiben — es wird nicht mehr benutzt. Wer es
+ganz loswerden will, löscht es unter *Settings → Secrets and variables →
+Actions*.
+
+**Was die Nachprüfung dabei gefunden hat.** Nachdem der Schalter stand, haben
+vier unabhängige Blickwinkel nach Wegen gesucht, auf denen trotzdem noch etwas
+von selbst in die App gelangt. Drei Funde hielten stand — und keiner davon war
+der Schalter. Alle drei waren Stellen, an denen der Schutz nur *mittelbar*
+wirkte:
+
+* **„In die App übernehmen"** — der einzige Schritt, der nach `main` pusht —
+  hing am Schalter nur über eine Zeichenkette aus einem anderen Schritt. Wer
+  dort etwas ändert, ohne den Zusammenhang zu kennen, macht den Merge wieder
+  scharf.
+* **„Vermerken, dass der Agent nicht durchkam"** committet und pusht, nannte
+  den Schalter aber nicht. Er feuerte nur deshalb nicht, weil ein
+  übersprungener Schritt in GitHub Actions `skipped` ergibt und nicht
+  `failure` — eine Eigenheit, die man kennen muss, um den Schutz zu sehen.
+* **`agent-probe.yml`** startete einen eigenen Agenten, völlig unabhängig vom
+  Schalter. Die Datei ist gelöscht: ein Diagnosewerkzeug fürs Einrichten, ohne
+  Schutzlogik, die beim Ausbauen verlorengehen könnte. (Sie hatte nebenbei
+  einen eigenen Fehler — sie reichte den OAuth-Schlüssel in eine
+  Shell-Kommandozeile, zwei Zeilen unter einem Kommentar, der genau das
+  bestritt.)
+
+Ein mittelbarer Schutz hält, bis jemand die Stelle anfasst, über die er läuft.
+Jeder schreibende Schritt sagt jetzt selbst, wann er schreiben darf, und
+`test-vorschlaege.mjs` hält das fest.
+
+### Wie Stufe 2 freigeschaltet würde — zwei Wege, einer ohne zusätzliche Kosten
 
 Der Ablauf nimmt **eines von beiden** Secrets; gesetzt sein muss nur eines:
 
@@ -1388,7 +1443,11 @@ Der Umbruch wird **nicht** im Ablauf weggeputzt. Dafür müsste der Schlüssel
 durch eine Shell laufen, und der bereinigte Wert wäre danach nicht mehr
 maskiert: ein Tippfehler gegen ein Leck getauscht.
 
-**Was der Agent inzwischen doch darf:** zusammenführen. Was durchkommt, geht
+**Wie es gebaut ist, wenn der Schalter auf `'ja'` steht** (zurzeit steht er auf
+`'nein'`, siehe oben — das Folgende beschreibt also den eingeschalteten
+Zustand, nicht den gegenwärtigen):
+
+Dann darf der Agent zusammenführen. Was durchkommt, geht
 ohne Rückfrage in die laufende App — kein Entwurf, kein Mensch dazwischen. Hier
 stand lange das Gegenteil, und die Begründung war richtig; sie war nur an der
 Stelle langsam, an der dieser Kanal schnell sein muss. Ein Vorschlag, auf den
