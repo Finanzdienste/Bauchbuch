@@ -1406,6 +1406,23 @@ Ein mittelbarer Schutz hält, bis jemand die Stelle anfasst, über die er läuft
 Jeder schreibende Schritt sagt jetzt selbst, wann er schreiben darf, und
 `test-vorschlaege.mjs` hält das fest.
 
+**Und dann noch ein vierter Fund, der die Prüfung selbst traf.** Zwei
+unabhängige Skeptiker haben ihn nicht nur behauptet, sondern reproduziert: Die
+Prüfung suchte `AGENT_GEWOLLT: 'nein'` als Textmuster irgendwo in der Datei.
+Setzt man den echten Schalter im `env:`-Block auf `'ja'` und lässt dieselbe
+Zeile eingerückt an anderer Stelle stehen — im `prompt: |`-Block etwa, der
+ohnehin freier deutscher Prosatext ist —, bleibt die ganze Suite grün und
+meldet weiter „der Schalter steht auf nein".
+
+Der nackte Ein-Zeilen-Flip wurde erwischt. Der Flip, der die alte Zeile als
+Dokumentation stehenlässt, nicht — und das ist die wahrscheinlichere Form.
+Dasselbe Muster wie schon dreimal in diesem Projekt: geprüft wurde, was leicht
+zu prüfen ist, und nicht das, woran es hängt.
+
+Ausgewertet wird jetzt mit einem echten YAML-Parser, und gefragt wird nach dem
+Wert an genau der Stelle, die GitHub Actions auch liest:
+`jobs.abholen.env.AGENT_GEWOLLT`.
+
 ### Wie Stufe 2 freigeschaltet würde — zwei Wege, einer ohne zusätzliche Kosten
 
 Der Ablauf nimmt **eines von beiden** Secrets; gesetzt sein muss nur eines:
