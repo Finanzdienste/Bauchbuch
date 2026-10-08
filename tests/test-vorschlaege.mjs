@@ -643,9 +643,35 @@ check(
  * Richtung, die niemand bemerkt: Ein versehentlich wieder scharfer Agent
  * meldet sich nicht, er legt einfach eines Tages wieder Code in die App.
  */
+/*
+ * Der Schalter wird aus der *ausgewerteten* YAML gelesen, nicht als Textmuster
+ * gesucht.
+ *
+ * Hier stand erst `/^\s*AGENT_GEWOLLT: 'nein'$/m.test(ablauf)` — irgendeine
+ * eingerückte Zeile der Datei. Eine adversarische Nachprüfung hat das
+ * reproduziert: Setzt man den echten Schalter im env-Block auf 'ja' und lässt
+ * dieselbe Zeile eingerückt irgendwo anders stehen — im `prompt: |`-Block
+ * etwa, der ohnehin freier deutscher Prosatext ist —, bleibt die ganze Suite
+ * grün und meldet weiter „der Schalter steht auf nein".
+ *
+ * Der nackte Ein-Zeilen-Flip wurde erwischt. Der Flip, der die alte Zeile als
+ * Dokumentation stehenlässt, nicht — und das ist die wahrscheinlichere Form.
+ *
+ * Dasselbe Muster wie schon dreimal in diesem Projekt: geprüft wurde, was
+ * leicht zu prüfen ist, und nicht das, woran es hängt. Ausgewertet wird
+ * deshalb mit einem echten YAML-Parser (python3 ist ohnehin da, die
+ * Wächterskripte laufen damit), und gefragt wird nach dem Wert an genau der
+ * Stelle, die GitHub Actions auch liest: `jobs.abholen.env.AGENT_GEWOLLT`.
+ */
+const schalter = execFileSync('python3', ['-c', `
+import yaml, sys
+d = yaml.safe_load(open(sys.argv[1]))
+print(d['jobs']['abholen']['env'].get('AGENT_GEWOLLT', '<fehlt>'))
+`, join(wurzel, '.github/workflows/vorschlaege.yml')], { encoding: 'utf8' }).trim();
+
 check(
-  /^\s*AGENT_GEWOLLT: 'nein'$/m.test(ablauf),
-  'der Schalter steht auf nein',
+  schalter === 'nein',
+  `der Schalter steht auf nein – gelesen, wo GitHub ihn liest (${schalter})`,
 );
 
 /*
