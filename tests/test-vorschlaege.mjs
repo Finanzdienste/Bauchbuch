@@ -648,36 +648,51 @@ check(
  * meldet sich nicht, er legt einfach eines Tages wieder Code in die App.
  */
 /*
- * Der Schalter wird aus der *ausgewerteten* YAML gelesen, nicht als Textmuster
- * gesucht.
+ * Der Schalter wird im env-Block des Jobs gelesen — dort, wo er wirkt.
  *
- * Hier stand erst `/^\s*AGENT_GEWOLLT: 'nein'$/m.test(ablauf)` — irgendeine
+ * ZWEI FEHLER AN DERSELBEN ZEILE, NACHEINANDER.
+ *
+ * Erst stand hier `/^\s*AGENT_GEWOLLT: 'nein'$/m.test(ablauf)` — irgendeine
  * eingerückte Zeile der Datei. Eine adversarische Nachprüfung hat das
- * reproduziert: Setzt man den echten Schalter im env-Block auf 'ja' und lässt
- * dieselbe Zeile eingerückt irgendwo anders stehen — im `prompt: |`-Block
- * etwa, der ohnehin freier deutscher Prosatext ist —, bleibt die ganze Suite
- * grün und meldet weiter „der Schalter steht auf nein".
+ * reproduziert: Setzt man den echten Schalter auf 'ja' und lässt dieselbe
+ * Zeile eingerückt im `prompt: |`-Block stehen, der ohnehin freier deutscher
+ * Prosatext ist, bleibt die Suite grün und meldet weiter „steht auf nein".
  *
- * Der nackte Ein-Zeilen-Flip wurde erwischt. Der Flip, der die alte Zeile als
- * Dokumentation stehenlässt, nicht — und das ist die wahrscheinlichere Form.
+ * Darauf habe ich einen echten YAML-Parser benutzt: `python3 -c "import yaml"`.
+ * Lokal grün, in der CI rot — `ModuleNotFoundError: No module named 'yaml'`.
+ * PyYAML ist auf dem GitHub-Runner nicht da, und dieses Projekt kam bis dahin
+ * ganz ohne Python-Pakete aus; die Wächter benutzen nur die Standardbibliothek.
+ * Die Prüfung, die nicht mehr lügen sollte, lief dadurch gar nicht mehr.
  *
- * Dasselbe Muster wie schon dreimal in diesem Projekt: geprüft wurde, was
- * leicht zu prüfen ist, und nicht das, woran es hängt. Ausgewertet wird
- * deshalb mit einem echten YAML-Parser (python3 ist ohnehin da, die
- * Wächterskripte laufen damit), und gefragt wird nach dem Wert an genau der
- * Stelle, die GitHub Actions auch liest: `jobs.abholen.env.AGENT_GEWOLLT`.
+ * Also ohne Parser und ohne Abhängigkeit, aber mit Ortsangabe: Gelesen wird
+ * zwischen `env:` und `steps:` des Jobs `abholen`, und zwar auf genau der
+ * Einrücktiefe, die ein env-Schlüssel dort hat. Freier Text aus dem Prompt
+ * liegt hinter `steps:` und kann nicht mehr hineinreichen.
+ *
+ * Die Grenzen müssen gefunden werden. Findet die Prüfung den Block nicht, ist
+ * das ein Fehlschlag und kein stilles Durchwinken — sonst hätte ein Umbau am
+ * Aufbau der Datei denselben Effekt wie ein umgelegter Schalter.
  */
-const schalter = execFileSync('python3', ['-c', `
-import yaml, sys
-d = yaml.safe_load(open(sys.argv[1]))
-print(d['jobs']['abholen']['env'].get('AGENT_GEWOLLT', '<fehlt>'))
-`, join(wurzel, '.github/workflows/vorschlaege.yml')], { encoding: 'utf8' }).trim();
-
+const jobAnfang = ablauf.indexOf('\n  abholen:');
+const envAnfang = ablauf.indexOf('\n    env:', jobAnfang);
+const envEnde = ablauf.indexOf('\n    steps:', envAnfang);
 check(
-  schalter === 'nein',
-  `der Schalter steht auf nein – gelesen, wo GitHub ihn liest (${schalter})`,
+  jobAnfang > 0 && envAnfang > jobAnfang && envEnde > envAnfang,
+  'der env-Block des Jobs „abholen" ist auffindbar',
 );
 
+const envBlock = ablauf.slice(envAnfang, envEnde);
+const treffer = envBlock.match(/^ {6}AGENT_GEWOLLT: '([^']*)'$/m);
+const vorkommen = (envBlock.match(/^ {6}AGENT_GEWOLLT:/gm) || []).length;
+
+check(
+  vorkommen === 1,
+  `AGENT_GEWOLLT steht genau einmal im env-Block (${vorkommen}×)`,
+);
+check(
+  treffer !== null && treffer[1] === 'nein',
+  `der Schalter steht auf nein – gelesen, wo er wirkt (${treffer ? treffer[1] : '<nicht gefunden>'})`,
+);
 /*
  * Und der Schalter steht VOR dem Schlüssel. Beides muss zutreffen, damit ein
  * vergessenes Secret allein nichts anschaltet.
