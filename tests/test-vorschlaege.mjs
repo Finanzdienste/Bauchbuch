@@ -377,22 +377,26 @@ check(
 );
 
 /*
- * Der Rückkanal muss auch ohne den Kasten funktionieren.
+ * Der Weg hängt jetzt allein am Anstoß aus dem Briefkasten.
  *
- * Seit der Briefkasten den Ablauf selbst anstoßen kann, steht der Entwurf nach
- * einer Minute statt nach bis zu einem Tag. Das hängt aber an einem Schlüssel,
- * der im Kasten liegen muss – fehlt er, ist er abgelaufen oder ist GitHub
- * gerade nicht erreichbar, darf der Weg nicht stillstehen. Der Zeitplan ist
- * der Boden darunter und muss stehen bleiben. Dieselbe Bauart wie beim Agenten:
- * Der Teil, der zuverlässig laufen muss, hängt nicht am Teil, der schnell ist.
+ * Hier stand das Gegenteil, und die Begründung war gut: Der Anstoß von außen
+ * hängt an einem Schlüssel im Kasten – fehlt er, ist er abgelaufen oder ist
+ * GitHub gerade nicht erreichbar, stand der tägliche Lauf als Boden darunter.
+ * Der ist auf Wunsch abgeschaltet, weil er jeden Tag Actions-Minuten für einen
+ * Lauf kostete, der meistens „Nichts Neues" meldet.
+ *
+ * Der Verlust wird hier festgehalten statt verschwiegen: Fällt der Anstoß aus,
+ * bleiben Zettel liegen, und das sieht von außen genauso aus wie „es hat
+ * niemand etwas eingetragen". Diese Prüfung besteht darauf, dass wenigstens
+ * der Weg von Hand offen bleibt – ohne ihn gäbe es gar keinen mehr.
  */
 check(
   /^\s*workflow_dispatch:/m.test(ablauf),
-  'der Ablauf lässt sich von außen anstoßen',
+  'der Ablauf lässt sich von außen und von Hand anstoßen',
 );
 check(
-  /cron: '[^']+'/.test(ablauf),
-  'und der Zeitplan bleibt als Boden darunter stehen',
+  !/cron:/.test(ablauf.slice(ablauf.indexOf('\non:'), ablauf.indexOf('\npermissions:'))),
+  'und es gibt keinen Zeitplan mehr – abgeschaltet, nicht vergessen',
 );
 /*
  * Und ausdrücklich *nicht* über `repository_dispatch`. Das wäre der

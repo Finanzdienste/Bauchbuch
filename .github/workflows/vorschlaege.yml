@@ -2,7 +2,7 @@
 #
 # WAS HIER PASSIERT
 #
-# Einmal am Tag (und auf Knopfdruck) holt dieser Ablauf, was die Nutzerin unter „Ideen"
+# Auf Anstoß aus dem Briefkasten (und auf Knopfdruck) holt dieser Ablauf, was die Nutzerin unter „Ideen"
 # eingetragen hat, und legt daraus einen **Entwurf** an. In zwei Stufen:
 #
 #   1. Ohne API-Schlüssel: ein Entwurfs-PR mit den Vorschlägen als Liste. Kein
@@ -79,10 +79,21 @@
 name: Vorschläge
 
 on:
-  schedule:
-    # Der Boden, falls der Anstoß von außen nicht ankommt oder gar nicht
-    # eingerichtet ist.
-    - cron: '17 5 * * *'
+  # KEIN Zeitplan mehr.
+  #
+  # Hier stand ein täglicher Lauf um 5:17 als Boden: Falls der Anstoß vom
+  # Briefkasten ausbleibt, holte er die Zettel trotzdem einmal am Tag ab.
+  # Abgeschaltet auf Wunsch – er kostete jeden Tag Actions-Minuten für einen
+  # Lauf, der meistens „Nichts Neues" meldet.
+  #
+  # Was damit wegfällt, wird nicht schöngeredet: Fällt der Anstoß aus dem
+  # Kasten aus – Worker neu aufgesetzt, Schlüssel abgelaufen, Cloudflare
+  # gerade weg –, bleiben die Zettel liegen, bis jemand von Hand drückt. Und
+  # das merkt niemand, weil ein ausbleibender Anstoß genauso aussieht wie
+  # „es hat niemand etwas eingetragen".
+  #
+  # Dagegen hilft nur Nachsehen: Wer länger nichts gehört hat, drückt einmal
+  # auf „Run workflow" und weiß es.
 
   # Von Hand – und vom Briefkasten, sobald dort ein Zettel ankommt. Dann steht
   # der Entwurf nach einer Minute statt nach bis zu einem Tag; wer eine Idee
