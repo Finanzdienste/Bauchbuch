@@ -470,6 +470,12 @@ p { margin: 0 0 8px; }
 /* Die rechte Spalte ist eine Zählung ("2 Mal", "3 von 5") und gehört in eine
    Zeile: umgebrochen liest sie sich als zwei Angaben. */
 .wartend li > .klein { white-space: nowrap; flex: none; }
+/* Im Fortschrittsblock ist die rechte Spalte keine Zählung, sondern ein Satz
+   („0 Mahlzeiten eingetragen; je Merkmal braucht es 5 damit und 5 ohne"). In
+   einer Zeile schob er die linke Spalte auf ein Wort je Zeile und lief über
+   den Kartenrand. Beide Spalten teilen sich die Breite, der Satz bricht um. */
+.fortschritt li > span:first-child { flex: 1 1 50%; }
+.fortschritt li > .klein { white-space: normal; flex: 0 1 50%; text-align: right; }
 .wartend li > span:first-child { min-width: 0; }
 
 .bericht {
