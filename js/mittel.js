@@ -101,8 +101,11 @@ export const MITTEL_WISSEN = [
     beispiele: ['Domperidon', 'Metoclopramid', 'MCP'],
     kurz: 'Bringt den Magen dazu, sich schneller zu entleeren.',
     wirkung: 'Regt die Magenbewegung an. Gedacht für den Fall, dass das Essen zu '
-      + 'lange liegen bleibt – Völlegefühl, Übelkeit, frühes Sattsein.',
-    einnahme: 'Vor den Mahlzeiten. Verschreibungspflichtig.',
+      + 'lange liegen bleibt – Völlegefühl, Übelkeit, frühes Sattsein. Bei Migräne '
+      + 'wird es auch gegen die Übelkeit des Anfalls verordnet – und damit die '
+      + 'Schmerztablette aus dem Magen weiterkommt, der im Anfall stillsteht.',
+    einnahme: 'Vor den Mahlzeiten – bei Migräne eine Viertelstunde vor dem '
+      + 'Schmerzmittel. Verschreibungspflichtig.',
     hinweis: 'Nicht für den Dauergebrauch gedacht; die zugelassene Anwendungsdauer '
       + 'ist begrenzt, wegen möglicher Wirkungen auf Herzrhythmus und Nervensystem. '
       + 'Gehört in ärztliche Hand.',
@@ -162,16 +165,36 @@ export const REIZSTOFFE = [
   {
     id: 'nsar',
     gruppe: 'Entzündungshemmende Schmerzmittel (NSAR)',
-    beispiele: ['Ibuprofen', 'Diclofenac', 'Naproxen', 'ASS', 'Aspirin'],
+    // Mit den Handelsnamen, die im Schrank einer Migränepatientin stehen:
+    // Ohne „Dolormin" und „Nurofen" zählte die App die Hälfte der NSAR-Tage
+    // nicht – und jeder Satz zum Magen hängt an dieser Zählung.
+    beispiele: ['Ibuprofen', 'Ibu', 'Dolormin', 'Nurofen', 'Diclofenac', 'Diclo',
+      'Voltaren', 'Naproxen', 'ASS', 'Aspirin'],
     kurz: 'Häufigster vermeidbarer Grund für eine gereizte Magenschleimhaut.',
     wirkung: 'Sie hemmen Botenstoffe, die Schmerz und Entzündung machen – dieselben '
       + 'Botenstoffe sorgen aber auch für die Schleimschicht, die den Magen vor '
       + 'seiner eigenen Säure schützt. Der Schutz wird also mit abgeschaltet.',
     einnahme: '–',
     hinweis: 'Wer regelmäßig zu einem davon greift und Magenbeschwerden hat, sollte '
-      + 'das ansprechen – es gibt Schmerzmittel, die den Magen nicht angreifen, und '
-      + 'wenn es ohne NSAR nicht geht, gibt es einen Magenschutz dazu. Zusammen mit '
-      + 'Kortison steigt das Risiko weiter.',
+      + 'das ansprechen: Es gibt Schmerzmittel, die den Magen nicht angreifen, und '
+      + 'wenn es ohne NSAR nicht geht, einen Magenschutz dazu. Welches davon, '
+      + 'entscheidet sich nicht am Magen allein. Zusammen mit Kortison steigt das '
+      + 'Risiko weiter. Als Gel oder Pflaster auf der Haut zählt es hier nicht – '
+      + 'davon kommt kaum etwas im Magen an.',
+  },
+  {
+    id: 'kombi',
+    gruppe: 'Kombinationsmittel mit ASS und Koffein',
+    beispiele: ['Thomapyrin', 'Neuralgin', 'Koffein'],
+    kurz: 'Für den Magen ein NSAR – für den Kopf ein Mittel mit der niedrigsten Übergebrauchsgrenze.',
+    wirkung: 'ASS, meist zusammen mit Paracetamol, und dazu Koffein, das die Wirkung '
+      + 'verstärkt und beschleunigt. Für die Magenschleimhaut gilt, was für jedes '
+      + 'ASS gilt: Der Schutzfilm wird mit abgeschaltet.',
+    einnahme: '–',
+    hinweis: 'Die meistgekauften rezeptfreien Kopfschmerzmittel – und gerade deshalb '
+      + 'die, die am ehesten zu oft genommen werden. Ab etwa zehn Tagen im Monat '
+      + 'kann ein Kombinationsmittel den Kopfschmerz selbst unterhalten, früher als '
+      + 'ein einzelnes Schmerzmittel. Für den Magen zählt es wie ein NSAR.',
   },
   {
     id: 'kortison',
@@ -186,7 +209,148 @@ export const REIZSTOFFE = [
   },
 ];
 
-const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE];
+/*
+ * Was sonst noch gegen Schmerzen genommen wird – und den Magen nicht angreift.
+ *
+ * Gehört hierher, weil die Frage nach der „magenfreundlicheren Alternative"
+ * unter „Was noch fehlt" sonst ins Leere zeigt: Die App soll erkennen, wenn
+ * jemand bereits Paracetamol statt Ibuprofen nimmt. Und sie soll Triptane
+ * kennen, weil bei einer Migräne die Zahl der Tage mit Akutmedikation im
+ * Monat die wichtigste Zahl für die Neurologie ist – und die niedrigste
+ * Schwelle ausgerechnet beim Migränemittel liegt. Beides ohne Empfehlung:
+ * Welches Mittel für wen passt, entscheidet niemand hier.
+ */
+export const WEITERE_MITTEL = [
+  {
+    id: 'triptan',
+    gruppe: 'Triptane',
+    // „triptan" als Teilwort fängt jeden Wirkstoff; dazu die Handelsnamen.
+    beispiele: ['triptan', 'Imigran', 'Maxalt', 'AscoTop', 'Naramig', 'Formigran',
+      'Dolortriptan', 'Relpax', 'Almogran'],
+    kurz: 'Ein Mittel eigens gegen den Migräneanfall – für einen Spannungskopfschmerz das falsche Werkzeug, und nicht für den Magen.',
+    wirkung: 'Dockt an Serotonin-Schaltern an den Nerven und Gefäßen der Hirnhaut an '
+      + 'und dämpft dort die Weiterleitung des Anfalls; nebenbei engt es Gefäße – '
+      + 'auch außerhalb des Kopfes. Deshalb bessert es auch die Übelkeit, die zum '
+      + 'Anfall gehört, und deshalb ist es für einen Spannungskopfschmerz das '
+      + 'falsche Werkzeug. Die Magenschleimhaut greift es nicht an.',
+    einnahme: 'Früh im Anfall, sobald der Schmerz da ist; während einer Aura '
+      + 'üblicherweise noch nicht. Wie oft an einem Tag und mit welchem Abstand, '
+      + 'steht auf der Packung – es ist begrenzt. Im Anfall steht der Magen oft '
+      + 'still, und eine Tablette kommt dann schlecht weiter; dafür gibt es '
+      + 'Schmelztabletten, Nasenspray und Spritze. Wer im Anfall erbricht, hat '
+      + 'damit eine Frage für die Sprechstunde.',
+    hinweis: 'Triptane engen Gefäße auch außerhalb des Kopfes. Darum sind sie bei '
+      + 'Herz- und Gefäßkrankheiten, nach einem Schlaganfall und bei unbehandeltem '
+      + 'Bluthochdruck nicht vorgesehen – das wird vor dem ersten Rezept geprüft '
+      + 'und gehört neu gefragt, wenn sich daran etwas ändert. Ein Engegefühl in '
+      + 'Brust oder Hals kurz nach der Einnahme ist beschrieben und meist harmlos – '
+      + 'trotzdem vor der nächsten Einnahme in der Praxis ansprechen, nicht erst '
+      + 'beim nächsten Termin. Kommt es mit Luftnot oder kaltem Schweiß, oder hält '
+      + 'es an: sofort. Übelkeit kann vom Anfall kommen und vom Mittel. Sehr selten: '
+      + 'plötzliche Bauchkrämpfe mit blutigem Durchfall nach der Einnahme, das ist '
+      + 'ein Fall für sofort. Und ab etwa zehn Tagen im Monat kann ein Triptan den '
+      + 'Kopfschmerz selbst unterhalten – früher als einfache Schmerzmittel, '
+      + 'gleichauf mit Kombinationsmitteln.',
+  },
+  /*
+   * Nicht „magenschonend" – das wäre eine Empfehlung in einem Wort, und
+   * welches Mittel bei Migräne passt, entscheidet sich nicht am Magen allein.
+   * Beschrieben wird der Unterschied im Mechanismus, und was er kostet.
+   */
+  /*
+   * Opioide und die neuen Anfallsmittel stehen hier, damit die Zählung sie
+   * sieht – nicht als Magenwissen. Ein Codein-Kombinationsmittel zählt für
+   * den Kopf wie ein Triptan ab zehn Tagen; die Gruppe steht deshalb VOR den
+   * einfachen Schmerzmitteln, damit „Paracetamol Codein" hier landet.
+   */
+  {
+    id: 'opioid',
+    gruppe: 'Opioide',
+    beispiele: ['Tramadol', 'Tramal', 'Tilidin', 'Valoron', 'Codein', 'Oxycodon', 'Tapentadol'],
+    kurz: 'Greift den Magen nicht an – für den Kopf gilt die niedrige Grenze von zehn Tagen.',
+    wirkung: 'Dämpft den Schmerz im Nervensystem, nicht an der Stelle, wo er entsteht. '
+      + 'Gegen Migräne sehen die Leitlinien es nicht vor – es wirkt dort schlecht '
+      + 'und macht leicht abhängig; wenn es trotzdem im Schrank steht, soll die '
+      + 'App es wenigstens zählen.',
+    einnahme: '–',
+    hinweis: 'Verstopfung und Übelkeit gehören dazu; Müdigkeit auch. Ab etwa zehn '
+      + 'Tagen im Monat kann ein Opioid den Kopfschmerz selbst unterhalten – wie '
+      + 'ein Triptan. Nicht eigenmächtig absetzen und nicht eigenmächtig '
+      + 'steigern; beides gehört in ärztliche Hand.',
+  },
+  {
+    id: 'gepant',
+    gruppe: 'Gepante und Ditane',
+    // Mit Namen, nicht mit dem Teilwort „gepant": Atogepant ist Vorbeugung.
+    beispiele: ['Rimegepant', 'Vydura', 'Ubrogepant', 'Zavegepant', 'Lasmiditan', 'Rayvow'],
+    kurz: 'Die neueren Anfallsmittel – ohne Gefäßverengung, ohne Angriff auf den Magen.',
+    wirkung: 'Blockieren einen Botenstoff des Anfalls (CGRP) oder dämpfen die '
+      + 'Weiterleitung an anderer Stelle als Triptane – ohne Gefäße zu verengen. '
+      + 'Deshalb kommen sie auch für Menschen infrage, die kein Triptan nehmen '
+      + 'dürfen. Für den Magen sind sie kein Reizstoff.',
+    einnahme: 'Früh im Anfall, nach Rezept. Lasmiditan macht müde und schwindelig – '
+      + 'danach stundenlang nicht fahren.',
+    hinweis: 'Zählt hier als Tag mit Akutmittel, ohne eigene Übergebrauchsgrenze – '
+      + 'die Klassifikation kennt dafür noch keine. Was es im Einzelnen tut und '
+      + 'verträgt, steht auf dem Rezept und im Gespräch.',
+  },
+  {
+    id: 'nichtnsar',
+    gruppe: 'Schmerzmittel ohne Entzündungshemmung',
+    beispiele: ['Paracetamol', 'ben-u-ron', 'Dafalgan', 'Mexalen', 'Metamizol', 'Novalgin', 'Novaminsulfon'],
+    kurz: 'Lässt die Schutzschicht des Magens in Ruhe – belastet dafür anderes.',
+    wirkung: 'Paracetamol wirkt vor allem im Gehirn gegen Schmerz und Fieber, kaum '
+      + 'gegen Entzündung, und greift die Schleimschicht des Magens nicht an. '
+      + 'Metamizol wirkt stärker und auch krampflösend; für den Magen gilt '
+      + 'dasselbe. „Harmlos" heißt das nicht – die Risiken liegen nur woanders.',
+    einnahme: 'Paracetamol gibt es frei, Metamizol nur auf Rezept. Beide stecken '
+      + 'auch in Kombinationsmitteln gegen Erkältung und Kopfschmerz – wer '
+      + 'zweierlei nimmt, nimmt es leicht doppelt.',
+    hinweis: 'Paracetamol geht über die Leber. Die Grenze pro Tag steht auf der '
+      + 'Packung; sie gilt auch an Tagen, an denen nichts im Magen bleibt – da '
+      + 'verträgt die Leber eher weniger, nicht mehr –, und mit regelmäßig Alkohol '
+      + 'erst recht. Metamizol kann die weißen Blutkörperchen verschwinden lassen '
+      + '(Agranulozytose) – selten, aber nicht so selten wie lange angenommen, und '
+      + 'auch, wenn es früher gut vertragen wurde: Fieber, Schüttelfrost, '
+      + 'Halsschmerzen oder wunde Stellen im Mund unter oder kurz nach der Einnahme '
+      + 'sind ein Grund, sofort anzurufen und ein Blutbild machen zu lassen. Für den '
+      + 'Kopf zählen beide wie jedes Akutmittel: Ab etwa fünfzehn Tagen im Monat '
+      + 'kann das Mittel den Kopfschmerz selbst unterhalten. Welches Mittel bei '
+      + 'Migräne das richtige ist, entscheidet sich nicht am Magen allein – das ist '
+      + 'die Frage für die Neurologie.',
+  },
+  /*
+   * Vorbeugende Mittel stehen hier, damit die App sie kennt und *nicht* als
+   * Akutmittel zählt: Ein tägliches Metoprolol würde sonst die Übergebrauchs-
+   * zählung sprengen. Manche davon sind zugleich Blutdruck- oder
+   * Stimmungsmittel – was es bei wem ist, weiß die App nicht.
+   */
+  {
+    id: 'prophylaxe',
+    gruppe: 'Vorbeugende Migränemittel',
+    beispiele: ['Metoprolol', 'Propranolol', 'Amitriptylin', 'Topiramat', 'Valproat',
+      'Flunarizin', 'Candesartan', 'Erenumab', 'Aimovig', 'Galcanezumab', 'Emgality',
+      'Fremanezumab', 'Ajovy', 'Eptinezumab', 'Atogepant', 'Aquipta'],
+    kurz: 'Regelmäßig genommen, damit Anfälle seltener kommen – kein Akutmittel.',
+    wirkung: 'Senkt die Bereitschaft des Nervensystems, einen Anfall zu starten. '
+      + 'Wirkt nicht gegen den Anfall, der gerade da ist, sondern über Wochen auf '
+      + 'die Zahl der Anfälle. Einige davon sind zugleich Mittel gegen hohen '
+      + 'Blutdruck, Epilepsie oder Depression – bei Migräne werden sie in anderer '
+      + 'Absicht eingesetzt. Die Antikörper (Spritze alle vier Wochen oder alle '
+      + 'drei Monate) richten sich gezielt gegen einen Botenstoff des Anfalls.',
+    einnahme: 'Regelmäßig nach Plan, unabhängig davon, ob gerade ein Anfall ist. '
+      + 'Ob es wirkt, zeigt sich erst nach Wochen – deshalb gehört das '
+      + 'Kopfschmerztagebuch dazu.',
+    hinweis: 'Zählt in dieser App nicht als Akutmittel. Nicht eigenmächtig absetzen; '
+      + 'bei den Blutdruckmitteln darunter schon gar nicht. Was es im Einzelnen '
+      + 'tut und welche Nebenwirkungen es hat, ist bei jedem anders – das steht '
+      + 'auf der Packung und im Gespräch, nicht hier. Eine Ausnahme ist allgemein: '
+      + 'Topiramat und Valproat gehören bei Frauen, die schwanger werden könnten, '
+      + 'in ein eigenes Gespräch über Verhütung – das gilt seit 2024 ausdrücklich.',
+  },
+];
+
+const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL];
 
 /**
  * Zu einem eingetragenen Namen die passende Gruppe finden.
@@ -198,7 +362,25 @@ const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE];
 export function wissenZu(name) {
   const gesucht = String(name || '').toLowerCase().trim();
   if (!gesucht) return null;
-  return ALLE.find((g) => g.beispiele.some((b) => gesucht.includes(b.toLowerCase())))
+  /*
+   * Kurze Kürzel („ASS", „Ibu", „MCP") nur am Wortanfang: Als bloßes Teilwort
+   * traf „ass" auch „Wasser" und „Passionsblume" – und ein Glas Wasser zählte
+   * als entzündungshemmendes Schmerzmittel. Lange Namen dürfen weiter überall
+   * im Eingetragenen stehen („Pantoprazol 20mg", „IbuHexal").
+   */
+  /*
+   * Was auf der Haut bleibt, zählt nicht: Ein Diclofenac-Gel fürs Knie kommt
+   * im Magen praktisch nicht an und ist kein Kopfschmerz-Akutmittel. Es
+   * steht dann unter „nicht zugeordnet" statt in der Zählung. „Spray" bleibt
+   * draußen aus dieser Regel – das Triptan-Nasenspray wirkt im ganzen Körper.
+   */
+  if (/(gel|salbe|creme|pflaster)\b/.test(gesucht)) return null;
+  const passt = (b) => {
+    const k = b.toLowerCase();
+    if (k.length > 3) return gesucht.includes(k);
+    return new RegExp(`(^|[^a-zäöüß])${k}`).test(gesucht);
+  };
+  return ALLE.find((g) => g.beispiele.some(passt))
     || ALLE.find((g) => gesucht.includes(g.gruppe.toLowerCase()))
     || null;
 }

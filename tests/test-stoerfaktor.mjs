@@ -87,8 +87,9 @@ async function urteil(daten) {
   return page.evaluate(async ([e, t]) => {
     const a = await import('./js/auswertung.js');
     const sch = await import('./js/schichten.js');
+    const k = await import('./js/kopf.js');
     const bewertet = a.bewerteteMahlzeiten(e, 4);
-    const r = sch.haeltStand(bewertet, 'kaffee', t);
+    const r = sch.haeltStand(bewertet, 'kaffee', t, { kopfTage: k.kopfTageVon(e) });
     const roh = a.ausloeserBilanz(e, { fenster: 4, mindestFaelle: 5 })
       .find((b) => b.id === 'kaffee');
     return {
@@ -97,7 +98,7 @@ async function urteil(daten) {
       satz: r.satz,
       rohDifferenz: roh ? roh.differenz : null,
       schichten: r.schichten.filter((x) => x.pruefbar)
-        .map((x) => ({ name: x.name, d: Number(x.differenz.toFixed(2)) })),
+        .map((x) => ({ name: x.name, d: Number(x.differenz.toFixed(2)), mit: x.faelle, ohne: x.gegenFaelle })),
     };
   }, [daten.eintraege, daten.tage]);
 }
@@ -175,6 +176,91 @@ check(
 check(
   ohneAngaben.satz.includes('fehlen die Angaben'),
   'und die App sagt, was fehlt',
+);
+
+/* ---------- 5b. Das Feld, das die App nie setzt ---------- */
+
+/*
+ * Die Vorlage oben schreibt `notiert: true` an jeden Tag. Die App tut das
+ * nirgends – sie legt einen Tag an, sobald eine Tagesfrage beantwortet ist,
+ * und sonst gar nicht. Bis zu dieser Prüfung verlangte die Schichtung das
+ * Feld trotzdem: In Wirklichkeit fiel jeder Tag durch, jeder Auslöser bekam
+ * „fehlen die Angaben", und dieser Test blieb grün, weil seine Tage das Feld
+ * hatten. Deshalb hier dieselben Daten noch einmal, so wie die App sie
+ * wirklich speichert.
+ */
+const wieGespeichert = (daten) => ({
+  ...daten,
+  tage: Object.fromEntries(Object.entries(daten.tage).map(([k, v]) => {
+    const { notiert, ...rest } = v;
+    return [k, rest];
+  })),
+});
+const echtOhneFeld = await urteil(wieGespeichert(bauen({ kaffeeWirkt: 3 })));
+check(
+  echtOhneFeld.urteil === 'haelt',
+  `ohne das Feld, das die App nie setzt, hält der echte Befund trotzdem stand (${echtOhneFeld.urteil})`,
+);
+const scheinOhneFeld = await urteil(wieGespeichert(bauen({ kaffeeWirkt: 0 })));
+check(
+  scheinOhneFeld.urteil === 'verschwindet',
+  `und der Scheinbefund verschwindet trotzdem (${scheinOhneFeld.urteil})`,
+);
+
+/* ---------- 6. Migräne als Störfaktor ---------- */
+
+/*
+ * Jeden zweiten Tag Kopfschmerz, an Kopfschmerztagen fast immer Kaffee, und
+ * der Bauch ist an Kopfschmerztagen schlecht – wegen der Migräne, nicht wegen
+ * des Kaffees. Ohne Tagesfragen (keine Angaben zu Anspannung und Schlaf) ist
+ * der Kopfschmerz die einzige Schicht. Sie muss reichen, und sie muss den
+ * Kaffee freisprechen.
+ */
+function mitMigraene({ kaffeeWirkt = 0 } = {}) {
+  const eintraege = [];
+  for (let i = 1; i <= 80; i++) {
+    const am = vorTagen(i);
+    const migraene = i % 2 === 0;
+    const mitKaffee = migraene ? i % 8 !== 0 : i % 6 === 1;
+    eintraege.push({
+      id: `m${i}`, am, um: '08:00', art: 'essen', was: 'Frühstück', portion: 'normal',
+      zutaten: mitKaffee ? [{ id: 'kaffee', rolle: 'haupt' }] : [{ id: 'obst', rolle: 'haupt' }],
+    });
+    if (migraene) {
+      eintraege.push({ id: `k${i}`, am, um: '07:00', art: 'kopf', staerke: 7, kopfArten: ['kopfuebel'] });
+    }
+    const staerke = 1 + (migraene ? 3 : 0) + (mitKaffee ? kaffeeWirkt : 0);
+    eintraege.push({
+      id: `b${i}`, am, um: '10:00', art: 'beschwerde', staerke: Math.min(10, staerke), arten: ['uebelkeit'],
+    });
+  }
+  return { eintraege, tage: {} };
+}
+const migraeneSchein = await urteil(mitMigraene());
+check(
+  migraeneSchein.rohDifferenz > 1,
+  `roh sieht der Kaffee schuldig aus (${migraeneSchein.rohDifferenz?.toFixed(2)})`,
+);
+check(
+  migraeneSchein.urteil === 'verschwindet',
+  `getrennt nach Tagen mit und ohne Kopfschmerz bleibt nichts übrig (${migraeneSchein.urteil})`,
+);
+check(
+  migraeneSchein.schichten.length === 2 && migraeneSchein.schichten.every((x) => /Kopfschmerz/.test(x.name)),
+  `und die prüfbaren Schichten sind genau die beiden mit dem Kopfschmerz (${migraeneSchein.schichten.map((x) => x.name).join(', ')})`,
+);
+// Die Seiten dürfen nicht vertauscht sein: An Kopfschmerztagen gibt es 30
+// Frühstücke mit Kaffee und 10 ohne, an Tagen ohne Kopfschmerz 14 mit und 26 ohne.
+const mitKopf = migraeneSchein.schichten.find((x) => x.name === 'an Kopfschmerztagen');
+const ohneKopf = migraeneSchein.schichten.find((x) => x.name === 'an Tagen ohne Kopfschmerz');
+check(
+  mitKopf && mitKopf.mit === 30 && mitKopf.ohne === 10 && ohneKopf && ohneKopf.mit === 14 && ohneKopf.ohne === 26,
+  `mit den richtigen Fallzahlen je Seite (${JSON.stringify(migraeneSchein.schichten.map((x) => [x.name, x.mit, x.ohne]))})`,
+);
+const migraeneEcht = await urteil(mitMigraene({ kaffeeWirkt: 3 }));
+check(
+  migraeneEcht.urteil === 'haelt',
+  `wirkt der Kaffee wirklich, hält er auch an Tagen ohne Kopfschmerz (${migraeneEcht.urteil})`,
 );
 
 /* ---------- Und dasselbe im Arztbericht ---------- */

@@ -278,34 +278,118 @@ ruhigen Magenwoche eine schlechte. Alle Zahlen wären plausibel geblieben.
 
 Deshalb ist der Kopfschmerz eine **eigene Eintragsart** wie Stuhlgang oder
 Medikament (`js/kopf.js`). Keine Bauchrechnung sieht ihn, und
-`test-kopf.mjs` beweist das in die unangenehme Richtung: zwanzig Tage Kaffee
-und Kopfschmerz 8, keine einzige Bauchbeschwerde – und der Bericht zählt null
-Beschwerdetage, mittlere Stärke 0, keinen Auslöser.
+`test-kopf.mjs` beweist das in beide unangenehmen Richtungen: zwanzig Tage
+Kaffee und Kopfschmerz 8 ohne Bauchbeschwerde – und der Bericht zählt null
+Beschwerdetage, mittlere Stärke 0, keinen Auslöser. Und umgekehrt: **Ein Tag,
+an dem nur ein Kopfschmerz steht, ist für den Bauch eine Lücke, kein
+beschwerdefreier Tag.** Sonst drückte jede Migräne, bei der jemand nur noch
+„Kopf 8" schafft, den Bauchwert genau an den schlechten Tagen auf null – gegen
+die eigene Regel, dass eine Lücke kein guter Tag ist.
 
-Was der Kopf bekommt: eine Stärke von 0 bis 10, Merkmale (pochend, einseitig,
-mit Übelkeit, Licht stört, vom Nacken her, Aura …), eine Notiz und **seine
-eigenen Warnzeichen** – der schlagartige Kopfschmerz „wie nie zuvor", der
-erste Ausfall, Fieber mit steifem Nacken. Sie stehen in derselben Liste wie
-die des Bauches, damit Warnkarte und Bericht sie finden, aber der Bauchbogen
-bietet sie nicht an und der Kopfbogen nur sie.
+#### Was der Kopf bekommt
 
-Was Kopf und Bauch verbindet, ist das **Schmerzmittel**. Ibuprofen,
-Diclofenac und ASS sind die häufigste vermeidbare Ursache einer gereizten
-Magenschleimhaut – bei einer Gastritis Typ C der Kern, nicht die Randnotiz –,
-und wer Kopfschmerzen hat, greift genau dazu. Die Karte „Kopfschmerzen" unter
-Muster zählt deshalb, an wie vielen Kopfschmerztagen ein solches Mittel im
-Tagebuch stand, und vergleicht den Bauch an den zwei Tagen *danach* mit allen
-übrigen Tagen – ab fünf Tagen auf beiden Seiten, mit beiden Fallzahlen, und
-mit dem Satz, dass das ein Hinweis ist und kein Beweis. Unter „Was noch fehlt"
-bekommt die Frage nach der magenfreundlicheren Alternative den Zusatz, wogegen
-das Mittel genommen wurde. Und wenn an fünfzehn oder mehr der letzten dreißig
-Tage ein solches Mittel steht, sagt die Karte, dass ein Schmerzmittel in
-dieser Häufigkeit selbst zum Kopfschmerz beitragen kann – als Frage für die
-Sprechstunde, nicht als Anweisung.
+Pflicht ist nur die Stärke, und die ist nicht vorbelegt – eine vorausgewählte 4
+wäre die bequemste Antwort und zöge jede Statistik in die Mitte. Alles andere
+ist freiwillig und lässt sich nachtragen: Merkmale (pochend, einseitig, mit
+Übelkeit, erbrochen, Licht oder Lärm, Nackenschmerz dabei, Aura vorher), die
+**Dauer** in vier groben Stufen bis „länger als 3 Tage", **wie der Tag
+weiterging** (normal, eingeschränkt, ausgefallen – die drei Stufen, nach denen
+die Sprechstunde graduiert), und ob ein **Mittel nach zwei Stunden** geholfen
+hat. Steht von gestern ein Kopfschmerz ohne Dauer da, fragt die Tageskarte mit
+einem Tipp nach – die Dauer kennt man erst hinterher. „Weiß ich nicht mehr" ist
+dabei eine zulässige Antwort: Sie schließt die Frage, ohne gezählt zu werden.
 
-Wird die Periode eingetragen, zählt die Karte außerdem Kopfschmerztage je
-Zyklusphase – so grob wie die Phasen selbst, mit Fallzahlen daneben und ohne
-Urteil.
+**„Dazu genommen?"** legt das Medikament mit an. Während einer Attacke ist ein
+zweiter Bogen genau der Schritt, der wegfällt, und die Tage mit Akutmittel sind
+die wichtigste Zahl für die Neurologie. Angeboten werden nur Mittel, die schon
+einmal eingetragen wurden: Die App schlägt kein Schmerzmittel vor.
+
+Die **Warnzeichen des Kopfes** stehen in derselben Liste wie die des Bauches,
+damit Warnkarte und Bericht sie finden – aber der Bauchbogen bietet sie nicht
+an, und der Kopfbogen nur sie (plus Bluterbrechen). Formuliert für jemanden,
+der seine Migräne kennt: Der Ausfall ist nicht „zum ersten Mal", sondern
+„plötzlich, länger als eine Stunde, eine Seite gelähmt oder anders als deine
+gewohnte Aura" – weil genau diese Patientinnen einen Schlaganfall mit „kenne
+ich von meiner Aura" wegerklären. Dazu Fieber mit steifem Nacken, der
+Kopfschmerz nach Sturz, der erstmals bei Anstrengung, und der, der anders ist
+als die gewohnte Migräne.
+
+#### Die Zahlen der Neurologie – und ihre Schwellen als Frage
+
+Ein Kopfschmerztagebuch für die Sprechstunde braucht wenige Zahlen, und die
+Karte „Kopfschmerzen" unter Muster stellt sie nach oben: **Kopfschmerztage und
+Tage mit Akutmittel je 30-Tage-Fenster**, drei Fenster nebeneinander, dazu
+Stärke, Dauer, Ausfalltage über 90 Tage, Merkmale – und ein Kalender nach
+Monaten. Die App kennt dafür die Mittel: Triptane, Kombinationsmittel mit ASS
+und Koffein, Schmerzmittel ohne Entzündungshemmung (Paracetamol, Metamizol),
+Opioide, die neuen Gepante – und die vorbeugenden Mittel, die nie als
+Akutmittel zählen (`js/mittel.js`). Ein Gel fürs Knie zählt nicht, ein
+Nasenspray schon. Was an einem Kopfschmerztag eingetragen ist und keiner
+Gruppe zuzuordnen, steht mit Namen auf der Karte, statt still in der Zählung
+zu fehlen.
+
+Zwei Schwellen der Kopfschmerzklassifikation stehen dabei – und beide verlangen
+mehr als drei Monate, wo ein einzelnes Fenster ein Zufallswert ist (ein Zyklus,
+eine schlechte Woche). Deshalb rechnet die App **drei Fenster und wird erst ab
+zwei von dreien laut**: Ab zehn Tagen mit Triptan, Kombinationsmittel oder
+Opioid, fünfzehn mit einfachen Schmerzmitteln (auch mehreren zusammen) oder
+zehn, wenn verschiedene Sorten durcheinandergehen, kann das Mittel den
+Kopfschmerz selbst unterhalten; ab fünfzehn Kopfschmerztagen im Monat fragt die
+Neurologie nach einem chronischen Kopfschmerz. Den Namen aus der Klassifikation
+gibt es aber erst, wenn **beides** zusammenkommt – Einnahme über der Schwelle
+*und* fünfzehn Kopfschmerztage im selben Fenster. Sonst stünde er bei jedem
+täglichen ASS zum Blutschutz und bei jedem Diclofenac fürs Knie; die Fenster
+zählen nämlich jeden Tag mit Akutmittel, egal wogegen. Viel Mittel ohne viele
+Kopfschmerztage bekommt die Zahlen und die Regel, ein einzelnes Fenster bekommt
+nur die Zahlen – wer nach einem Monat einen Diagnosenamen liest, lässt das
+Mittel womöglich von sich aus weg und liegt mit unbehandelten Anfällen da.
+Deshalb endet der Satz, wenn er kommt, mit „keine Anweisung – auch nicht die,
+es wegzulassen".
+
+Aus den Zahlen werden **Fragen für die Sprechstunde**, wie die Muster sie für
+den Bauch stellen: ab vier Kopfschmerztagen im Monat die nach einer
+vorbeugenden Behandlung, bei Erbrechen die nach einer anderen Darreichungsform,
+bei Aura die nach der Verhütung mit Östrogen, bei Gastritis Typ C die nach dem
+passenden Akutmittel. Fragen, keine Empfehlungen.
+
+Wird die Periode eingetragen, zählt die Karte zusätzlich das **Fenster um die
+Periode** – zwei Tage davor bis zum dritten Blutungstag, in X von Y Zyklen.
+Das ist die Frage „menstruell?", und die vier geschätzten Phasen beantworten
+sie nicht: Die zwei Tage vor der Blutung verschwinden dort in der breiten
+zweiten Zyklushälfte.
+
+#### Was Kopf und Bauch verbindet
+
+Das **Schmerzmittel**. Ibuprofen, Diclofenac und ASS gehören zu den häufigsten
+Ursachen einer gereizten Magenschleimhaut – bei einer Gastritis Typ C einer der
+Hauptverdächtigen, neben Gallenrückfluss und Alkohol –, und wer Kopfschmerzen
+hat, greift genau dazu. Die Karte vergleicht den Bauch am Tag mit
+entzündungshemmendem Mittel und am Tag danach – und zwar, wo es geht,
+**innerhalb der Kopfschmerztage**: gegen Kopfschmerztage ohne ein solches
+Mittel (Triptan, Paracetamol, nichts). Beide Seiten haben den Kopfschmerz, der
+Unterschied ist das Mittel – oder die Schwere des Anfalls, denn ein Mittel nimmt
+man eher an den schlimmeren Tagen; deshalb steht die mittlere Kopfstärke beider
+Seiten mit dabei. Gegen „alle übrigen Tage" misst man vor allem den Anfall
+selbst – Übelkeit, Nüchternbleiben, Liegen –, und wenn der Vergleich nur so
+geht, sagt der Satz das.
+
+Unter „Was noch fehlt" bekommt die Frage nach Magenschutz oder Alternative den
+Zusatz, wogegen das Mittel genommen wurde, und ist so formuliert, dass man sie
+vorlesen kann – „regelmäßig" stimmt bei anfallsweiser Einnahme nicht. Mit
+Gastritis Typ C im Befund steht dazu, was feststeht und was nicht: Diese Mittel
+gehören zu den häufigsten Gründen für eine chemisch gereizte Schleimhaut; ob
+sie es *bei ihr* sind, steht im Befund und nicht im Tagebuch. Sicher ist nur,
+dass sie eine Schleimhaut treffen, die schon gereizt ist. Mit Zwerchfellbruch
+im Befund wird aus Blutbild und Ferritin eine konkrete Frage: An der Engstelle
+des Bruchs bluten kleine Defekte unbemerkt, und ein NSAR macht sie
+wahrscheinlicher.
+
+Und die Übelkeit: Sie gehört zum Anfall, und wer sie zusätzlich als
+Bauchbeschwerde einträgt, macht aus der Migräne einen Magentag – in den
+Kriterien, in der Richtung, in der Auslöserbilanz. Der Kopfbogen sagt das,
+sobald „Mit Übelkeit" angekreuzt ist. Was trotzdem durchrutscht, fängt die
+Störfaktoren-Schichtung ab (siehe *Liegt es wirklich daran?*): Der Kopfschmerz
+ist dort die vierte Schicht.
 
 ### Wie weit Richtung Diagnose
 
@@ -835,7 +919,7 @@ kleinere Fassung von Wein als Hauptzutat, und ein Kaffee ist nie eine Beilage.
 ### Der Zufallsspielraum
 
 Die App vergleicht inzwischen viel: zwei Dutzend Auslöser, dazu Klassen, drei
-Zeitfenster, sechs Schichten, vier Zyklusphasen. Jeder einzelne Vergleich ist
+Zeitfenster, acht Schichten, vier Zyklusphasen. Jeder einzelne Vergleich ist
 sauber gerechnet – und trotzdem wächst mit ihrer Zahl etwas, das kein einzelner
 Vergleich sehen kann: **Bei fünfzig Vergleichen ist ein „auffälliger"
 Unterschied kein Ausreißer mehr, sondern zu erwarten.** Auch in einem Tagebuch,
@@ -903,6 +987,29 @@ Die Schichtung schwächt übrigens nicht nur ab, sie kann einen Befund auch
 bei dem kann sich die Wirkung im Gesamtschnitt fast aufheben und erst innerhalb
 der Schichten sichtbar werden. Beides ist derselbe Rechenfehler – das
 Simpson-Paradox – nur in verschiedene Richtungen.
+
+**Die vierte Schicht ist der Kopfschmerz.** Übelkeit und ein empfindlicher
+Magen gehören zu einer Migräneattacke; wer an Migränetagen Kaffee trinkt –
+oder gerade keinen, Koffeinentzug ist selbst ein Auslöser –, dessen Kaffee
+fällt mit schlechten Bauchtagen zusammen, ohne sie zu machen. Die Schicht
+fragt: Hält der Unterschied auch an Tagen ohne Kopfschmerz?
+`test-stoerfaktor.mjs` baut genau diesen Fall: Kaffee an Migränetagen, Bauch
+schlecht wegen der Migräne – roh sieht der Kaffee schuldig aus, geschichtet
+bleibt nichts übrig; und wirkt er wirklich, hält er auch an Tagen ohne
+Kopfschmerz. Wenn der Kopfschmerz die einzige prüfbare Schicht ist, sagt der
+Satz, was nicht mitgeprüft wurde.
+
+**Und ein Fehler, der die ganze Schichtung still abgeschaltet hatte.** Die
+Rechnung verlangte an jedem Tag ein Feld `notiert`, das nur die Testvorlagen
+schreiben – die App setzt es nirgends, sie legt einen Tag an, sobald eine
+Tagesfrage beantwortet ist, und sonst gar nicht. In Wirklichkeit fiel damit
+jeder Tag durch, jeder Auslöser bekam „für einen Vergleich unter gleichen
+Umständen fehlen die Angaben", auch bei jemandem, der jeden Abend alle Fragen
+beantwortet hat. Der Test war grün, weil seine Tage das Feld hatten. Dasselbe
+Feld las auch das Unterleibsbild, mit demselben Ergebnis. Beide Tests haben
+jetzt eine Gegenprobe, deren Tage so aussehen, wie die App sie wirklich
+speichert – die Lektion dieses Projekts zum fünften Mal: Ein grüner Test
+beweist weniger, als er behauptet.
 
 ### Wie lange nach dem Essen
 

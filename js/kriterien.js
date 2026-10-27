@@ -58,7 +58,12 @@ const inFenster = (iso, von, bis) => iso >= von && iso <= bis;
 /** Tage im Zeitraum, an denen überhaupt etwas notiert wurde. */
 function notierteTage(eintraege, tage, von, bis) {
   const isos = new Set();
-  (eintraege || []).forEach((e) => { if (inFenster(e.am, von, bis)) isos.add(e.am); });
+  // Ein Tag mit nur einem Kopfschmerz ist für den Bauch kein notierter Tag
+  // (siehe tagesWert in auswertung.js) – sonst stünde er hier als Tag ohne
+  // Bauchschmerz im Nenner und verwässerte Rom und GerdQ.
+  (eintraege || []).forEach((e) => {
+    if (e.art !== 'kopf' && inFenster(e.am, von, bis)) isos.add(e.am);
+  });
   Object.keys(tage || {}).forEach((iso) => { if (inFenster(iso, von, bis)) isos.add(iso); });
   return [...isos].sort();
 }

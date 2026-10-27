@@ -287,6 +287,10 @@ p { margin: 0 0 8px; }
 .vier-btn.an { background: var(--accent-weich); border-color: var(--accent); }
 
 .wahl { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Lange Antworten untereinander („Ausgefallen – hinlegen müssen, …"): als
+   Reihe würden sie dreizeilig umbrechen und wären nicht mehr zu treffen. */
+.wahl-spalte { flex-direction: column; align-items: stretch; }
+.wahl-spalte .wahl-btn { text-align: left; border-radius: var(--radius); }
 .wahl-btn {
   background: var(--bg-elev-2); border: 1px solid var(--line);
   border-radius: 999px; padding: 8px 14px; cursor: pointer; font-size: 14px; min-height: 40px;
@@ -365,6 +369,9 @@ p { margin: 0 0 8px; }
 .rfeld.fremd { opacity: .32; }
 .rfeld.heute { outline: 2px solid var(--accent); outline-offset: -2px; }
 .f-gut { background: color-mix(in srgb, var(--ok) 55%, var(--bg-elev-2)); color: var(--text); }
+/* Nur Kopfschmerz, zum Bauch nichts: ein Rahmen statt einer Füllung – keine
+   Bauchfarbe, aber auch nicht „leer". */
+.f-kopf { background: var(--bg-elev-2); box-shadow: inset 0 0 0 2px var(--leicht); color: var(--text); }
 .f-leicht { background: color-mix(in srgb, var(--leicht) 50%, var(--bg-elev-2)); color: var(--text); }
 .f-mittel { background: color-mix(in srgb, var(--warn) 55%, var(--bg-elev-2)); color: var(--text); }
 .f-schlecht { background: color-mix(in srgb, var(--bad) 60%, var(--bg-elev-2)); color: var(--text); }
@@ -430,7 +437,8 @@ p { margin: 0 0 8px; }
 .karte-zeit .wartend li > .klein { white-space: normal; text-align: right; }
 /* Die Kopfkarte hat Werte mit mehreren Wörtern („pochend (12×), mit Übelkeit
  * (3×)") – die dürfen umbrechen, sonst laufen sie in die Bezeichnung. */
-.karte-kopf .wartend li > .klein { white-space: normal; text-align: right; }
+.karte-kopf .wartend li > span:first-child { flex: 0 0 44%; }
+.karte-kopf .wartend li > .klein { flex: 1 1 auto; min-width: 0; white-space: normal; text-align: right; }
 .schichten { list-style: none; margin: 8px 0; padding: 0; }
 .schichten li {
   display: flex; justify-content: space-between; gap: 8px;

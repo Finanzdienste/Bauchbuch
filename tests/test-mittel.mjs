@@ -58,7 +58,10 @@ check(await page.locator('.mittel').count() === 0, 'die volle Liste steht nicht 
 await page.locator('[data-act="mittel"]').click();
 await page.waitForTimeout(250);
 const gruppen = await page.locator('.mittel').count();
-check(gruppen === 11, `elf Gruppen, neun Mittel und zwei Reizstoffe (${gruppen})`);
+check(
+  gruppen === 17,
+  `siebzehn Gruppen: neun Mittel, drei Reizstoffe, fünf Schmerz- und Migränemittel (${gruppen})`,
+);
 
 const ppi = page.locator('.mittel').first();
 await ppi.locator('summary').click();
