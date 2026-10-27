@@ -38,6 +38,9 @@ import { befund, mittelBilanz } from './ansprechen.js';
 import { ergebnis } from './versuch.js';
 import { provokationsBild } from './provokation.js';
 import { planBild } from './stufenplan.js';
+import {
+  kopfMittel, kopfNachPhase, kopfZahlen, nachwirkung, nachwirkungSatz,
+} from './kopf.js';
 
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
@@ -141,6 +144,11 @@ export function arztBericht(zustand, von, bis) {
     sag();
   }
 
+  // Der Kopf wird getrennt gezählt (js/kopf.js) und steht in der Übersicht
+  // als eigene Zeile – damit niemand die „Tage mit Beschwerden" darüber für
+  // Kopfschmerztage hält oder umgekehrt.
+  const kz = kopfZahlen(imZeitraum, tage);
+
   sag('ÜBERSICHT');
   sag(`  Tage mit Eintragung        ${z.notierteTage} von ${z.tage}`);
   sag(`  Tage mit Beschwerden       ${z.tageMitBeschwerden} (${prozent(z.anteil)} der eingetragenen Tage)`);
@@ -148,6 +156,7 @@ export function arztBericht(zustand, von, bis) {
   sag(`  Höchster Wert              ${z.hoechster} von 10 (${STAERKE_WORT[z.hoechster] || ''})`);
   sag(`  Mahlzeiten eingetragen     ${z.mahlzeiten}`);
   sag(`  Medikamenteneinnahmen      ${z.medikamente}`);
+  if (kz.anzahl) sag(`  Kopfschmerztage            ${kz.tage} (getrennt gezählt, siehe unten)`);
   sag();
 
   /*
@@ -356,6 +365,50 @@ export function arztBericht(zustand, von, bis) {
     sag(`  Typ 3-5 (unauffällig)      ${s.normal} (${prozent(s.anteilNormal)})`);
     sag(`  Typ 6-7 (weich)            ${s.weich} (${prozent(s.anteilWeich)})`);
     if (s.dringend) sag(`  davon dringend             ${s.dringend}`);
+    sag();
+  }
+
+  /*
+   * Kopfschmerzen – getrennt vom Bauch, und mit dem, was beide verbindet.
+   *
+   * Die Zahlen oben (Stärke, Beschwerdetage, Auslöser) kennen den Kopf nicht;
+   * das ist Absicht und steht als Satz dabei. Was hierher gehört, ist das
+   * Schmerzmittel: an wie vielen Kopfschmerztagen eines im Tagebuch stand und
+   * was der Bauch an den Tagen danach gemacht hat.
+   */
+  if (kz.anzahl) {
+    const istNsar = (name) => {
+      const g = wissenZu(name);
+      return !!g && g.id === 'nsar';
+    };
+    const km = kopfMittel(imZeitraum, istNsar, bis);
+    sag('KOPFSCHMERZEN');
+    sag(`  Eingetragen                ${kz.anzahl} Mal an ${kz.tage} Tagen `
+      + `(${prozent(kz.anteil)} der notierten Tage)`);
+    sag(`  Stärke im Mittel           ${fmtZahl(kz.schnitt)} von 10, höchstens ${kz.hoechster}`);
+    kz.arten.slice(0, 4).forEach((a) => {
+      sag(`  ${a.name.padEnd(26)} ${mehrzahl(a.anzahl, 'Mal', 'Mal')}`);
+    });
+    if (km.mitMittel) {
+      sag(`  Medikament am selben Tag   an ${km.mitMittel} von ${kz.tage} Tagen`
+        + (km.mitNsar ? `, davon ${km.mitNsar} entzündungshemmend` : ''));
+    }
+    const nach = km.nsarTage.length
+      ? nachwirkung(imZeitraum, tage, km.nsarTage, tagesWert) : null;
+    const satz = nachwirkungSatz(nach, fmtZahl);
+    if (satz) umbrochen(satz).forEach((zl) => sag(`  ${zl}`));
+    if (km.nsarLetzte30 >= 15) {
+      umbrochen(`An ${km.nsarLetzte30} der letzten 30 Tage stand ein `
+        + 'entzündungshemmendes Schmerzmittel im Tagebuch. Ab etwa fünfzehn '
+        + 'Tagen im Monat kann das Mittel selbst zum Kopfschmerz beitragen.')
+        .forEach((zl) => sag(`  ${zl}`));
+    }
+    const kp = kopfNachPhase(imZeitraum, tage);
+    if (kp.length > 1) {
+      sag('  Nach Zyklusphase (geschätzt aus den Blutungstagen):');
+      kp.forEach((p) => sag(`    ${p.name.padEnd(24)} an ${p.mit} von ${p.tage} Tagen`));
+    }
+    sag('  Getrennt vom Bauch gezählt: Kein Kopfschmerz zählt in die Werte oben.');
     sag();
   }
 

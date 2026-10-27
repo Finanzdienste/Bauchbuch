@@ -18,7 +18,8 @@ eine dreifach geprüfte Eigenschaft: siehe [Die Zusage](#die-zusage).
 
 ## Was die App kann
 
-**Tag.** Fünf Knöpfe: Mahlzeit, Beschwerden, Stuhlgang, Medikament, Notiz.
+**Tag.** Sechs Knöpfe: Mahlzeit, Beschwerden, Kopfschmerz, Stuhlgang,
+Medikament, Notiz.
 Eine Mahlzeit bekommt einen freien Text, eine Portionsgröße und angekreuzte
 Merkmale aus einer kurzen Liste (Kaffee, Fettiges, Scharfes, Zwiebeln,
 Kohlensäure …). Beschwerden bekommen eine Stärke von 0 bis 10, eine oder
@@ -49,9 +50,9 @@ Warnzeichen, die Einordnung des Bildes, die
 **Kriterien** (Rom IV und GerdQ, siehe unten), der **Auslassversuch**, der
 **Stufenplan**, der **Provokationstest**, die
 Bilanz **nach Wirkweise**, dann die nach einzelnen Zutaten, das **Ansprechen
-auf die Mittel**, Tageszeit, Beschwerdeart, Stuhlgang, **was noch fehlt** und
-die Zyklusphase. Wer nur die ersten beiden Karten liest, hat trotzdem das
-Wichtigste.
+auf die Mittel**, Tageszeit, Beschwerdeart, Stuhlgang, **Kopfschmerzen**,
+**was noch fehlt** und die Zyklusphase. Wer nur die ersten beiden Karten
+liest, hat trotzdem das Wichtigste.
 
 **Ruhe.** Vier Atemübungen – 4–7–8, Quadrat, Gleichmaß, Bauchatmung – mit Ton,
 damit man die Augen zumachen kann. Der Ton entsteht im Browser aus einem
@@ -263,6 +264,48 @@ nehmen.
 Die Richtung des Irrtums ist hier nicht gleichgültig: **Ein Verdacht, der zu
 viel dasteht, kostet eine Nachfrage in der Sprechstunde. Einer, der zu Unrecht
 verschwindet, kostet die Untersuchung.**
+
+### Kopfschmerzen: eine eigene Art, kein Bauch
+
+Wer alles tracken soll, trackt auch den Kopf. Die naheliegende Lösung wäre
+eine weitere Beschwerdeart gewesen – „Kopfschmerz" neben „Brennen" und
+„Krampf". Sie wäre falsch gewesen, und zwar unsichtbar falsch: **Jede
+Rechnung dieser App holt sich die Einträge mit `art === 'beschwerde'` und
+liest deren Stärke.** Der Tageswert, die Auslöserbilanz, die Rom-Kriterien,
+die Richtung, die Zyklusphasen. Eine Migräne mit Stärke 8 hätte aus dem Kaffee
+davor einen Auslöser gemacht, aus dem Tag einen Beschwerdetag und aus einer
+ruhigen Magenwoche eine schlechte. Alle Zahlen wären plausibel geblieben.
+
+Deshalb ist der Kopfschmerz eine **eigene Eintragsart** wie Stuhlgang oder
+Medikament (`js/kopf.js`). Keine Bauchrechnung sieht ihn, und
+`test-kopf.mjs` beweist das in die unangenehme Richtung: zwanzig Tage Kaffee
+und Kopfschmerz 8, keine einzige Bauchbeschwerde – und der Bericht zählt null
+Beschwerdetage, mittlere Stärke 0, keinen Auslöser.
+
+Was der Kopf bekommt: eine Stärke von 0 bis 10, Merkmale (pochend, einseitig,
+mit Übelkeit, Licht stört, vom Nacken her, Aura …), eine Notiz und **seine
+eigenen Warnzeichen** – der schlagartige Kopfschmerz „wie nie zuvor", der
+erste Ausfall, Fieber mit steifem Nacken. Sie stehen in derselben Liste wie
+die des Bauches, damit Warnkarte und Bericht sie finden, aber der Bauchbogen
+bietet sie nicht an und der Kopfbogen nur sie.
+
+Was Kopf und Bauch verbindet, ist das **Schmerzmittel**. Ibuprofen,
+Diclofenac und ASS sind die häufigste vermeidbare Ursache einer gereizten
+Magenschleimhaut – bei einer Gastritis Typ C der Kern, nicht die Randnotiz –,
+und wer Kopfschmerzen hat, greift genau dazu. Die Karte „Kopfschmerzen" unter
+Muster zählt deshalb, an wie vielen Kopfschmerztagen ein solches Mittel im
+Tagebuch stand, und vergleicht den Bauch an den zwei Tagen *danach* mit allen
+übrigen Tagen – ab fünf Tagen auf beiden Seiten, mit beiden Fallzahlen, und
+mit dem Satz, dass das ein Hinweis ist und kein Beweis. Unter „Was noch fehlt"
+bekommt die Frage nach der magenfreundlicheren Alternative den Zusatz, wogegen
+das Mittel genommen wurde. Und wenn an fünfzehn oder mehr der letzten dreißig
+Tage ein solches Mittel steht, sagt die Karte, dass ein Schmerzmittel in
+dieser Häufigkeit selbst zum Kopfschmerz beitragen kann – als Frage für die
+Sprechstunde, nicht als Anweisung.
+
+Wird die Periode eingetragen, zählt die Karte außerdem Kopfschmerztage je
+Zyklusphase – so grob wie die Phasen selbst, mit Fallzahlen daneben und ohne
+Urteil.
 
 ### Wie weit Richtung Diagnose
 
@@ -1181,6 +1224,8 @@ js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten
 js/klang.js         Töne aus einem Oszillator, keine Dateien
 js/atem.js          die Atemübungen – Daten, nicht der Ablauf
 js/zyklus.js        Zyklen und Phasen aus Blutungstagen
+js/kopf.js          Kopfschmerzen – getrennt vom Bauch gezählt, verbunden
+                    nur über das Schmerzmittel
 js/stuhl.js         Bristol-Form, Anteile, Reizdarm-Typ
 js/kriterien.js     Rom IV und GerdQ, nachgerechnet
 js/versuch.js       der Auslassversuch mit Wiedereinführung

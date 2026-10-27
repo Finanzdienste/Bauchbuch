@@ -216,6 +216,7 @@ p { margin: 0 0 8px; }
 .a-essen { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .a-beschwerde { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
 .a-stuhl { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+.a-kopf { border-color: color-mix(in srgb, var(--leicht) 50%, var(--line)); }
 
 /* ---------- Bristol-Skala ---------- */
 /* Sieben Zeilen mit Zahl, Zeichnung und Namen. Untereinander statt als Raster:
@@ -250,6 +251,7 @@ p { margin: 0 0 8px; }
 .z-essen { border-left-color: var(--accent); }
 .z-beschwerde { border-left-color: var(--bad); }
 .z-medikament { border-left-color: var(--warn); }
+.z-kopf { border-left-color: var(--leicht); }
 .z-notiz { border-left-color: var(--muted); }
 .strang-uhr { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); min-width: 40px; }
 .strang-punkt { font-size: 15px; }
@@ -446,6 +448,9 @@ p { margin: 0 0 8px; }
 /* Die Zeile im Zeitprofil trägt drei Angaben; auf einem schmalen Gerät darf sie
    umbrechen, sonst schiebt sie die Namensspalte aus dem Bild. */
 .karte-zeit .wartend li > .klein { white-space: normal; text-align: right; }
+/* Die Kopfkarte hat Werte mit mehreren Wörtern („pochend (12×), mit Übelkeit
+ * (3×)") – die dürfen umbrechen, sonst laufen sie in die Bezeichnung. */
+.karte-kopf .wartend li > .klein { white-space: normal; text-align: right; }
 .schichten { list-style: none; margin: 8px 0; padding: 0; }
 .schichten li {
   display: flex; justify-content: space-between; gap: 8px;
@@ -2493,6 +2498,224 @@ function heutigerStand(tage, iso) {
   };
 }
 
+/* ===== js/kopf.js ===== */
+/*
+ * Kopfschmerzen – eine eigene Eintragsart, und warum gerade das.
+ *
+ * Die Beschwerden dieser App sind Bauchbeschwerden. Jede Rechnung – der
+ * Tageswert, die Auslöserbilanz, die Kriterien, die Richtung – holt sich die
+ * Einträge mit `art === 'beschwerde'` und liest deren Stärke. Ein Kopfschmerz,
+ * der dort als „Beschwerde mit der Art Kopf" läge, zählte überall als Bauch:
+ * Eine 7 am Kopf machte aus dem Kaffee davor einen Auslöser, aus dem Tag einen
+ * Beschwerdetag und aus einer ruhigen Woche eine schlechte.
+ *
+ * Deshalb ist der Kopf eine *Art* wie Stuhlgang oder Medikament, keine
+ * Beschwerdeart. Keine der vorhandenen Rechnungen sieht ihn, und das ist kein
+ * Versehen, sondern der Zweck: Was hier steht, rechnet nur mit sich selbst.
+ *
+ * Was den Kopf und den Bauch trotzdem verbindet, ist das Schmerzmittel.
+ * Ibuprofen, Diclofenac und ASS sind die häufigste vermeidbare Ursache einer
+ * gereizten Magenschleimhaut – und wer Kopfschmerzen hat, greift genau dazu.
+ * Bei einer Gastritis Typ C ist das keine Randnotiz, sondern der Kern. Deshalb
+ * zählt dieses Modul, an wie vielen Kopfschmerztagen ein solches Mittel im
+ * Tagebuch steht, und was der Bauch an den Tagen danach gemacht hat.
+ *
+ * Und die Periode: Ein Kopfschmerz, der mit dem Zyklus kommt, ist ein anderer
+ * als einer, der mit dem Nacken kommt. Die Phasen kommen aus zyklus.js, die
+ * Zählung bleibt so grob wie dort – geschätzt, mit Fallzahlen daneben.
+ */
+
+
+/*
+ * Wie er sich anfühlt. Keine Diagnose-Schublade, sondern die Fragen, die in
+ * der Sprechstunde gestellt werden: pochend oder drückend, eine Seite oder
+ * beide, Übelkeit, Licht, Bewegung, Nacken, Aura. Aus der Kombination schließt
+ * eine Ärztin etwas; die App schließt nichts, sie zählt.
+ */
+const KOPF_ARTEN = [
+  { id: 'pochend', name: 'Pochend, pulsierend' },
+  { id: 'drueckend', name: 'Drückend, wie ein Band' },
+  { id: 'einseitig', name: 'Einseitig' },
+  { id: 'kopfuebel', name: 'Mit Übelkeit' },
+  { id: 'licht', name: 'Licht oder Lärm stören' },
+  { id: 'bewegung', name: 'Schlimmer bei Bewegung' },
+  { id: 'nacken', name: 'Vom Nacken her' },
+  { id: 'aura', name: 'Vorher Flimmern oder Sehstörung' },
+];
+
+const KOPF_MAP = Object.fromEntries(KOPF_ARTEN.map((a) => [a.id, a]));
+
+function kopfArtName(id) {
+  return KOPF_MAP[id] ? KOPF_MAP[id].name : id;
+}
+
+/** Nur die Kopfschmerz-Einträge, und nur die mit einer Stärke. */
+function kopfEintraege(eintraege) {
+  return (eintraege || []).filter((e) => e.art === 'kopf' && Number(e.staerke) >= 1);
+}
+
+/** Alle Tage, an denen überhaupt etwas eingetragen wurde – gleich was. */
+function alleNotiertenTage(eintraege, tage) {
+  return new Set([
+    ...(eintraege || []).map((e) => e.am),
+    ...Object.keys(tage || {}),
+  ]);
+}
+
+/**
+ * Die Grundzahlen: wie oft, an wie vielen Tagen, wie stark, wie oft was.
+ *
+ * `anteil` ist Kopfschmerztage durch notierte Tage – nicht durch Kalendertage.
+ * Eine Lücke im Tagebuch ist kein kopfschmerzfreier Tag, sie ist eine Lücke.
+ */
+function kopfZahlen(eintraege, tage) {
+  const kopf = kopfEintraege(eintraege);
+  const kopfTage = new Set(kopf.map((e) => e.am));
+  const notiert = alleNotiertenTage(eintraege, tage);
+  const zaehler = new Map();
+  kopf.forEach((e) => {
+    (e.kopfArten || []).forEach((id) => {
+      if (KOPF_MAP[id]) zaehler.set(id, (zaehler.get(id) || 0) + 1);
+    });
+  });
+  const summe = kopf.reduce((s, e) => s + Number(e.staerke), 0);
+  return {
+    anzahl: kopf.length,
+    tage: kopfTage.size,
+    notierteTage: notiert.size,
+    anteil: notiert.size ? kopfTage.size / notiert.size : 0,
+    schnitt: kopf.length ? summe / kopf.length : 0,
+    hoechster: kopf.reduce((m, e) => Math.max(m, Number(e.staerke)), 0),
+    arten: [...zaehler.entries()]
+      .map(([id, anzahl]) => ({ id, name: kopfArtName(id), anzahl }))
+      .sort((a, b) => b.anzahl - a.anzahl),
+  };
+}
+
+/**
+ * Kopfschmerz und Schmerzmittel am selben Tag.
+ *
+ * Gezählt werden Tage, nicht Einnahmen: Zwei Ibuprofen an einem Tag sind ein
+ * Tag mit Ibuprofen. `istNsar` kommt von außen (mittel.js kennt die Gruppen),
+ * damit dieses Modul nicht wissen muss, was Diclofenac ist.
+ */
+function kopfMittel(eintraege, istNsar, heute) {
+  const kopfTage = new Set(kopfEintraege(eintraege).map((e) => e.am));
+  const mitMittel = new Set();
+  const mitNsar = new Set();
+  const nsarAlle = new Set();
+  (eintraege || []).filter((e) => e.art === 'medikament').forEach((e) => {
+    const nsar = !!istNsar && istNsar(e.mittel);
+    if (nsar) nsarAlle.add(e.am);
+    if (!kopfTage.has(e.am)) return;
+    mitMittel.add(e.am);
+    if (nsar) mitNsar.add(e.am);
+  });
+  /*
+   * Wie oft in den letzten 30 Tagen – mit oder ohne Kopfschmerz daneben.
+   *
+   * Das ist die eine Zahl, die für den Kopf selbst zählt: Ein Schmerzmittel,
+   * das an fünfzehn oder mehr Tagen im Monat genommen wird, kann selbst zum
+   * Kopfschmerz beitragen. Dafür ist gleichgültig, wogegen es genommen wurde.
+   */
+  const ab = heute ? plusTage(heute, -29) : null;
+  const letzte30 = ab ? [...nsarAlle].filter((iso) => iso >= ab && iso <= heute).length : 0;
+  return {
+    kopfTage: kopfTage.size,
+    mitMittel: mitMittel.size,
+    mitNsar: mitNsar.size,
+    nsarTage: [...mitNsar].sort(),
+    nsarLetzte30: letzte30,
+  };
+}
+
+/**
+ * Was der Bauch nach bestimmten Tagen macht.
+ *
+ * Verglichen wird der Bauch-Tageswert an den `abstand` Tagen *nach* jedem
+ * genannten Tag mit dem an allen übrigen notierten Tagen. Der Tag selbst
+ * bleibt draußen: Was am Tag der Einnahme im Magen war, lässt sich nicht von
+ * dem trennen, was davor war. `tagesWert` kommt von außen, wie bei zyklus.js
+ * – der Bauch wird in auswertung.js gerechnet, nicht hier.
+ *
+ * Ab fünf Tagen auf beiden Seiten ist das eine Zahl, darunter ein Zufall. Und
+ * auch dann ist es ein Hinweis, kein Beweis: Ein Kopfschmerztag ist oft ein
+ * anstrengender Tag, und der Magen weiß das auch ohne Tablette.
+ */
+function nachwirkung(eintraege, tage, nachTagen, tagesWert, abstand = 2) {
+  const danachTage = new Set();
+  (nachTagen || []).forEach((iso) => {
+    for (let i = 1; i <= abstand; i++) danachTage.add(plusTage(iso, i));
+  });
+  const ausgenommen = new Set(nachTagen || []);
+  const danach = { tage: 0, summe: 0 };
+  const sonst = { tage: 0, summe: 0 };
+  alleNotiertenTage(eintraege, tage).forEach((iso) => {
+    if (ausgenommen.has(iso)) return;
+    const t = tagesWert(eintraege, iso, tage);
+    if (!t.notiert) return;
+    const eimer = danachTage.has(iso) ? danach : sonst;
+    eimer.tage += 1;
+    eimer.summe += t.wert;
+  });
+  const mittel = (x) => (x.tage ? x.summe / x.tage : 0);
+  const genug = danach.tage >= 5 && sonst.tage >= 5;
+  return {
+    abstand,
+    danach: { tage: danach.tage, schnitt: mittel(danach) },
+    sonst: { tage: sonst.tage, schnitt: mittel(sonst) },
+    differenz: mittel(danach) - mittel(sonst),
+    genug,
+    // Eine ganze Stufe, wie bei der Richtung: Darunter ist es Schwankung.
+    deutlich: genug && mittel(danach) - mittel(sonst) >= 1,
+  };
+}
+
+/**
+ * Kopfschmerztage je Zyklusphase – nur, wenn die Periode eingetragen wird.
+ *
+ * Für jede Phase: wie viele notierte Tage, wie viele davon mit Kopfschmerz.
+ * Ohne Urteil; die Fallzahlen stehen daneben. Eine Phase ohne notierte Tage
+ * fehlt in der Liste, statt mit 0 von 0 zu prahlen.
+ */
+function kopfNachPhase(eintraege, tage) {
+  const kopfTage = new Set(kopfEintraege(eintraege).map((e) => e.am));
+  const eimer = Object.fromEntries(PHASEN.map((p) => [p.id, { tage: 0, mit: 0 }]));
+  alleNotiertenTage(eintraege, tage).forEach((iso) => {
+    const p = phaseVon(tage, iso);
+    if (!p) return;
+    eimer[p].tage += 1;
+    if (kopfTage.has(iso)) eimer[p].mit += 1;
+  });
+  return PHASEN
+    .filter((p) => eimer[p.id].tage > 0)
+    .map((p) => ({
+      phase: p.id,
+      name: p.name,
+      tage: eimer[p.id].tage,
+      mit: eimer[p.id].mit,
+      anteil: eimer[p.id].mit / eimer[p.id].tage,
+    }));
+}
+
+/** Der Satz zur Nachwirkung – oder keiner, wenn er nicht zulässig ist. */
+function nachwirkungSatz(n, fmt) {
+  if (!n || !n.genug) return '';
+  const z = fmt || ((x) => String(Math.round(x * 10) / 10).replace('.', ','));
+  const tagWort = n.abstand === 1 ? 'Am Tag' : `An den ${n.abstand} Tagen`;
+  if (n.deutlich) {
+    return `${tagWort} nach einem Kopfschmerztag mit entzündungshemmendem `
+      + `Schmerzmittel lag der Bauch im Mittel bei ${z(n.danach.schnitt)}, an den `
+      + `übrigen Tagen bei ${z(n.sonst.schnitt)} (${n.danach.tage} gegen `
+      + `${n.sonst.tage} Tage). Das ist ein Hinweis, kein Beweis – aber einer, `
+      + 'der in die Sprechstunde gehört.';
+  }
+  return `${tagWort} nach einem Kopfschmerztag mit entzündungshemmendem `
+    + `Schmerzmittel lag der Bauch im Mittel bei ${z(n.danach.schnitt)}, sonst `
+    + `bei ${z(n.sonst.schnitt)} (${n.danach.tage} gegen ${n.sonst.tage} Tage) `
+    + '– kein deutlicher Unterschied.';
+}
+
 /* ===== js/chart.js ===== */
 /*
  * Ein Balkendiagramm als SVG-Zeichenkette. Ohne Bibliothek, ohne Leinwand.
@@ -4303,6 +4526,10 @@ function tagesWert(eintraege, iso, tage = {}) {
     anzahl: beschwerden.length,
     mahlzeiten: amTag.filter((e) => e.art === 'essen').length,
     medikamente: amTag.filter((e) => e.art === 'medikament').length,
+    // Der Kopf steht daneben, nicht darin: `wert` bleibt der Bauch. Wer hier
+    // den Kopf in `wert` mischte, machte aus jeder Migräne einen Magentag.
+    kopf: amTag.filter((e) => e.art === 'kopf')
+      .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0),
   };
 }
 
@@ -5817,6 +6044,13 @@ const VERDAECHTE = [
       if (d.nsarTage >= 3) {
         dafuer.push(`An ${d.nsarTage} Tagen steht ein entzündungshemmendes `
           + 'Schmerzmittel im Tagebuch.');
+        // Wogegen – das ist die Hälfte der Frage nach der Alternative. Ein
+        // Mittel gegen Kopfschmerzen hat andere Ersatzkandidaten als eines
+        // gegen Rückenschmerzen.
+        if (d.nsarKopfTage > 0) {
+          dafuer.push(`An ${d.nsarKopfTage} davon wegen Kopfschmerzen – am `
+            + 'selben Tag eingetragen.');
+        }
       }
       return {
         stand: d.nsarTage >= 3 ? 'gestuetzt' : 'unwahrscheinlich',
@@ -5854,8 +6088,9 @@ const VERDAECHTE = [
  * @param {object} d
  *   kriterien (aus js/kriterien.js), stuhl (stuhlZahlen), bezug (bezugBilanz),
  *   klassen (klassenBilanz), mittel (mittelBilanz), musterIds, essen
- *   (essensbezug), nsarTage, warnIds, krampfAnteil, benutzt, nachtwachAn,
- *   versuchMoeglich, versuchLaeuft, mahlzeitenOhneZutaten
+ *   (essensbezug), nsarTage, nsarKopfTage (davon an Kopfschmerztagen), warnIds,
+ *   krampfAnteil, benutzt, nachtwachAn, versuchMoeglich, versuchLaeuft,
+ *   mahlzeitenOhneZutaten
  */
 function luecken(d) {
   return {
@@ -9201,6 +9436,45 @@ const WARNZEICHEN = [
     dringlichkeit: 'zeitnah',
     warum: 'Fieber gehört nicht zu einer gereizten Magenschleimhaut.',
   },
+  /*
+   * Die Warnzeichen des Kopfes. Sie stehen in derselben Liste, damit die
+   * Warnkarte und der Bericht sie wie alle anderen finden – aber mit dem
+   * Vermerk `bereich`, damit der Bauchbogen sie nicht anbietet und der
+   * Kopfbogen nur sie. Wer im Bauchbogen „Kopfschmerz mit steifem Nacken"
+   * liest, hält die Liste für Lärm und kreuzt dann auch das Blut nicht an.
+   */
+  {
+    id: 'donnerschlag',
+    name: 'Kopfschmerz, der binnen Sekunden bis zu einer Minute so stark war wie nie zuvor',
+    dringlichkeit: 'sofort',
+    bereich: 'kopf',
+    warum: 'Ein Schmerz, der schlagartig auf dem Höhepunkt ist, kann eine Blutung '
+      + 'im Kopf sein – auch wenn er wieder nachlässt. Notaufnahme oder 112, '
+      + 'nicht der nächste Termin.',
+  },
+  {
+    id: 'kopfausfall',
+    name: 'Zum ersten Mal: Kopfschmerz mit Lähmung, Sprachstörung, Sehverlust oder Verwirrtheit',
+    dringlichkeit: 'sofort',
+    bereich: 'kopf',
+    warum: 'Was man von seiner Migräne kennt, ist etwas anderes als ein Ausfall, '
+      + 'den man noch nie hatte. Der zweite Fall gehört in die Notaufnahme.',
+  },
+  {
+    id: 'kopfnacken',
+    name: 'Kopfschmerz mit Fieber und steifem Nacken',
+    dringlichkeit: 'sofort',
+    bereich: 'kopf',
+    warum: 'Die drei zusammen sind die Zeichen einer Hirnhautentzündung. Nicht abwarten.',
+  },
+  {
+    id: 'kopfwandel',
+    name: 'Kopfschmerz, der über Wochen immer häufiger oder immer stärker wird',
+    dringlichkeit: 'zeitnah',
+    bereich: 'kopf',
+    warum: 'Ein Kopfschmerz, der sein Muster ändert, gehört angesehen – nicht '
+      + 'wegen des einzelnen Tages, sondern wegen der Richtung.',
+  },
 ];
 
 const WARN_MAP = Object.fromEntries(WARNZEICHEN.map((w) => [w.id, w]));
@@ -10238,6 +10512,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -10340,6 +10615,11 @@ function arztBericht(zustand, von, bis) {
     sag();
   }
 
+  // Der Kopf wird getrennt gezählt (js/kopf.js) und steht in der Übersicht
+  // als eigene Zeile – damit niemand die „Tage mit Beschwerden" darüber für
+  // Kopfschmerztage hält oder umgekehrt.
+  const kz = kopfZahlen(imZeitraum, tage);
+
   sag('ÜBERSICHT');
   sag(`  Tage mit Eintragung        ${z.notierteTage} von ${z.tage}`);
   sag(`  Tage mit Beschwerden       ${z.tageMitBeschwerden} (${prozent(z.anteil)} der eingetragenen Tage)`);
@@ -10347,6 +10627,7 @@ function arztBericht(zustand, von, bis) {
   sag(`  Höchster Wert              ${z.hoechster} von 10 (${STAERKE_WORT[z.hoechster] || ''})`);
   sag(`  Mahlzeiten eingetragen     ${z.mahlzeiten}`);
   sag(`  Medikamenteneinnahmen      ${z.medikamente}`);
+  if (kz.anzahl) sag(`  Kopfschmerztage            ${kz.tage} (getrennt gezählt, siehe unten)`);
   sag();
 
   /*
@@ -10555,6 +10836,50 @@ function arztBericht(zustand, von, bis) {
     sag(`  Typ 3-5 (unauffällig)      ${s.normal} (${prozent(s.anteilNormal)})`);
     sag(`  Typ 6-7 (weich)            ${s.weich} (${prozent(s.anteilWeich)})`);
     if (s.dringend) sag(`  davon dringend             ${s.dringend}`);
+    sag();
+  }
+
+  /*
+   * Kopfschmerzen – getrennt vom Bauch, und mit dem, was beide verbindet.
+   *
+   * Die Zahlen oben (Stärke, Beschwerdetage, Auslöser) kennen den Kopf nicht;
+   * das ist Absicht und steht als Satz dabei. Was hierher gehört, ist das
+   * Schmerzmittel: an wie vielen Kopfschmerztagen eines im Tagebuch stand und
+   * was der Bauch an den Tagen danach gemacht hat.
+   */
+  if (kz.anzahl) {
+    const istNsar = (name) => {
+      const g = wissenZu(name);
+      return !!g && g.id === 'nsar';
+    };
+    const km = kopfMittel(imZeitraum, istNsar, bis);
+    sag('KOPFSCHMERZEN');
+    sag(`  Eingetragen                ${kz.anzahl} Mal an ${kz.tage} Tagen `
+      + `(${prozent(kz.anteil)} der notierten Tage)`);
+    sag(`  Stärke im Mittel           ${fmtZahl(kz.schnitt)} von 10, höchstens ${kz.hoechster}`);
+    kz.arten.slice(0, 4).forEach((a) => {
+      sag(`  ${a.name.padEnd(26)} ${mehrzahl(a.anzahl, 'Mal', 'Mal')}`);
+    });
+    if (km.mitMittel) {
+      sag(`  Medikament am selben Tag   an ${km.mitMittel} von ${kz.tage} Tagen`
+        + (km.mitNsar ? `, davon ${km.mitNsar} entzündungshemmend` : ''));
+    }
+    const nach = km.nsarTage.length
+      ? nachwirkung(imZeitraum, tage, km.nsarTage, tagesWert) : null;
+    const satz = nachwirkungSatz(nach, fmtZahl);
+    if (satz) umbrochen(satz).forEach((zl) => sag(`  ${zl}`));
+    if (km.nsarLetzte30 >= 15) {
+      umbrochen(`An ${km.nsarLetzte30} der letzten 30 Tage stand ein `
+        + 'entzündungshemmendes Schmerzmittel im Tagebuch. Ab etwa fünfzehn '
+        + 'Tagen im Monat kann das Mittel selbst zum Kopfschmerz beitragen.')
+        .forEach((zl) => sag(`  ${zl}`));
+    }
+    const kp = kopfNachPhase(imZeitraum, tage);
+    if (kp.length > 1) {
+      sag('  Nach Zyklusphase (geschätzt aus den Blutungstagen):');
+      kp.forEach((p) => sag(`    ${p.name.padEnd(24)} an ${p.mit} von ${p.tage} Tagen`));
+    }
+    sag('  Getrennt vom Bauch gezählt: Kein Kopfschmerz zählt in die Werte oben.');
     sag();
   }
 
@@ -11071,12 +11396,15 @@ function tagesFrage(frage, wert) {
 
 /* ==================== Reiter: Tag ==================== */
 
+// „Kopfschmerz" ist eine eigene Art und keine Beschwerdeart – siehe js/kopf.js,
+// warum das kein Geschmack ist, sondern die Bedingung dafür, dass die
+// Bauchauswertung stimmt.
 const ART_NAME = {
-  essen: 'Mahlzeit', beschwerde: 'Beschwerden', stuhl: 'Stuhlgang',
+  essen: 'Mahlzeit', beschwerde: 'Beschwerden', kopf: 'Kopfschmerz', stuhl: 'Stuhlgang',
   medikament: 'Medikament', notiz: 'Notiz',
 };
 const ART_ICON = {
-  essen: '🍽️', beschwerde: '🔥', stuhl: '🚽', medikament: '💊', notiz: '✏️',
+  essen: '🍽️', beschwerde: '🔥', kopf: '🤕', stuhl: '🚽', medikament: '💊', notiz: '✏️',
 };
 
 function zeileText(e, eigene) {
@@ -11106,6 +11434,12 @@ function zeileText(e, eigene) {
   if (e.art === 'medikament') {
     return `<b>${esc(e.mittel || 'Medikament')}</b>`
       + (e.dosis ? `<span class="zeile-tags">${esc(e.dosis)}</span>` : '');
+  }
+  if (e.art === 'kopf') {
+    const arten = (e.kopfArten || []).map(kopfArtName).join(', ');
+    return `<b>Kopfschmerz ${e.staerke} – ${STAERKE_WORT[e.staerke] || ''}</b>`
+      + (arten ? `<span class="zeile-tags">${esc(arten)}</span>` : '')
+      + (e.notiz ? `<span class="zeile-tags">${esc(kuerze(e.notiz))}</span>` : '');
   }
   return `<b>${esc(kuerze(e.text || '', 90))}</b>`;
 }
@@ -11151,7 +11485,7 @@ function tagAnsicht(s) {
   </div>` : '';
 
   const anlegen = `<div class="anlegen">
-    ${['essen', 'beschwerde', 'stuhl', 'medikament', 'notiz'].map((a) => `
+    ${['essen', 'beschwerde', 'kopf', 'stuhl', 'medikament', 'notiz'].map((a) => `
       <button type="button" class="anlegen-btn a-${a}" data-act="neu" data-art="${a}">
         <span class="anlegen-i">${ART_ICON[a]}</span>${ART_NAME[a]}
       </button>`).join('')}
@@ -11171,10 +11505,10 @@ function tagAnsicht(s) {
 
   const bilanz = t.notiert ? `<div class="karte tagbilanz">
     <div class="gross ${t.wert === 0 ? 'gut' : (t.wert >= 7 ? 'schlecht' : 'mittel')}">
-      ${t.wert === 0 ? 'beschwerdefrei' : `Stärke ${t.wert}`}
+      ${t.wert === 0 ? (t.kopf ? 'Bauch beschwerdefrei' : 'beschwerdefrei') : `Stärke ${t.wert}`}
     </div>
     <p class="klein">${mehrzahl(t.mahlzeiten, 'Mahlzeit', 'Mahlzeiten')},
-      ${mehrzahl(t.anzahl, 'Beschwerde', 'Beschwerden')}${t.medikamente ? `, ${mehrzahl(t.medikamente, 'Medikament', 'Medikamente')}` : ''}</p>
+      ${mehrzahl(t.anzahl, 'Beschwerde', 'Beschwerden')}${t.medikamente ? `, ${mehrzahl(t.medikamente, 'Medikament', 'Medikamente')}` : ''}${t.kopf ? `, Kopfschmerz bis ${t.kopf}` : ''}</p>
   </div>` : '';
 
   const fragen = sichtbareFragen(s.tagesfragen);
@@ -11754,6 +12088,7 @@ function musterDaten(s) {
     essen: essensbezugVon(s),
     nsarTage: [...new Set(s.eintraege
       .filter((e) => e.art === 'medikament' && istNsar(e.mittel)).map((e) => e.am))].length,
+    nsarKopfTage: kopfMittel(s.eintraege, istNsar, heute).mitNsar,
     warnIds: bild.warnungen.map((w) => w.id),
     krampfAnteil: artAnteilVon(s, ['krampf']),
     benutzt,
@@ -12729,13 +13064,13 @@ function musterAnsicht(s) {
   if (frueh) {
     return `${lageTeil(s, d)}${warnTeil(d)}${fortschrittTeil(s, d)}`
       + `${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}`
-      + `${ansprechenTeil(s, d)}${stuhlTeil(s)}${zyklusTeil(s)}${erklaerung}`;
+      + `${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
   }
 
   if (!mahlzeiten) {
     return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}<p class="leer">Noch keine Mahlzeit
       eingetragen. Sobald ein paar Tage beisammen sind, steht hier, was
-      auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
+      auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
   }
 
   const fertig = bilanz.filter((b) => b.genug);
@@ -12826,7 +13161,7 @@ function musterAnsicht(s) {
     + kriterienTeil(s, d) + versuchTeil(s, d) + planTeil(s, d) + provokationTeil(s, d)
     + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wechselTeil(s, d)
     + wartet + ansprechenTeil(s, d)
-    + zeitTeil(d) + wann + wie + stuhlTeil(s) + brauchtTeil(s, d)
+    + zeitTeil(d) + wann + wie + stuhlTeil(s) + kopfTeil(s, d) + brauchtTeil(s, d)
     + zyklusTeil(s) + erklaerung;
 }
 
@@ -12846,6 +13181,53 @@ function stuhlTeil(s) {
       ${z.dringend ? `<li><span>Musste dringend</span><span class="klein">${z.dringend}×</span></li>` : ''}
       ${z.unvollstaendig ? `<li><span>Gefühl, nicht fertig</span><span class="klein">${z.unvollstaendig}×</span></li>` : ''}
     </ul>
+  </div>`;
+}
+
+/**
+ * Kopfschmerzen – getrennt vom Bauch gerechnet, siehe js/kopf.js.
+ *
+ * Die Karte steht bei Stuhlgang und Zyklus, nicht bei den Auslösern: Sie ist
+ * eine Zählung, keine Bilanz. Was sie mit dem Bauch verbindet, ist das
+ * Schmerzmittel – und der Satz dazu kommt nur, wenn die Fallzahl ihn trägt.
+ */
+function kopfTeil(s, d) {
+  const z = kopfZahlen(s.eintraege, s.tage);
+  if (!z.anzahl) return '';
+  const m = kopfMittel(s.eintraege, d.istNsar, d.heute);
+  const phasen = kopfNachPhase(s.eintraege, s.tage);
+  const nach = m.nsarTage.length
+    ? nachwirkung(s.eintraege, s.tage, m.nsarTage, tagesWert) : null;
+  const satz = nachwirkungSatz(nach, fmtZahl);
+  const prozent = (x) => `${Math.round(x * 100)} %`;
+  const meist = z.arten.slice(0, 3)
+    .map((a) => `${a.name.charAt(0).toLowerCase()}${a.name.slice(1)} (${a.anzahl}×)`).join(', ');
+  return `<div class="karte karte-kopf">
+    <h3>Kopfschmerzen</h3>
+    <ul class="wartend">
+      <li><span>Eingetragen</span><span class="klein">${mehrzahl(z.anzahl, 'Mal', 'Mal')} an
+        ${mehrzahl(z.tage, 'Tag', 'Tagen')}</span></li>
+      <li><span>Anteil der notierten Tage</span><span class="klein">${prozent(z.anteil)}</span></li>
+      <li><span>Stärke</span><span class="klein">im Mittel ${fmtZahl(z.schnitt)}, höchstens ${z.hoechster}</span></li>
+      ${meist ? `<li><span>Meist</span><span class="klein">${esc(meist)}</span></li>` : ''}
+      ${m.mitMittel ? `<li><span>Medikament am selben Tag</span><span class="klein">an ${m.mitMittel} von
+        ${mehrzahl(m.kopfTage, 'Tag', 'Tagen')}</span></li>` : ''}
+      ${m.mitNsar ? `<li><span>davon entzündungshemmend</span><span class="klein">${m.mitNsar} von ${m.mitMittel}</span></li>` : ''}
+    </ul>
+    ${satz ? `<p${nach.deutlich ? '' : ' class="klein"'}>${esc(satz)}</p>` : ''}
+    ${m.nsarLetzte30 >= 15 ? `<p>An ${m.nsarLetzte30} der letzten 30 Tage steht ein
+      entzündungshemmendes Schmerzmittel im Tagebuch. Ab etwa fünfzehn Tagen im
+      Monat kann das Mittel selbst zum Kopfschmerz beitragen – eine Frage für
+      die Sprechstunde, keine Anweisung.</p>` : ''}
+    ${phasen.length > 1 ? `<p class="feld-name">Nach Zyklusphase</p>
+    <ul class="wartend">${phasen.map((p) => `<li>
+      <span>${esc(p.name)}</span>
+      <span class="klein">an ${p.mit} von ${mehrzahl(p.tage, 'Tag', 'Tagen')}</span>
+    </li>`).join('')}</ul>
+    <p class="klein">Phasen geschätzt aus den eingetragenen Blutungstagen.</p>` : ''}
+    <p class="klein">Der Kopf wird hier getrennt vom Bauch gezählt: Kein
+    Kopfschmerz fließt in eine Bauchauswertung ein, und kein Bauchwert in diese
+    Karte. Was beide verbindet, ist das Schmerzmittel – deshalb steht es dabei.</p>
   </div>`;
 }
 
@@ -13249,8 +13631,9 @@ function warnTeil(d) {
       <span class="klein">${mehrzahl(w.anzahl, 'Mal', 'Mal')} eingetragen,
         zuletzt ${esc(fmtDatum(w.zuletzt, true))}</span>
     </li>`).join('')}</ul>
-    <p class="klein">Bei Blut, schwarzem Stuhl oder Schmerz mit Ausstrahlung in
-    Arm oder Kiefer nicht auf einen Termin warten – Notaufnahme oder 112.</p>
+    <p class="klein">Bei Blut, schwarzem Stuhl, Schmerz mit Ausstrahlung in
+    Arm oder Kiefer oder einem Kopfschmerz, der schlagartig da war, nicht auf
+    einen Termin warten – Notaufnahme oder 112.</p>
   </div>`;
 }
 
@@ -13900,7 +14283,32 @@ function bogenHTML(s) {
         <p class="klein">Selten, aber wichtig. Was hier angekreuzt wird, taucht
         nicht in der Statistik auf, sondern ganz oben unter „Muster" – mit dem
         Hinweis, wie eilig es ist.</p>
-        ${marken(WARNZEICHEN, e.warnzeichen || [], 'warnzeichen')}
+        ${marken(WARNZEICHEN.filter((w) => w.bereich !== 'kopf'), e.warnzeichen || [], 'warnzeichen')}
+      </details>`;
+  } else if (b.art === 'kopf') {
+    /*
+     * Derselbe Aufbau wie der Beschwerdebogen – Stärke, Merkmale, Notiz,
+     * Warnzeichen –, aber eine eigene Art. Der Hinweis auf das Medikament ist
+     * der wichtigste Satz hier: Wer das Ibuprofen in die Notiz schreibt statt
+     * als Medikament, nimmt der Magenauswertung ihre nützlichste Zahl.
+     */
+    mitte = `
+      <p class="feld-name">Wie stark?</p>
+      ${skala(e.staerke)}
+      <p class="feld-name">Wie ist er?</p>
+      ${marken(KOPF_ARTEN, e.kopfArten || [], 'kopfart')}
+      <label class="feld-name" for="bogenNotiz">Notiz</label>
+      <input type="text" class="feld feld-breit" id="bogenNotiz" data-act="notiz"
+             value="${esc(e.notiz || '')}" placeholder="optional" autocomplete="off">
+      <p class="klein">Ein Schmerzmittel bitte zusätzlich als <b>Medikament</b>
+      eintragen – daran hängt die Magenauswertung. Der Kopfschmerz selbst zählt
+      in keine Bauchrechnung hinein; er wird getrennt gezählt.</p>
+      <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
+        <summary>War etwas davon dabei?</summary>
+        <p class="klein">Selten, aber wichtig. Was hier angekreuzt wird, taucht
+        nicht in der Statistik auf, sondern ganz oben unter „Muster" – mit dem
+        Hinweis, wie eilig es ist.</p>
+        ${marken(WARNZEICHEN.filter((w) => w.bereich === 'kopf'), e.warnzeichen || [], 'warnzeichen')}
       </details>`;
   } else if (b.art === 'stuhl') {
     /*
@@ -14060,6 +14468,10 @@ function bogenOeffnen(art, id) {
     // Antwort und würde als eingetragen zählen. Ein Stuhlgang ohne Form ist
     // für jede Auswertung wertlos, also wird er gar nicht erst gespeichert.
     stuhl: { form: null, dringend: false, unvollstaendig: false, warnzeichen: [] },
+    // `kopfArten`, nicht `arten`: Das Feld der Bauchbeschwerden wird an zwei
+    // Stellen über alle Einträge hinweg gelesen; ein Kopfmerkmal darin wäre
+    // ein Bauchmerkmal.
+    kopf: { staerke: 4, kopfArten: [], notiz: '', warnzeichen: [] },
     medikament: { mittel: '', dosis: '' },
     notiz: { text: '' },
   }[art];
@@ -14092,6 +14504,13 @@ function bogenSpeichern() {
   }
   if (b.art === 'notiz' && !String(e.text || '').trim()) {
     melden('Die Notiz ist leer.');
+    return;
+  }
+  // Ein Kopfschmerz mit Stärke 0 ist keiner – und ein Tag ohne Kopfeintrag
+  // zählt ohnehin als kopfschmerzfrei. Gespeichert würde nur ein Eintrag, der
+  // in jeder Zählung als „Kopfschmerztag" liefe und keiner war.
+  if (b.art === 'kopf' && !(Number(e.staerke) >= 1)) {
+    melden('Wie stark? Bei 0 wäre es kein Kopfschmerz.');
     return;
   }
   if (b.art === 'medikament') store.mittelMerken(e.mittel);
@@ -14271,6 +14690,7 @@ const AKTION = {
     zeichne();
   },
   beschwerdeart: (el) => umschalten('arten', el.dataset.id),
+  kopfart: (el) => umschalten('kopfArten', el.dataset.id),
   warnzeichen: (el) => umschalten('warnzeichen', el.dataset.id),
   'mittel-vorschlag': (el) => entwurf({ mittel: el.dataset.id }),
 
