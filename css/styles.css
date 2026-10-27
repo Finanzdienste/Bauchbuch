@@ -196,6 +196,7 @@ p { margin: 0 0 8px; }
 .a-essen { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .a-beschwerde { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
 .a-stuhl { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+.a-kopf { border-color: color-mix(in srgb, var(--leicht) 50%, var(--line)); }
 
 /* ---------- Bristol-Skala ---------- */
 /* Sieben Zeilen mit Zahl, Zeichnung und Namen. Untereinander statt als Raster:
@@ -230,6 +231,7 @@ p { margin: 0 0 8px; }
 .z-essen { border-left-color: var(--accent); }
 .z-beschwerde { border-left-color: var(--bad); }
 .z-medikament { border-left-color: var(--warn); }
+.z-kopf { border-left-color: var(--leicht); }
 .z-notiz { border-left-color: var(--muted); }
 .strang-uhr { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); min-width: 40px; }
 .strang-punkt { font-size: 15px; }
@@ -426,6 +428,9 @@ p { margin: 0 0 8px; }
 /* Die Zeile im Zeitprofil trägt drei Angaben; auf einem schmalen Gerät darf sie
    umbrechen, sonst schiebt sie die Namensspalte aus dem Bild. */
 .karte-zeit .wartend li > .klein { white-space: normal; text-align: right; }
+/* Die Kopfkarte hat Werte mit mehreren Wörtern („pochend (12×), mit Übelkeit
+ * (3×)") – die dürfen umbrechen, sonst laufen sie in die Bezeichnung. */
+.karte-kopf .wartend li > .klein { white-space: normal; text-align: right; }
 .schichten { list-style: none; margin: 8px 0; padding: 0; }
 .schichten li {
   display: flex; justify-content: space-between; gap: 8px;

@@ -108,6 +108,45 @@ export const WARNZEICHEN = [
     dringlichkeit: 'zeitnah',
     warum: 'Fieber gehört nicht zu einer gereizten Magenschleimhaut.',
   },
+  /*
+   * Die Warnzeichen des Kopfes. Sie stehen in derselben Liste, damit die
+   * Warnkarte und der Bericht sie wie alle anderen finden – aber mit dem
+   * Vermerk `bereich`, damit der Bauchbogen sie nicht anbietet und der
+   * Kopfbogen nur sie. Wer im Bauchbogen „Kopfschmerz mit steifem Nacken"
+   * liest, hält die Liste für Lärm und kreuzt dann auch das Blut nicht an.
+   */
+  {
+    id: 'donnerschlag',
+    name: 'Kopfschmerz, der binnen Sekunden bis zu einer Minute so stark war wie nie zuvor',
+    dringlichkeit: 'sofort',
+    bereich: 'kopf',
+    warum: 'Ein Schmerz, der schlagartig auf dem Höhepunkt ist, kann eine Blutung '
+      + 'im Kopf sein – auch wenn er wieder nachlässt. Notaufnahme oder 112, '
+      + 'nicht der nächste Termin.',
+  },
+  {
+    id: 'kopfausfall',
+    name: 'Zum ersten Mal: Kopfschmerz mit Lähmung, Sprachstörung, Sehverlust oder Verwirrtheit',
+    dringlichkeit: 'sofort',
+    bereich: 'kopf',
+    warum: 'Was man von seiner Migräne kennt, ist etwas anderes als ein Ausfall, '
+      + 'den man noch nie hatte. Der zweite Fall gehört in die Notaufnahme.',
+  },
+  {
+    id: 'kopfnacken',
+    name: 'Kopfschmerz mit Fieber und steifem Nacken',
+    dringlichkeit: 'sofort',
+    bereich: 'kopf',
+    warum: 'Die drei zusammen sind die Zeichen einer Hirnhautentzündung. Nicht abwarten.',
+  },
+  {
+    id: 'kopfwandel',
+    name: 'Kopfschmerz, der über Wochen immer häufiger oder immer stärker wird',
+    dringlichkeit: 'zeitnah',
+    bereich: 'kopf',
+    warum: 'Ein Kopfschmerz, der sein Muster ändert, gehört angesehen – nicht '
+      + 'wegen des einzelnen Tages, sondern wegen der Richtung.',
+  },
 ];
 
 const WARN_MAP = Object.fromEntries(WARNZEICHEN.map((w) => [w.id, w]));

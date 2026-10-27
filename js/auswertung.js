@@ -519,6 +519,10 @@ export function tagesWert(eintraege, iso, tage = {}) {
     anzahl: beschwerden.length,
     mahlzeiten: amTag.filter((e) => e.art === 'essen').length,
     medikamente: amTag.filter((e) => e.art === 'medikament').length,
+    // Der Kopf steht daneben, nicht darin: `wert` bleibt der Bauch. Wer hier
+    // den Kopf in `wert` mischte, machte aus jeder Migräne einen Magentag.
+    kopf: amTag.filter((e) => e.art === 'kopf')
+      .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0),
   };
 }
 

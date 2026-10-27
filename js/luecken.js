@@ -401,6 +401,13 @@ const VERDAECHTE = [
       if (d.nsarTage >= 3) {
         dafuer.push(`An ${d.nsarTage} Tagen steht ein entzündungshemmendes `
           + 'Schmerzmittel im Tagebuch.');
+        // Wogegen – das ist die Hälfte der Frage nach der Alternative. Ein
+        // Mittel gegen Kopfschmerzen hat andere Ersatzkandidaten als eines
+        // gegen Rückenschmerzen.
+        if (d.nsarKopfTage > 0) {
+          dafuer.push(`An ${d.nsarKopfTage} davon wegen Kopfschmerzen – am `
+            + 'selben Tag eingetragen.');
+        }
       }
       return {
         stand: d.nsarTage >= 3 ? 'gestuetzt' : 'unwahrscheinlich',
@@ -438,8 +445,9 @@ const VERDAECHTE = [
  * @param {object} d
  *   kriterien (aus js/kriterien.js), stuhl (stuhlZahlen), bezug (bezugBilanz),
  *   klassen (klassenBilanz), mittel (mittelBilanz), musterIds, essen
- *   (essensbezug), nsarTage, warnIds, krampfAnteil, benutzt, nachtwachAn,
- *   versuchMoeglich, versuchLaeuft, mahlzeitenOhneZutaten
+ *   (essensbezug), nsarTage, nsarKopfTage (davon an Kopfschmerztagen), warnIds,
+ *   krampfAnteil, benutzt, nachtwachAn, versuchMoeglich, versuchLaeuft,
+ *   mahlzeitenOhneZutaten
  */
 export function luecken(d) {
   return {

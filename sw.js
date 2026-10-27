@@ -23,7 +23,7 @@
  * daran hängt das Aufräumen alter Zwischenspeicher.
  */
 
-const VERSION = 'v22';
+const VERSION = 'v23';
 const CACHE = `bauchbuch-${VERSION}`;
 
 const SHELL = [
@@ -42,6 +42,7 @@ const SHELL = [
   './js/klang.js',
   './js/atem.js',
   './js/zyklus.js',
+  './js/kopf.js',
   './js/bild.js',
   './js/rat.js',
   './js/stuhl.js',
