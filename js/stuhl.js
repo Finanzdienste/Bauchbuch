@@ -99,7 +99,11 @@ export function anzahlAm(eintraege, iso) {
  */
 export function schmerzVergleich(eintraege, tage, schmerzArten = ['krampf']) {
   const alle = eintraege || [];
-  const notierte = [...new Set([...alle.map((e) => e.am), ...Object.keys(tage || {})])].sort();
+  // Ohne die Kopf-Einträge: Ein Tag mit nur einem Kopfschmerz ist für den
+  // Bauch eine Lücke, kein Tag ohne Bauchschmerz (siehe tagesWert).
+  const notierte = [...new Set([
+    ...alle.filter((e) => e.art !== 'kopf').map((e) => e.am), ...Object.keys(tage || {}),
+  ])].sort();
   const mitSchmerz = new Set(alle
     .filter((e) => e.art === 'beschwerde' && (e.arten || []).some((a) => schmerzArten.includes(a)))
     .map((e) => e.am));
@@ -157,8 +161,10 @@ export function bezugBilanz(eintraege) {
 /** Die Zahlen für die Übersicht: wie oft, wie oft auffällig, wie oft dringend. */
 export function stuhlZahlen(eintraege, tage) {
   const alle = stuhlgaenge(eintraege);
-  const notierte = [...new Set([...(eintraege || []).map((e) => e.am),
-    ...Object.keys(tage || {})])];
+  const notierte = [...new Set([
+    ...(eintraege || []).filter((e) => e.art !== 'kopf').map((e) => e.am),
+    ...Object.keys(tage || {}),
+  ])];
   const b = formBilanz(eintraege);
   return {
     gesamt: alle.length,

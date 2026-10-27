@@ -17,8 +17,9 @@ import { fmtDatum, tageDazwischen } from './datum.js';
 import { fmtZahl, mehrzahl } from './text.js';
 import { ausloeserName, beschwerdeName, STAERKE_WORT } from './daten.js';
 import {
-  ausloeserBilanz, bewerteteMahlzeiten, einstufung, gesamtZahlen, klassenBilanz,
-  klassenEinstufung, nachArt, nachTageszeit, tagesWert, trend, TREND_WORT,
+  ausloeserBilanz, bewerteteMahlzeiten, einstufung, faktorBilanz, gesamtZahlen,
+  klassenBilanz, klassenEinstufung, nachArt, nachTageszeit, tagesWert, trend,
+  TREND_WORT,
 } from './auswertung.js';
 import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import {
@@ -26,7 +27,7 @@ import {
 } from './zeitprofil.js';
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
-import { spielraumSatz } from './zufall.js';
+import { spielraumSatz, zufallsSpielraum } from './zufall.js';
 import { dosisBild } from './dosis.js';
 import { gewichtsBild } from './gewicht.js';
 import { bildLesen } from './bild.js';
@@ -39,7 +40,10 @@ import { ergebnis } from './versuch.js';
 import { provokationsBild } from './provokation.js';
 import { planBild } from './stufenplan.js';
 import {
-  kopfMittel, kopfNachPhase, kopfZahlen, nachwirkung, nachwirkungSatz,
+  bauchAnKopfTagen, bauchAnKopfTagenSatz, chronischSatz, kopfFragen, kopfMittel,
+  kopfMonate, kopfNachPhase, kopfTageVon, kopfUmPeriode, kopfUmstaende, kopfZahlen,
+  nachwirkungSatz, nsarNachwirkung, sortenText, statusSatz, uebergebrauchSatz,
+  umPeriodeSatz, umstaendeSaetze, unauffaelligeVergleiche,
 } from './kopf.js';
 
 const prozent = (x) => `${Math.round(x * 100)} %`;
@@ -73,6 +77,15 @@ function umbrochen(satz, breite = 68) {
 export function arztBericht(zustand, von, bis) {
   const { eintraege, tage } = zustand;
   const imZeitraum = eintraege.filter((e) => e.am >= von && e.am <= bis);
+  /*
+   * Der Tagesspeicher ebenso eingegrenzt – für alles, was Tage zählt. Wer
+   * gefilterte Einträge mit ungefilterten Tagesfragen mischt, bekommt aus
+   * jedem Tag mit Tagesfrage außerhalb des Zeitraums einen notierten Tag
+   * mit Bauchwert null, und aus jedem Zyklus davor einen Zyklus ohne
+   * Kopfschmerz. Genau das stand bis zur Gegenprüfung im Kopfabschnitt.
+   */
+  const tageImZeitraum = Object.fromEntries(Object.entries(tage || {})
+    .filter(([iso]) => iso >= von && iso <= bis));
   const z = gesamtZahlen(imZeitraum, tage, von, bis);
   const zeilen = [];
   const sag = (s = '') => zeilen.push(s);
@@ -99,7 +112,10 @@ export function arztBericht(zustand, von, bis) {
    */
   const kopfMarke = zeilen.length;
 
-  if (!z.notierteTage) {
+  // Ohne einen notierten Bauchtag gibt es keinen Bauchbericht – außer der
+  // Kopf hat etwas: Dann stehen die Bauchzeilen auf null, der Kopfabschnitt
+  // nicht.
+  if (!z.notierteTage && !imZeitraum.some((e) => e.art === 'kopf')) {
     sag('In diesem Zeitraum wurde nichts eingetragen.');
     return zeilen.join('\n');
   }
@@ -115,7 +131,7 @@ export function arztBericht(zustand, von, bis) {
     name: (id) => ausloeserName(id, zustand.eigeneAusloeser),
     istNsar: (name) => {
       const g = wissenZu(name);
-      return !!g && g.id === 'nsar';
+      return !!g && (g.id === 'nsar' || g.id === 'kombi');
     },
   });
 
@@ -147,7 +163,7 @@ export function arztBericht(zustand, von, bis) {
   // Der Kopf wird getrennt gezählt (js/kopf.js) und steht in der Übersicht
   // als eigene Zeile – damit niemand die „Tage mit Beschwerden" darüber für
   // Kopfschmerztage hält oder umgekehrt.
-  const kz = kopfZahlen(imZeitraum, tage);
+  const kz = kopfZahlen(imZeitraum, tageImZeitraum, bis);
 
   sag('ÜBERSICHT');
   sag(`  Tage mit Eintragung        ${z.notierteTage} von ${z.tage}`);
@@ -225,7 +241,7 @@ export function arztBericht(zustand, von, bis) {
   const fenster = fensterWerte(imZeitraum);
   const gehalten = bilanz.map((b) => ({
     b,
-    stand: haeltStand(bewertet, b.id, tage),
+    stand: haeltStand(bewertet, b.id, tage, { kopfTage: kopfTageVon(imZeitraum) }),
     zeit: zeitProfil(fenster, b.id),
     dosis: dosisBild(imZeitraum, b.id, zustand.fenster),
   }));
@@ -377,34 +393,96 @@ export function arztBericht(zustand, von, bis) {
    * was der Bauch an den Tagen danach gemacht hat.
    */
   if (kz.anzahl) {
-    const istNsar = (name) => {
+    const gruppeVon = (name) => {
       const g = wissenZu(name);
-      return !!g && g.id === 'nsar';
+      return g ? g.id : null;
     };
-    const km = kopfMittel(imZeitraum, istNsar, bis);
+    /*
+     * Zwei Blickwinkel: Was im Berichtszeitraum eingetragen wurde (kz, km),
+     * und die Kalenderzahlen der Neurologie über alle Einträge (kzAlle,
+     * kmAlle) – „die letzten 30 Tage" sind die letzten 30 Tage, auch wenn
+     * der Bericht nur achtzehn umfasst.
+     */
+    const km = kopfMittel(imZeitraum, gruppeVon, bis);
+    const kzAlle = kopfZahlen(eintraege, tage, bis);
+    const kmAlle = kopfMittel(eintraege, gruppeVon, bis);
+    const befundIds = (zustand.befunde || []).map((b) => b.id);
+    const kette = (liste, feld) => liste.map((f, i) => `${i ? 'davor ' : ''}${f[feld]}`).join(' · ');
     sag('KOPFSCHMERZEN');
+    sag('  Für die Neurologie, je 30-Tage-Fenster (jüngstes zuerst):');
+    sag(`  Kopfschmerztage            ${kette(kzAlle.fenster, 'kopfTage')} `
+      + `(${kzAlle.notiert30} der letzten 30 Tage notiert)`);
+    if (kmAlle.fenster.some((f) => f.akut)) {
+      const sorten = sortenText(kmAlle.fenster[0]);
+      sag(`  Tage mit Akutmittel        ${kette(kmAlle.fenster, 'akut')}${sorten ? ` (zuletzt: ${sorten})` : ''}`);
+    }
+    if (kzAlle.verlauf.ausgefallen || kzAlle.verlauf.eingeschraenkt) {
+      sag(`  Ausgefallen (90 Tage)      ${mehrzahl(kzAlle.verlauf.ausgefallen, 'Tag', 'Tage')}`
+        + (kzAlle.verlauf.eingeschraenkt ? `, dazu ${kzAlle.verlauf.eingeschraenkt} eingeschränkt` : ''));
+    }
+    sag('  Im Berichtszeitraum:');
     sag(`  Eingetragen                ${kz.anzahl} Mal an ${kz.tage} Tagen `
       + `(${prozent(kz.anteil)} der notierten Tage)`);
     sag(`  Stärke im Mittel           ${fmtZahl(kz.schnitt)} von 10, höchstens ${kz.hoechster}`);
-    kz.arten.slice(0, 4).forEach((a) => {
-      sag(`  ${a.name.padEnd(26)} ${mehrzahl(a.anzahl, 'Mal', 'Mal')}`);
+    kz.dauern.forEach((x) => {
+      sag(`  Dauer ${x.name.padEnd(20)} ${mehrzahl(x.anzahl, 'Mal', 'Mal')}`);
     });
-    if (km.mitMittel) {
-      sag(`  Medikament am selben Tag   an ${km.mitMittel} von ${kz.tage} Tagen`
-        + (km.mitNsar ? `, davon ${km.mitNsar} entzündungshemmend` : ''));
+    kz.arten.slice(0, 5).forEach((a) => {
+      sag(`  ${a.name.slice(0, 26).padEnd(26)} ${mehrzahl(a.anzahl, 'Mal', 'Mal')}`);
+    });
+    const w = kz.wirkung;
+    if (w.weg + w.besser + w.nicht) {
+      sag(`  Mittel nach zwei Stunden   weg ${w.weg}×, besser ${w.besser}×, nicht geholfen ${w.nicht}×`);
+    }
+    if (km.mitAkut) {
+      sag(`  Akutmittel am selben Tag   an ${km.mitAkut} von ${kz.tage} Tagen`
+        + (km.mitNsar ? `, davon ${km.mitNsar} entzündungshemmend` : '')
+        + (km.mitTriptan ? `, ${km.mitTriptan} mit Triptan` : '')
+        + (km.mitNichtNsar ? `, ${km.mitNichtNsar} ohne Entzündungshemmung` : ''));
+    }
+    if (kmAlle.unbekannt.length) {
+      sag(`  Nicht zugeordnet           ${kmAlle.unbekannt.map((u) => `${u.name} (${u.tage})`).join(', ')}`);
+    }
+    /*
+     * Der Kopfschmerzkalender: drei Monate nebeneinander, aus allen Einträgen
+     * – nicht nur denen im Berichtszeitraum, denn ein Monat, von dem nur die
+     * letzte Woche zählt, sähe wie ein guter Monat aus.
+     */
+    const monate = kopfMonate(eintraege, tage, gruppeVon, bis);
+    if (monate.length) {
+      sag('  Je Kalendermonat:          Kopfschmerz / Akutmittel / ausgefallen / Periode');
+      monate.forEach((mo) => {
+        sag(`    ${(mo.name + (mo.angefangen ? ' (bis Berichtsende)' : '')).padEnd(24)} `
+          + `${String(mo.kopfTage).padStart(11)} / ${String(mo.akut).padStart(10)}`
+          + `${mo.triptan ? ` (Triptan ${mo.triptan})` : ''} / ${String(mo.ausgefallen).padStart(11)} / ${String(mo.blutung).padStart(7)}`);
+      });
     }
     const nach = km.nsarTage.length
-      ? nachwirkung(imZeitraum, tage, km.nsarTage, tagesWert) : null;
-    const satz = nachwirkungSatz(nach, fmtZahl);
-    if (satz) umbrochen(satz).forEach((zl) => sag(`  ${zl}`));
-    if (km.nsarLetzte30 >= 15) {
-      umbrochen(`An ${km.nsarLetzte30} der letzten 30 Tage stand ein `
-        + 'entzündungshemmendes Schmerzmittel im Tagebuch. Ab etwa fünfzehn '
-        + 'Tagen im Monat kann das Mittel selbst zum Kopfschmerz beitragen.')
-        .forEach((zl) => sag(`  ${zl}`));
+      ? nsarNachwirkung(imZeitraum, tageImZeitraum, km.nsarTage, km.kopfTageOhneNsar, tagesWert) : null;
+    const bauch = bauchAnKopfTagen(imZeitraum, tageImZeitraum, tagesWert);
+    const umstaende = kopfUmstaende(imZeitraum, tageImZeitraum, faktorBilanz, zufallsSpielraum);
+    [
+      statusSatz(kzAlle, bis),
+      uebergebrauchSatz(kmAlle),
+      chronischSatz(kzAlle),
+      nachwirkungSatz(nach, fmtZahl),
+      umPeriodeSatz(kopfUmPeriode(imZeitraum, tageImZeitraum, bis)),
+      ...umstaendeSaetze(umstaende),
+      bauchAnKopfTagenSatz(bauch, fmtZahl),
+      unauffaelligeVergleiche({ nach, bauch, umstaende }),
+    ].filter(Boolean).forEach((satz) => {
+      sag('');
+      umbrochen(satz).forEach((zl) => sag(`  ${zl}`));
+    });
+    const fragen = kopfFragen({ zahlen: kzAlle, mittel: kmAlle, befundIds });
+    if (fragen.length) {
+      sag('');
+      sag('  Fragen für die Sprechstunde:');
+      fragen.forEach((f) => umbrochen(f, 64).forEach((zl, j) => sag(`  ${j ? '  ' : '- '}${zl}`)));
     }
-    const kp = kopfNachPhase(imZeitraum, tage);
+    const kp = kopfNachPhase(imZeitraum, tageImZeitraum);
     if (kp.length > 1) {
+      sag('');
       sag('  Nach Zyklusphase (geschätzt aus den Blutungstagen):');
       kp.forEach((p) => sag(`    ${p.name.padEnd(24)} an ${p.mit} von ${p.tage} Tagen`));
     }

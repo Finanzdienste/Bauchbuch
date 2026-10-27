@@ -117,20 +117,30 @@ export const WARNZEICHEN = [
    */
   {
     id: 'donnerschlag',
-    name: 'Kopfschmerz, der binnen Sekunden bis zu einer Minute so stark war wie nie zuvor',
+    name: 'Kopfschmerz, der binnen Sekunden bis zu einer Minute so stark war wie nie zuvor – auch beim Sex, Pressen oder Sport',
     dringlichkeit: 'sofort',
     bereich: 'kopf',
     warum: 'Ein Schmerz, der schlagartig auf dem Höhepunkt ist, kann eine Blutung '
       + 'im Kopf sein – auch wenn er wieder nachlässt. Notaufnahme oder 112, '
       + 'nicht der nächste Termin.',
   },
+  /*
+   * Nicht „zum ersten Mal". Wer eine Migräne mit Aura kennt, erklärt sich
+   * einen Schlaganfall mit „kenne ich von meiner Aura" weg – das ist die
+   * klassische Verzögerung. Und eine zweite Lähmung ist genauso ein Notfall
+   * wie die erste. Was Aura und Ausfall trennt, ist nicht die Neuheit, sondern
+   * der Charakter: Tempo, Dauer, Lähmung, Sprache.
+   */
   {
     id: 'kopfausfall',
-    name: 'Zum ersten Mal: Kopfschmerz mit Lähmung, Sprachstörung, Sehverlust oder Verwirrtheit',
+    name: 'Lähmung, Taubheit einer Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit – plötzlich, länger als eine Stunde oder anders als deine gewohnte Aura',
     dringlichkeit: 'sofort',
     bereich: 'kopf',
-    warum: 'Was man von seiner Migräne kennt, ist etwas anderes als ein Ausfall, '
-      + 'den man noch nie hatte. Der zweite Fall gehört in die Notaufnahme.',
+    warum: 'Eine Aura, wie du sie kennst, baut sich über Minuten auf, wandert und '
+      + 'ist nach spätestens einer Stunde ganz vorbei. Was schlagartig da ist, '
+      + 'eine Seite lähmt oder taub macht, das Sprechen nimmt oder länger als '
+      + 'eine Stunde bleibt, kann ein Schlaganfall sein – auch mit Migräne, und '
+      + 'auch wenn du so etwas schon einmal hattest. 112, nicht der nächste Termin.',
   },
   {
     id: 'kopfnacken',
@@ -140,12 +150,49 @@ export const WARNZEICHEN = [
     warum: 'Die drei zusammen sind die Zeichen einer Hirnhautentzündung. Nicht abwarten.',
   },
   {
-    id: 'kopfwandel',
-    name: 'Kopfschmerz, der über Wochen immer häufiger oder immer stärker wird',
+    id: 'kopfsturz',
+    name: 'Kopfschmerz nach einem Sturz oder Schlag auf den Kopf',
     dringlichkeit: 'zeitnah',
     bereich: 'kopf',
-    warum: 'Ein Kopfschmerz, der sein Muster ändert, gehört angesehen – nicht '
-      + 'wegen des einzelnen Tages, sondern wegen der Richtung.',
+    warum: 'Gehört angesehen, auch wenn es Tage her ist. Kommt Erbrechen, '
+      + 'Verwirrtheit oder Schläfrigkeit dazu, oder nimmst du einen Blutverdünner: '
+      + 'sofort, nicht zeitnah.',
+  },
+  {
+    id: 'kopfneu50',
+    name: 'Kopfschmerz, der zum ersten Mal im Leben nach dem 50. Geburtstag kommt',
+    dringlichkeit: 'zeitnah',
+    bereich: 'kopf',
+    warum: 'So spät fängt selten eine Migräne neu an. Das gehört einmal angesehen, '
+      + 'mit Blutwerten – mit Kauschmerz, Sehstörung oder empfindlichen Schläfen zügig.',
+  },
+  {
+    id: 'kopfschwanger',
+    name: 'Neuer oder anderer Kopfschmerz in der Schwangerschaft oder in den Wochen nach der Geburt',
+    dringlichkeit: 'zeitnah',
+    bereich: 'kopf',
+    warum: 'In dieser Zeit stecken hinter einem neuen Kopfschmerz Dinge, die man '
+      + 'messen und behandeln kann – Blutdruck zum Beispiel. Mit Sehstörung, '
+      + 'Schwellungen oder Oberbauchschmerz: sofort.',
+  },
+  {
+    id: 'kopfanstrengung',
+    name: 'Kopfschmerz, der zum ersten Mal bei Husten, Pressen, Sex oder Anstrengung kommt',
+    dringlichkeit: 'zeitnah',
+    bereich: 'kopf',
+    warum: 'Ein Kopfschmerz, der sich durch Druck auslösen lässt, hat oft einen '
+      + 'harmlosen Grund – und gehört trotzdem einmal angesehen. Kommt er '
+      + 'schlagartig und so stark wie nie, ist es die Zeile ganz oben.',
+  },
+  {
+    id: 'kopfwandel',
+    name: 'Kopfschmerz, der anders ist als dein gewohnter – anderer Ort, andere Art, andere Begleitzeichen – oder der über Wochen immer häufiger oder stärker wird',
+    dringlichkeit: 'zeitnah',
+    bereich: 'kopf',
+    warum: 'Ein wiederkehrender Kopfschmerz hat sein Muster, und du kennst deins. '
+      + 'Einer, der anders sitzt, sich anders anfühlt oder andere Begleitzeichen '
+      + 'hat, ist ein neuer Kopfschmerz, bis jemand hingesehen hat – nicht wegen '
+      + 'des einzelnen Tages, sondern wegen des Unterschieds.',
   },
 ];
 

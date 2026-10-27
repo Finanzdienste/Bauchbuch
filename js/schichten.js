@@ -79,6 +79,28 @@ export const SCHICHTEN = [
       { id: 'mit', name: 'während der Blutung', passt: (v) => v > 0 },
     ],
   },
+  /*
+   * Kopfschmerz als Störfaktor.
+   *
+   * Übelkeit und ein empfindlicher Magen gehören zu einer Migräneattacke. Wer
+   * an Migränetagen Kaffee trinkt (oder gerade keinen – Koffeinentzug ist
+   * selbst ein Auslöser), dessen Kaffee fällt mit schlechten Bauchtagen
+   * zusammen, ohne sie zu machen. Diese Schicht fragt: Hält der Unterschied
+   * auch an Tagen ohne Kopfschmerz?
+   *
+   * Der Wert kommt nicht aus den Tagesfragen, sondern aus den Einträgen –
+   * haeltStand() bekommt die Kopfschmerztage als Menge herein. Ohne sie
+   * (ältere Aufrufer) ist die Schicht schlicht nicht prüfbar.
+   */
+  {
+    id: 'kopf',
+    name: 'Kopfschmerz',
+    wert: (b, extra) => (extra && extra.kopfTage ? (extra.kopfTage.has(b.am) ? 1 : 0) : null),
+    teile: [
+      { id: 'ohne', name: 'an Tagen ohne Kopfschmerz', passt: (v) => v === 0 },
+      { id: 'mit', name: 'an Kopfschmerztagen', passt: (v) => v === 1 },
+    ],
+  },
 ];
 
 /*
@@ -105,17 +127,31 @@ const schnitt = (liste) => (liste.length
  * @param {object[]} bewertet  [{ merkmale:Set, wert:number, am:string }]
  * @param {string} id          der Auslöser
  * @param {object} tage        der Tagesspeicher
+ * @param {object} [extra]     { kopfTage: Set<string> } – die Kopfschmerztage
  * @returns {object} das Urteil samt allen Schichten, auch den nicht prüfbaren
  */
-export function haeltStand(bewertet, id, tage) {
+export function haeltStand(bewertet, id, tage, extra = {}) {
   const schichten = [];
 
   SCHICHTEN.forEach((s) => {
     const paar = [];
     s.teile.forEach((teil) => {
       const drin = bewertet.filter((b) => {
+        if (s.wert) return teil.passt(s.wert(b, extra));
+        /*
+         * Ein Tag zählt, sobald er im Tagesspeicher steht – das heißt: sobald
+         * eine Tagesfrage beantwortet wurde, denn leere Tage legt der Speicher
+         * gar nicht erst an.
+         *
+         * Bis eben stand hier zusätzlich `!tag.notiert`. Dieses Feld setzt die
+         * App aber nirgends; es stand nur in der Testvorlage. In Wirklichkeit
+         * fiel damit jeder Tag durch, jede Schicht blieb leer, und jeder
+         * Auslöser bekam „für einen Vergleich unter gleichen Umständen fehlen
+         * die Angaben" – auch bei jemandem, der jeden Abend alle Fragen
+         * beantwortet hat. Der Test war grün, weil seine Tage das Feld hatten.
+         */
         const tag = (tage || {})[b.am];
-        if (!tag || !tag.notiert) return false;
+        if (!tag) return false;
         const v = tag[s.id];
         return teil.passt(v === undefined ? null : v);
       });
@@ -168,8 +204,8 @@ export function haeltStand(bewertet, id, tage) {
       pruefbare: pruefbare.length,
       satz: pruefbare.length === 0
         ? 'Für einen Vergleich unter gleichen Umständen fehlen die Angaben zu '
-          + 'Anspannung, Schlaf oder Zyklus – ohne die lässt sich nicht sagen, '
-          + 'ob es am Essen liegt oder an den Umständen.'
+          + 'Anspannung, Schlaf, Zyklus oder Kopfschmerz – ohne die lässt sich '
+          + 'nicht sagen, ob es am Essen liegt oder an den Umständen.'
         : 'Bisher lässt sich das nur unter einem einzigen Umstand vergleichen. '
           + 'Aus einer einzigen Schicht folgt nichts über Störfaktoren.',
     };
@@ -186,13 +222,22 @@ export function haeltStand(bewertet, id, tage) {
   const neutral = pruefbare.filter((s) => Math.abs(s.differenz) < SCHWELLE);
 
   if (dafuer.length === pruefbare.length) {
+    /*
+     * Was nicht mitgeprüft wurde, steht dabei. Ohne Tagesfragen ist der
+     * Kopfschmerz womöglich die einzige Schicht – dann behauptete „nicht an
+     * den Umständen" mehr, als geprüft wurde.
+     */
+    const offen = SCHICHTEN
+      .filter((s) => !schichten.some((x) => x.merkmal === s.id && x.pruefbar))
+      .map((s) => s.name);
     return {
       urteil: 'haelt',
       schichten,
       pruefbare: pruefbare.length,
       satz: `Der Unterschied bleibt ${pruefbare.map((s) => s.name).join(' und ')} `
         + 'bestehen. Das spricht dafür, dass es am Essen liegt und nicht an den '
-        + 'Umständen.',
+        + 'Umständen.'
+        + (offen.length ? ` Nicht mitgeprüft: ${offen.join(', ')} – dafür fehlen die Angaben.` : ''),
     };
   }
 

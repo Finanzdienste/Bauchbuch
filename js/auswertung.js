@@ -508,7 +508,15 @@ export function haeufigeMahlzeiten(eintraege, anzahl = 6) {
 export function tagesWert(eintraege, iso, tage = {}) {
   const amTag = eintraege.filter((e) => e.am === iso);
   const beschwerden = amTag.filter((e) => e.art === 'beschwerde');
-  const notiert = amTag.length > 0 || !!tage[iso];
+  /*
+   * Notiert heißt: zum Bauch ist etwas eingetragen – eine Beschwerde, eine
+   * Mahlzeit, ein Stuhlgang, ein Mittel, eine Notiz oder eine Tagesfrage. Ein
+   * Tag, an dem nur ein Kopfschmerz steht, ist für den Bauch eine Lücke und
+   * kein beschwerdefreier Tag. Sonst drückte jede Migräne, bei der jemand nur
+   * „Kopf 8" einträgt und sonst nichts, den Bauchwert genau an den schlechten
+   * Tagen auf null – gegen die eigene Regel, dass eine Lücke kein guter Tag ist.
+   */
+  const notiert = amTag.some((e) => e.art !== 'kopf') || !!tage[iso];
   const max = beschwerden.reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
   const summe = beschwerden.reduce((s, e) => s + (Number(e.staerke) || 0), 0);
   return {

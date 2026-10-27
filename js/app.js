@@ -40,14 +40,18 @@ import { ANSPRECHEN_URTEIL, befund, mittelBilanz } from './ansprechen.js';
 import { luecken } from './luecken.js';
 import { vergleichBalken, verlaufTafel } from './chart.js';
 import { arztBericht, berichtName } from './bericht.js';
-import { MITTEL_WISSEN, REIZSTOFFE, wissenZu } from './mittel.js';
+import { MITTEL_WISSEN, REIZSTOFFE, WEITERE_MITTEL, wissenZu } from './mittel.js';
 import {
   belastbar, heutigerStand, mittlereLaenge, phasenBilanz, phasenName, schwankung,
 } from './zyklus.js';
 import { WARNZEICHEN, bildLesen, genugFuerBild } from './bild.js';
 import {
-  KOPF_ARTEN, kopfArtName, kopfMittel, kopfNachPhase, kopfZahlen, nachwirkung,
-  nachwirkungSatz,
+  KOPF_ARTEN, KOPF_DAUER, KOPF_VERLAUF, MITTEL_WIRKUNG, bauchAnKopfTagen,
+  bauchAnKopfTagenSatz, chronischSatz, kopfArtName, kopfDauerName, kopfFragen,
+  kopfMittel, kopfMonate, kopfNachPhase, kopfTageVon, kopfUmPeriode, kopfUmstaende,
+  kopfVerlaufKurz, kopfZahlen, mittelWirkungName, nachwirkungSatz, nsarNachwirkung,
+  sortenText, statusSatz, uebergebrauchSatz, umPeriodeSatz, umstaendeSaetze,
+  unauffaelligeVergleiche, UNBEKANNT,
 } from './kopf.js';
 import { freischaltung, naechsteSchwelle } from './anfang.js';
 import {
@@ -60,7 +64,7 @@ import {
 } from './zeitprofil.js';
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
-import { spielraumSatz } from './zufall.js';
+import { spielraumSatz, zufallsSpielraum } from './zufall.js';
 import { dosisBild, DOSIS_WORT } from './dosis.js';
 import { gewichtsBild, GEWICHT_WORT } from './gewicht.js';
 import {
@@ -286,8 +290,14 @@ function zeileText(e, eigene) {
   }
   if (e.art === 'kopf') {
     const arten = (e.kopfArten || []).map(kopfArtName).join(', ');
+    const dazu = [
+      kopfDauerName(e.dauer),
+      kopfVerlaufKurz(e.verlauf),
+      e.mittelWirkung ? `Mittel: ${mittelWirkungName(e.mittelWirkung).toLowerCase()}` : '',
+    ].filter(Boolean).join(', ');
     return `<b>Kopfschmerz ${e.staerke} – ${STAERKE_WORT[e.staerke] || ''}</b>`
       + (arten ? `<span class="zeile-tags">${esc(arten)}</span>` : '')
+      + (dazu ? `<span class="zeile-tags">${esc(dazu)}</span>` : '')
       + (e.notiz ? `<span class="zeile-tags">${esc(kuerze(e.notiz))}</span>` : '');
   }
   return `<b>${esc(kuerze(e.text || '', 90))}</b>`;
@@ -352,13 +362,22 @@ function tagAnsicht(s) {
     </li>`).join('')}</ul>`
     : `<p class="leer">Für ${esc(fmtTag(iso))} ist noch nichts eingetragen.</p>`;
 
+  /*
+   * Ein Tag mit nur einem Kopfeintrag ist für den Bauch eine Lücke, kein
+   * beschwerdefreier Tag (siehe tagesWert). Die Karte sagt das, statt mit
+   * einem grünen „beschwerdefrei" das Gegenteil zu behaupten.
+   */
   const bilanz = t.notiert ? `<div class="karte tagbilanz">
     <div class="gross ${t.wert === 0 ? 'gut' : (t.wert >= 7 ? 'schlecht' : 'mittel')}">
       ${t.wert === 0 ? (t.kopf ? 'Bauch beschwerdefrei' : 'beschwerdefrei') : `Stärke ${t.wert}`}
     </div>
     <p class="klein">${mehrzahl(t.mahlzeiten, 'Mahlzeit', 'Mahlzeiten')},
       ${mehrzahl(t.anzahl, 'Beschwerde', 'Beschwerden')}${t.medikamente ? `, ${mehrzahl(t.medikamente, 'Medikament', 'Medikamente')}` : ''}${t.kopf ? `, Kopfschmerz bis ${t.kopf}` : ''}</p>
-  </div>` : '';
+  </div>` : (t.kopf ? `<div class="karte tagbilanz">
+    <div class="gross ${t.kopf >= 7 ? 'schlecht' : 'mittel'}">Kopfschmerz bis ${t.kopf}</div>
+    <p class="klein">Zum Bauch ist nichts eingetragen – für den Bauch zählt der Tag
+      als Lücke, nicht als beschwerdefrei.</p>
+  </div>` : '');
 
   const fragen = sichtbareFragen(s.tagesfragen);
   const umstaende = fragen.length ? `<div class="karte">
@@ -374,7 +393,7 @@ function tagAnsicht(s) {
   </p>` : '';
 
   return kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
-    + provokationZeile(s, iso) + bilanz + zyklusZeile
+    + provokationZeile(s, iso) + bilanz + zyklusZeile + kopfNachtragKarte(s, iso)
     + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + anlegen + zeilen + umstaende
     // Ans Ende und zugeklappt: Die Liste ist zum Nachsehen da, nicht zum
     // täglichen Durchscrollen. Wer sie sucht, findet sie an derselben Stelle.
@@ -680,10 +699,17 @@ function verlaufAnsicht(s) {
   const felder = monatsRaster(ui.monat).map((iso) => {
     const t = tagesWert(s.eintraege, iso, s.tage);
     const fremd = iso.slice(0, 7) !== ui.monat.slice(0, 7);
-    const stufe = !t.notiert ? 'leer' : (t.wert === 0 ? 'gut' : (t.wert >= 7 ? 'schlecht' : (t.wert >= 4 ? 'mittel' : 'leicht')));
+    // Ein Tag mit nur einem Kopfschmerz ist für den Bauch eine Lücke – aber
+    // keine stumme: Er bekommt eine eigene Stufe, damit niemand „nichts
+    // eingetragen" liest, wo „Kopf 8" steht.
+    const stufe = !t.notiert ? (t.kopf ? 'kopf' : 'leer')
+      : (t.wert === 0 ? 'gut' : (t.wert >= 7 ? 'schlecht' : (t.wert >= 4 ? 'mittel' : 'leicht')));
+    const wort = t.notiert
+      ? (t.wert === 0 ? 'beschwerdefrei' : `Stärke ${t.wert}`)
+      : (t.kopf ? `nur Kopfschmerz ${t.kopf} – zum Bauch nichts eingetragen` : 'nichts eingetragen');
     return `<button type="button" class="rfeld f-${stufe}${fremd ? ' fremd' : ''}${iso === heuteISO() ? ' heute' : ''}"
       data-act="tag-waehlen" data-iso="${iso}"
-      aria-label="${fmtDatum(iso, true)}: ${t.notiert ? (t.wert === 0 ? 'beschwerdefrei' : `Stärke ${t.wert}`) : 'nichts eingetragen'}">
+      aria-label="${fmtDatum(iso, true)}: ${wort}">
       <span>${Number(iso.slice(8))}</span></button>`;
   }).join('');
 
@@ -699,6 +725,7 @@ function verlaufAnsicht(s) {
       <span><i class="f-gut"></i> frei</span><span><i class="f-leicht"></i> 1–3</span>
       <span><i class="f-mittel"></i> 4–6</span><span><i class="f-schlecht"></i> 7–10</span>
       <span><i class="f-leer"></i> nichts eingetragen</span>
+      <span><i class="f-kopf"></i> nur Kopfschmerz</span>
     </div>
   </div>`;
 
@@ -858,9 +885,16 @@ function schichtBlock(stand) {
  */
 function musterDaten(s) {
   const heute = heuteISO();
+  // Für den Magen zählt ein Kombinationsmittel mit ASS wie ein NSAR.
   const istNsar = (name) => {
     const g = wissenZu(name);
-    return !!g && g.id === 'nsar';
+    return !!g && (g.id === 'nsar' || g.id === 'kombi');
+  };
+  // Dieselbe Frage, aber mit der ganzen Antwort: welche Gruppe. Der Kopf
+  // braucht sie, weil er drei Klassen von Akutmitteln auseinanderhält.
+  const gruppeVon = (name) => {
+    const g = wissenZu(name);
+    return g ? g.id : null;
   };
   const bilanz = ausloeserBilanz(s.eintraege, {
     fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
@@ -935,9 +969,13 @@ function musterDaten(s) {
     mittel,
     musterIds: bild.muster.map((m) => m.id),
     essen: essensbezugVon(s),
+    // Die letzten 90 Tage: Drei Ibuprofen-Tage in zwei Jahren sind kein
+    // „regelmäßig", und die Frage soll zum Tagebuch von jetzt passen.
     nsarTage: [...new Set(s.eintraege
-      .filter((e) => e.art === 'medikament' && istNsar(e.mittel)).map((e) => e.am))].length,
-    nsarKopfTage: kopfMittel(s.eintraege, istNsar, heute).mitNsar,
+      .filter((e) => e.art === 'medikament' && e.am >= plusTage(heute, -89) && istNsar(e.mittel))
+      .map((e) => e.am))].length,
+    nsarKopfTage: kopfMittel(s.eintraege.filter((e) => e.am >= plusTage(heute, -89)), gruppeVon, heute).mitNsar,
+    befundIds: (s.befunde || []).map((b) => b.id),
     warnIds: bild.warnungen.map((w) => w.id),
     krampfAnteil: artAnteilVon(s, ['krampf']),
     benutzt,
@@ -960,13 +998,15 @@ function musterDaten(s) {
     .filter((b) => b.genug && ['auffaellig', 'moeglich'].includes(einstufung(b)))
     .map((b) => ({
       b,
-      stand: haeltStand(bewertet, b.id, s.tage),
+      // Mit den Kopfschmerztagen: Die vierte Schicht fragt, ob der Unterschied
+      // auch an Tagen ohne Migräne hält – siehe js/schichten.js.
+      stand: haeltStand(bewertet, b.id, s.tage, { kopfTage: kopfTageVon(s.eintraege) }),
       profil: zeitProfil(fenster, b.id),
       dosis: dosisBild(s.eintraege, b.id, s.fenster),
     }));
 
   return {
-    heute, istNsar, bewertet, bilanz, klassen, kriterien: k, mittel, fenster,
+    heute, istNsar, gruppeVon, bewertet, bilanz, klassen, kriterien: k, mittel, fenster,
     uebersehen, wechsel, bild, luecke, gepruefte,
     zeit: zeitBild(s.eintraege),
   };
@@ -2040,43 +2080,132 @@ function stuhlTeil(s) {
  * eine Zählung, keine Bilanz. Was sie mit dem Bauch verbindet, ist das
  * Schmerzmittel – und der Satz dazu kommt nur, wenn die Fallzahl ihn trägt.
  */
+/**
+ * Gestern Kopfschmerz – wie lange ging es, wie ging der Tag weiter?
+ *
+ * Die Dauer kennt man erst hinterher, und ohne Erinnerung bleibt das Feld
+ * leer. Ein Tipp hier trägt es nach, ohne den Bogen zu öffnen. Nur für
+ * gestern und nur für das, was fehlt – eine Karte, die jeden Tag dasteht,
+ * wird überlesen. „Weiß ich nicht mehr" ist eine zulässige Antwort: Sie
+ * schließt die Frage, ohne gezählt zu werden.
+ */
+function kopfNachtragKarte(s, iso) {
+  if (iso !== heuteISO()) return '';
+  const gestern = plusTage(iso, -1);
+  const offen = s.eintraege.filter((e) => e.art === 'kopf' && e.am === gestern
+    && Number(e.staerke) >= 1 && (!e.dauer || !e.verlauf));
+  if (!offen.length) return '';
+  const e = offen[offen.length - 1];
+  const knoepfe = (liste, feld, klasse = '') => `<div class="wahl${klasse}">${liste.map((x) => `
+    <button type="button" class="wahl-btn" data-act="kopf-nachtrag" data-id="${e.id}"
+            data-feld="${feld}" data-wert="${x.id}">${esc(x.name)}</button>`).join('')}
+    <button type="button" class="wahl-btn btn-ghost" data-act="kopf-nachtrag" data-id="${e.id}"
+            data-feld="${feld}" data-wert="${UNBEKANNT}">Weiß ich nicht mehr</button></div>`;
+  return `<div class="karte karte-nachtrag">
+    <h3>Gestern: Kopfschmerz ${e.staerke}</h3>
+    ${!e.dauer ? `<p class="feld-name">Wie lange ging es – mit oder ohne Mittel?</p>
+    ${knoepfe(KOPF_DAUER, 'dauer', ' wahl-vier')}` : ''}
+    ${!e.verlauf ? `<p class="feld-name">Wie ging der Tag weiter?</p>
+    ${knoepfe(KOPF_VERLAUF, 'verlauf', ' wahl-spalte')}` : ''}
+  </div>`;
+}
+
+/**
+ * Kopfschmerzen – getrennt vom Bauch gerechnet, siehe js/kopf.js.
+ *
+ * Oben die Zahlen, nach denen die Sprechstunde fragt – Kopfschmerztage und
+ * Akutmittel-Tage je 30-Tage-Fenster, Stärke und Dauer, Merkmale –, dann die
+ * lauten Sätze, dann die Vergleiche. Alles, was verglichen wurde und nichts
+ * hergab, steht in einer kleinen Zeile; die App sagt „noch nicht" einmal,
+ * nicht dreimal.
+ */
 function kopfTeil(s, d) {
-  const z = kopfZahlen(s.eintraege, s.tage);
+  const z = kopfZahlen(s.eintraege, s.tage, d.heute);
   if (!z.anzahl) return '';
-  const m = kopfMittel(s.eintraege, d.istNsar, d.heute);
-  const phasen = kopfNachPhase(s.eintraege, s.tage);
+  const m = kopfMittel(s.eintraege, d.gruppeVon, d.heute);
+  const befundIds = (s.befunde || []).map((b) => b.id);
   const nach = m.nsarTage.length
-    ? nachwirkung(s.eintraege, s.tage, m.nsarTage, tagesWert) : null;
-  const satz = nachwirkungSatz(nach, fmtZahl);
-  const prozent = (x) => `${Math.round(x * 100)} %`;
-  const meist = z.arten.slice(0, 3)
-    .map((a) => `${a.name.charAt(0).toLowerCase()}${a.name.slice(1)} (${a.anzahl}×)`).join(', ');
+    ? nsarNachwirkung(s.eintraege, s.tage, m.nsarTage, m.kopfTageOhneNsar, tagesWert) : null;
+  const bauch = bauchAnKopfTagen(s.eintraege, s.tage, tagesWert);
+  const umstaende = kopfUmstaende(s.eintraege, s.tage, faktorBilanz, zufallsSpielraum);
+  const periode = kopfUmPeriode(s.eintraege, s.tage, d.heute);
+  const monate = kopfMonate(s.eintraege, s.tage, d.gruppeVon, d.heute);
+  const fragen = kopfFragen({ zahlen: z, mittel: m, befundIds });
+  const phasen = kopfNachPhase(s.eintraege, s.tage);
+  const saetze = [
+    { text: statusSatz(z, d.heute), laut: true },
+    { text: uebergebrauchSatz(m), laut: m.uebergebrauchBestaetigt },
+    { text: chronischSatz(z), laut: z.chronischVerdacht },
+    { text: nachwirkungSatz(nach, fmtZahl), laut: true },
+    { text: umPeriodeSatz(periode), laut: periode.genug && periode.mit * 3 >= periode.zyklen * 2 },
+    ...umstaendeSaetze(umstaende).map((t) => ({ text: t, laut: true })),
+    { text: bauchAnKopfTagenSatz(bauch, fmtZahl), laut: false },
+    { text: unauffaelligeVergleiche({ nach, bauch, umstaende }), laut: false },
+  ].filter((x) => x.text);
+  const klein = (name) => `${name.charAt(0).toLowerCase()}${name.slice(1)}`;
+  const meist = z.arten.slice(0, 3).map((a) => `${klein(a.name)} (${a.anzahl}×)`).join(', ');
+  const dauer = z.dauern.length
+    ? [...z.dauern].sort((a, b) => b.anzahl - a.anzahl).slice(0, 2)
+      .map((x) => `${x.name} (${x.anzahl}×)`).join(', ')
+    : '';
+  const w = z.wirkung;
+  const wirkung = (w.weg + w.besser + w.nicht)
+    ? [w.weg ? `weg ${w.weg}×` : '', w.besser ? `besser ${w.besser}×` : '', w.nicht ? `nicht ${w.nicht}×` : '']
+      .filter(Boolean).join(', ')
+    : '';
+  const akutZeile = m.fenster.length && m.fenster.some((f) => f.akut)
+    ? `${m.fenster[0].akut}${sortenText(m.fenster[0]) ? ` (${sortenText(m.fenster[0])})` : ''} · davor ${m.fenster[1].akut} · davor ${m.fenster[2].akut}`
+    : '';
+  const kopfZeile = z.fenster.length
+    ? `${z.fenster[0].kopfTage} (${z.fenster[0].notiert} notiert) · davor ${z.fenster[1].kopfTage} · davor ${z.fenster[2].kopfTage}`
+    : '';
+  const sortenAmTag = [
+    m.mitNsar ? `${m.mitNsar} entzündungshemmend` : '',
+    m.mitTriptan ? `${m.mitTriptan} Triptan` : '',
+    m.mitNichtNsar ? `${m.mitNichtNsar} ohne Entzündungshemmung` : '',
+    m.mitOpioid ? `${m.mitOpioid} Opioid` : '',
+    m.mitGepant ? `${m.mitGepant} Gepant` : '',
+  ].filter(Boolean).join(', ');
+  const amSelbenTag = m.mitAkut
+    ? `an ${m.mitAkut} von ${mehrzahl(m.kopfTage, 'Tag', 'Tagen')}${sortenAmTag ? ` (${sortenAmTag})` : ''}`
+    : '';
+  const zeile = (name, wert) => `<li><span>${name}</span><span class="klein">${wert}</span></li>`;
   return `<div class="karte karte-kopf">
     <h3>Kopfschmerzen</h3>
     <ul class="wartend">
-      <li><span>Eingetragen</span><span class="klein">${mehrzahl(z.anzahl, 'Mal', 'Mal')} an
-        ${mehrzahl(z.tage, 'Tag', 'Tagen')}</span></li>
-      <li><span>Anteil der notierten Tage</span><span class="klein">${prozent(z.anteil)}</span></li>
-      <li><span>Stärke</span><span class="klein">im Mittel ${fmtZahl(z.schnitt)}, höchstens ${z.hoechster}</span></li>
-      ${meist ? `<li><span>Meist</span><span class="klein">${esc(meist)}</span></li>` : ''}
-      ${m.mitMittel ? `<li><span>Medikament am selben Tag</span><span class="klein">an ${m.mitMittel} von
-        ${mehrzahl(m.kopfTage, 'Tag', 'Tagen')}</span></li>` : ''}
-      ${m.mitNsar ? `<li><span>davon entzündungshemmend</span><span class="klein">${m.mitNsar} von ${m.mitMittel}</span></li>` : ''}
+      ${kopfZeile ? zeile('Kopfschmerztage je 30 Tage', kopfZeile) : zeile('Kopfschmerztage', String(z.tage))}
+      ${akutZeile ? zeile('Akutmittel-Tage je 30 Tage', esc(akutZeile)) : ''}
+      ${zeile('Stärke', `im Mittel ${fmtZahl(z.schnitt)}, höchstens ${z.hoechster}`)}
+      ${dauer ? zeile('Dauer', esc(dauer)) : ''}
+      ${(z.verlauf.ausgefallen || z.verlauf.eingeschraenkt) ? zeile(`Ausgefallen${z.verlauf.zeitraum ? ', letzte 90 Tage' : ''}`,
+    `${mehrzahl(z.verlauf.ausgefallen, 'Tag', 'Tage')}${z.verlauf.eingeschraenkt ? `, dazu ${z.verlauf.eingeschraenkt} eingeschränkt` : ''}`) : ''}
+      ${meist ? zeile('Meist', esc(meist)) : ''}
+      ${wirkung ? zeile('Mittel nach zwei Stunden', esc(wirkung)) : ''}
+      ${amSelbenTag ? zeile('Akutmittel am selben Tag', esc(amSelbenTag)) : ''}
     </ul>
-    ${satz ? `<p${nach.deutlich ? '' : ' class="klein"'}>${esc(satz)}</p>` : ''}
-    ${m.nsarLetzte30 >= 15 ? `<p>An ${m.nsarLetzte30} der letzten 30 Tage steht ein
-      entzündungshemmendes Schmerzmittel im Tagebuch. Ab etwa fünfzehn Tagen im
-      Monat kann das Mittel selbst zum Kopfschmerz beitragen – eine Frage für
-      die Sprechstunde, keine Anweisung.</p>` : ''}
+    ${m.unbekannt.length ? `<p class="klein">An Kopfschmerztagen eingetragen, aber nicht als Akutmittel erkannt:
+      ${esc(m.unbekannt.map((u) => `${u.name} (${mehrzahl(u.tage, 'Tag', 'Tage')})`).join(', '))}.
+      Ist das ein Schmerz- oder Migränemittel, hilft meist der Wirkstoffname – dann
+      zählt es mit. Kennt die App den Wirkstoff nicht, zählt es nicht; dann gehört
+      es in der Sprechstunde dazugesagt.</p>` : ''}
+    ${saetze.map((x) => `<p${x.laut ? '' : ' class="klein"'}>${esc(x.text)}</p>`).join('')}
+    ${monate.length ? `<p class="feld-name">Die letzten drei Monate</p>
+    <ul class="wartend">${monate.map((mo) => `<li>
+      <span>${esc(mo.name)}${mo.angefangen ? ' (bis heute)' : ''}</span>
+      <span class="klein">${mehrzahl(mo.kopfTage, 'Kopfschmerztag', 'Kopfschmerztage')}${mo.akut ? `, Akutmittel an ${mo.akut}${mo.triptan ? ` (Triptan ${mo.triptan})` : ''}` : ''}${mo.ausgefallen ? `, ${mo.ausgefallen} ausgefallen` : ''}${mo.blutung ? `, Periode ${mo.blutung}` : ''}</span>
+    </li>`).join('')}</ul>` : ''}
+    ${fragen.length ? `<p class="feld-name">Fragen für die Sprechstunde</p>
+    <ul class="belege">${fragen.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
     ${phasen.length > 1 ? `<p class="feld-name">Nach Zyklusphase</p>
     <ul class="wartend">${phasen.map((p) => `<li>
       <span>${esc(p.name)}</span>
       <span class="klein">an ${p.mit} von ${mehrzahl(p.tage, 'Tag', 'Tagen')}</span>
     </li>`).join('')}</ul>
     <p class="klein">Phasen geschätzt aus den eingetragenen Blutungstagen.</p>` : ''}
-    <p class="klein">Der Kopf wird hier getrennt vom Bauch gezählt: Kein
-    Kopfschmerz fließt in eine Bauchauswertung ein, und kein Bauchwert in diese
-    Karte. Was beide verbindet, ist das Schmerzmittel – deshalb steht es dabei.</p>
+    <p class="klein">Der Kopf wird getrennt vom Bauch gezählt: Kein Kopfschmerz
+    fließt in eine Bauchauswertung ein. Die Bauchwerte hier stehen nur zum
+    Vergleich daneben. Was beide verbindet, ist das Schmerzmittel – deshalb
+    steht es dabei.</p>
   </div>`;
 }
 
@@ -2481,8 +2610,9 @@ function warnTeil(d) {
         zuletzt ${esc(fmtDatum(w.zuletzt, true))}</span>
     </li>`).join('')}</ul>
     <p class="klein">Bei Blut, schwarzem Stuhl, Schmerz mit Ausstrahlung in
-    Arm oder Kiefer oder einem Kopfschmerz, der schlagartig da war, nicht auf
-    einen Termin warten – Notaufnahme oder 112.</p>
+    Arm oder Kiefer, einem Kopfschmerz, der schlagartig da war, oder einer
+    Lähmung, Sprachstörung oder Verwirrtheit dazu nicht auf einen Termin
+    warten – Notaufnahme oder 112.</p>
   </div>`;
 }
 
@@ -3040,6 +3170,8 @@ function mittelKarte(s) {
         ${MITTEL_WISSEN.map(block).join('')}
         <p class="feld-name">Was den Magen von der anderen Seite belastet</p>
         ${REIZSTOFFE.map(block).join('')}
+        <p class="feld-name">Schmerz- und Migränemittel</p>
+        ${WEITERE_MITTEL.map(block).join('')}
       </div>` : ''}
   </div>`;
 }
@@ -3137,27 +3269,61 @@ function bogenHTML(s) {
   } else if (b.art === 'kopf') {
     /*
      * Derselbe Aufbau wie der Beschwerdebogen – Stärke, Merkmale, Notiz,
-     * Warnzeichen –, aber eine eigene Art. Der Hinweis auf das Medikament ist
-     * der wichtigste Satz hier: Wer das Ibuprofen in die Notiz schreibt statt
-     * als Medikament, nimmt der Magenauswertung ihre nützlichste Zahl.
+     * Warnzeichen –, aber eine eigene Art. Dazu, was die Kopfschmerz-
+     * sprechstunde fragt: Dauer, wie der Tag weiterging, ob ein Mittel
+     * geholfen hat. Pflicht ist nur die Stärke, und die ist nicht vorbelegt:
+     * Wer im Anfall einträgt, tippt zweimal und ist fertig; eine vorbelegte 4
+     * zählte als eingetragen und zöge jede Statistik in die Mitte.
+     *
+     * „Dazu genommen?" legt das Medikament mit an – ein Tipp statt eines
+     * zweiten Bogens. Während einer Attacke ist der zweite Bogen genau der
+     * Schritt, der wegfällt, und die Akutmittel-Tage sind die wichtigste Zahl
+     * für die Neurologie. Angeboten werden nur Mittel, die schon einmal
+     * eingetragen wurden: Die App schlägt kein Schmerzmittel vor.
      */
+    const akutKlassen = ['nsar', 'kombi', 'triptan', 'nichtnsar'];
+    const dazuWahl = b.id ? [] : (s.zuletztMittel || []).filter((n) => {
+      const g = wissenZu(n);
+      return g && akutKlassen.includes(g.id);
+    });
+    const wahlReihe = (liste, feld, act, klasse = '') => `<div class="wahl${klasse}">${liste.map((x) => `
+        <button type="button" class="wahl-btn${e[feld] === x.id ? ' an' : ''}"
+                data-act="${act}" data-id="${x.id}">${esc(x.name)}</button>`).join('')}</div>`;
+    const uebel = (e.kopfArten || []).some((a) => a === 'kopfuebel' || a === 'kopferbrechen');
     mitte = `
       <p class="feld-name">Wie stark?</p>
       ${skala(e.staerke)}
       <p class="feld-name">Wie ist er?</p>
       ${marken(KOPF_ARTEN, e.kopfArten || [], 'kopfart')}
+      ${uebel ? `<p class="klein">Die Übelkeit des Anfalls gehört hier zum Kopf. Bitte
+      nicht noch einmal als Bauchbeschwerde eintragen – sonst wird aus dem
+      Kopfschmerz ein Magentag.</p>` : ''}
+      ${b.id ? '' : `<p class="feld-name">Dazu genommen? Ein Tipp legt das Medikament mit an.</p>
+      ${dazuWahl.length ? `<div class="marken">${dazuWahl.map((n) => `
+        <button type="button" class="marke${(e.dazuMittel || []).includes(n) ? ' an' : ''}"
+                data-act="kopf-dazu" data-id="${esc(n)}">${esc(n)}</button>`).join('')}</div>`
+    : `<p class="klein">Dein Schmerz- oder Migränemittel einmal als Medikament
+      eintragen – danach steht es hier als Tipp. Daran hängt die Zählung der
+      Tage mit Akutmittel, die wichtigste Zahl für die Neurologie.</p>`}`}
+      <p class="feld-name">Wie lange – mit oder ohne Mittel?</p>
+      ${wahlReihe(KOPF_DAUER, 'dauer', 'kopfdauer', ' wahl-vier')}
+      <p class="klein">Hält er bis morgen an, trag ihn morgen noch einmal ein:
+      Gezählt werden Kopfschmerztage. Die Dauer lässt sich auch morgen
+      nachtragen.</p>
+      <p class="feld-name">Wie ging der Tag weiter?</p>
+      ${wahlReihe(KOPF_VERLAUF, 'verlauf', 'kopf-verlauf', ' wahl-spalte')}
+      <p class="feld-name">Falls du ein Mittel genommen hast: Hat es geholfen? Nach etwa zwei Stunden.</p>
+      ${wahlReihe(MITTEL_WIRKUNG, 'mittelWirkung', 'kopf-wirkung')}
       <label class="feld-name" for="bogenNotiz">Notiz</label>
       <input type="text" class="feld feld-breit" id="bogenNotiz" data-act="notiz"
              value="${esc(e.notiz || '')}" placeholder="optional" autocomplete="off">
-      <p class="klein">Ein Schmerzmittel bitte zusätzlich als <b>Medikament</b>
-      eintragen – daran hängt die Magenauswertung. Der Kopfschmerz selbst zählt
-      in keine Bauchrechnung hinein; er wird getrennt gezählt.</p>
       <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
         <summary>War etwas davon dabei?</summary>
         <p class="klein">Selten, aber wichtig. Was hier angekreuzt wird, taucht
         nicht in der Statistik auf, sondern ganz oben unter „Muster" – mit dem
         Hinweis, wie eilig es ist.</p>
-        ${marken(WARNZEICHEN.filter((w) => w.bereich === 'kopf'), e.warnzeichen || [], 'warnzeichen')}
+        ${marken(WARNZEICHEN.filter((w) => w.bereich === 'kopf' || w.id === 'bluterbrechen'),
+    e.warnzeichen || [], 'warnzeichen')}
       </details>`;
   } else if (b.art === 'stuhl') {
     /*
@@ -3320,7 +3486,12 @@ function bogenOeffnen(art, id) {
     // `kopfArten`, nicht `arten`: Das Feld der Bauchbeschwerden wird an zwei
     // Stellen über alle Einträge hinweg gelesen; ein Kopfmerkmal darin wäre
     // ein Bauchmerkmal.
-    kopf: { staerke: 4, kopfArten: [], notiz: '', warnzeichen: [] },
+    // Keine Vorgabe für die Stärke – wie beim Stuhlgang: Eine vorbelegte 4
+    // wäre die bequemste Antwort und zählte als eingetragen.
+    kopf: {
+      staerke: null, kopfArten: [], dauer: null, verlauf: null, mittelWirkung: null,
+      dazuMittel: [], notiz: '', warnzeichen: [],
+    },
     medikament: { mittel: '', dosis: '' },
     notiz: { text: '' },
   }[art];
@@ -3359,15 +3530,25 @@ function bogenSpeichern() {
   // zählt ohnehin als kopfschmerzfrei. Gespeichert würde nur ein Eintrag, der
   // in jeder Zählung als „Kopfschmerztag" liefe und keiner war.
   if (b.art === 'kopf' && !(Number(e.staerke) >= 1)) {
-    melden('Wie stark? Bei 0 wäre es kein Kopfschmerz.');
+    melden(e.staerke === null || e.staerke === undefined
+      ? 'Wie stark? Eine Stufe antippen.' : 'Wie stark? Bei 0 wäre es kein Kopfschmerz.');
     return;
   }
+  // „Dazu genommen": je Marke ein Medikament-Eintrag zur selben Zeit. Die
+  // Liste selbst bleibt nicht am Kopfeintrag hängen.
+  const dazu = b.art === 'kopf' ? (e.dazuMittel || []) : [];
+  if (b.art === 'kopf') delete e.dazuMittel;
   if (b.art === 'medikament') store.mittelMerken(e.mittel);
   if (b.id) store.eintragAendern(b.id, e);
   else store.eintragen(e);
+  dazu.forEach((name) => {
+    store.eintragen({ art: 'medikament', am: e.am, um: e.um, mittel: name, dosis: '' });
+    store.mittelMerken(name);
+  });
   ui.tag = e.am;
   ui.bogen = null;
-  melden(b.id ? 'Geändert.' : 'Eingetragen.');
+  if (b.id) melden('Geändert.');
+  else melden(dazu.length ? `Eingetragen, mit ${dazu.join(' und ')}.` : 'Eingetragen.');
   zeichne();
 }
 
@@ -3540,6 +3721,26 @@ const AKTION = {
   },
   beschwerdeart: (el) => umschalten('arten', el.dataset.id),
   kopfart: (el) => umschalten('kopfArten', el.dataset.id),
+  // Ein zweites Tippen nimmt die Dauer zurück – „weiß ich nicht mehr" ist eine
+  // zulässige Antwort und etwas anderes als die kürzeste Stufe.
+  kopfdauer: (el) => entwurf({
+    dauer: ui.bogen.entwurf.dauer === el.dataset.id ? null : el.dataset.id,
+  }),
+  'kopf-verlauf': (el) => entwurf({
+    verlauf: ui.bogen.entwurf.verlauf === el.dataset.id ? null : el.dataset.id,
+  }),
+  'kopf-wirkung': (el) => entwurf({
+    mittelWirkung: ui.bogen.entwurf.mittelWirkung === el.dataset.id ? null : el.dataset.id,
+  }),
+  'kopf-dazu': (el) => umschalten('dazuMittel', el.dataset.id),
+  // Nachtragen von der Tageskarte aus: ein Tipp, kein Bogen.
+  'kopf-nachtrag': (el) => {
+    const feld = el.dataset.feld;
+    if (!['dauer', 'verlauf'].includes(feld)) return;
+    store.eintragAendern(el.dataset.id, { [feld]: el.dataset.wert });
+    melden(el.dataset.wert === UNBEKANNT ? 'In Ordnung – bleibt offen.' : 'Nachgetragen.');
+    zeichne();
+  },
   warnzeichen: (el) => umschalten('warnzeichen', el.dataset.id),
   'mittel-vorschlag': (el) => entwurf({ mittel: el.dataset.id }),
 

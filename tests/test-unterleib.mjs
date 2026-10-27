@@ -176,6 +176,16 @@ const rechnung = await page.evaluate(async () => {
   [4, 8, 12, 16].forEach((n, i) => { tage[iso(n)].sextief = i < 2 ? 1 : 0; });
   const innen = u.unterleibsBild(eintraege, tage, a.tagesWert);
 
+  // Dieselben Tage, aber ohne das Feld `notiert`, das die App nie setzt –
+  // sie legt einen Tag an, sobald eine Frage beantwortet ist, und sonst gar
+  // nicht. Bis zu dieser Prüfung verlangte die Rechnung das Feld trotzdem,
+  // und war damit in Wirklichkeit leer, während dieser Test grün blieb.
+  const ohneFeld = Object.fromEntries(Object.entries(tage).map(([k, v]) => {
+    const { notiert, ...rest } = v;
+    return [k, rest];
+  }));
+  const echt = u.unterleibsBild(eintraege, ohneFeld, a.tagesWert);
+
   // Und einmal ohne jede Angabe zum Schmerz.
   [4, 8, 12, 16].forEach((n) => {
     delete tage[iso(n)].sexschmerz;
@@ -187,6 +197,8 @@ const rechnung = await page.evaluate(async () => {
     aussenTief: aussen.sexSchmerz.tiefWiederholt,
     aussenSchmerz: aussen.sexSchmerz.mitSchmerz,
     innenTief: innen.sexSchmerz.tiefWiederholt,
+    echtTief: echt.sexSchmerz.tiefWiederholt,
+    echtErhoben: echt.erhoben,
     leerPruefbar: leer.sexSchmerz.pruefbar,
     leerErhoben: leer.erhoben,
   };
@@ -197,6 +209,10 @@ check(
   'Schmerz am Eingang wird gezählt, gilt aber nicht als tiefer Schmerz',
 );
 check(rechnung.innenTief, 'tiefer Schmerz zweimal zählt dagegen');
+check(
+  rechnung.echtTief && rechnung.echtErhoben,
+  'und dasselbe kommt heraus, wenn die Tage so aussehen, wie die App sie wirklich speichert',
+);
 check(!rechnung.leerPruefbar, 'ohne Angabe ist die Frage nicht prüfbar');
 check(!rechnung.leerErhoben, 'und dann gilt gar nichts als erhoben');
 

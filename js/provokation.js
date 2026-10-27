@@ -218,8 +218,9 @@ function alltagsWerte(eintraege, p, laufTage, heute) {
     if (tage.has(iso)) continue;
     const amTag = (eintraege || []).filter((e) => e.am === iso);
     // Ein Tag ohne jede Eintragung ist kein ruhiger Tag, sondern ein
-    // unbekannter. Er darf den Vergleichswert nicht nach unten ziehen.
-    if (!amTag.length) continue;
+    // unbekannter. Er darf den Vergleichswert nicht nach unten ziehen. Ein
+    // Tag mit nur einem Kopfschmerz ebenso wenig – zum Bauch steht da nichts.
+    if (!amTag.some((e) => e.art !== 'kopf')) continue;
     const t0 = zeitpunkt(iso, uhr);
     werte.push(amTag
       .filter((e) => e.art === 'beschwerde')

@@ -53,7 +53,14 @@ const zahl = (x) => (Number.isFinite(x) ? x : null);
  * @param {function} tagesWert (eintraege, iso, tage) -> { notiert, wert }
  */
 export function unterleibsBild(eintraege, tage, tagesWert) {
-  const alle = Object.entries(tage || {}).filter(([, t]) => t && t.notiert);
+  /*
+   * Jeder Tag, der im Tagesspeicher steht – leere Tage legt der Speicher
+   * nicht an. Bis eben stand hier `t.notiert`; das Feld setzt die App aber
+   * nirgends, es stand nur in den Testvorlagen. Damit war diese ganze
+   * Rechnung in Wirklichkeit leer: kein Tag kam durch, nichts war prüfbar,
+   * und der Test blieb grün, weil seine Tage das Feld hatten.
+   */
+  const alle = Object.entries(tage || {}).filter(([, t]) => t && typeof t === 'object');
 
   /* ---------- 1. Schmerz beim Sex ---------- */
 

@@ -31,8 +31,11 @@ export function verlaufTafel(punkte, opt = {}) {
   const stuecke = punkte.map((p, i) => {
     const x = i * spalte + (spalte - balken) / 2;
     if (!p.notiert) {
+      // Ein Tag mit nur einem Kopfschmerz ist für den Bauch eine Lücke – aber
+      // keine stumme: Der Strich sagt, was dort steht.
+      const was = p.kopf ? `nur Kopfschmerz ${p.kopf} – zum Bauch nichts eingetragen` : 'nichts eingetragen';
       return `<rect x="${x.toFixed(2)}" y="${TAFEL_HOCH - 1.5}" width="${balken.toFixed(2)}" height="1.5" `
-        + `rx="0.75" fill="var(--line)"><title>${fmtDatum(p.am)}: nichts eingetragen</title></rect>`;
+        + `rx="0.75" fill="${p.kopf ? 'var(--leicht)' : 'var(--line)'}"><title>${fmtDatum(p.am)}: ${was}</title></rect>`;
     }
     const wert = Math.max(0, Math.min(TAFEL_MAX, p.wert || 0));
     const h = Math.max(2, (wert / TAFEL_MAX) * TAFEL_HOCH);

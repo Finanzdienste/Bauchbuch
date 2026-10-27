@@ -177,12 +177,29 @@ const VERDAECHTE = [
           + 'Beschwerden kamen erst vier Stunden oder länger nach dem Essen.');
       }
       if (d.nsarTage >= 3) dafuer.push(`An ${d.nsarTage} Tagen ein entzündungshemmendes Schmerzmittel.`);
+      // An der Engstelle eines Zwerchfellbruchs können kleine Schleimhautdefekte
+      // entstehen – bei großen Brüchen häufiger –, und ein NSAR macht das
+      // wahrscheinlicher.
+      const bruchMitNsar = (d.befundIds || []).includes('hiatushernie') && d.nsarTage >= 1;
+      if (bruchMitNsar) {
+        dafuer.push('Zwerchfellbruch und entzündungshemmendes Schmerzmittel zusammen: '
+          + 'An der Engstelle des Bruchs können kleine Schleimhautdefekte entstehen '
+          + '(bei großen Brüchen häufiger), und ein solches Mittel macht das '
+          + 'wahrscheinlicher.');
+      }
       if (d.essen.bewertbar >= 8 && d.essen.anteilNachDemEssen >= 0.6) {
         dagegen.push('Die Beschwerden kommen überwiegend kurz *nach* dem Essen, '
           + 'nicht nüchtern.');
       }
+      // Die Frage so, wie sie sich vorlesen lässt: Ohne Nüchternmuster darf
+      // sie keines behaupten.
+      const frage = !d.musterIds.includes('nuechtern') && bruchMitNsar
+        ? 'Ich habe einen Zwerchfellbruch und nehme bei Kopfschmerzen ein '
+          + 'entzündungshemmendes Schmerzmittel – spricht das für eine Magenspiegelung?'
+        : undefined;
       return {
         stand: dafuer.length ? 'moeglich' : 'offen',
+        ...(frage ? { frage } : {}),
         dafuer,
         dagegen,
         offen: 'Ein Geschwür sieht man, man errechnet es nicht. Warnzeichen wie '
@@ -398,9 +415,10 @@ const VERDAECHTE = [
       + 'eine magenfreundlichere Alternative, oder ist ein Magenschutz angezeigt?',
     pruefe: (d) => {
       const dafuer = [];
-      if (d.nsarTage >= 3) {
-        dafuer.push(`An ${d.nsarTage} Tagen steht ein entzündungshemmendes `
-          + 'Schmerzmittel im Tagebuch.');
+      const gastritisC = (d.befundIds || []).includes('gastritis-c');
+      if (d.nsarTage >= 1) {
+        dafuer.push(`An ${d.nsarTage} ${d.nsarTage === 1 ? 'Tag' : 'Tagen'} der letzten 90 `
+          + 'steht ein entzündungshemmendes Schmerzmittel im Tagebuch.');
         // Wogegen – das ist die Hälfte der Frage nach der Alternative. Ein
         // Mittel gegen Kopfschmerzen hat andere Ersatzkandidaten als eines
         // gegen Rückenschmerzen.
@@ -409,13 +427,45 @@ const VERDAECHTE = [
             + 'selben Tag eingetragen.');
         }
       }
+      /*
+       * Mit einer Gastritis Typ C im Befund: Typ C heißt chemisch gereizt, und
+       * diese Mittel gehören zu den häufigsten Gründen dafür – neben
+       * Gallenrückfluss und Alkohol. Welcher davon bei ihr zutrifft, steht im
+       * Befund und nicht hier; das Tagebuch sieht es nicht. Sicher ist nur,
+       * dass jede weitere Einnahme eine Schleimhaut trifft, die schon gereizt
+       * ist. Deshalb lohnt die Frage hier vom ersten Tag an.
+       */
+      if (gastritisC && d.nsarTage >= 1) {
+        dafuer.push('Deine Gastritis ist als Typ C eingetragen – chemisch gereizt. '
+          + 'Entzündungshemmende Schmerzmittel gehören zu den häufigsten Gründen '
+          + 'dafür; ob sie es bei dir sind, steht in deinem Befund, nicht hier. '
+          + 'Sicher ist nur: Sie treffen eine Schleimhaut, die schon gereizt ist.');
+      }
+      /*
+       * Der Stand beschreibt den Verlauf, nicht die Dringlichkeit der Frage:
+       * „passt zum Verlauf" erst ab drei Tagen, ein einzelner Tag ist kein
+       * Verlauf. Aber „spricht eher dagegen" bei ein, zwei Tagen ohne einen
+       * einzigen Dagegen-Grund wäre die falsche Botschaft – dann „möglich".
+       */
+      let stand = 'unwahrscheinlich';
+      if (d.nsarTage >= 3) stand = 'gestuetzt';
+      else if (d.nsarTage >= 1) stand = 'moeglich';
+      // Die Frage so, dass sie sich in der Sprechstunde vorlesen lässt:
+      // „regelmäßig" stimmt bei anfallsweiser Einnahme nicht.
+      const frage = d.nsarKopfTage > 0 || (d.nsarTage >= 1 && d.nsarTage < 3)
+        ? `${d.nsarKopfTage > 0 ? 'Bei Kopfschmerzen' : 'Gelegentlich'} nehme ich ein `
+          + 'entzündungshemmendes Schmerzmittel'
+          + `${gastritisC ? ' – mit meiner Gastritis Typ C' : ''}: Ist das so in Ordnung, `
+          + 'braucht es einen Magenschutz dazu, oder gibt es für mich eine andere Lösung?'
+        : undefined;
       return {
-        stand: d.nsarTage >= 3 ? 'gestuetzt' : 'unwahrscheinlich',
+        stand,
+        ...(frage ? { frage } : {}),
         dafuer,
         dagegen: d.nsarTage === 0 ? ['Kein solches Schmerzmittel eingetragen.'] : [],
-        offen: d.nsarTage >= 3 ? 'Ob die Schleimhaut schon Schaden genommen hat, '
-          + 'zeigt nur die Spiegelung. Die Frage nach der Alternative lohnt sich '
-          + 'trotzdem sofort.' : '',
+        offen: d.nsarTage >= 1 ? 'Ob die Schleimhaut schon Schaden genommen hat, '
+          + 'zeigt nur die Spiegelung. Die Frage nach Magenschutz oder Alternative '
+          + 'lohnt sich trotzdem jetzt.' : '',
       };
     },
   },
@@ -428,14 +478,27 @@ const VERDAECHTE = [
       + 'zwei Fragen auf einmal: ob Blut verlorengeht und ob eine Zöliakie '
       + 'schon Spuren hinterlassen hat.',
     frage: 'Wären ein Blutbild und Ferritin sinnvoll?',
-    pruefe: (d) => ({
-      stand: 'offen',
-      dafuer: d.warnIds.includes('blaesse') || d.warnIds.includes('teerstuhl')
-        ? ['Im Tagebuch steht ein Warnzeichen, das dazu passt.'] : [],
-      dagegen: [],
-      offen: 'Aus einem Tagebuch nie zu sehen. Steht hier, weil es die billigste '
-        + 'Untersuchung auf dieser Liste ist und am meisten auf einmal ausschließt.',
-    }),
+    pruefe: (d) => {
+      const dafuer = [];
+      if (d.warnIds.includes('blaesse') || d.warnIds.includes('teerstuhl')) {
+        dafuer.push('Im Tagebuch steht ein Warnzeichen, das dazu passt.');
+      }
+      // Die eine Lage, in der Blutbild und Ferritin keine Routine sind, sondern
+      // eine konkrete Frage: Defekte an der Engstelle eines Zwerchfellbruchs
+      // bluten unbemerkt, und ein NSAR macht sie wahrscheinlicher.
+      if ((d.befundIds || []).includes('hiatushernie') && d.nsarTage >= 1) {
+        dafuer.push('Zwerchfellbruch und entzündungshemmendes Schmerzmittel zusammen: '
+          + 'An der Engstelle des Bruchs können kleine Defekte unbemerkt bluten – '
+          + 'selten, aber genau die Frage, die ein Blutbild beantwortet.');
+      }
+      return {
+        stand: dafuer.length > 1 ? 'moeglich' : 'offen',
+        dafuer,
+        dagegen: [],
+        offen: 'Aus einem Tagebuch nie zu sehen. Steht hier, weil es die billigste '
+          + 'Untersuchung auf dieser Liste ist und am meisten auf einmal ausschließt.',
+      };
+    },
   },
 ];
 

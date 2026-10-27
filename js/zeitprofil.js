@@ -147,7 +147,9 @@ export function fensterWerte(eintraege) {
     .map((e) => ({ e, t: zeitpunkt(e.am, e.um) }))
     .sort((a, b) => a.t - b.t);
   const zu = zuordnen(eintraege);
-  const letzterEintrag = eintraege.reduce(
+  // „Das Tagebuch lief noch" – aber nur für den Bauch: Ein abendlicher
+  // Kopfeintrag macht ein Spätfenster nicht beobachtbar.
+  const letzterEintrag = eintraege.filter((e) => e.art !== 'kopf').reduce(
     (m, e) => Math.max(m, zeitpunkt(e.am, e.um)), 0,
   );
 
