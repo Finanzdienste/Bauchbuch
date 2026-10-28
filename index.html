@@ -17,7 +17,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -28,7 +28,15 @@
   </div>
 </header>
 
-<main id="view" class="view" role="tabpanel" tabindex="-1" aria-labelledby="tab-heute"></main>
+<main id="view" class="view" role="tabpanel" tabindex="-1" aria-labelledby="tab-heute">
+  <!-- Der Notausgang. Auf dem Startbildschirm gibt es weder Adressleiste noch
+       Herunterziehen zum Neuladen. Startet das Skript nicht – etwa weil nach
+       einer Aktualisierung eine Datei fehlt –, bliebe nur, die App im
+       App-Umschalter wegzuwischen, und das weiß kaum jemand. Dieser Absatz
+       erscheint erst nach vier Sekunden (css/styles.css, .notausgang) und
+       verschwindet, sobald js/app.js den Inhalt zeichnet. -->
+  <p class="notausgang">Lädt nicht? <a href="">Neu laden</a></p>
+</main>
 
 <!-- Die Reiter füllt js/app.js. Sie stehen trotzdem hier: Seite und Skript
      können aus unterschiedlich alten Zwischenspeichern stammen, und eine leere

@@ -1245,10 +1245,83 @@ maskierbar, sonst schneidet Android schief zu), Service Worker, `standalone`.
 Auf dem Startbildschirm liegt sie als eigenes Symbol, öffnet ohne
 Browserleiste und startet ohne Netz.
 
-Damit man das auch findet, bietet die App es unter „Mehr" von sich aus an:
-Wo der Browser die Installation meldet (Android/Chrome), steht ein Knopf; wo
-nicht (Safari), die Anleitung dafür. Läuft sie bereits als App, sagt sie das
-und schweigt ansonsten.
+Damit man das auch findet, bietet die App es von sich aus an: Wo der Browser
+die Installation meldet (Android/Chrome), steht unter „Mehr" ein Knopf. Auf
+dem iPhone steht die Anleitung zusätzlich oben auf dem Tag-Reiter, bis sie
+weggetippt wird – mit den Schritten, die zum Gerät passen: iOS 26 (••• ›
+Teilen › Zum Home-Bildschirm › „Als Web-App öffnen" an lassen), ältere
+iOS-Fassungen, das iPad (meldet sich als Mac), Chrome auf dem iPhone, und der
+eingebaute Browser einer anderen App, aus dem es gar nicht geht. Läuft sie
+bereits als App, sagt sie das unter „Mehr" und schweigt ansonsten.
+
+### Auf dem iPhone: eigener Speicher, und deshalb ein Umzug
+
+Eine App auf dem Startbildschirm hat auf dem iPhone **ihren eigenen
+Speicher**, getrennt von Safari. Wer in Safari angefangen hat, findet in der
+neuen App nichts – nur Cookies werden beim Hinzufügen übernommen, das
+Tagebuch nicht. Und umgekehrt löscht Safari die Daten einer Seite, die eine
+Woche lang nicht geöffnet wurde; die App auf dem Startbildschirm ist davon
+ausgenommen. Umziehen lohnt sich also, und zwar richtig:
+
+1. In Safari steht, solange dort Einträge liegen, **„Einträge mitnehmen"**.
+   Das legt das Tagebuch in die Zwischenablage und sagt, wie viele Einträge
+   es sind und von wann der letzte ist. Erst wenn das Kopieren geklappt hat,
+   merkt sich Safari den Umzug.
+2. Die neue App begrüßt mit **„Einträge aus Safari holen"**. Auf dem iPhone
+   erscheint dann die kleine Blase „Einsetzen"; wer daneben tippt, bekommt ein
+   Feld zum Einsetzen von Hand statt einer Fehlermeldung.
+3. Danach nennt die App dieselben Zahlen zum Vergleich, bietet an, die
+   Zwischenablage zu leeren (bis dahin liegt dort das ganze Tagebuch), und
+   fordert zu einer Sicherung als Datei auf. Die läuft auf dem iPhone über das
+   Teilen-Blatt („In Dateien sichern") – ein Download kann in der App auf dem
+   Startbildschirm still ins Leere gehen, und vermerkt wird erst, wenn das
+   Blatt Erfolg meldet.
+4. Safari zeigt ab dann auf jedem Reiter, dass umgezogen wurde und dort nicht
+   mehr eingetragen werden sollte – Links aus Nachrichten öffnen auf dem
+   iPhone immer Safari, nie die App. Kommt dort doch noch etwas dazu, steht
+   „Nochmal mitnehmen" da.
+
+**Einlesen ersetzt nichts mehr.** Bis hierher hat jede eingelesene Sicherung
+den Stand im Speicher ersetzt, ohne Rückfrage. Jetzt wird zusammengeführt,
+sobald schon etwas da ist: Einträge, Ideen und Listen über ihre Kennung,
+Tagesfragen je Tag und je Feld, Einstellungen nur dort, wo noch nichts
+umgestellt wurde. Vorher liegt der alte Stand unter eigenem Schlüssel und
+lässt sich unter „Sicherung" zurückholen.
+
+### Neue Fassungen kommen von selbst
+
+Eine App auf dem iPhone-Startbildschirm wird selten wirklich beendet; wer
+sie antippt, setzt sie fort. Der Browser sieht aber nur beim Laden nach, ob
+es eine neue Fassung gibt. Deshalb sieht die App selbst nach: bei jeder
+Rückkehr in den Vordergrund (höchstens alle fünfzehn Minuten) und, solange
+sie offen ist, jede halbe Stunde.
+
+Liegt eine neue Fassung bereit, lädt die App neu – aber nur, wenn es niemand
+merkt: beim Verlassen der App oder gleich nach der Rückkehr, bevor etwas
+angetippt wurde. Nie, solange etwas in Arbeit ist (ein offener Bogen, Text in
+irgendeinem Feld, eine Atemübung, ein laufender Versand, eine offene
+Sicherung) und nie, wenn der Speicher nicht schreiben kann. Danach steht sie
+am selben Tag wie vorher, und ein Satz sagt, was passiert ist. Unter „Mehr"
+steht, welche Fassung läuft, wann zuletzt gesucht wurde und ein Knopf zum
+sofortigen Suchen – wer ihn antippt, hat zugestimmt, und es wird gleich neu
+geladen.
+
+Drei Dinge, die das tragen:
+
+* **Der Stand in `sw.js`.** `python3 tools/build-single.py` trägt einen
+  Fingerabdruck über alle Dateien des Offline-Vorrats in `sw.js` ein. Der
+  Browser erkennt eine neue Fassung nur an einer geänderten `sw.js` – vorher
+  hing das allein an einer von Hand hochgezählten VERSION, und wer sie vergaß,
+  hatte eine Änderung veröffentlicht, die nirgends ankam. Die CI baut neu und
+  wird rot, wenn der Stand nicht stimmt.
+* **Alles oder nichts.** Eine neue Fassung wird nur übernommen, wenn Seite,
+  Stile und alle Module vollständig geladen wurden. Bricht das Netz mittendrin
+  ab, bleibt die alte – sonst stünde nach dem Neuladen eine weiße Seite da.
+  Seitenaufrufe warten höchstens dreieinhalb Sekunden aufs Netz, dann
+  antwortet der Vorrat.
+* **Ein Notausgang.** Startet das Skript einmal nicht, erscheint nach vier
+  Sekunden „Lädt nicht? Neu laden". Auf dem Startbildschirm gibt es weder
+  Adressleiste noch Herunterziehen zum Neuladen.
 
 Langes Drücken auf das Symbol führt direkt weiter – **Mahlzeit eintragen**,
 **Beschwerden eintragen**, **Atemübung**. Die Verknüpfungen sind Startparameter
@@ -1414,10 +1487,37 @@ Alkohol und zweimal Stärke 10 darf nichts herauskommen. Eine App, die daraus
 eine Regel macht, bringt jemanden dazu, sein Essen umzustellen, ohne dass es
 dafür einen Grund gibt.
 
-## Der Weg zurück: Vorschläge werden zu Entwürfen
+## Der Weg zurück: Ideen kommen bei Tobi an
 
-Was die Nutzerin unter „Ideen" einträgt, geht von selbst in den
-[Briefkasten](https://github.com/Finanzdienste/Briefkasten). Von dort holt es
+Was unter „Ideen" eingetragen wird, geht von selbst in den
+[Briefkasten](https://github.com/Finanzdienste/Briefkasten) – **jede Idee
+einzeln**, sobald sie eingetragen ist. Bis zum 28.10.2026 ging jedes Mal die
+ganze Liste hinaus; Tobi las jede Idee so oft, wie danach noch welche kamen,
+und ab 2000 Zeichen lehnte der Kasten die Liste ab, für immer. Außerdem galt
+nach dem Löschen einer Idee die nächste neue als schon verschickt. Jetzt
+trägt jede Idee ihr eigenes „verschickt".
+
+**Gelesen wird im Kasten, nicht hier.** Die Leseseite
+`https://briefkasten.<konto>.workers.dev/lesen` gehört auf Tobis
+Startbildschirm: einmal den Leseschlüssel eintippen (der Passwort-Manager
+bietet das Sichern an), neue Ideen sind markiert, „erledigt" löscht nach
+Rückfrage.
+
+**Dieses Repository bekommt nur noch die Nachricht, dass etwas angekommen
+ist.** Es ist öffentlich. Bis zum 28.10.2026 legte der Ablauf für jede Idee
+einen Entwurf mit dem Wortlaut auf einen Zweig – für jeden lesbar, obwohl die
+App „geht an Tobi" sagt und der Kasten „wird von Tobi gelesen, sonst von
+niemandem". Jetzt zählt der Ablauf nur, wie viele Zettel im Kasten liegen und
+wann der neueste kam, und meldet das in einem gesperrten Issue („Neue Ideen
+im Briefkasten") mit `@`-Nennung. Der Schritt, der meldet, bekommt weder den
+Leseschlüssel noch einen Text; `tests/test-vorschlaege.mjs` hält das fest.
+Öffentlich bleibt damit, *wann* und *wie oft* jemand eine Idee schickt.
+
+Der Rest dieses Abschnitts beschreibt **Stufe 2**: den Entwurf mit Wortlaut
+und den Agenten, der kleine Sachen gleich umsetzt. Sie ist abgeschaltet, und
+in einem öffentlichen Repository bricht sie ab, statt den Wortlaut abzulegen.
+
+Von dort holt es
 ein Ablauf (`.github/workflows/vorschlaege.yml`) ab und macht daraus einen
 **Entwurf** — einen Draft-Pull-Request mit den Zetteln, und, wenn ein Schlüssel
 für ein Modell hinterlegt ist, mit den kleinen und eindeutigen Sachen gleich

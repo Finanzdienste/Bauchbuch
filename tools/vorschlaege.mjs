@@ -115,3 +115,131 @@ export function alsMarkdown(zettel) {
 export function erledigtNachher(vorher, zettel) {
   return [...new Set([...(vorher || []), ...zettel.map((z) => z.id)])].slice(-500);
 }
+
+/* ==================== Bescheid geben, ohne Wortlaut ==================== */
+
+/*
+ * WARUM ES DAS GIBT
+ *
+ * Dieses Repository ist öffentlich. Solange der Agent abgeschaltet ist, lief
+ * jeder Zettel trotzdem als Entwurf hierher – mit vorschlaege/eingang.md auf
+ * einem Zweig, im Wortlaut, für jeden lesbar. Die App sagt der Schreiberin
+ * aber „geht an Tobi", und der Kasten verspricht „wird von Tobi gelesen, sonst
+ * von niemandem". Beides stimmte nicht.
+ *
+ * Jetzt geht ohne Agenten nur noch hinaus, *dass* etwas angekommen ist und
+ * wie viel im Kasten liegt. Gelesen wird im Kasten selbst, auf /lesen, mit
+ * dem Leseschlüssel. Die Funktionen hier bekommen deshalb nie einen Text zu
+ * sehen – nur Kennungen, und von denen nur die Zeit.
+ */
+
+const ZEITMARKE_RE = /^\d{14}$/;
+
+/**
+ * Wann der neueste Zettel kam – als die vierzehnstellige Zeitangabe, mit der
+ * jede Kennung beginnt (idee:01761683160000:…).
+ *
+ * Hier stand erst ein Fingerabdruck der neuesten Kennung. Der hatte einen
+ * Haken: Löscht Tobi den neuesten Zettel, wird ein älterer zum neuesten, sein
+ * Fingerabdruck ist ein anderer, und es käme die Meldung „neue Idee", obwohl
+ * nichts Neues da ist. Mit der Zeit gilt schlicht: gemeldet wird, was später
+ * kam als das zuletzt Gemeldete. Die Zeit verrät nichts, was nicht ohnehin
+ * am Zeitpunkt des Kommentars abzulesen wäre.
+ */
+export function zeitmarkeVon(id) {
+  const m = /^idee:(\d{14}):/.exec(String(id));
+  return m ? m[1] : '';
+}
+
+/**
+ * Was im Kasten liegt: wie viele Zettel und wann der neueste kam.
+ *
+ * Zurück kommen eine Zahl und eine Zeitangabe, sonst nichts. Wer das
+ * aufruft, kann daraus nichts weitergeben, was jemand geschrieben hat.
+ */
+export function bestand(antwort) {
+  const marken = (Array.isArray(antwort && antwort.zettel) ? antwort.zettel : [])
+    .map((z) => (z && typeof z.id === 'string' ? zeitmarkeVon(z.id) : ''))
+    .filter(Boolean)
+    .sort();
+  return {
+    anzahl: marken.length,
+    zeitmarke: marken.length ? marken[marken.length - 1] : '',
+  };
+}
+
+/** Woran die stehende Sammelstelle zu erkennen ist. */
+export const SAMMELSTELLE = '<!-- briefkasten-sammelstelle -->';
+
+/** Woran zu erkennen ist, bis wann schon gemeldet wurde. */
+export function gemeldetMarke(z) {
+  if (!ZEITMARKE_RE.test(String(z))) throw new Error(`keine gültige Zeitmarke: ${z}`);
+  return `<!-- briefkasten-gemeldet:${z} -->`;
+}
+
+/** Bis wann laut diesem Text gemeldet ist – '' wenn noch gar nicht. */
+export function gemeldetBis(text) {
+  const alle = [...String(text || '').matchAll(/<!-- briefkasten-gemeldet:(\d{14}) -->/g)].map((m) => m[1]);
+  return alle.sort().pop() || '';
+}
+
+function pruefeAngaben({ anzahl, lesen, besitzer }) {
+  if (!Number.isInteger(anzahl) || anzahl < 0) throw new Error(`keine gültige Anzahl: ${anzahl}`);
+  if (!/^https:\/\/[^\s<>()]+$/.test(String(lesen))) throw new Error(`keine gültige Leseadresse: ${lesen}`);
+  if (!/^[A-Za-z0-9-]+$/.test(String(besitzer))) throw new Error(`kein gültiger Besitzer: ${besitzer}`);
+}
+
+const zettelWort = (n) => (n === 1 ? '1 Zettel' : `${n} Zettel`);
+
+/** Der Text der stehenden Sammelstelle (ein Issue, das offen bleibt). */
+export function sammelstelleText({ anzahl, lesen, besitzer }) {
+  pruefeAngaben({ anzahl, lesen, besitzer });
+  return [
+    SAMMELSTELLE,
+    `@${besitzer} – im Briefkasten ist etwas angekommen. Als diese Sammelstelle`
+      + ` angelegt wurde, lagen darin **${zettelWort(anzahl)}**.`,
+    '',
+    `**Lesen:** ${lesen} – mit deinem Leseschlüssel. Am bequemsten als Symbol`,
+    'auf dem Startbildschirm: die Seite in Safari öffnen, unten rechts **•••**,',
+    '**Teilen**, nach unten wischen, **Zum Home-Bildschirm**, „Als Web-App',
+    'öffnen" an lassen, **Hinzufügen**. Den Schlüssel dann in der neuen App',
+    'eintippen – Safari und die App merken ihn sich getrennt. Leg ihn in deinem',
+    'Passwort-Manager ab: Bei Cloudflare lässt er sich nicht wieder anzeigen.',
+    '',
+    `Der Schlüssel gehört nur in ${lesen}. Fragt irgendeine andere Seite`,
+    'danach – auch ein Link in einem Kommentar –, nicht eingeben.',
+    '',
+    'Der Wortlaut steht hier mit Absicht nicht: Dieses Repository ist',
+    'öffentlich, und was im Kasten liegt, ist nur für dich bestimmt.',
+    '',
+    'Bei jeder neuen Idee kommt hier ein Kommentar dazu, und GitHub sagt dir',
+    'Bescheid. Wer dieses Issue schließt, bekommt beim nächsten Zettel ein',
+    'neues.',
+    '',
+    '_Automatisch vom Ablauf „Vorschläge“._',
+  ].join('\n');
+}
+
+/** Der Kommentar bei einer neuen Idee. */
+export function meldungText({ anzahl, lesen, besitzer, zeitmarke }) {
+  pruefeAngaben({ anzahl, lesen, besitzer });
+  return [
+    gemeldetMarke(zeitmarke),
+    `@${besitzer} – eine neue Idee ist im Briefkasten angekommen.`
+      + ` Es liegen jetzt **${zettelWort(anzahl)}** darin.`,
+    '',
+    `Lesen: ${lesen}`,
+  ].join('\n');
+}
+
+/**
+ * Der Text der Sammelstelle nach einer Meldung: alte Marken raus, neue rein.
+ *
+ * Es bleibt immer nur die letzte Marke stehen. So wächst der Text nicht mit
+ * jeder Idee, und die Frage „schon gemeldet?" hängt an genau einer Stelle,
+ * nicht an hundert Kommentaren auf mehreren Seiten.
+ */
+export function mitMarke(text, zeitmarke) {
+  const ohne = String(text || '').replace(/\n?<!-- briefkasten-gemeldet:\d+ -->/g, '');
+  return `${ohne}\n${gemeldetMarke(zeitmarke)}`;
+}

@@ -20,12 +20,58 @@ wird ein Objekt aus den exportierten Namen von store.js gebaut.
 
 import pathlib
 import base64
+import hashlib
 import re
 import sys
 from urllib.parse import quote
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / 'dist' / 'bauchbuch.html'
+
+SHELL_RE = re.compile(r'const SHELL = \[(.*?)\];', re.DOTALL)
+STAND_RE = re.compile(r"^const STAND = '[0-9a-f]*';$", re.MULTILINE)
+
+
+def stand_berechnen(wurzel):
+    """Ein Fingerabdruck ueber alle Dateien, die der Service Worker vorhaelt.
+
+    Der Browser holt eine neue Fassung nur, wenn sich sw.js selbst um
+    mindestens ein Byte unterscheidet. Bisher hing das allein an VERSION, und
+    die musste jemand von Hand hochzaehlen. Wer es vergass, hatte eine
+    Aenderung veroeffentlicht, die auf keinem Startbildschirm je ankam --
+    ohne Fehlermeldung, die App lief ja weiter, nur eben alt.
+
+    Jetzt steht der Fingerabdruck in sw.js. Aendert sich irgendeine der
+    gelisteten Dateien, aendert sich sw.js mit, und die CI merkt, wenn dieser
+    Bau vergessen wurde (siehe .github/workflows/pruefung.yml).
+    """
+    sw = (wurzel / 'sw.js').read_text(encoding='utf-8')
+    treffer = SHELL_RE.search(sw)
+    if not treffer:
+        sys.exit('sw.js: die Liste SHELL ist nicht zu finden')
+    pfade = sorted({p for p in re.findall(r"'\./([^']*)'", treffer.group(1)) if p})
+    if len(pfade) < 10:
+        sys.exit(f'sw.js: SHELL sieht unvollstaendig aus ({len(pfade)} Dateien)')
+    h = hashlib.sha256()
+    for rel in pfade:
+        datei = wurzel / rel
+        if not datei.is_file():
+            sys.exit(f'sw.js listet {rel}, die Datei gibt es nicht')
+        h.update(rel.encode('utf-8') + b'\0' + datei.read_bytes() + b'\0')
+    return h.hexdigest()[:12]
+
+
+def stand_schreiben(wurzel):
+    """Den Fingerabdruck in sw.js eintragen. Gibt ihn zurueck."""
+    stand = stand_berechnen(wurzel)
+    pfad = wurzel / 'sw.js'
+    sw = pfad.read_text(encoding='utf-8')
+    if not STAND_RE.search(sw):
+        sys.exit("sw.js: die Zeile const STAND = '...'; fehlt")
+    neu = STAND_RE.sub(f"const STAND = '{stand}';", sw, count=1)
+    if neu != sw:
+        pfad.write_text(neu, encoding='utf-8')
+    return stand
 
 # Reihenfolge = Abhaengigkeitsreihenfolge. Wer das aendert, merkt es hier
 # zuerst: Im Buendel gibt es keine Importe, die eine Reihenfolge erzwingen.
@@ -110,8 +156,10 @@ def main():
                         'href="data:image/svg+xml,' + quote(icon, safe='') + '"')
     png = base64.b64encode((ROOT / 'icon-192.png').read_bytes()).decode()
     html = html.replace('href="icon-192.png"', f'href="data:image/png;base64,{png}"')
+    apfel = base64.b64encode((ROOT / 'apple-touch-icon.png').read_bytes()).decode()
+    html = html.replace('href="apple-touch-icon.png"', f'href="data:image/png;base64,{apfel}"')
 
-    for rest in ('href="css/', 'src="js/', 'href="manifest', 'href="icon'):
+    for rest in ('href="css/', 'src="js/', 'href="manifest', 'href="icon', 'href="apple'):
         if rest in html:
             sys.exit(f'Externer Verweis nicht ersetzt: {rest}')
 
@@ -119,6 +167,14 @@ def main():
     OUT.write_text(html, encoding='utf-8')
     print(f'{OUT.relative_to(ROOT)}: {len(html) / 1024:.0f} KB, alles eingebettet')
 
+    stand = stand_schreiben(ROOT)
+    print(f'sw.js: Stand {stand}')
+
 
 if __name__ == '__main__':
-    main()
+    # Nur den Fingerabdruck in einem anderen Ordner eintragen -- dafuer braucht
+    # ihn tests/test-nachschub.mjs, der eine Kopie der App veraendert.
+    if len(sys.argv) == 3 and sys.argv[1] == '--nur-stand':
+        print(stand_schreiben(pathlib.Path(sys.argv[2]).resolve()))
+    else:
+        main()

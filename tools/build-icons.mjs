@@ -35,6 +35,23 @@ function maskierbar(quelle) {
     '<g id="marke" transform="translate(256 256) scale(0.74) translate(-256 -256)"');
 }
 
+/*
+ * Fassung fürs iPhone: randlos, undurchsichtig, 180×180.
+ *
+ * iOS legt über apple-touch-icon seine eigene runde Maske. Durchsichtige
+ * Ecken füllt es vorher schwarz auf – mit icon-192.png ergab das doppelt
+ * gerundete Ecken mit dunklem Saum. Das Buch bleibt etwas kleiner, damit die
+ * Maske es nicht anschneidet.
+ */
+function apfel(quelle) {
+  const flach = quelle.replaceAll('rx="112"', 'rx="0"');
+  if (flach === quelle) throw new Error('Ecken nicht gefunden – icon.svg geändert?');
+  return flach.replace('<g id="marke"',
+    '<g id="marke" transform="translate(256 256) scale(0.88) translate(-256 -256)"');
+}
+
+const nurApfel = process.argv.includes('--nur-apfel');
+
 const browser = await chromium.launch();
 const page = await browser.newPage();
 
@@ -49,8 +66,11 @@ async function raster(quelle, groesse, datei) {
   console.log(`${datei}: ${groesse}×${groesse}, ${(png.length / 1024).toFixed(1)} KB`);
 }
 
-await raster(svg, 192, 'icon-192.png');
-await raster(svg, 512, 'icon-512.png');
-await raster(maskierbar(svg), 512, 'icon-maskable-512.png');
+if (!nurApfel) {
+  await raster(svg, 192, 'icon-192.png');
+  await raster(svg, 512, 'icon-512.png');
+  await raster(maskierbar(svg), 512, 'icon-maskable-512.png');
+}
+await raster(apfel(svg), 180, 'apple-touch-icon.png');
 
 await browser.close();

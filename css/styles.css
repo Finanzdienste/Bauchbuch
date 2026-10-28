@@ -771,6 +771,21 @@ p { margin: 0 0 8px; }
 .tab.an { color: var(--accent); }
 .ti { font-size: 19px; line-height: 1; }
 
+/* ---------- Anleitung auf den Startbildschirm ---------- */
+.schritte { margin: 6px 0 10px; padding-left: 22px; font-size: 14px; }
+.schritte li { margin: 4px 0; }
+.willkommen-umzug { margin-top: 18px; }
+
+/* ---------- Notausgang (index.html) ----------
+   Erst nach vier Sekunden sichtbar: Startet die App normal, hat js/app.js
+   ihn bis dahin längst ersetzt, und niemand sieht ihn je aufblitzen. */
+.notausgang {
+  text-align: center; color: var(--muted); padding: 48px 16px;
+  opacity: 0; animation: notausgang-zeigen 0.3s ease 4s forwards;
+}
+.notausgang a { color: var(--accent); font-weight: 600; }
+@keyframes notausgang-zeigen { to { opacity: 1; } }
+
 /* ---------- Meldung ---------- */
 .toast {
   position: fixed; z-index: 50;

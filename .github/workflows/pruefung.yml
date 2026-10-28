@@ -59,11 +59,17 @@ jobs:
       # Die Ein-Datei-Fassung noch einmal erzeugen. Kommt etwas anderes heraus
       # als eingecheckt ist, wurde von Hand hineingeschrieben oder der Bau
       # vergessen – und weitergegeben wird genau diese Datei.
-      - name: dist/bauchbuch.html ist aktuell
+      #
+      # Dasselbe für den Fingerabdruck in sw.js. An ihm erkennt der Browser
+      # eine neue Fassung; steht er auf dem alten Stand, kommt eine Änderung
+      # auf keinem Startbildschirm an, und niemand merkt es.
+      - name: dist/bauchbuch.html und sw.js sind aktuell
         run: |
           python3 tools/build-single.py
           git diff --exit-code -- dist/bauchbuch.html \
             || { echo "::error::dist/bauchbuch.html ist nicht neu erzeugt worden – python3 tools/build-single.py"; exit 1; }
+          git diff --exit-code -- sw.js \
+            || { echo "::error::Der Stand in sw.js ist veraltet – python3 tools/build-single.py, sonst kommt die Änderung nicht an"; exit 1; }
 
   klicken:
     name: Browsertests

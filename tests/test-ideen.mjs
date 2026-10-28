@@ -36,9 +36,14 @@ page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
  * einer eigenen Antwort.
  */
 let kastenAntwort = null;
+// Die hingehaltenen Anfragen – damit der Test sie am Ende doch beantworten
+// kann. Seit jede Idee einzeln und der Reihe nach hinausgeht, wartet die
+// nächste auf die vorige; eine, die nie beantwortet wird, hielte sonst den
+// Fehlerfall unten zwanzig Sekunden auf.
+const haengend = [];
 await page.route('**/idee', async (route) => {
   if (kastenAntwort) return route.fulfill(kastenAntwort);
-  return new Promise(() => {});
+  return new Promise((weiter) => { haengend.push(() => weiter(route.fulfill(kastenAntwort))); });
 });
 
 await page.goto(URL, { waitUntil: 'networkidle' });
@@ -227,6 +232,8 @@ kastenAntwort = {
   body: JSON.stringify({ fehler: 'Das ist zu lang – höchstens 2000 Zeichen.' }),
 };
 
+// Was noch hing, bekommt jetzt dieselbe Absage.
+haengend.splice(0).forEach((antworte) => antworte());
 await page.locator('#ideeText').fill('Ein Vorschlag, den der Kasten ablehnt.');
 await page.locator('[data-act="idee-neu"]').click();
 

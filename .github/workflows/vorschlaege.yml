@@ -1,18 +1,35 @@
-# Die Vorschläge aus dem Briefkasten abholen – und daraus einen Entwurf machen.
+# Den Besitzer wissen lassen, dass im Briefkasten etwas liegt.
 #
 # WAS HIER PASSIERT
 #
-# Auf Anstoß aus dem Briefkasten (und auf Knopfdruck) holt dieser Ablauf, was die Nutzerin unter „Ideen"
-# eingetragen hat, und legt daraus einen **Entwurf** an. In zwei Stufen:
+# Auf Anstoß aus dem Briefkasten (und auf Knopfdruck) sieht dieser Ablauf
+# nach, was unter „Ideen" eingetragen wurde. In zwei Stufen:
 #
-#   1. Ohne API-Schlüssel: ein Entwurfs-PR mit den Vorschlägen als Liste. Kein
-#      Code, nur der Eingang, sauber eingerahmt.
-#   2. Mit einem Schlüssel (API-Guthaben oder Claude-Abo): derselbe Zweig, aber
-#      ein Agent setzt die kleinen und eindeutigen Sachen gleich um.
+#   1. Immer, solange der Agent abgeschaltet ist: eine Meldung OHNE WORTLAUT.
+#      Ein stehendes Issue sagt dem Besitzer per @-Nennung, dass etwas
+#      angekommen ist und wie viel im Kasten liegt, und zeigt auf die
+#      Leseseite des Kastens (/lesen). Gelesen wird dort, mit dem
+#      Leseschlüssel – nicht hier.
+#   2. Nur mit eingeschaltetem Agenten (AGENT_GEWOLLT: 'ja' und ein
+#      Schlüssel): ein Zweig mit den Vorschlägen, ein Agent setzt die kleinen
+#      und eindeutigen Sachen um, und was durchkommt, geht in die App.
 #
-# Stufe 1 läuft immer. Das ist Absicht: Der Teil, der zuverlässig funktionieren
-# muss – dass die Zettel überhaupt ankommen –, hängt dann nicht daran, ob
-# gerade ein Modell erreichbar ist oder ein Guthaben reicht.
+# WARUM STUFE 1 KEINEN WORTLAUT MEHR TRÄGT
+#
+# Dieses Repository ist öffentlich. Bis zum 28.10.2026 legte Stufe 1 für jede
+# Idee einen Entwurf an, mit vorschlaege/eingang.md im Wortlaut auf einem
+# Zweig – für jeden lesbar, der hier vorbeikommt. Die App sagt der
+# Schreiberin aber „geht an Tobi", und der Kasten verspricht „wird von Tobi
+# gelesen, sonst von niemandem". Ideen zu einer Gesundheits-App erzählen
+# leicht nebenbei etwas über die eigene Gesundheit.
+#
+# Der Schritt, der jetzt meldet, bekommt deshalb weder den Leseschlüssel noch
+# den Wortlaut zu sehen – nur eine Zahl und einen Fingerabdruck. Siehe
+# tools/vorschlaege-melden.mjs; tests/test-vorschlaege.mjs hält das fest.
+#
+# WER DEN AGENTEN WIEDER EINSCHALTET, MUSS DAS WISSEN: Stufe 2 braucht den
+# Wortlaut im Repository, auf einem Zweig, den der Agent bearbeitet. Mit 'ja'
+# liegt er also wieder öffentlich – oder dieses Repository wird vorher privat.
 #
 # WAS HIER PASSIERT, OBWOHL ES LANGE ANDERS STAND
 #
@@ -177,11 +194,48 @@ jobs:
       - id: zweig
         run: echo "name=vorschlag/$(date -u +%Y-%m-%d-%H%M)" >> "$GITHUB_OUTPUT"
 
+      # Ohne Agenten nur zählen: Dann schreibt das Werkzeug keinen Wortlaut,
+      # nicht einmal auf die Platte des Runners, und gibt nur Anzahl und
+      # Fingerabdruck des neuesten Zettels weiter.
       - id: holen
         env:
           BRIEFKASTEN: ${{ secrets.BRIEFKASTEN }}
           LESESCHLUESSEL: ${{ secrets.LESESCHLUESSEL }}
+          NUR_ZAEHLEN: ${{ env.AGENT_GEWOLLT == 'ja' && 'nein' || 'ja' }}
         run: node tools/vorschlaege-holen.mjs
+
+      # STUFE 1: Bescheid geben, ohne Wortlaut.
+      #
+      # Dieser Schritt bekommt keinen Leseschlüssel und keinen Text – nur, wie
+      # viele Zettel im Kasten liegen, und wann der neueste kam.
+      # Gelesen wird auf der Leseseite des Kastens. Warum, steht oben im Kopf
+      # dieser Datei.
+      - name: Bescheid geben, ohne Wortlaut
+        if: env.AGENT_GEWOLLT != 'ja' && steps.holen.outputs.anzahl != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BESITZER: ${{ github.repository_owner }}
+          ANZAHL: ${{ steps.holen.outputs.anzahl }}
+          ZEITMARKE: ${{ steps.holen.outputs.zeitmarke }}
+        run: node tools/vorschlaege-melden.mjs
+
+      # AB HIER STUFE 2 – nur mit eingeschaltetem Agenten.
+      #
+      # Jeder Schritt, der etwas ins Repository schreibt, nennt den Schalter
+      # selbst. Ein Zweig mit vorschlaege/eingang.md trägt den Wortlaut, und
+      # dieses Repository ist öffentlich.
+
+      # Der harte Riegel davor: Stufe 2 in einem öffentlichen Repository
+      # hieße, den Wortlaut wieder für jeden lesbar abzulegen – und beim
+      # ersten Lauf den ganzen Rückstand auf einmal, alles Zettel, die unter
+      # der Zusage „nur Tobi" geschrieben wurden. Ein Kommentar allein hält
+      # das nicht auf, ein abgebrochener Lauf schon.
+      - name: Stufe 2 nur in einem privaten Repository
+        if: env.AGENT_GEWOLLT == 'ja' && github.event.repository.private != true
+        run: |
+          echo "::error::Der Agent ist eingeschaltet, aber dieses Repository ist öffentlich. Stufe 2 legt den Wortlaut der Ideen auf einen Zweig – erst das Repository privat stellen."
+          exit 1
 
       # Liegt schon ein Entwurf offen, wird keiner angelegt.
       #
@@ -192,6 +246,7 @@ jobs:
       # Urlaub stünden sieben gleiche Entwürfe da, und niemand sähe mehr einen
       # davon durch.
       - id: offen
+        if: env.AGENT_GEWOLLT == 'ja'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -214,7 +269,7 @@ jobs:
       # tägliche Lauf jeden Morgen dieselbe Zeile an denselben Entwurf, bis
       # niemand mehr hinsieht – wogegen das Ganze ja gerade helfen soll.
       - name: Am offenen Entwurf Bescheid sagen
-        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl != '0'
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl != '0' && env.AGENT_GEWOLLT == 'ja'
         env:
           GH_TOKEN: ${{ github.token }}
           NEU: ${{ steps.holen.outputs.neu }}
@@ -230,20 +285,30 @@ jobs:
           # Erwähnung geht auch bei der vorsichtigsten Benachrichtigungs-
           # einstellung durch, ein Kommentar in einem beobachteten Repository
           # nicht unbedingt.
-          gh pr comment "$NR" --body "$marke
-          @${{ github.repository_owner }} — im Briefkasten liegen **$NEU Vorschläge**, die hier noch nicht drin sind.
-
-          Sie kommen erst mit dem nächsten Entwurf dazu – und der entsteht erst,
-          wenn dieser hier zusammengeführt oder geschlossen ist. Das ist Absicht:
-          Sonst stünden nach einer Woche sieben Entwürfe nebeneinander und
-          niemand sähe mehr einen davon durch.
-
-          _Automatisch vom Ablauf „Vorschläge"._"
+          #
+          # Der Text kommt aus einer Datei, Zeile für Zeile in einfachen
+          # Anführungszeichen. Hier stand er einmal als ein einziger Bash-String
+          # in doppelten – und das schließende „…" in „Vorschläge" war ein
+          # ASCII-Zeichen. Es beendete den String, der Schritt brach mit
+          # „unexpected EOF" ab, und eine Idee kam nie an.
+          # tests/test-ablaeufe.mjs prüft seitdem jeden Block mit bash -n.
+          {
+            printf '%s\n' "$marke"
+            printf '@${{ github.repository_owner }} – im Briefkasten liegen **%s Vorschläge**, die hier noch nicht drin sind.\n' "$NEU"
+            printf '\n'
+            printf '%s\n' 'Sie kommen erst mit dem nächsten Entwurf dazu – und der entsteht erst,'
+            printf '%s\n' 'wenn dieser hier zusammengeführt oder geschlossen ist. Das ist Absicht:'
+            printf '%s\n' 'Sonst stünden nach einer Woche sieben Entwürfe nebeneinander und'
+            printf '%s\n' 'niemand sähe mehr einen davon durch.'
+            printf '\n'
+            printf '%s\n' '_Automatisch vom Ablauf „Vorschläge“._'
+          } > "$RUNNER_TEMP/notiz.md"
+          gh pr comment "$NR" --body-file "$RUNNER_TEMP/notiz.md"
 
       # Ab hier nur noch, wenn wirklich etwas gekommen ist. Ein leerer Entwurf
       # jeden Morgen wäre der schnellste Weg, dass niemand mehr hinsieht.
       - name: Zweig anlegen
-        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0'
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0' && env.AGENT_GEWOLLT == 'ja'
         run: |
           git config user.name "Briefkasten"
           git config user.email "noreply@anthropic.com"
@@ -436,7 +501,7 @@ jobs:
       # `.github/` und `tools/pruefung/` stehen selbst auf der Sperrliste, ein
       # geänderter Wächter fiele also auf.
       - name: Grenzen für Entwürfe prüfen
-        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0'
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0' && env.AGENT_GEWOLLT == 'ja'
         env:
           GITHUB_HEAD_REF: ${{ steps.zweig.outputs.name }}
         run: |
@@ -602,7 +667,7 @@ jobs:
       # zugleich abschaltet.
       - name: Urteil einsammeln
         id: urteil
-        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0'
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0' && env.AGENT_GEWOLLT == 'ja'
         run: |
           # Der Schalter zuerst, und mit eigener Begründung: "kein Schlüssel"
           # und "ausdrücklich abgeschaltet" sind zwei verschiedene Lagen, und
@@ -686,6 +751,7 @@ jobs:
       - name: Vermerken, was ungebaut durchgelaufen ist
         if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0'
           && steps.urteil.outputs.durch == 'ja' && steps.stand.outputs.commits == '0'
+          && env.AGENT_GEWOLLT == 'ja'
         env:
           GH_TOKEN: ${{ github.token }}
           LAUF: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -711,6 +777,7 @@ jobs:
       # alles, was die vier Schichten nicht durchlassen.
       - name: Entwurf anlegen
         if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl == '0' && steps.urteil.outputs.durch != 'ja'
+          && env.AGENT_GEWOLLT == 'ja'
         env:
           GH_TOKEN: ${{ github.token }}
           ZWEIG: ${{ steps.zweig.outputs.name }}
@@ -756,11 +823,11 @@ jobs:
           fi
 
       - name: Nichts Neues
-        if: steps.holen.outputs.neu == '0'
+        if: steps.holen.outputs.neu == '0' && env.AGENT_GEWOLLT == 'ja'
         run: echo "Keine neuen Zettel. Kein Entwurf angelegt."
 
       - name: Entwurf liegt schon offen
-        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl != '0'
+        if: steps.holen.outputs.neu != '0' && steps.offen.outputs.anzahl != '0' && env.AGENT_GEWOLLT == 'ja'
         run: |
           echo "Es liegen ${{ steps.offen.outputs.anzahl }} Entwürfe aus dem Briefkasten offen."
           echo "Solange die nicht durchgesehen sind, kommt kein weiterer dazu."

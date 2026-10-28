@@ -14,11 +14,19 @@
  *   vorschlaege/erledigt.json   die Kennungen, die schon angesehen wurden
  *   und auf der Standardausgabe die Zahl der neuen Zettel.
  *
+ * Mit NUR_ZAEHLEN=ja wird gar nichts geschrieben. Dann gibt es nur zwei
+ * Zahlen aus: wie viele Zettel im Kasten liegen (anzahl) und wann der
+ * neueste kam (zeitmarke). So läuft es, solange der Agent
+ * abgeschaltet ist – das Repository ist öffentlich, und ohne Agenten gibt es
+ * keinen Grund, den Wortlaut auch nur auf die Platte des Runners zu legen.
+ *
  * Der Leseschlüssel steht nie in der Ausgabe. Er ist ein Secret, und alles,
- * was ein Programm ausgibt, landet irgendwann in einem Protokoll.
+ * was ein Programm ausgibt, landet irgendwann in einem Protokoll. Dasselbe
+ * gilt für den Wortlaut: Die Protokolle eines öffentlichen Repositorys kann
+ * jeder lesen.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
-import { neueZettel, alsMarkdown, erledigtNachher } from './vorschlaege.mjs';
+import { neueZettel, alsMarkdown, erledigtNachher, bestand } from './vorschlaege.mjs';
 
 const ORDNER = 'vorschlaege';
 const LEDGER = `${ORDNER}/erledigt.json`;
@@ -57,17 +65,43 @@ try {
   clearTimeout(uhr);
 }
 
+/*
+ * Einmal nachfassen, wenn der neueste Zettel schon älter ist.
+ *
+ * Der Kasten speichert bei Cloudflare, und dort ist ein neuer Eintrag nicht
+ * sofort an jedem Standort sichtbar – bis zu einer Minute kann es dauern.
+ * Der Kasten stößt diesen Ablauf aber gleich nach dem Einwurf an, und der
+ * Runner steht woanders als das Telefon. Liegt der neueste sichtbare Zettel
+ * schon länger zurück, ist der gerade eingeworfene womöglich noch nicht
+ * angekommen: dann einmal warten und noch einmal fragen. Bei einem Lauf von
+ * Hand kostet das eine halbe Minute und sonst nichts.
+ */
+const NACHFASSEN_S = Number(process.env.NACHFASSEN_SEKUNDEN ?? 30);
+const nurZaehlen = process.env.NUR_ZAEHLEN === 'ja';
+if (nurZaehlen && NACHFASSEN_S > 0) {
+  const { zeitmarke: z } = bestand(antwort);
+  const alter = z ? Date.now() - Number(z) : Infinity;
+  if (alter > 90 * 1000) {
+    await new Promise((weiter) => { setTimeout(weiter, NACHFASSEN_S * 1000); });
+    try {
+      const nochmal = await fetch(ziel, { headers: { accept: 'application/json' } });
+      if (nochmal.ok) antwort = await nochmal.json();
+    } catch { /* dann gilt die erste Antwort */ }
+  }
+}
+
 const erledigt = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : [];
 const neu = neueZettel(antwort, erledigt);
+const { anzahl, zeitmarke } = bestand(antwort);
 
-mkdirSync(ORDNER, { recursive: true });
-if (neu.length) {
+if (neu.length && !nurZaehlen) {
+  mkdirSync(ORDNER, { recursive: true });
   writeFileSync(EINGANG, alsMarkdown(neu));
   writeFileSync(LEDGER, `${JSON.stringify(erledigtNachher(erledigt, neu), null, 2)}\n`);
 }
 
-console.log(`${neu.length} neue${neu.length === 1 ? 'r Zettel' : ' Zettel'}.`);
+console.log(`${neu.length} neue${neu.length === 1 ? 'r Zettel' : ' Zettel'}, ${anzahl} im Kasten.`);
 console.log(`neu=${neu.length}`);
 if (process.env.GITHUB_OUTPUT) {
-  appendFileSync(process.env.GITHUB_OUTPUT, `neu=${neu.length}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `neu=${neu.length}\nanzahl=${anzahl}\nzeitmarke=${zeitmarke}\n`);
 }

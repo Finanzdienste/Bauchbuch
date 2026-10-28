@@ -6,194 +6,141 @@
  * wenn der Service Worker sie durchlässt. Das ist der einzige Weg, auf dem eine
  * Verbesserung je bei jemandem ankommt – und der einzige, den man nicht merkt,
  * wenn er kaputt ist: Die App läuft ja weiter, nur eben in der alten Fassung.
- * Wochenlang, ohne Fehlermeldung, während man selbst denkt, man habe längst
- * ausgeliefert.
  *
- * In tests/umgebung.mjs stand seit Langem ein zweiter Server „für den
- * Aktualisierungstest". Den Test gab es nicht. Eine Zeile, die eine Prüfung
- * beschreibt, die es nicht gibt, ist schlimmer als gar keine – man verlässt
- * sich ja darauf.
+ * DIE DREI FALLSTRICKE, UM DIE ES GEHT
  *
- * DER FALLSTRICK, UM DEN ES GEHT
+ *   1. GitHub Pages schickt die Dateien mit einer Haltbarkeit von zehn
+ *      Minuten. Ein gewöhnliches fetch() im Service Worker bekäme die alte
+ *      Fassung aus dem Zwischenspeicher des Browsers. Deshalb lädt sw.js mit
+ *      cache: 'reload' – und dieser Server schickt max-age=600.
+ *   2. Der Browser erkennt eine neue Fassung nur an einer geänderten sw.js.
+ *      Früher hing das an einer von Hand hochgezählten VERSION. Jetzt trägt
+ *      der Bau einen Fingerabdruck aller Dateien ein (STAND) – hier wird nur
+ *      eine Zeile in js/app.js geändert, die VERSION bleibt, und es muss
+ *      trotzdem ankommen.
+ *   3. Eine App auf dem iPhone-Startbildschirm wird selten neu gestartet. Sie
+ *      liegt im Hintergrund und wird fortgesetzt. Bis zum 28.10.2026 kam eine
+ *      neue Fassung erst beim nächsten echten Start; hier wird gemessen, dass
+ *      sie bei der Rückkehr kommt – ohne einen einzigen Neustart.
  *
- * GitHub Pages schickt die Dateien mit einer Haltbarkeit von zehn Minuten. Ein
- * gewöhnliches `fetch()` im Service Worker bekommt dann die *alte* Fassung aus
- * dem Zwischenspeicher des Browsers – und legt sie als vermeintlich frische in
- * seinen eigenen. So kann eine neue Fassung beliebig lange nicht ankommen,
- * obwohl sie längst online steht. Deshalb lädt sw.js mit `cache: 'reload'`.
- *
- * Dieser Test stellt genau das nach: ein eigener Server mit
- * `max-age=600`, wie ihn Pages schickt, über einer Kopie der App, die der Test
- * verändern darf.
+ * Was beim Neuladen in Arbeit sein darf und was nicht, prüft
+ * tests/test-auffrischen.mjs.
  */
 import { chromium } from 'playwright';
-import { createServer } from 'node:http';
-import { createReadStream, cpSync, mkdtempSync, readFileSync, writeFileSync, statSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { ROOT, KEY, HANDY, pruefer } from './umgebung.mjs';
+import {
+  appKopie, standNeu, aendern, kopieServer, zurueckkommen, frage, warteBis, shellListe,
+} from './vorrat.mjs';
 
 const { check, ende } = pruefer();
 
 /* ---------- Eine Kopie der App, die verändert werden darf ---------- */
 
-const ordner = mkdtempSync(path.join(tmpdir(), 'bauchbuch-nachschub-'));
-for (const teil of ['index.html', 'sw.js', 'manifest.webmanifest', 'icon.svg', 'css', 'js']) {
-  try {
-    cpSync(path.join(ROOT, teil), path.join(ordner, teil), { recursive: true });
-  } catch { /* Symbole sind für diesen Test entbehrlich */ }
-}
+const ordner = appKopie('nachschub');
+const swText = () => readFileSync(path.join(ordner, 'sw.js'), 'utf8');
+const standVon = (t) => (/const STAND = '([0-9a-f]*)'/.exec(t) || [])[1];
+const versionVon = (t) => (/const VERSION = '([^']*)'/.exec(t) || [])[1];
 
-const TYPEN = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.webmanifest': 'application/manifest+json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-};
+check(shellListe().length >= 40, `die Kopie entsteht aus der Liste in sw.js (${shellListe().length} Dateien)`);
+const alterStand = standVon(swText());
+const alteVersion = versionVon(swText());
+check(/^[0-9a-f]{12}$/.test(alterStand || ''), `sw.js trägt einen Stand (${alterStand})`);
+check(
+  alterStand === standVon(readFileSync(path.join(ROOT, 'sw.js'), 'utf8')),
+  'und zwar den eingecheckten',
+);
 
-/*
- * Der Server schickt `max-age=600` – genau wie GitHub Pages. Ohne diese Zeile
- * prüfte der Test die einfache Welt und nicht die, in der die App steht.
- */
-const server = createServer((req, res) => {
-  let rel = decodeURIComponent(req.url.split(/[?#]/)[0]);
-  if (rel.endsWith('/')) rel += 'index.html';
-  const datei = path.join(ordner, path.normalize(rel).replace(/^(\.\.[/\\])+/, ''));
-  let groesse;
-  try {
-    groesse = statSync(datei).size;
-  } catch {
-    res.writeHead(404).end('nicht da');
-    return;
-  }
-  res.writeHead(200, {
-    'content-type': TYPEN[path.extname(datei)] || 'application/octet-stream',
-    'content-length': groesse,
-    'cache-control': 'max-age=600',
-    'service-worker-allowed': '/',
-  });
-  createReadStream(datei).pipe(res);
-});
-await new Promise((ok) => server.listen(8201, '127.0.0.1', ok));
-const adresse = 'http://127.0.0.1:8201/index.html';
+const kopie = await kopieServer(ordner, 8201);
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: HANDY });
 const page = await ctx.newPage();
 const fehler = [];
 page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
+let ladungen = 0;
+page.on('load', () => { ladungen += 1; });
+// Die Uhr gehört dem Test: Die App sucht höchstens alle fünfzehn Minuten
+// nach einer neuen Fassung, und so lange wartet hier niemand.
+await page.clock.install();
 
 /* ---------- 1. Die alte Fassung liegt und läuft ---------- */
 
-await page.goto(adresse, { waitUntil: 'networkidle' });
-await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'heute' })), KEY);
-await page.reload({ waitUntil: 'networkidle' });
+await page.goto(kopie.adresse, { waitUntil: 'networkidle' });
+await page.evaluate(() => { window.__alt = true; });
 await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 15000 })
   .catch(() => {});
+await page.waitForTimeout(2500);
 
+/*
+ * Beim allerersten Besuch übernimmt der Service Worker die Seite per
+ * clients.claim(). Das löst dasselbe Ereignis aus wie eine neue Fassung –
+ * und darf trotzdem kein Neuladen auslösen, sonst lädt jede Seite beim
+ * ersten Besuch einmal neu.
+ */
 check(
-  await page.evaluate(() => !!navigator.serviceWorker.controller),
-  'der Service Worker bedient die Seite',
+  await frage(page, () => window.__alt === true) && ladungen === 1,
+  `das erste Einrichten lädt die Seite nicht neu (${ladungen} Ladung)`,
 );
-const vorher = await page.locator('#tabbar').textContent();
-check(vorher.includes('Tag'), `die alte Fassung zeigt den Reiter „Tag" (${vorher.slice(0, 40)})`);
+
+await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'heute' })), KEY);
+await page.reload({ waitUntil: 'networkidle' });
+check(await frage(page, () => !!navigator.serviceWorker.controller), 'der Service Worker bedient die Seite');
+check(
+  (await page.locator('#tabbar').textContent()).includes('Tag'),
+  'die alte Fassung zeigt den Reiter „Tag"',
+);
+
+// Ein Eintrag, der die Aktualisierung überleben muss.
+await page.locator('[data-act="neu"][data-art="essen"]').click();
+await page.locator('#bogenWas').fill('Haferbrei');
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(300);
+await page.evaluate(() => { window.__alt = true; });
+const nachStart = ladungen;
 
 /* ---------- 2. Eine neue Fassung wird veröffentlicht ---------- */
 
 /*
- * Wie in Wirklichkeit: eine Änderung am Programm *und* eine hochgezählte
- * VERSION in sw.js. An der Version hängt das Aufräumen der alten Vorräte –
- * ohne sie bliebe der alte Zwischenspeicher stehen.
+ * Wie in Wirklichkeit, mit einem Unterschied zu früher: Die VERSION bleibt,
+ * wie sie ist. Geändert wird nur js/app.js, und der Bau trägt den neuen Stand
+ * ein. Kommt das an, kann eine vergessene VERSION nichts mehr aufhalten.
  */
-const appDatei = path.join(ordner, 'js', 'app.js');
-writeFileSync(appDatei, readFileSync(appDatei, 'utf8')
-  .replace("{ id: 'heute', name: 'Tag'", "{ id: 'heute', name: 'NEUFASSUNG'"));
+aendern(ordner, 'js/app.js', "{ id: 'heute', name: 'Tag'", "{ id: 'heute', name: 'NEUFASSUNG'");
+const neuerStand = standNeu(ordner);
+check(neuerStand !== alterStand, `der Bau trägt einen neuen Stand ein (${alterStand} → ${neuerStand})`);
+check(versionVon(swText()) === alteVersion, `die VERSION ist unverändert geblieben (${alteVersion})`);
 
-const swDatei = path.join(ordner, 'sw.js');
-const alteVersion = /const VERSION = '(v\d+)'/.exec(readFileSync(swDatei, 'utf8'))[1];
-writeFileSync(swDatei, readFileSync(swDatei, 'utf8')
-  .replace(`const VERSION = '${alteVersion}'`, "const VERSION = 'vTEST'"));
+/* ---------- 3. Sie verlässt die App und kommt zurück ---------- */
 
-/* ---------- 3. Wie oft muss sie die App öffnen, bis sie es hat? ---------- */
+// Eine Viertelstunde später – erst dann sieht die App wieder nach.
+await page.clock.fastForward(16 * 60 * 1000);
+await zurueckkommen(page);
 
-/*
- * Die eigentliche Frage, und sie hat eine Zahl als Antwort. „Kommt an"
- * genügt nicht: Wenn es drei Starts dauert, muss man das wissen und
- * dazusagen, statt sich zu wundern, warum die Rückmeldung ausbleibt.
- */
-let oeffnungen = 0;
-let angekommen = false;
-for (let i = 1; i <= 4 && !angekommen; i++) {
-  await page.reload({ waitUntil: 'networkidle' });
-  /*
-   * Gewartet wird auf die Bedingung, nicht auf die Uhr: bis der neue Vorrat
-   * angelegt ist. Mit einer festen Zeit stand hier erst „drei Starts" – der
-   * dritte war nichts als eine zu knappe Wartezeit, und auf einer langsamen
-   * Maschine wäre daraus vier geworden. Ein Mensch, der die App am nächsten
-   * Tag wieder aufmacht, hat diese Zeit ohnehin.
-   */
-  /*
-   * Großzügig: bis zu dreißig Sekunden. Gemessen wird die Zahl der *Starts*,
-   * nicht die Geschwindigkeit der Maschine – der Service Worker lädt beim
-   * Einbau alle drei Dutzend Dateien frisch, und unter Last dauert das. Mit
-   * zehn Sekunden war dieser Test bei vollem Durchlauf jeder dritte Mal rot,
-   * ohne dass sich an der App etwas geändert hätte. Ein Mensch, der die App
-   * später wieder aufmacht, hat diese Zeit ohnehin.
-   */
-  for (let n = 0; n < 60; n++) {
-    // eslint-disable-next-line no-await-in-loop
-    if (await page.evaluate(async () => (await caches.keys()).includes('bauchbuch-vTEST'))) break;
-    // eslint-disable-next-line no-await-in-loop
-    await page.waitForTimeout(500);
-  }
-  oeffnungen = i;
-  angekommen = (await page.locator('#tabbar').textContent()).includes('NEUFASSUNG');
-}
-
-check(angekommen, `die neue Fassung kommt an (nach ${oeffnungen} Starts)`);
-
-/*
- * Drei und nicht zwei – und die Zahl ist eine Messung, keine Vorgabe.
- *
- * Allein läuft dieser Test mit zwei Starts durch, im vollen Durchlauf mit
- * drei: Der Service Worker lädt beim Einbau drei Dutzend Dateien frisch, und
- * neben einundvierzig anderen Browsern dauert das eine Runde länger. Auf zwei
- * zu bestehen hieße, von einer unbelasteten Maschine auf ein Telefon zu
- * schließen, auf dem eine einzige App aufgeht – und den Test bei jedem vollen
- * Lauf rot zu machen, ohne dass sich an der App etwas geändert hätte.
- *
- * Was hier wirklich geprüft gehört, ist nicht die Zwei, sondern dass es
- * überhaupt und in überschaubar wenigen Starts ankommt. Ab vier wäre der
- * Zusammenhang für einen Menschen nicht mehr erkennbar: Sie öffnet die App,
- * sieht das Alte, öffnet sie wieder, sieht das Alte – und hält das Update für
- * kaputt.
- */
-check(
-  oeffnungen <= 3,
-  `und zwar in den ersten drei Starts (gemessen: ${oeffnungen})`,
+const angekommen = await warteBis(
+  page,
+  () => !!document.querySelector('#tabbar')?.textContent.includes('NEUFASSUNG') && !window.__alt,
+  null,
+  40000,
 );
-
-/*
- * Und die Haltbarkeit von zehn Minuten hat es nicht aufgehalten. Das ist der
- * Punkt, an dem es ohne `cache: 'reload'` in sw.js scheitern würde – und zwar
- * lautlos.
- */
+check(angekommen, 'die neue Fassung ist da, ohne dass die App neu gestartet wurde');
 check(
-  angekommen,
-  'trotz max-age=600, wie GitHub Pages es schickt',
+  ladungen - nachStart === 1,
+  `und zwar mit genau einem Neuladen, das die App selbst auslöst (${ladungen - nachStart})`,
 );
+check(angekommen, 'trotz max-age=600, wie GitHub Pages es schickt');
+const hinweis = await frage(page, () => document.querySelector('#toast')?.textContent || '');
+check(/erneuert/.test(hinweis), `und ein Satz sagt, was passiert ist („${hinweis}")`);
 
 /* ---------- 4. Der alte Vorrat wird weggeräumt ---------- */
 
-const vorraete = await page.evaluate(() => caches.keys());
+const vorraete = await frage(page, () => caches.keys());
+const unsere = vorraete.filter((n) => n.startsWith('bauchbuch-'));
+check(unsere.length === 1, `nur ein Vorrat bleibt übrig (${vorraete.join(', ') || 'keiner'})`);
 check(
-  vorraete.filter((n) => n.startsWith('bauchbuch-')).length === 1,
-  `nur ein Vorrat bleibt übrig (${vorraete.join(', ') || 'keiner'})`,
-);
-check(
-  vorraete.includes('bauchbuch-vTEST'),
-  'und zwar der der neuen Fassung',
+  (unsere[0] || '').endsWith(`-${neuerStand}`),
+  `und zwar der der neuen Fassung (${unsere[0]})`,
 );
 
 /* ---------- 5. Und das Tagebuch hat die Aktualisierung überlebt ---------- */
@@ -203,12 +150,26 @@ check(
  * wäre kein Update, sondern ein Datenverlust – und sie ist die einzige
  * Gelegenheit, bei der so etwas unbemerkt passieren kann.
  */
+const tagebuch = await frage(page, (k) => JSON.parse(localStorage.getItem(k) || 'null'), KEY);
+check(!!tagebuch, 'das Tagebuch steht nach der Aktualisierung noch da');
 check(
-  await page.evaluate((k) => !!localStorage.getItem(k), KEY),
-  'das Tagebuch steht nach der Aktualisierung noch da',
+  !!tagebuch && tagebuch.eintraege.some((e) => e.was === 'Haferbrei'),
+  'mit dem Eintrag von kurz vor der Aktualisierung',
+);
+
+/* ---------- 6. Eine Fassung, die gleich bleibt, lädt nichts neu ---------- */
+
+const vorher = ladungen;
+await page.evaluate(() => { window.__alt = true; });
+await page.clock.fastForward(16 * 60 * 1000);
+await zurueckkommen(page);
+await page.waitForTimeout(3000);
+check(
+  ladungen === vorher && await frage(page, () => window.__alt === true),
+  `ohne neue Fassung kein Neuladen (${ladungen - vorher})`,
 );
 
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);
 await browser.close();
-await new Promise((ok) => server.close(ok));
+await kopie.zu();
 ende();

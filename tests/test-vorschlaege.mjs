@@ -18,12 +18,18 @@
  *
  * Kein Browser nötig: Hier wird gerechnet, nicht geklickt.
  */
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import { createServer } from 'node:http';
+import {
+  mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, existsSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pruefer } from './umgebung.mjs';
-import { neueZettel, alsMarkdown, entschaerfen, erledigtNachher, HOECHSTENS } from '../tools/vorschlaege.mjs';
+import {
+  neueZettel, alsMarkdown, entschaerfen, erledigtNachher, HOECHSTENS,
+  zeitmarkeVon, gemeldetMarke, gemeldetBis, meldungText, sammelstelleText,
+} from '../tools/vorschlaege.mjs';
 
 const { check, ende } = pruefer();
 
@@ -727,14 +733,24 @@ check(
 );
 
 /*
- * Was bleiben muss: Stufe 1. Der Entwurf wird weiter angelegt und zugewiesen,
- * sonst wäre mit dem Agenten auch der Rückkanal abgeschaltet — und dann käme
- * die Idee der Nutzerin wieder nirgends an.
+ * Was bleiben muss: Stufe 1. Mit dem Agenten darf nicht auch der Rückkanal
+ * abgeschaltet sein – sonst käme eine Idee wieder nirgends an.
+ *
+ * Hier stand bis zum 28.10.2026 „der Entwurf hängt nicht am Schalter". Der
+ * Entwurf war Stufe 1, und er trug den Wortlaut auf einen Zweig dieses
+ * öffentlichen Repositorys. Stufe 1 ist jetzt eine Meldung ohne Wortlaut; der
+ * Entwurf gehört zu Stufe 2 und hängt am Schalter wie jeder Schritt, der ins
+ * Repository schreibt (Abschnitt 9 unten).
  */
-const entwurf = ablauf.slice(ablauf.indexOf('- name: Entwurf anlegen'));
+const melden = ablauf.slice(
+  ablauf.indexOf('- name: Bescheid geben, ohne Wortlaut'),
+  ablauf.indexOf('- id: offen'),
+);
+check(melden.length > 0, 'es gibt den Schritt, der ohne Wortlaut Bescheid gibt');
+const meldenBedingung = (/^\s*if: (.*)$/m.exec(melden) || [])[1] || '';
 check(
-  !/AGENT_GEWOLLT/.test(entwurf.slice(0, entwurf.indexOf('run:'))),
-  'der Entwurf hängt nicht am Schalter – Stufe 1 läuft weiter',
+  /env\.AGENT_GEWOLLT != 'ja'/.test(meldenBedingung) && !/SCHLUESSEL_DA/.test(meldenBedingung),
+  `er läuft genau dann, wenn der Agent aus ist, und hängt an keinem Schlüssel (${meldenBedingung})`,
 );
 
 /*
@@ -769,5 +785,304 @@ for (const [was, block] of [
     `„${was}" nennt den Schalter selbst, statt sich auf einen anderen Schritt zu verlassen`,
   );
 }
+
+/* ---------- 9. Ohne Agenten kein Wortlaut im öffentlichen Repository ---------- */
+
+/*
+ * Am 28.10.2026 lag eine Idee im Wortlaut auf einem Zweig dieses Repositorys,
+ * und das Repository ist öffentlich. Niemand hatte das so gewollt; es war die
+ * Folge davon, dass Stufe 1 ein Entwurf war und der Entwurf den Eingang
+ * enthielt. Die App sagt „geht an Tobi", der Kasten „sonst von niemandem".
+ *
+ * Drei Riegel, und jeder wird hier einzeln geprüft:
+ *
+ *   a. Jeder Schritt, der ins Repository schreibt, nennt den Schalter selbst.
+ *   b. Das Abholen schreibt ohne Agenten gar nichts – nicht einmal auf die
+ *      Platte des Runners – und gibt nur Anzahl und Zeitpunkt weiter.
+ *   c. Der Schritt, der Bescheid gibt, bekommt weder Schlüssel noch Wortlaut.
+ *      Was er nicht hat, kann er nicht veröffentlichen.
+ */
+
+// a. Die Schritte einzeln, mit ihrer Bedingung.
+const schritte = ablauf.split(/\n(?=      - (?:name|id|uses): )/).slice(1);
+const SCHREIBT = /git push|gh pr create|gh pr comment|gh issue create|git add vorschlaege|>> vorschlaege\//;
+const schreibende = schritte.filter((s) => SCHREIBT.test(s));
+check(schreibende.length >= 5, `die schreibenden Schritte werden gefunden (${schreibende.length})`);
+for (const s of schreibende) {
+  const name = (/- (?:name|id): (.*)/.exec(s) || [])[1] || '?';
+  const bedingung = s.slice(0, s.indexOf('run:') > 0 ? s.indexOf('run:') : s.length);
+  check(
+    /env\.AGENT_GEWOLLT == 'ja'/.test(bedingung),
+    `„${name}" schreibt ins Repository und nennt dafür selbst den Schalter`,
+  );
+}
+
+const holen = schritte.find((s) => /^\s*- id: holen/.test(s)) || '';
+check(
+  /NUR_ZAEHLEN: \$\{\{ env\.AGENT_GEWOLLT == 'ja' && 'nein' \|\| 'ja' \}\}/.test(holen),
+  'das Abholen zählt nur, solange der Agent aus ist',
+);
+
+// c. Was der Meldeschritt in die Hand bekommt.
+check(
+  !/LESESCHLUESSEL|BRIEFKASTEN|secrets\./.test(melden),
+  'der Meldeschritt bekommt weder den Leseschlüssel noch die Adresse des Kastens',
+);
+check(/node tools\/vorschlaege-melden\.mjs/.test(melden), 'und ruft das Meldewerkzeug auf');
+const meldeQuelle = readFileSync(new URL('../tools/vorschlaege-melden.mjs', import.meta.url), 'utf8')
+  .split('\n').filter((z) => !/^\s*(\*|\/\/|\/\*)/.test(z)).join('\n');
+check(
+  !/LESESCHLUESSEL|eingang\.md|alle\.json|readFileSync|vorschlaege-holen/.test(meldeQuelle),
+  'und das Werkzeug liest weder Schlüssel noch Eingang noch den Kasten',
+);
+
+// b. Das Abholen, wirklich ausgeführt, gegen einen nachgebauten Kasten.
+const KANARIE = 'WORTLAUT-KANARIENVOGEL-7F3A';
+const kastenServer = createServer((req, res) => {
+  const u = new URL(req.url, 'http://x');
+  if (u.pathname !== '/alle.json' || u.searchParams.get('schluessel') !== 'lang-genug-zum-testen') {
+    res.writeHead(404).end();
+    return;
+  }
+  res.writeHead(200, { 'content-type': 'application/json' });
+  res.end(JSON.stringify({
+    zettel: [
+      { id: 'idee:01761683160000:bbbbbbbbbbbb', text: `Zweite ${KANARIE}`, am: '' },
+      { id: 'idee:01761679560000:aaaaaaaaaaaa', text: `Erste ${KANARIE}`, am: '' },
+    ],
+  }));
+});
+await new Promise((ok) => kastenServer.listen(8213, '127.0.0.1', ok));
+
+/*
+ * Nicht spawnSync: Der nachgebaute Kasten läuft in diesem Prozess, und ein
+ * blockierender Aufruf ließe ihn nie antworten.
+ */
+async function holeAb(nurZaehlen) {
+  const ort = mkdtempSync(join(tmpdir(), 'holen-'));
+  const ausgabe = join(ort, 'github-output');
+  writeFileSync(ausgabe, '');
+  const r = await new Promise((fertig) => {
+    const kind = spawn(process.execPath, [join(wurzel, 'tools/vorschlaege-holen.mjs')], {
+      cwd: ort,
+      env: {
+        ...process.env,
+        BRIEFKASTEN: 'http://127.0.0.1:8213',
+        LESESCHLUESSEL: 'lang-genug-zum-testen',
+        NUR_ZAEHLEN: nurZaehlen,
+        NACHFASSEN_SEKUNDEN: '0',
+        GITHUB_OUTPUT: ausgabe,
+      },
+    });
+    let log = '';
+    kind.stdout.on('data', (d) => { log += d; });
+    kind.stderr.on('data', (d) => { log += d; });
+    kind.on('close', (code) => fertig({ code, log }));
+  });
+  return {
+    ...r,
+    output: readFileSync(ausgabe, 'utf8'),
+    geschrieben: existsSync(join(ort, 'vorschlaege')),
+  };
+}
+
+const gezaehlt = await holeAb('ja');
+check(gezaehlt.code === 0, `das Abholen läuft (${gezaehlt.log.trim()})`);
+check(!gezaehlt.geschrieben, 'ohne Agenten entsteht kein Ordner vorschlaege/ – kein Wortlaut auf der Platte');
+check(/^anzahl=2$/m.test(gezaehlt.output), `es meldet die Anzahl (${gezaehlt.output.replace(/\n/g, ' ')})`);
+check(/^zeitmarke=\d{14}$/m.test(gezaehlt.output), 'und wann der neueste kam');
+check(
+  gezaehlt.output.includes('zeitmarke=01761683160000'),
+  'und zwar der neueste Zettel, nicht der erste in der Liste',
+);
+check(
+  !gezaehlt.log.includes(KANARIE) && !gezaehlt.output.includes(KANARIE),
+  'der Wortlaut steht weder im Protokoll noch in der Ausgabe',
+);
+
+// Gegenprobe: Mit Agent wird wie bisher geschrieben – sonst prüfte das oben nichts.
+const mitAgent = await holeAb('nein');
+check(mitAgent.geschrieben, 'mit Agent entsteht der Eingang wie bisher (Gegenprobe)');
+kastenServer.close();
+
+// c. Das Melden, wirklich ausgeführt, gegen ein nachgebautes GitHub.
+const LESEN = 'https://briefkasten.tobias-kruse-184.workers.dev/lesen';
+check(
+  sammelstelleText({ anzahl: 2, lesen: LESEN, besitzer: 'Finanzdienste' }).includes('@Finanzdienste'),
+  'die Sammelstelle nennt den Besitzer, damit GitHub ihn benachrichtigt',
+);
+let wirft = false;
+try { meldungText({ anzahl: 1, lesen: LESEN, besitzer: '@everyone x', zeitmarke: '01761683160000' }); } catch { wirft = true; }
+check(wirft, 'ein Besitzername mit fremden Zeichen wird abgewiesen, nicht durchgereicht');
+
+let gesperrtAbweisen = false;
+function ghServer(issues) {
+  const anfragen = [];
+  const server = createServer(async (req, res) => {
+    let roh = '';
+    for await (const s of req) roh += s;
+    const koerper = roh ? JSON.parse(roh) : null;
+    anfragen.push({ method: req.method, weg: req.url, koerper });
+    const u = new URL(req.url, 'http://x');
+    res.setHeader('content-type', 'application/json');
+    if (req.method === 'GET' && u.pathname === '/repos/o/r/issues') {
+      const welche = u.searchParams.get('state') || 'open';
+      res.end(JSON.stringify(issues.filter((i) => welche === 'all' || i.state === welche)));
+    } else if (req.method === 'POST' && u.pathname === '/repos/o/r/issues') {
+      const neu = { number: 7 + issues.length, state: 'open', ...koerper };
+      issues.unshift(neu);
+      res.writeHead(201).end(JSON.stringify(neu));
+    } else if (req.method === 'PUT' && /\/issues\/\d+\/lock$/.test(u.pathname)) {
+      const nr = Number(u.pathname.split('/')[5]);
+      const i = issues.find((x) => x.number === nr);
+      if (i) i.locked = true;
+      res.writeHead(204).end();
+    } else if (req.method === 'POST' && /\/issues\/\d+\/comments$/.test(u.pathname) && gesperrtAbweisen) {
+      res.writeHead(403).end('{}');
+    } else if (req.method === 'POST' && /\/issues\/\d+\/comments$/.test(u.pathname)) {
+      res.writeHead(201).end('{}');
+    } else if (req.method === 'PATCH' && /\/issues\/\d+$/.test(u.pathname)) {
+      const nr = Number(u.pathname.split('/').pop());
+      const i = issues.find((x) => x.number === nr);
+      Object.assign(i, koerper);
+      res.end(JSON.stringify(i));
+    } else {
+      res.writeHead(404).end('{}');
+    }
+  });
+  return { server, anfragen, issues };
+}
+
+async function meldeGegen(gh, anzahl, z) {
+  await new Promise((ok) => gh.server.listen(8214, '127.0.0.1', ok));
+  const r = await new Promise((fertig) => {
+    const kind = spawn(process.execPath, [join(wurzel, 'tools/vorschlaege-melden.mjs')], {
+      env: {
+        ...process.env,
+        GITHUB_API_URL: 'http://127.0.0.1:8214',
+        GH_TOKEN: 'test',
+        REPO: 'o/r',
+        BESITZER: 'Finanzdienste',
+        ANZAHL: String(anzahl),
+        ZEITMARKE: z,
+      },
+    });
+    let log = '';
+    kind.stdout.on('data', (d) => { log += d; });
+    kind.stderr.on('data', (d) => { log += d; });
+    kind.on('close', (code) => fertig({ code, log }));
+  });
+  await new Promise((ok) => gh.server.close(ok));
+  return r;
+}
+
+const s1 = zeitmarkeVon('idee:01761679560000:aaaaaaaaaaaa');
+const s2 = zeitmarkeVon('idee:01761683160000:bbbbbbbbbbbb');
+check(s1 === '01761679560000', `die Zeit steht vorn in der Kennung (${s1})`);
+
+// Erste Idee: Es gibt noch keine Sammelstelle.
+const gh1 = ghServer([]);
+const erst = await meldeGegen(gh1, 1, s1);
+const angelegt = gh1.anfragen.find((a) => a.method === 'POST' && a.weg === '/repos/o/r/issues');
+check(erst.code === 0, `das Melden läuft (${erst.log.trim()})`);
+check(!!angelegt, 'ohne Sammelstelle wird eine angelegt');
+check(
+  angelegt && angelegt.koerper.assignees.includes('Finanzdienste'),
+  'und dem Besitzer zugewiesen – daran hängt GitHub die Benachrichtigung',
+);
+check(
+  angelegt && angelegt.koerper.body.includes(LESEN) && angelegt.koerper.body.includes(gemeldetMarke(s1)),
+  'mit dem Weg zur Leseseite und der Marke des gemeldeten Stands',
+);
+check(
+  gh1.anfragen.some((a) => a.method === 'PUT' && /\/lock$/.test(a.weg)) && gh1.issues[0].locked,
+  'und gesperrt – dort schreiben dann nur noch Mitwirkende, keine nachgebauten Links',
+);
+check(
+  angelegt && /nicht eingeben/.test(angelegt.koerper.body),
+  'mit der Warnung, den Schlüssel nirgends sonst einzugeben',
+);
+
+// Derselbe Stand noch einmal: nichts.
+const gh2 = ghServer(gh1.issues);
+await meldeGegen(gh2, 1, s1);
+check(
+  !gh2.anfragen.some((a) => a.method !== 'GET'),
+  'ein schon gemeldeter Stand wird nicht noch einmal gemeldet',
+);
+
+// Zweite Idee: Kommentar mit Nennung, danach steht nur die neue Marke im Text.
+const gh3 = ghServer(gh1.issues);
+await meldeGegen(gh3, 2, s2);
+const kommentar = gh3.anfragen.find((a) => a.method === 'POST' && /comments$/.test(a.weg));
+check(
+  kommentar && kommentar.koerper.body.includes('@Finanzdienste') && kommentar.koerper.body.includes('2 Zettel'),
+  'eine neue Idee gibt einen Kommentar mit Nennung und Anzahl',
+);
+const sammelText = gh3.issues[0].body;
+check(
+  sammelText.includes(gemeldetMarke(s2)) && !sammelText.includes(gemeldetMarke(s1)),
+  'und im Text der Sammelstelle steht danach nur die neue Marke',
+);
+check(
+  gh3.anfragen.findIndex((a) => a.method === 'POST' && /comments$/.test(a.weg))
+    < gh3.anfragen.findIndex((a) => a.method === 'PATCH'),
+  'erst melden, dann die Marke setzen – eine doppelte Meldung ist besser als eine verlorene',
+);
+
+// Eine geschlossene Sammelstelle zählt nicht: Dann entsteht eine neue.
+const gh4 = ghServer([{ ...gh3.issues[0], state: 'closed' }]);
+await meldeGegen(gh4, 3, zeitmarkeVon('idee:01761690000000:cccccccccccc'));
+check(
+  gh4.anfragen.some((a) => a.method === 'POST' && a.weg === '/repos/o/r/issues'),
+  'wer die Sammelstelle schließt, bekommt beim nächsten Zettel eine neue',
+);
+
+// Aber nicht, wenn nichts Neues kam: Ein Lauf von Hand nach dem Schließen
+// darf keine „neue Idee" melden.
+const gh5 = ghServer([{ ...gh3.issues[0], state: 'closed' }]);
+await meldeGegen(gh5, 2, s2);
+check(
+  !gh5.anfragen.some((a) => a.method !== 'GET'),
+  'nach dem Schließen ohne neuen Zettel: keine Meldung',
+);
+
+// Tobi löscht den neuesten Zettel; ein älterer ist jetzt der neueste. Das
+// ist nichts Neues – mit einem Fingerabdruck als Merker kam hier eine
+// Fehlmeldung.
+const gh6 = ghServer(gh3.issues.map((i) => ({ ...i })));
+await meldeGegen(gh6, 1, s1);
+check(
+  !gh6.anfragen.some((a) => a.method !== 'GET'),
+  'ist der neueste Zettel gelöscht, meldet ein älterer nichts Neues',
+);
+
+// Lässt sich die Sammelstelle nicht kommentieren (gesperrt), entsteht eine neue.
+gesperrtAbweisen = true;
+const gh7 = ghServer(gh3.issues.map((i) => ({ ...i })));
+await meldeGegen(gh7, 3, zeitmarkeVon('idee:01761699999999:dddddddddddd'));
+gesperrtAbweisen = false;
+check(
+  gh7.anfragen.some((a) => a.method === 'POST' && a.weg === '/repos/o/r/issues'),
+  'geht das Kommentieren nicht, kommt die Meldung als neue Sammelstelle',
+);
+check(gemeldetBis(`x${gemeldetMarke(s1)}y${gemeldetMarke(s2)}`) === s2, 'gemeldetBis nimmt die späteste Marke');
+
+// Der harte Riegel für Stufe 2.
+const riegel = schritte.find((s) => /- name: Stufe 2 nur in einem privaten Repository/.test(s)) || '';
+check(
+  /env\.AGENT_GEWOLLT == 'ja' && github\.event\.repository\.private != true/.test(riegel) && /exit 1/.test(riegel),
+  'Stufe 2 bricht in einem öffentlichen Repository ab, statt den Wortlaut abzulegen',
+);
+check(
+  ablauf.indexOf('- name: Stufe 2 nur in einem privaten Repository') < ablauf.indexOf('- name: Zweig anlegen'),
+  'und zwar bevor ein Zweig angelegt wird',
+);
+
+check(
+  ![...gh1.anfragen, ...gh3.anfragen, ...gh4.anfragen]
+    .some((a) => JSON.stringify(a.koerper || '').includes(KANARIE)),
+  'in keiner Anfrage an GitHub steht ein Wortlaut',
+);
 
 ende();

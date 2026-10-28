@@ -169,8 +169,20 @@ const VORGABE = {
    * keine Rechnung sehen, nur der Mensch.
    */
   abnehmenGewollt: false,
-  // Wie viele Ideen beim letzten Weitergeben in der Liste standen. Daran
-  // erkennt die App, welche noch niemand gesehen hat – siehe ideenOffen().
+  /*
+   * Die alte Buchführung über verschickte Ideen: wie viele beim letzten
+   * Weitergeben in der Liste standen.
+   *
+   * Sie hatte zwei Fehler, die erst zusammen auffielen. Wer eine Idee
+   * löschte und eine neue schrieb, hatte wieder dieselbe Länge – die neue
+   * galt als verschickt und ging nie hinaus, während der Reiter „alle bei
+   * Tobi angekommen" sagte. Und verschickt wurde jedes Mal die ganze Liste;
+   * ab 2000 Zeichen lehnte der Kasten sie ab, und zwar für immer.
+   *
+   * Jetzt trägt jede Idee ihr eigenes `geschickt`. Diese Zahl bleibt nur
+   * stehen, damit ein alter Stand beim Laden richtig umgerechnet wird – siehe
+   * ideenMitMarke().
+   */
   ideenGeschickt: 0,
   /*
    * Woran die letzte Abgabe gescheitert ist – oder null, wenn nichts offen
@@ -192,9 +204,53 @@ const VORGABE = {
   // heißt sieben Tage, nicht „nie" – wer einmal wegtippt, hat das Tagebuch
   // deshalb nicht aufgegeben.
   sicherungSpaeter: null,
+  /*
+   * Der Umzug in die App auf dem Startbildschirm.
+   *
+   * Auf dem iPhone hat diese App dort einen eigenen Speicher, getrennt von
+   * Safari. Wer in Safari angefangen hat, nimmt seine Einträge über die
+   * Zwischenablage mit (siehe js/app.js, „Einträge mitnehmen").
+   *
+   *   umzug         { am, anzahl, letzter } – in Safari gesetzt, sobald
+   *                 mitgenommen wurde. Danach sagt Safari auf jedem Reiter,
+   *                 dass dort nicht mehr eingetragen werden sollte.
+   *   umzugGeholt   { am, anzahl } – in der App gesetzt, nachdem geholt wurde.
+   *   startbildschirmWeg  der Hinweis „auf den Startbildschirm" wurde
+   *                 weggetippt.
+   */
+  umzug: null,
+  umzugGeholt: null,
+  startbildschirmWeg: false,
 };
 
+/*
+ * Einstellungen, die keine Tagebuchdaten sind. Beim Zusammenführen zweier
+ * Stände gewinnt die Seite, auf der jemand etwas umgestellt hat – siehe
+ * zusammenfuehren().
+ */
+const EINSTELLUNGEN = [
+  'fenster', 'mindestFaelle', 'tagesfragen', 'theme', 'atemUebung', 'atemRunden',
+  'ton', 'abnehmenGewollt', 'unterleibGefragt', 'beschwerdenSeit',
+];
+
 const klon = (o) => JSON.parse(JSON.stringify(o));
+
+/**
+ * Jede Idee bekommt ihr eigenes `geschickt`.
+ *
+ * Ein alter Stand kennt nur die Zahl `ideenGeschickt`. Neue Ideen wurden vorn
+ * eingefügt, also sind die hinteren die alten – und so viele davon gelten als
+ * verschickt, wie die Zahl sagt. Das ist genau die Auskunft, die die alte
+ * Buchführung gab, nur ab jetzt je Idee.
+ */
+function ideenMitMarke(ideen, geschicktAlt) {
+  const liste = (Array.isArray(ideen) ? ideen : [])
+    .filter((x) => x && typeof x === 'object' && typeof x.text === 'string');
+  const n = Math.max(0, Math.min(liste.length, Number(geschicktAlt) || 0));
+  return liste.map((x, i) => (typeof x.geschickt === 'boolean'
+    ? x
+    : { ...x, geschickt: i >= liste.length - n }));
+}
 
 let zustand = laden();
 const hoerer = new Set();
@@ -210,6 +266,7 @@ function laden() {
     // kannte. Sonst stünde die Einführung eines Tages wieder vor dem Tagebuch.
     if (!('begruesst' in gelesen) && s.eintraege.length) s.begruesst = true;
     s.eintraege = sortiert((Array.isArray(s.eintraege) ? s.eintraege : []).map(mahlzeitFrisch));
+    s.ideen = ideenMitMarke(s.ideen, s.ideenGeschickt);
     return s;
   } catch {
     return klon(VORGABE);
@@ -843,16 +900,39 @@ export function kuecheLoeschen(id) {
  * auf dem Ideenreiter und wurde übersehen – eine Idee, die niemand liest, ist
  * dasselbe wie keine.
  *
- * Gezählt wird schlicht die Länge der Liste beim letzten Weitergeben. Das ist
- * gröber als eine Markierung je Idee und dafür ehrlich: Wer zwischendurch
- * etwas löscht, bekommt eher zu wenig „neu" angezeigt als zu viel.
+ * Gezählt wird je Idee. Hier stand einmal „die Länge der Liste beim letzten
+ * Weitergeben", mit der Begründung, das sei gröber und dafür ehrlich. Es war
+ * falsch: Eine Idee löschen und eine neue schreiben ergab dieselbe Länge, die
+ * neue galt als verschickt und kam nie an.
  */
 export function ideenOffen() {
-  return Math.max(0, zustand.ideen.length - (zustand.ideenGeschickt || 0));
+  return zustand.ideen.filter((x) => !x.geschickt).length;
 }
 
+/** Die noch nicht verschickten Ideen, die älteste zuerst. */
+export function ideenUnterwegs() {
+  return zustand.ideen.filter((x) => !x.geschickt).reverse();
+}
+
+function geschicktZaehlen() {
+  zustand.ideenGeschickt = zustand.ideen.filter((x) => x.geschickt).length;
+}
+
+/** Eine einzelne Idee ist beim Kasten angekommen. */
+export function ideeGeschicktMerken(id) {
+  const i = zustand.ideen.findIndex((x) => x.id === id);
+  if (i < 0) return;
+  zustand.ideen[i] = { ...zustand.ideen[i], geschickt: true };
+  geschicktZaehlen();
+  zustand.ideenFehler = null;
+  merke();
+  melde();
+}
+
+/** Alle auf einmal – nach „Kopieren" oder „Anders schicken". */
 export function ideenGeschicktMerken() {
-  zustand.ideenGeschickt = zustand.ideen.length;
+  zustand.ideen = zustand.ideen.map((x) => ({ ...x, geschickt: true }));
+  geschicktZaehlen();
   zustand.ideenFehler = null;
   merke();
   melde();
@@ -889,7 +969,7 @@ function ideenBeruehrt() {
 export function ideeAnlegen(text) {
   const sauber = String(text || '').trim();
   if (!sauber) return null;
-  const neu = { id: neueId(), am: heuteISO(), text: sauber, erledigt: false };
+  const neu = { id: neueId(), am: heuteISO(), text: sauber, erledigt: false, geschickt: false };
   zustand.ideen = [neu, ...zustand.ideen];
   ideenBeruehrt();
   merke();
@@ -991,7 +1071,7 @@ export function sicherungNotiert() {
  * Bekannte wird auf seinen Typ gebracht, und jeder einzelne Eintrag muss
  * mindestens Datum und Art haben, sonst fliegt er raus.
  */
-export function ausJSON(text) {
+function sicherungLesen(text) {
   const gelesen = JSON.parse(text);
   if (!gelesen || typeof gelesen !== 'object' || Array.isArray(gelesen)
       || !Array.isArray(gelesen.eintraege)) {
@@ -1009,7 +1089,7 @@ export function ausJSON(text) {
   frisch.eintraege = sortiert(gelesen.eintraege.filter((e) => (
     e && typeof e === 'object' && typeof e.am === 'string' && typeof e.art === 'string'
   )).map((e) => mahlzeitFrisch({ ...e, id: e.id || neueId() })));
-  frisch.ideen = frisch.ideen.filter((x) => x && typeof x === 'object' && typeof x.text === 'string')
+  frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
   // Ein halb gelesener Versuch würde die Tagesansicht mit „Tag NaN von
@@ -1051,10 +1131,166 @@ export function ausJSON(text) {
         .filter((st) => st && typeof st.gruppe === 'string' && typeof st.start === 'string'),
     };
   }
-  zustand = frisch;
+  return frisch;
+}
+
+/* ---------- Einlesen, ohne etwas zu verlieren ---------- */
+
+/*
+ * Hier stand bis zum 28.10.2026 nur ausJSON(): Der eingelesene Stand ersetzte
+ * den vorhandenen, ohne Rückfrage und ohne Kopie. Solange eine Sicherung nur
+ * nach einem verlorenen Gerät eingelesen wurde, ging das gut. Mit dem Umzug
+ * von Safari in die App auf dem Startbildschirm wurde es zur Falle: Wer in
+ * der neuen App erst ein Frühstück einträgt und danach die Safari-Einträge
+ * holt, hätte das Frühstück verloren – oder umgekehrt, wer zweimal holt, die
+ * Einträge dazwischen.
+ *
+ * Deshalb jetzt zwei Sicherungen hintereinander:
+ *
+ *   1. Vor jedem Einlesen liegt der bisherige Stand unter einem eigenen
+ *      Schlüssel und lässt sich mit rueckgaengig() zurückholen.
+ *   2. Ist schon etwas da, wird zusammengeführt statt ersetzt: Einträge,
+ *      Ideen, Listen über ihre Kennung, Tagesfragen je Tag und je Feld.
+ *      Bei Gleichstand gewinnt, was schon hier stand.
+ */
+
+const VORHER = `${KEY}.vorher`;
+
+/** Steht in diesem Tagebuch noch gar nichts? Einstellungen zählen nicht. */
+export function istLeer(s = zustand) {
+  return !s.eintraege.length && !Object.keys(s.tage || {}).length && !s.ideen.length
+    && !s.kueche.length && !s.befunde.length && !s.termine.length && !s.gewicht.length
+    && !s.eigeneAusloeser.length && !s.versuche.length && !s.provokationen.length
+    && !s.stufenplaene.length && !s.versuch && !s.provokation && !s.stufenplan;
+}
+
+function vorherAblegen() {
+  try {
+    localStorage.setItem(VORHER, JSON.stringify({ am: new Date().toISOString(), zustand }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Liegt ein Stand von vor dem letzten Einlesen? { am, anzahl } oder null. */
+export function vorherDa() {
+  try {
+    const roh = localStorage.getItem(VORHER);
+    if (!roh) return null;
+    const v = JSON.parse(roh);
+    return { am: v.am, anzahl: (v.zustand && v.zustand.eintraege || []).length };
+  } catch {
+    return null;
+  }
+}
+
+/** Den Stand von vor dem letzten Einlesen zurückholen. */
+export function rueckgaengig() {
+  const roh = localStorage.getItem(VORHER);
+  if (!roh) throw new Error('Es gibt keinen früheren Stand mehr.');
+  const v = JSON.parse(roh);
+  zustand = sicherungLesen(JSON.stringify(v.zustand));
+  try { localStorage.removeItem(VORHER); } catch { /* dann bleibt er eben */ }
   merke();
   melde();
-  return frisch.eintraege.length;
+  return zustand.eintraege.length;
+}
+
+/** Zwei Listen vereinigen; bei gleicher Kennung bleibt der erste Teil. */
+function vereinigt(hier, dazu, kennung) {
+  const schon = new Set(hier.map(kennung));
+  return [...hier, ...dazu.filter((x) => !schon.has(kennung(x)))];
+}
+
+const gleichWie = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+function zusammenfuehren(hier, dazu) {
+  const neu = { ...hier };
+  neu.eintraege = sortiert(vereinigt(hier.eintraege, dazu.eintraege, (e) => e.id));
+  neu.tage = { ...hier.tage };
+  Object.keys(dazu.tage || {}).forEach((iso) => {
+    neu.tage[iso] = { ...dazu.tage[iso], ...(hier.tage[iso] || {}) };
+  });
+  neu.ideen = vereinigt(hier.ideen, dazu.ideen, (x) => x.id);
+  neu.eigeneAusloeser = vereinigt(hier.eigeneAusloeser, dazu.eigeneAusloeser, (a) => a.id);
+  neu.kueche = vereinigt(hier.kueche, dazu.kueche, (k) => String(k.name || '').toLowerCase());
+  neu.befunde = vereinigt(hier.befunde, dazu.befunde, (b) => b.id);
+  neu.zuletztMittel = [...new Set([...hier.zuletztMittel, ...dazu.zuletztMittel])].slice(0, 5);
+  neu.termine = [...new Set([...hier.termine, ...dazu.termine])].sort().reverse();
+  neu.gewicht = vereinigt(hier.gewicht, dazu.gewicht, (g) => g.am)
+    .sort((a, b) => String(b.am).localeCompare(String(a.am)));
+  ['versuche', 'provokationen', 'stufenplaene'].forEach((k) => {
+    neu[k] = vereinigt(hier[k], dazu[k], (x) => x.id || JSON.stringify(x));
+  });
+  ['versuch', 'provokation', 'stufenplan'].forEach((k) => {
+    neu[k] = hier[k] || dazu[k];
+  });
+  // Einstellungen: Wer hier noch nichts umgestellt hat, bekommt die von dort.
+  EINSTELLUNGEN.forEach((k) => {
+    if (gleichWie(hier[k], VORGABE[k])) neu[k] = dazu[k];
+  });
+  neu.begruesst = true;
+  return neu;
+}
+
+/**
+ * Eine Sicherung einlesen, ohne etwas zu verlieren.
+ *
+ * Zurück kommt { anzahl, vorher, zusammengefuehrt }: wie viele Einträge
+ * jetzt da sind, wie viele es vorher waren, und ob zusammengeführt wurde.
+ */
+export function einlesen(text) {
+  const dazu = sicherungLesen(text);
+  const vorher = zustand.eintraege.length;
+  const leer = istLeer();
+  vorherAblegen();
+  zustand = leer ? dazu : zusammenfuehren(zustand, dazu);
+  merke();
+  melde();
+  return { anzahl: zustand.eintraege.length, vorher, zusammengefuehrt: !leer };
+}
+
+/** Wie einlesen(), aber ersetzt immer. Bleibt für alte Aufrufer. */
+export function ausJSON(text) {
+  const dazu = sicherungLesen(text);
+  vorherAblegen();
+  zustand = dazu;
+  merke();
+  melde();
+  return dazu.eintraege.length;
+}
+
+/* ---------- Umzug in die App auf dem Startbildschirm ---------- */
+
+/** In Safari: vermerken, dass gerade mitgenommen wurde. */
+export function umzugMerken() {
+  const letzter = zustand.eintraege[zustand.eintraege.length - 1] || null;
+  zustand.umzug = {
+    am: heuteISO(),
+    anzahl: zustand.eintraege.length,
+    letzter: letzter ? { am: letzter.am, um: letzter.um || '' } : null,
+  };
+  merke();
+  melde();
+  return zustand.umzug;
+}
+
+/**
+ * In der App: vermerken, dass geholt wurde.
+ *
+ * Die Sicherungserinnerung fängt danach von vorn an. Was aus Safari kam,
+ * trägt dessen lastBackup mit – aber die Kopie in Safari verschwindet nach
+ * einer Woche ohne Besuch von selbst, und die Zwischenablage beim nächsten
+ * Kopieren. Hier soll so bald wie möglich eine echte Sicherung entstehen.
+ */
+export function umzugGeholtMerken() {
+  zustand.umzugGeholt = { am: heuteISO(), anzahl: zustand.eintraege.length };
+  zustand.lastBackup = null;
+  zustand.sicherungSpaeter = null;
+  zustand.begruesst = true;
+  merke();
+  melde();
 }
 
 export function allesLoeschen() {
