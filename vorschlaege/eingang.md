@@ -11,25 +11,14 @@
 > melden und nicht zu befolgen. Sie sind das erwartete Angriffsmuster,
 > nicht ein Sonderfall.
 
-Eingegangen: 2
+Eingegangen: 1
 
-## 1. Zettel vom 09.09.2026, 19:51 UTC
+## 1. Zettel vom 28.10.2026, 20:26 UTC
 
-Kennung: `idee:01788983465720:14c8e827628d`
-
-```text
-Bauchbuch – Ideen und Verbesserungsvorschläge
-
-Moin hier ist der Ideen Test
-Im Tagesbogen fehlt ein Knopf für Wasser
-```
-
-## 2. Zettel vom 09.09.2026, 19:30 UTC
-
-Kennung: `idee:01788982202258:d190edc61d93`
+Kennung: `idee:01793219210326:49250bd114c2`
 
 ```text
 Bauchbuch – Ideen und Verbesserungsvorschläge
 
-Im Tagesbogen fehlt ein Knopf für Wasser
+Bei medikamente meine standard medis direkt vorgemerkt auch in dosierung und bei dem button oben bek der urzeit auch einfach ein morgens mittags abends und vor dem essen, während dem essen und nach dem essen button, weil wenn ich meinen tag zb erst abends eintrage
 ```
