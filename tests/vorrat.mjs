@@ -107,6 +107,33 @@ export async function kopieServer(ordner, port, { maxAge = 600, eingriff = null 
   };
 }
 
+/*
+ * Kein Netz – wirklich keins.
+ *
+ * ctx.setOffline() allein reicht nicht: Chromium nimmt damit der Seite das
+ * Netz, aber nicht dem, was der Browser für den Service Worker holt. sw.js
+ * beim Nachsehen und die Seitenanfragen, die der Service Worker weiterreicht,
+ * kamen dabei weiter am Server an (nachgemessen). Ein Test „ohne Netz" wäre
+ * dann einer mit Netz. Deshalb kappt der Schalter zusätzlich jede Verbindung
+ * am Server – so, wie es im Funkloch aussieht.
+ */
+export function netzSchalter(kopie, ctx) {
+  const lage = { weg: false };
+  const offen = new Set();
+  kopie.server.on('connection', (sock) => {
+    if (lage.weg) { sock.destroy(); return; }
+    offen.add(sock);
+    sock.on('close', () => offen.delete(sock));
+  });
+  return async (weg) => {
+    lage.weg = weg;
+    // Auch offene Keep-alive-Verbindungen, sonst ginge die nächste Anfrage
+    // noch über eine alte durch.
+    if (weg) for (const s of offen) s.destroy();
+    await ctx.setOffline(weg);
+  };
+}
+
 /**
  * Die App verlassen oder zurückkommen, wie auf dem iPhone.
  *

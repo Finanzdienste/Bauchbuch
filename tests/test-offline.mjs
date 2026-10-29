@@ -5,18 +5,28 @@
  * im Zug, im Untergeschoss einer Praxis. Eine App, die dann eine leere Seite
  * zeigt, wird nach dem zweiten Mal nicht mehr geöffnet – und ein Tagebuch mit
  * Lücken ist genau das, was die Auswertung wertlos macht.
+ *
+ * Ohne Netz heißt hier: ohne Netz auch für den Service Worker. ctx.setOffline()
+ * allein nimmt es nur der Seite, und dann holte der Service Worker die Seite
+ * weiter vom Server – der Test liefe mit Netz. Deshalb ein eigener Server, der
+ * im Funkloch jede Verbindung kappt (netzSchalter in tests/vorrat.mjs).
  */
 import { chromium } from 'playwright';
 import { rmSync } from 'node:fs';
-import { URL, KEY, HANDY, SHOT, profil, pruefer } from './umgebung.mjs';
+import { ROOT, KEY, HANDY, SHOT, profil, pruefer } from './umgebung.mjs';
+import { kopieServer, netzSchalter } from './vorrat.mjs';
 
 const { check, ende } = pruefer();
+const kopie = await kopieServer(ROOT, 8202);
+const URL = kopie.adresse;
+const amServer = () => [...kopie.abrufe.values()].reduce((a, b) => a + b, 0);
 
 // Frisches Profil: ein Zwischenspeicher aus dem letzten Lauf gehört einer
 // älteren Fassung.
 const ORT = profil('sw');
 rmSync(ORT, { recursive: true, force: true });
 const ctx = await chromium.launchPersistentContext(ORT, { viewport: HANDY });
+const netzWeg = netzSchalter(kopie, ctx);
 const page = ctx.pages()[0] || await ctx.newPage();
 const fehler = [];
 page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
@@ -54,7 +64,8 @@ check(vorrat.some((p) => p.endsWith('/js/bericht.js')), 'und der Bericht – er 
 
 /* ---------- Netz weg ---------- */
 
-await ctx.setOffline(true);
+await netzWeg(true);
+const vorDemFunkloch = amServer();
 await page.reload({ waitUntil: 'load' });
 await page.waitForTimeout(400);
 
@@ -84,14 +95,19 @@ await page.reload({ waitUntil: 'load' });
 await page.waitForTimeout(400);
 check(await page.locator('.strang-zeile').count() === 2, 'offline Eingetragenes übersteht das Neuladen');
 await page.screenshot({ path: `${SHOT}/50-offline.png` });
+check(
+  amServer() === vorDemFunkloch,
+  `und das alles, ohne dass eine Anfrage den Server erreicht hat (${amServer() - vorDemFunkloch})`,
+);
 
 /* ---------- Netz zurück ---------- */
 
-await ctx.setOffline(false);
+await netzWeg(false);
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(300);
 check(await page.locator('.strang-zeile').count() === 2, 'nach der Rückkehr des Netzes ist alles unverändert');
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await ctx.close();
+await kopie.zu();
 ende();

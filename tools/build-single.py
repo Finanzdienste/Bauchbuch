@@ -44,15 +44,29 @@ def stand_berechnen(wurzel):
     Jetzt steht der Fingerabdruck in sw.js. Aendert sich irgendeine der
     gelisteten Dateien, aendert sich sw.js mit, und die CI merkt, wenn dieser
     Bau vergessen wurde (siehe .github/workflows/pruefung.yml).
+
+    sw.js selbst zaehlt mit, nur ohne die Zeile, in die der Fingerabdruck
+    kommt. Sonst hiesse eine Fassung, die nur sw.js aendert, genauso wie die
+    laufende -- und beide teilten sich einen Vorrat.
     """
     sw = (wurzel / 'sw.js').read_text(encoding='utf-8')
     treffer = SHELL_RE.search(sw)
     if not treffer:
         sys.exit('sw.js: die Liste SHELL ist nicht zu finden')
+    # Jeder Eintrag muss die Form './…' in einfachen Anfuehrungszeichen haben.
+    # Ein Eintrag in doppelten Anfuehrungszeichen hielte der Service Worker
+    # trotzdem vor, das Muster unten saehe ihn aber nicht -- und eine
+    # Aenderung an genau dieser Datei kaeme nirgends an.
+    liste = re.sub(r'/\*.*?\*/|//[^\n]*', '', treffer.group(1), flags=re.DOTALL)
+    for eintrag in (e.strip() for e in liste.split(',')):
+        if eintrag and not re.fullmatch(r"'\./[^']*'", eintrag):
+            sys.exit(f"sw.js: SHELL-Eintrag {eintrag} hat nicht die Form './...' "
+                     'in einfachen Anfuehrungszeichen')
     pfade = sorted({p for p in re.findall(r"'\./([^']*)'", treffer.group(1)) if p})
     if len(pfade) < 10:
         sys.exit(f'sw.js: SHELL sieht unvollstaendig aus ({len(pfade)} Dateien)')
     h = hashlib.sha256()
+    h.update(b'sw.js\0' + STAND_RE.sub("const STAND = '';", sw).encode('utf-8') + b'\0')
     for rel in pfade:
         datei = wurzel / rel
         if not datei.is_file():
@@ -174,7 +188,15 @@ def main():
 if __name__ == '__main__':
     # Nur den Fingerabdruck in einem anderen Ordner eintragen -- dafuer braucht
     # ihn tests/test-nachschub.mjs, der eine Kopie der App veraendert.
-    if len(sys.argv) == 3 and sys.argv[1] == '--nur-stand':
-        print(stand_schreiben(pathlib.Path(sys.argv[2]).resolve()))
-    else:
+    # Alles andere bricht ab: Ein vertippter Aufruf baute sonst still das
+    # Repository, in dem dieses Skript liegt, statt der gemeinten Kopie.
+    argumente = sys.argv[1:]
+    if not argumente:
         main()
+    elif len(argumente) == 2 and argumente[0] == '--nur-stand':
+        ziel = pathlib.Path(argumente[1]).resolve()
+        if not (ziel / 'sw.js').is_file():
+            sys.exit(f'--nur-stand: in {ziel} liegt keine sw.js')
+        print(stand_schreiben(ziel))
+    else:
+        sys.exit('Aufruf: build-single.py [--nur-stand <ordner>]')

@@ -31,7 +31,7 @@
  */
 
 const VERSION = 'v24';
-const STAND = '215a5905d4e2';
+const STAND = 'dad4a79f049a';
 const CACHE = `bauchbuch-${VERSION}-${STAND}`;
 
 const SHELL = [
@@ -133,10 +133,16 @@ const frisch = (input) => {
  * Fassung trotzdem aktiv, 'activate' räumt die alte weg, und ohne Netz bleibt
  * die App weiß. Jetzt verwirft eine unvollständige Fassung sich selbst; die
  * alte bleibt, und beim nächsten Nachsehen wird es erneut versucht.
+ *
+ * Verworfen wird aber nur ein Vorrat, den diese Installation selbst angelegt
+ * hat. Trägt er denselben Namen wie der laufende, ist er der laufende – und
+ * ihn zu löschen hieße, der App ohne Netz den Boden wegzuziehen.
  */
 self.addEventListener('install', (event) => {
+  let schonDa = false;
   event.waitUntil(
-    caches.open(CACHE)
+    caches.has(CACHE)
+      .then((da) => { schonDa = da; return caches.open(CACHE); })
       .then((cache) => Promise.all(SHELL.map((url) => frisch(url)
         .then((res) => {
           if (res && res.ok) return cache.put(url, res);
@@ -147,7 +153,8 @@ self.addEventListener('install', (event) => {
           throw fehler;
         }))))
       .then(() => self.skipWaiting())
-      .catch((fehler) => caches.delete(CACHE).then(() => { throw fehler; })),
+      .catch((fehler) => (schonDa ? Promise.resolve() : caches.delete(CACHE))
+        .then(() => { throw fehler; })),
   );
 });
 

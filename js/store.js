@@ -243,6 +243,15 @@ const EINSTELLUNGEN = [
   'ton', 'abnehmenGewollt', 'unterleibGefragt', 'beschwerdenSeit',
 ];
 
+/*
+ * Was zu diesem Gerät gehört und nicht zum Tagebuch. Eine Sicherung trägt
+ * diese Felder mit, eingelesen werden sie nicht: Sonst stünde auf einem
+ * neuen Telefon „Mitgenommen am …" mit den Zahlen eines anderen, und die
+ * Anleitung für den Startbildschirm fehlte.
+ */
+const GERAETEBEZOGEN = ['umzug', 'umzugGeholt', 'startbildschirmWeg', 'sicherungSpaeter'];
+const geraetBehalten = (dazu) => { GERAETEBEZOGEN.forEach((k) => { dazu[k] = zustand[k]; }); };
+
 const klon = (o) => JSON.parse(JSON.stringify(o));
 
 /**
@@ -1308,6 +1317,7 @@ function zusammenfuehren(hier, dazu) {
  */
 export function einlesen(text) {
   const dazu = sicherungLesen(text);
+  geraetBehalten(dazu);
   const vorher = zustand.eintraege.length;
   const leer = istLeer();
   vorherAblegen();
@@ -1320,6 +1330,7 @@ export function einlesen(text) {
 /** Wie einlesen(), aber ersetzt immer. Bleibt für alte Aufrufer. */
 export function ausJSON(text) {
   const dazu = sicherungLesen(text);
+  geraetBehalten(dazu);
   vorherAblegen();
   zustand = dazu;
   merke();
@@ -1336,6 +1347,8 @@ export function umzugMerken() {
     am: heuteISO(),
     anzahl: zustand.eintraege.length,
     letzter: letzter ? { am: letzter.am, um: letzter.um || '' } : null,
+    // Woran Safari später erkennt, was seitdem dazukam.
+    ids: zustand.eintraege.map((e) => e.id),
   };
   merke();
   melde();

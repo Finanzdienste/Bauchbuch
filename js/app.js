@@ -186,7 +186,11 @@ const NEULADEN_MERK = 'bauchbuch.neugeladen';
 const NACH_NEULADEN = 'bauchbuch.nachNeuladen';
 let bereit = null;          // { version, stand } einer neuen Fassung, die wartet
 let angefasst = false;      // seit dem Start oder der Rückkehr berührt?
-let ausdruecklich = false;  // „Nach neuer Fassung suchen" getippt
+// „Nach neuer Fassung suchen" getippt: Bis zu diesem Zeitpunkt darf sie
+// auch unter den Fingern neu laden. Ein Zeitfenster und kein Schalter – ein
+// Schalter bliebe nach einer Suche ohne Fund an, und die nächste Fassung
+// käme mitten beim Lesen.
+let ausdruecklichBis = 0;
 
 /*
  * Auf den Startbildschirm – als App, nicht als Lesezeichen.
@@ -228,9 +232,13 @@ function geraet() {
   const ios = /iPhone|iPad|iPod/.test(ua) || ipad;
   const inApp = /FBAN|FBAV|Instagram|GSA\/|Line\/|WhatsApp|Snapchat|TikTok/i.test(ua);
   const anderer = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  // Safari auf dem Mac: dieselbe Kennung wie das iPad, nur ohne Berührung.
+  // Chrome und Firefox auf dem Mac tragen kein „Version/".
+  const mac = /Macintosh/.test(ua) && !ipad && /Version\/\d+/.test(ua) && /Safari\//.test(ua);
   return {
     ios,
     ipad,
+    mac,
     inApp,
     anderer,
     version: Number((/Version\/(\d+)/.exec(ua) || [])[1]) || 0,
@@ -252,6 +260,14 @@ function anleitung(g) {
     return liste([
       'Oben rechts auf das <b>Teilen</b>-Symbol tippen (Quadrat mit Pfeil nach oben).',
       'Auf <b>Zum Home-Bildschirm</b> tippen, dann auf <b>Hinzufügen</b>.',
+    ]);
+  }
+  // Safari auf dem iPad hat keine Leiste unten; dort sitzt alles oben.
+  if (g.version >= 26 && g.ipad) {
+    return liste([
+      'Oben rechts auf das <b>Teilen</b>-Symbol tippen (Quadrat mit Pfeil nach oben). Ist es nicht zu sehen, zuerst auf <b>•••</b> neben der Adresse.',
+      'In der Liste <b>Zum Home-Bildschirm</b> antippen.',
+      'Den Schalter <b>Als Web-App öffnen</b> eingeschaltet lassen, dann <b>Hinzufügen</b>.',
     ]);
   }
   if (g.version >= 26) {
@@ -312,6 +328,15 @@ function startbildschirmKarte(s, ort) {
       ${knopf('installieren', 'Installieren', 'btn-primary btn-block')}
     </div>`;
   }
+  if (g.mac && g.version >= 17) {
+    if (ort !== 'mehr') return '';
+    return `<div class="karte">
+      <h3>Ins Dock</h3>
+      <p class="klein">In Safari oben in der Menüleiste <b>Ablage › Zum Dock hinzufügen</b>
+      wählen. Danach öffnet sich Bauchbuch wie ein eigenes Programm, mit
+      eigenem Speicher – getrennt von dem in Safari.</p>
+    </div>`;
+  }
   if (!g.ios) {
     if (ort !== 'mehr') return '';
     return `<div class="karte">
@@ -367,7 +392,13 @@ const installKarte = () => startbildschirmKarte(store.zustandLesen(), 'mehr');
  */
 function umzugHinweis(s, tab) {
   if (!s.umzug || laeuftAlsApp()) return '';
-  const seitdem = Math.max(0, s.eintraege.length - (s.umzug.anzahl || 0));
+  // Gemessen an den Kennungen von damals: Wer einen Eintrag löscht und einen
+  // neuen anlegt, hat trotzdem einen neuen. Ältere Vermerke ohne Kennungen
+  // fallen auf den Längenvergleich zurück.
+  const damals = Array.isArray(s.umzug.ids) ? new Set(s.umzug.ids) : null;
+  const seitdem = damals
+    ? s.eintraege.filter((x) => !damals.has(x.id)).length
+    : Math.max(0, s.eintraege.length - (s.umzug.anzahl || 0));
   const voll = tab === 'heute';
   return `<div class="karte karte-merk">
     <h3>Mitgenommen am ${datumKurz(s.umzug.am)}</h3>
@@ -376,8 +407,10 @@ function umzugHinweis(s, tab) {
     App auf dem Startbildschirm ein.</b> Was du hier in Safari einträgst,
     kommt dort nicht an.</p>
     ${seitdem ? `<p class="klein"><b>Seitdem ${seitdem === 1 ? 'steht hier 1 neuer Eintrag' : `stehen hier ${seitdem} neue Einträge`}.</b>
-      Nimm noch einmal mit und hol in der App noch einmal – doppelte
-      Einträge erkennt sie.</p>
+      Nimm noch einmal mit und hol sie in der App unter „Mehr" › „Aus Safari
+      holen" – doppelte Einträge erkennt sie. Was du hier an schon
+      mitgenommenen Einträgen änderst, kommt dabei nicht mit; dort gilt der
+      Stand der App.</p>
       <div class="reihe">${knopf('umzug-mitnehmen', 'Nochmal mitnehmen', 'btn-primary')}</div>` : ''}
     ${voll ? `<details${ui.umzugKopiert ? ' open' : ''}>
       <summary>So kommt Bauchbuch auf den Startbildschirm</summary>
@@ -878,7 +911,9 @@ function provokationZeile(s, iso) {
  * diesem Tagebuch je geben wird.
  */
 function sicherungKarte(iso) {
-  if (iso !== heuteISO()) return '';
+  // Nach dem Holen fordert die Ergebniskarte schon zum Sichern auf; zwei
+  // Karten untereinander mit derselben Bitte sind eine zu viel.
+  if (iso !== heuteISO() || ui.umzug) return '';
   const f = store.sicherungFaellig();
   if (!f) return '';
   const satz = {
@@ -889,7 +924,8 @@ function sicherungKarte(iso) {
   }[f.grund];
   return `<div class="karte karte-merk">
     <h3>Zeit für eine Sicherung</h3>
-    <p class="klein">${satz} Alles liegt nur in diesem Browser – wird sein
+    <p class="klein">${satz} Alles liegt nur ${laeuftAlsApp()
+    ? 'auf diesem Gerät, in dieser App' : 'in diesem Browser'} – wird ihr
     Speicher gelöscht, ist das Tagebuch weg. Dauert zehn Sekunden.</p>
     <div class="reihe">
       ${knopf('export', 'Als Datei', 'btn-primary')}
@@ -2704,7 +2740,10 @@ function ideenText(s) {
  * hingehört – auf dem Reiter, bei der Idee, für den, der etwas ändern kann.
  */
 let sendeUhr = null;
-let sendetGerade = false;
+// Der laufende Durchgang, solange einer läuft. Wer währenddessen „Jetzt
+// gleich" tippt, wartet auf ihn, statt einen zweiten zu starten – und statt
+// „Angekommen" zu hören, bevor irgendetwas angekommen ist.
+let durchgang = null;
 
 /*
  * JEDE IDEE EINZELN
@@ -2719,50 +2758,83 @@ let sendetGerade = false;
  * eine, hört der Durchgang auf; der Grund steht auf dem Reiter, und der
  * nächste Anlass macht dort weiter.
  *
+ * Nach jeder Idee wird neu nachgesehen, was noch offen ist – nicht einmal am
+ * Anfang eine Liste gezogen. Sonst bliebe eine Idee liegen, die eingetragen
+ * wird, während eine ältere noch unterwegs ist, und eine, die unterwegs
+ * gelöscht wurde, ginge trotzdem hinaus.
+ *
  * @returns {Promise<{ geschickt: number, fehler: string|null }>}
  */
-async function ideenVerschicken() {
-  if (sendetGerade) return { geschickt: 0, fehler: null };
-  sendetGerade = true;
-  beschaeftigt += 1;
-  let geschickt = 0;
-  let fehler = null;
-  try {
-    for (const idee of store.ideenUnterwegs()) {
-      // eslint-disable-next-line no-await-in-loop
-      await schicken(idee.text);
-      store.ideeGeschicktMerken(idee.id);
-      geschickt += 1;
+function ideenVerschicken() {
+  if (durchgang) return durchgang;
+  durchgang = (async () => {
+    beschaeftigt += 1;
+    let geschickt = 0;
+    let fehler = null;
+    const unterwegs = new Set();
+    try {
+      for (;;) {
+        const idee = store.ideenUnterwegs()[0];
+        // Dieselbe Idee ein zweites Mal hieße: Das Abhaken hat nicht
+        // gegriffen. Dann lieber aufhören als den Kasten zu fluten.
+        if (!idee || unterwegs.has(idee.id)) break;
+        unterwegs.add(idee.id);
+        // eslint-disable-next-line no-await-in-loop
+        await schicken(idee.text);
+        store.ideeGeschicktMerken(idee.id);
+        geschickt += 1;
+      }
+    } catch (e) {
+      fehler = e && e.message ? e.message : 'Ging nicht.';
+      store.ideenFehlerMerken(fehler);
+    } finally {
+      beschaeftigt -= 1;
     }
-  } catch (e) {
-    fehler = e && e.message ? e.message : 'Ging nicht.';
-    store.ideenFehlerMerken(fehler);
-  } finally {
-    sendetGerade = false;
-    beschaeftigt -= 1;
-  }
-  return { geschickt, fehler };
+    return { geschickt, fehler };
+  })().finally(() => { durchgang = null; });
+  return durchgang;
 }
 
 function sendenAnstossen() {
   clearTimeout(sendeUhr);
-  if (!store.ideenOffen()) return;
+  if (!store.ideenOffen() || durchgang) return;
 
   /*
    * Ein Sprung ans Ende der Warteschlange, keine Wartezeit: Der Anstoß kommt
    * mitten aus dem Zeichnen, und ein Netzaufruf hat da nichts zu suchen.
+   *
+   * Neu gezeichnet wird nur, wenn sich etwas getan hat. Hier stand ein
+   * Neuzeichnen ohne Bedingung – und weil der Ideenreiter beim Zeichnen
+   * selbst anstößt, lief das im Kreis: Solange ein Versand unterwegs war,
+   * wurde die Seite ununterbrochen ersetzt (das Ideenfeld verlor dabei den
+   * Fokus), und scheiterte er, ging der nächste Versuch sofort hinterher –
+   * hunderte in der Sekunde an den Kasten.
    */
   sendeUhr = setTimeout(async () => {
-    if (!store.ideenOffen()) return;
-    await ideenVerschicken();
-    zeichne();
+    if (!store.ideenOffen() || durchgang) return;
+    const { geschickt, fehler } = await ideenVerschicken();
+    if (geschickt || fehler) zeichne();
   }, 0);
 }
 
+/*
+ * Auf dem iPhone heißt „öffnen" meist „fortsetzen": Die App lag im
+ * Hintergrund und kommt zurück, ohne neu zu starten. Der Reiter verspricht,
+ * dass es dann von selbst noch einmal versucht wird – also hier, einmal je
+ * Rückkehr. Ein Kreis kann daraus nicht werden: Ohne Rückkehr kein Anstoß.
+ */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') sendenAnstossen();
+});
+
 function ideenAnsicht(s) {
-  // Ein Blick auf den Reiter ist ein Anlass, einen gescheiterten Versuch zu
-  // wiederholen. Der andere ist der Start der App – siehe ganz unten.
-  sendenAnstossen();
+  /*
+   * Beim Zeichnen nur anstoßen, wenn der letzte Versuch nicht gescheitert
+   * ist. Sonst zeichnet der Fehlschlag neu, das Neuzeichnen stößt an, und es
+   * geht im Kreis. Einen gescheiterten Versuch wiederholen der Wechsel auf
+   * diesen Reiter, „Nochmal", eine geänderte Idee und der Start der App.
+   */
+  if (!s.ideenFehler) sendenAnstossen();
   const offen = s.ideen.filter((i) => !i.erledigt);
   const fertig = s.ideen.filter((i) => i.erledigt);
 
@@ -3284,18 +3356,24 @@ function mehrAnsicht(s) {
     ? '<b>Dauerhafter Speicher: zugesagt.</b> Der Browser hat zugesichert, '
       + 'diesen Speicher nicht von selbst aufzuräumen. Sichern solltest du '
       + 'trotzdem – eine Zusage ist kein Gerät, das nicht kaputtgeht.'
-    : ui.speicher === false
+    /*
+     * Safari kennt persist() seit iOS 17 und sagt meist nein. Die Wochenregel
+     * gilt trotzdem, und sie ist das, was man auf dem iPhone wissen muss –
+     * deshalb steht sie bei Apple unabhängig von dieser Antwort da.
+     */
+    : ui.speicher === false && !istApfel()
       ? '<b>Dauerhafter Speicher: nicht zugesagt.</b> Der Browser darf diesen '
         + 'Speicher bei Platzmangel oder längerer Nichtbenutzung räumen. Meist '
         + 'gibt er die Zusage, sobald die App auf dem Startbildschirm liegt und '
         + 'ein paar Mal benutzt wurde. Bis dahin ist die Sicherung das Einzige, '
         + 'worauf Verlass ist.'
       : istApfel() && laeuftAlsApp()
-        ? '<b>Dauerhafter Speicher: unbekannt.</b> iOS sagt das nicht. Für die '
+        ? `<b>Dauerhafter Speicher: ${ui.speicher === false ? 'nicht zugesagt' : 'unbekannt'}.</b> `
+          + `${ui.speicher === false ? '' : 'iOS sagt das nicht. '}Für die `
           + 'App auf dem Startbildschirm gilt die Wochenregel von Safari aber '
           + 'nicht. Sichern solltest du trotzdem – ein Telefon kann verloren gehen.'
         : istApfel()
-          ? '<b>Dauerhafter Speicher: unbekannt.</b> In Safari löscht iOS die '
+          ? `<b>Dauerhafter Speicher: ${ui.speicher === false ? 'nicht zugesagt' : 'unbekannt'}.</b> In Safari löscht iOS die `
             + 'Daten einer Seite, die eine Woche lang nicht geöffnet wurde. Leg '
             + 'Bauchbuch auf den Startbildschirm (siehe oben) und sichere.'
           : '<b>Dauerhafter Speicher: unbekannt.</b> Dieser Browser sagt nicht, ob '
@@ -3307,6 +3385,7 @@ function mehrAnsicht(s) {
       ${knopf('sicherung-text', 'Als Text')}
       ${knopf('import', 'Datei einlesen')}
       ${knopf('einfuegen-auf', 'Text einlesen')}
+      ${laeuftAlsApp() && istApfel() ? knopf('umzug-holen', 'Aus Safari holen') : ''}
     </div>
     ${schlossKarte()}
     ${einfuegeKarte()}
@@ -3938,7 +4017,32 @@ function male() {
     heute: tagAnsicht, verlauf: verlaufAnsicht, muster: musterAnsicht,
     ruhe: ruheAnsicht, ideen: ideenAnsicht, mehr: mehrAnsicht,
   }[tab];
+
+  /*
+   * Wer gerade tippt, soll weitertippen können. Neu gezeichnet wird auch,
+   * wenn im Hintergrund etwas passiert – eine Idee kommt an, eine Suche ist
+   * fertig –, und dabei wird das Feld ersetzt. Der Text steht im neuen
+   * wieder drin; Fokus und Cursor kämen ohne das hier nicht mit, und auf dem
+   * Telefon ginge mitten im Satz die Tastatur zu.
+   */
+  const fokus = document.activeElement;
+  const fokusId = fokus && fokus.id && viewEl.contains(fokus) ? fokus.id : null;
+  let auswahl = null;
+  try {
+    if (fokusId && typeof fokus.selectionStart === 'number') {
+      auswahl = [fokus.selectionStart, fokus.selectionEnd, fokus.selectionDirection || 'none'];
+    }
+  } catch { /* Felder ohne Cursor, etwa Zahlen in älterem Safari */ }
+
   viewEl.innerHTML = warnung + umzugHinweis(s, tab) + inhalt(s) + bogenHTML(s);
+
+  const wieder = fokusId ? document.getElementById(fokusId) : null;
+  if (wieder && wieder !== fokus && viewEl.contains(wieder)) {
+    wieder.focus({ preventScroll: true });
+    try {
+      if (auswahl && typeof wieder.setSelectionRange === 'function') wieder.setSelectionRange(...auswahl);
+    } catch { /* dito */ }
+  }
 
   tabbarEl.innerHTML = REITER.map((r) => `
     <button type="button" class="tab${r.id === tab ? ' an' : ''}" id="tab-${r.id}"
@@ -4178,6 +4282,9 @@ const AKTION = {
     ui.bericht = null;
     ui.sicherung = null;
     ui.mittel = false;
+    // Wer auf „Ideen" wechselt, gibt einem gescheiterten Versand einen
+    // neuen Anlauf – genau einen, nicht einen je Neuzeichnen.
+    if (el.dataset.tab === 'ideen') sendenAnstossen();
     zeichne();
   },
 
@@ -4617,24 +4724,30 @@ const AKTION = {
     let gelesen;
     try { gelesen = navigator.clipboard.readText(); } catch (e) { gelesen = Promise.reject(e); }
     beschaeftigt += 1;
+    // Zwei verschiedene Lagen, zwei verschiedene Sätze: Die Zwischenablage
+    // ließ sich nicht lesen (dann von Hand einsetzen) – oder sie ließ sich
+    // lesen, und der Inhalt passte nicht (falsches Passwort, kein Bauchbuch).
+    const vonHand = (satz) => {
+      store.einstellen('begruesst', true);
+      store.einstellen('tab', 'mehr');
+      ui.einfuegen = '';
+      ui.einfuegenUmzug = true;
+      melden(satz);
+    };
     gelesen
       .then(async (text) => {
         const roh = String(text || '').trim();
         if (!roh.startsWith('{') && !istTresor(roh)) {
-          throw new Error('Da ist gerade kein Bauchbuch zum Einfügen.');
+          vonHand('Da ist gerade kein Bauchbuch zum Einfügen. Öffne Bauchbuch in Safari, tippe dort auf „Einträge mitnehmen" und komm dann hierher zurück.');
+          return;
         }
-        const ergebnis = await sicherungEinlesen(roh);
-        if (ergebnis !== null) umzugAbschliessen(ergebnis);
-      })
-      .catch((fehler) => {
-        store.einstellen('begruesst', true);
-        store.einstellen('tab', 'mehr');
-        ui.einfuegen = '';
-        ui.einfuegenUmzug = true;
-        melden(fehler && /kein Bauchbuch/.test(fehler.message)
-          ? 'Da ist gerade kein Bauchbuch zum Einfügen. Öffne Bauchbuch in Safari, tippe dort auf „Einträge mitnehmen" und komm dann hierher zurück.'
-          : 'Bitte von Hand einsetzen: ins Feld lange tippen, „Einsetzen".');
-      })
+        try {
+          const ergebnis = await sicherungEinlesen(roh);
+          if (ergebnis !== null) umzugAbschliessen(ergebnis);
+        } catch (fehler) {
+          vonHand(lesbarerFehler(fehler));
+        }
+      }, () => vonHand('Bitte von Hand einsetzen: ins Feld lange tippen, „Einsetzen".'))
       .finally(() => { beschaeftigt -= 1; zeichne(); });
   },
   'umzug-holen-nein': () => { ui.umzugHolenZu = true; zeichne(); },
@@ -4736,8 +4849,12 @@ const AKTION = {
     melden('Wird geschickt …');
     // Abgehakt wird je Idee erst nach dem Erfolg. Wer es nicht rausbekommen
     // hat, soll den Hinweis behalten, statt zu glauben, es sei angekommen.
+    // „Angekommen" nur, wenn danach wirklich nichts mehr offen ist.
     const { fehler } = await ideenVerschicken();
-    melden(fehler || 'Angekommen. Jetzt hat sie jemand.');
+    melden(fehler || (store.ideenOffen()
+      ? 'Noch nicht alle angekommen – es geht gleich weiter.'
+      : 'Angekommen. Jetzt hat sie jemand.'));
+    if (!fehler) sendenAnstossen();
     el.disabled = false;
     zeichne();
   },
@@ -5036,7 +5153,8 @@ window.addEventListener('pagehide', () => store.sofortSchreiben());
  *
  * `persist()` bittet den Browser, diesen Speicher davon auszunehmen. Chrome
  * gewährt das stillschweigend, sobald eine Seite installiert ist oder
- * regelmäßig benutzt wird; Safari kennt es nicht und ignoriert es. Deshalb
+ * regelmäßig benutzt wird; Safari kennt es erst seit iOS 17 und sagt meist
+ * nein. Deshalb
  * ist die Bitte kein Ersatz für die Sicherung, sondern eine zweite Sicherung –
  * und was dabei herauskam, steht unter „Mehr", damit niemand sich auf etwas
  * verlässt, das gar nicht zugesagt wurde.
@@ -5256,7 +5374,7 @@ function vielleichtNeuladen() {
   if (!bereit) return;
   if (!store.kannSpeichern() || inArbeit()) return;
   const sichtbar = document.visibilityState === 'visible';
-  if (sichtbar && angefasst && !ausdruecklich) return;
+  if (sichtbar && angefasst && Date.now() >= ausdruecklichBis) return;
   try {
     const zuletzt = Number(sessionStorage.getItem(NEULADEN_MERK) || 0);
     if (Date.now() - zuletzt < 30000) return;
@@ -5337,7 +5455,9 @@ function fassungKarte() {
     <p class="klein" id="fassung-text">${fassungText()}</p>
     ${SW_DA ? `<p class="klein" id="fassung-gesucht">Zuletzt nach einer neueren gesucht: ${zeitSeit(ui.gesucht)}.</p>` : ''}
     ${bereit ? `<p class="klein"><b>Eine neue Fassung liegt bereit (${esc(bereit.version)} · ${esc(bereit.stand)}).</b>
-      Sie kommt, sobald du die App verlässt – oder jetzt gleich.</p>` : ''}
+      ${store.kannSpeichern()
+    ? 'Sie kommt, sobald du die App verlässt – oder jetzt gleich.'
+    : 'Sie kommt beim nächsten Start. Gerade wird nichts gespeichert – sichere vorher unter „Sicherung“, sonst ist weg, was du seit dem Start eingetragen hast.'}</p>` : ''}
     ${SW_DA ? `<div class="reihe">
       ${bereit ? knopf('neu-laden', 'Jetzt laden', 'btn-primary') : knopf('fassung-suchen', 'Nach neuer Fassung suchen')}
       ${bereit ? '' : knopf('neu-laden', 'Neu laden', 'btn-ghost')}
@@ -5360,9 +5480,13 @@ function fassungAnzeigen() {
 Object.assign(AKTION, {
   'fassung-suchen': async (el) => {
     el.disabled = true;
-    ausdruecklich = true;
+    // Schon vor der Suche: Die neue Fassung kann übernehmen, während sie läuft.
+    ausdruecklichBis = Date.now() + 60 * 1000;
     melden('Suche …');
     const ergebnis = await nachFassungSehen(true);
+    // Gefunden heißt: Sie wird jetzt geholt, das kann im Funkloch dauern.
+    if (ergebnis === 'gefunden') ausdruecklichBis = Date.now() + 5 * 60 * 1000;
+    if (ergebnis === 'offline') ausdruecklichBis = 0;
     if (ergebnis === 'offline') melden('Gerade kein Netz – später noch einmal.');
     else if (ergebnis === 'gefunden') melden('Neue Fassung gefunden – wird geladen …');
     else if (!bereit) melden('Du hast die neueste Fassung.');
@@ -5370,7 +5494,11 @@ Object.assign(AKTION, {
     vielleichtNeuladen();
     zeichne();
   },
-  'neu-laden': () => neuLaden('knopf'),
+  'neu-laden': () => {
+    if (!store.kannSpeichern()
+      && !window.confirm('Gerade wird nichts gespeichert. Was du seit dem Start eingetragen hast, ist nach dem Neuladen weg. Trotzdem neu laden?')) return;
+    neuLaden('knopf');
+  },
 });
 
 if (SW_DA) {

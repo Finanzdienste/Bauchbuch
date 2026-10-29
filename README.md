@@ -1272,8 +1272,10 @@ die Installation meldet (Android/Chrome), steht unter „Mehr" ein Knopf. Auf
 dem iPhone steht die Anleitung zusätzlich oben auf dem Tag-Reiter, bis sie
 weggetippt wird – mit den Schritten, die zum Gerät passen: iOS 26 (••• ›
 Teilen › Zum Home-Bildschirm › „Als Web-App öffnen" an lassen), ältere
-iOS-Fassungen, das iPad (meldet sich als Mac), Chrome auf dem iPhone, und der
-eingebaute Browser einer anderen App, aus dem es gar nicht geht. Läuft sie
+iOS-Fassungen, das iPad (meldet sich als Mac; dort sitzt das Teilen-Symbol
+oben), Chrome auf dem iPhone, und der eingebaute Browser einer anderen App,
+aus dem es gar nicht geht. Safari auf dem Mac – dieselbe Kennung wie das iPad,
+nur ohne Berührung – bekommt „Ablage › Zum Dock hinzufügen". Läuft sie
 bereits als App, sagt sie das unter „Mehr" und schweigt ansonsten.
 
 ### Auf dem iPhone: eigener Speicher, und deshalb ein Umzug
@@ -1301,7 +1303,12 @@ ausgenommen. Umziehen lohnt sich also, und zwar richtig:
 4. Safari zeigt ab dann auf jedem Reiter, dass umgezogen wurde und dort nicht
    mehr eingetragen werden sollte – Links aus Nachrichten öffnen auf dem
    iPhone immer Safari, nie die App. Kommt dort doch noch etwas dazu, steht
-   „Nochmal mitnehmen" da.
+   „Nochmal mitnehmen" da, und in der App liegt dafür unter „Mehr" dauerhaft
+   **„Aus Safari holen"**. Was schon da ist, kommt nicht doppelt.
+
+Was zu diesem einen Gerät gehört – der Vermerk über den Umzug, „Nicht mehr
+zeigen", die Erinnerung ans Sichern –, wandert dabei nicht mit. Sonst stünde
+auf einem neuen Telefon „Mitgenommen am …" mit den Zahlen eines alten.
 
 **Einlesen ersetzt nichts mehr.** Bis hierher hat jede eingelesene Sicherung
 den Stand im Speicher ersetzt, ohne Rückfrage. Jetzt wird zusammengeführt,
@@ -1326,7 +1333,10 @@ Sicherung) und nie, wenn der Speicher nicht schreiben kann. Danach steht sie
 am selben Tag wie vorher, und ein Satz sagt, was passiert ist. Unter „Mehr"
 steht, welche Fassung läuft, wann zuletzt gesucht wurde und ein Knopf zum
 sofortigen Suchen – wer ihn antippt, hat zugestimmt, und es wird gleich neu
-geladen.
+geladen. Die Zustimmung gilt für diese eine Suche, nicht bis zum nächsten
+Start: Findet sie nichts, gilt nach einer Minute wieder die Regel oben. Kann
+der Speicher nicht schreiben, kommt die neue Fassung erst beim nächsten
+Start, und „Jetzt laden" fragt vorher nach.
 
 Drei Dinge, die das tragen:
 
@@ -1334,11 +1344,14 @@ Drei Dinge, die das tragen:
   Fingerabdruck über alle Dateien des Offline-Vorrats in `sw.js` ein. Der
   Browser erkennt eine neue Fassung nur an einer geänderten `sw.js` – vorher
   hing das allein an einer von Hand hochgezählten VERSION, und wer sie vergaß,
-  hatte eine Änderung veröffentlicht, die nirgends ankam. Die CI baut neu und
-  wird rot, wenn der Stand nicht stimmt.
+  hatte eine Änderung veröffentlicht, die nirgends ankam. `sw.js` selbst zählt
+  mit, ohne die Zeile mit dem Stand. Die CI baut neu und wird rot, wenn der
+  Stand nicht stimmt.
 * **Alles oder nichts.** Eine neue Fassung wird nur übernommen, wenn Seite,
   Stile und alle Module vollständig geladen wurden. Bricht das Netz mittendrin
   ab, bleibt die alte – sonst stünde nach dem Neuladen eine weiße Seite da.
+  Weggeräumt wird dann nur, was diese Installation selbst angelegt hat, nie
+  der Vorrat, mit dem die App gerade läuft.
   Seitenaufrufe warten höchstens dreieinhalb Sekunden aufs Netz, dann
   antwortet der Vorrat.
 * **Ein Notausgang.** Startet das Skript einmal nicht, erscheint nach vier
@@ -1466,7 +1479,7 @@ den Rückgabewert.
 | `test-bericht.mjs` | die Zahlen im Arztbericht |
 | `test-sicherung.mjs` | sichern, alles löschen, wieder einlesen – über echte Dateien |
 | `test-persist.mjs` | die Ein-Datei-Fassung übersteht Neuladen und Neustart |
-| `test-offline.mjs` | Service Worker, offline eintragen, offline auswerten |
+| `test-offline.mjs` | Service Worker, offline eintragen, offline auswerten – ohne Netz auch für den Service Worker, keine einzige Anfrage am Server |
 | `test-ideen.mjs` | eintragen, abhaken, kopieren, die Erinnerung ans Verschicken – und Ideen bleiben aus der Auswertung heraus |
 | `test-mittel.mjs` | die Zuordnung freier Namen zur Wirkstoffgruppe, und der Ton der Texte |
 | `test-zutaten.mjs` | Reihenfolge nach Häufigkeit, Rollen statt Gramm, Umrechnung alter Stände |
@@ -1497,6 +1510,14 @@ den Rückgabewert.
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
 | `test-gewicht.mjs` | fünf Prozent ungewollt sind ein Warnzeichen, dieselben fünf Prozent gewollt keines – und ein Tag, an dem nur gewogen wurde, ist kein Tag ohne Beschwerden |
 | `test-nachschub.mjs` | kommt eine neue Fassung überhaupt an – über einen Server mit `max-age=600`, wie GitHub Pages ihn schickt, und ohne das Tagebuch mitzunehmen |
+| `test-auffrischen.mjs` | die neue Fassung kommt nie unter den Fingern: nicht bei offenem Bogen, nicht bei Text im Feld, nicht ohne Speicher – und eine halb geladene Fassung nimmt der laufenden den Vorrat nicht weg |
+| `test-umzug.mjs` | von Safari in die App: nichts doppelt, nichts verloren, keine Idee zweimal verschickt – und ein falsches Passwort heißt „falsches Passwort", nicht „Zwischenablage" |
+| `test-geraete.mjs` | elf Geräte, jedes mit seiner Anleitung: das iPad, das sich als Mac meldet, der Mac, der kein iPad ist, und die Wochenregel, auch wenn Safari zur Speicherfrage nein sagt |
+| `test-ablaeufe.mjs` | jeder Shell-Schritt der GitHub-Abläufe geht durch `bash -n` – ein falsches Anführungszeichen fällt hier auf, nicht erst, wenn der Schritt gebraucht wird |
+| `test-zeitknoepfe.mjs` | „morgens" und „vor dem Essen" ergeben eine Uhrzeit, die als ungefähr gilt – und eine ungefähre Zeit zählt bei „wie lange nach dem Essen" nicht mit |
+| `test-standardmittel.mjs` | ein Mittel mit Dosis einmal anlegen, dann mit einem Tipp eintragen – ohne Dubletten und höchstens zwölf |
+| `test-stand.mjs` | jede Datei des Offline-Vorrats zählt mit ihrem Inhalt, `sw.js` selbst auch – und ein vertippter Aufruf des Bauskripts baut nichts |
+| `test-ideen-einzeln.mjs` | jede Idee genau einmal, die älteste zuerst; was während eines Versands dazukommt, geht mit, was gelöscht wird, nicht – und wer gerade tippt, tippt weiter |
 | `test-anfang.mjs` | die Frühphase ist kürzer, sagt aber genauso genau, was fehlt – und die Warnzeichen überleben die Kürzung |
 | `test-kalender.mjs` | CRLF, 75 Oktette, maskierte Kommas: eine `.ics`, die der Kalender nicht annimmt, sieht im Browser aus wie eine, die er annimmt |
 | `test-stufenplan.mjs` | eine Karenz ohne Wirkung muss den Plan beenden, nicht weiterführen – und ein fehlender erster Tag darf kein Urteil über die kleine Menge ergeben |
