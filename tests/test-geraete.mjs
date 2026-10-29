@@ -2,8 +2,8 @@
  * Welches Gerät bekommt welche Anleitung auf den Startbildschirm?
  *
  * Auf dem iPhone ist der Startbildschirm keine Bequemlichkeit: In Safari darf
- * iOS die Einträge einer Seite löschen, die eine Woche lang nicht geöffnet
- * wurde, die App auf dem Startbildschirm ist davon ausgenommen. Die Karte, die
+ * iOS die Einträge einer Seite löschen, die an sieben Tagen mit Safari nicht
+ * benutzt wurde, die App auf dem Startbildschirm ist davon ausgenommen. Die Karte, die
  * dorthin führt, ist also nur so gut wie die Schritte darin – und die hängen
  * am Gerät, am System und am Browser. Eine falsche Anleitung sieht man dem
  * Code nicht an. Man sieht sie nur, wenn man mit genau der Kennung kommt, mit
@@ -115,7 +115,7 @@ const LEER = { begruesst: true, tab: 'heute' };
 const sauber = (t) => String(t || '').replace(/\s+/g, ' ').trim();
 
 // Die vier Gesichter der Startbildschirm-Karte (startbildschirmKarte()).
-const IOS_TITEL = 'Als App auf den Startbildschirm';
+const IOS_TITEL = 'Als App auf den Home-Bildschirm';
 const ANDERE_TITEL = 'Auf den Startbildschirm';
 const APP_TITEL = 'Läuft als App';
 const MAC_TITEL = 'Ins Dock';
@@ -353,7 +353,7 @@ const FAELLE = [
       nicht: ['•••', 'Unten auf das Teilen-Symbol', 'Browsermenü'],
     },
     mehr: { titel: IOS_TITEL, hat: ['Oben rechts auf das Teilen-Symbol'], nicht: ['Browsermenü'] },
-    speicher: 'safari',
+    speicher: 'ios-browser',
   },
   {
     name: 'WhatsApp, eingebauter Browser auf dem iPhone',
@@ -365,10 +365,10 @@ const FAELLE = [
       hat: ['In Safari öffnen'],
       // Von hier aus gibt es keinen Home-Bildschirm – also auch keine
       // nummerierten Schritte dorthin.
-      nicht: ['Zum Home-Bildschirm', '2. Dann so', 'Browsermenü'],
+      nicht: ['Zum Home-Bildschirm', '2. Bauchbuch auf den Home-Bildschirm legen', 'Browsermenü'],
     },
     mehr: { titel: IOS_TITEL, hat: ['In Safari öffnen'], nicht: ['Zum Home-Bildschirm'] },
-    speicher: 'safari',
+    speicher: 'ios-browser',
   },
   {
     name: 'Android, Chrome',
@@ -409,7 +409,7 @@ const FAELLE = [
     tag: null,
     mehr: {
       titel: APP_TITEL,
-      hat: ['Bauchbuch liegt auf deinem Startbildschirm', 'nicht in Safari'],
+      hat: ['Bauchbuch liegt auf deinem Home-Bildschirm', 'nicht in Safari', 'Lösch das Bauchbuch-Symbol nicht'],
       nicht: ['Zum Home-Bildschirm', 'Einträge mitnehmen', '•••'],
     },
     speicher: 'app',
@@ -425,7 +425,7 @@ const FAELLE = [
     tag: null,
     mehr: {
       titel: APP_TITEL,
-      hat: ['Bauchbuch liegt auf deinem Startbildschirm', 'nicht in Safari'],
+      hat: ['Bauchbuch liegt auf deinem Home-Bildschirm', 'nicht in Safari', 'Lösch das Bauchbuch-Symbol nicht'],
       nicht: ['Zum Home-Bildschirm', 'Einträge mitnehmen', '•••'],
     },
     speicher: 'app',
@@ -442,16 +442,22 @@ const FAELLE = [
  */
 const SPEICHER = {
   safari: {
-    hat: ['in diesem Browser', 'In Safari löscht iOS', 'eine Woche lang nicht geöffnet'],
-    nicht: ['gilt die Wochenregel von Safari aber nicht'],
+    hat: ['hier in Safari', 'deine Einträge löschen, wenn du Bauchbuch eine Weile nicht benutzt', 'sieben Tagen, an denen du Safari benutzt hast'],
+    nicht: ['ein paar Wochen nicht reinschaust', 'in diesem Browser'],
+  },
+  // Chrome und eingebaute Browser auf dem iPhone: Die Sieben-Tage-Regel ist
+  // dort nicht belegt, also steht sie nicht da – nur, was sicher hilft.
+  'ios-browser': {
+    hat: ['in diesem Browser', 'Leg Bauchbuch auf den Home-Bildschirm'],
+    nicht: ['sieben Tagen', 'reinschaust', 'hier in Safari'],
   },
   app: {
-    hat: ['auf diesem Gerät, in dieser App', 'gilt die Wochenregel von Safari aber nicht'],
-    nicht: ['In Safari löscht iOS', 'in diesem Browser'],
+    hat: ['auf diesem Gerät, in dieser App', 'nur weil du ein paar Wochen nicht reinschaust'],
+    nicht: ['sieben Tagen', 'in diesem Browser', 'hier in Safari'],
   },
   'kein-ios': {
     hat: ['Dauerhafter Speicher'],
-    nicht: ['Wochenregel', 'löscht iOS'],
+    nicht: ['sieben Tagen', 'reinschaust', 'Wochenregel', 'löscht iOS'],
   },
 };
 
@@ -594,7 +600,7 @@ try {
     vergleiche(k, {
       titel: IOS_TITEL,
       hat: ['•••', 'Als Web-App öffnen', 'Zum Home-Bildschirm'],
-      nicht: ['Einträge mitnehmen', 'fängt leer an', '2. Dann so', 'Einträge holen'],
+      nicht: ['Einträge mitnehmen', 'fängt leer an', '2. Bauchbuch auf den Home-Bildschirm legen', 'Einträge holen'],
     }, '[iOS 26, leer] Tag-Reiter');
     check(!!k && !k.acts.includes('umzug-mitnehmen'), '[iOS 26, leer] Tag-Reiter: kein Knopf zum Mitnehmen');
     check(!!k && k.acts.includes('startbildschirm-spaeter'), '[iOS 26, leer] Tag-Reiter: „Später" gibt es trotzdem');

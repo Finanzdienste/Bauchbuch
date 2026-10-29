@@ -804,6 +804,9 @@ p { margin: 0 0 8px; }
 .schritte { margin: 6px 0 10px; padding-left: 22px; font-size: 14px; }
 .schritte li { margin: 4px 0; }
 .willkommen-umzug { margin-top: 18px; }
+/* Zwei Aufklapper direkt untereinander: Mit 23 px Höhe traf ein Tipp knapp
+   unter „Neues iPhone?" schon „iOS-Update?". So sind es gut 44 px je Zeile. */
+.anleitung-auf > summary { padding: 11px 0; }
 
 /* ---------- Notausgang (index.html) ----------
    Erst nach vier Sekunden sichtbar: Startet die App normal, hat js/app.js
@@ -12789,6 +12792,9 @@ const ui = {
   umzugHolenZu: false,
   umzugKopiert: false,
   einfuegenUmzug: false,
+  // Steht unter „Mehr" gerade die Anleitung (Home-Bildschirm und Sichern)?
+  // Flüchtig: Wer „Mehr" antippt, landet wieder auf „Mehr".
+  anleitung: false,
 };
 
 /*
@@ -12876,14 +12882,35 @@ function geraet() {
 
 const istApfel = () => geraet().ios;
 
+/*
+ * Apple schreibt im Teilen-Menü „Zum Home-Bildschirm", Android
+ * „Startbildschirm". Wer den Satz in der App liest und dann das Menü sucht,
+ * soll dasselbe Wort finden.
+ */
+const heim = () => (istApfel() ? 'Home-Bildschirm' : 'Startbildschirm');
+const geraetName = (g) => (g.ipad ? 'iPad' : 'iPhone');
+
+/*
+ * Wo das Tagebuch liegt, in Worten – und das passende Fürwort dazu: „ihr
+ * Speicher" gehört zur App, „sein Speicher" zum Browser. Auf dem iPhone heißt
+ * Safari auch Safari; Chrome und eingebaute Browser bleiben „dieser Browser".
+ */
+function speicherOrt() {
+  const g = geraet();
+  if (laeuftAlsApp()) return { wo: 'auf diesem Gerät, in dieser App', wessen: 'ihr' };
+  if (g.ios && !g.anderer && !g.inApp) return { wo: 'hier in Safari', wessen: 'dieser' };
+  return { wo: 'in diesem Browser', wessen: 'sein' };
+}
+
 /** Die Schritte auf den Startbildschirm, passend zum Gerät. */
 function anleitung(g) {
   const liste = (punkte) => `<ol class="schritte">${punkte.map((x) => `<li>${x}</li>`).join('')}</ol>`;
   if (g.inApp) {
     return `<p class="klein">Du hast Bauchbuch gerade in einer anderen App geöffnet,
       zum Beispiel aus einer Nachricht. Von dort geht es nicht auf den
-      Startbildschirm. Öffne es in Safari: über <b>•••</b> oder das
-      Kompass-Symbol auf <b>In Safari öffnen</b>.</p>`;
+      Home-Bildschirm. Öffne es in Safari: Tippe auf <b>•••</b> und dann auf
+      <b>In Safari öffnen</b>. Siehst du stattdessen ein Kompass-Symbol, tippe
+      darauf.</p>`;
   }
   if (g.anderer) {
     return liste([
@@ -12895,16 +12922,20 @@ function anleitung(g) {
   if (g.version >= 26 && g.ipad) {
     return liste([
       'Oben rechts auf das <b>Teilen</b>-Symbol tippen (Quadrat mit Pfeil nach oben). Ist es nicht zu sehen, zuerst auf <b>•••</b> neben der Adresse.',
-      'In der Liste <b>Zum Home-Bildschirm</b> antippen.',
-      'Den Schalter <b>Als Web-App öffnen</b> eingeschaltet lassen, dann <b>Hinzufügen</b>.',
+      'In der Liste <b>Zum Home-Bildschirm</b> antippen. Steht es nicht da, ganz unten auf <b>Aktionen bearbeiten</b> tippen und es hinzufügen.',
+      'Der Schalter <b>Als Web-App öffnen</b> muss an sein (grün). Dann auf <b>Hinzufügen</b> tippen.',
     ]);
   }
+  /*
+   * Unter iOS 26 sitzt das Teilen-Symbol je nach Leiste mal direkt unten,
+   * mal hinter „•••". Der Schalter „Als Web-App öffnen" ist an, wenn er grün
+   * ist – „eingeschaltet lassen" setzte voraus, dass er es schon ist.
+   */
   if (g.version >= 26) {
     return liste([
-      'Unten rechts auf <b>•••</b> tippen. Steht dort direkt das Teilen-Symbol, das nehmen.',
-      'Auf <b>Teilen</b> tippen und in der Liste nach unten wischen.',
-      '<b>Zum Home-Bildschirm</b> antippen.',
-      'Den Schalter <b>Als Web-App öffnen</b> eingeschaltet lassen, dann <b>Hinzufügen</b>.',
+      'Tippe unten rechts neben der Adresse auf <b>•••</b> und dann auf <b>Teilen</b>. Siehst du unten gleich das <b>Teilen</b>-Symbol (Quadrat mit Pfeil nach oben), tippe direkt darauf.',
+      'Weiter unten in der Liste steht <b>Zum Home-Bildschirm</b>. Tippe darauf. Steht es nicht da, tippe ganz unten auf <b>Aktionen bearbeiten</b> und füge es hinzu.',
+      'Der Schalter <b>Als Web-App öffnen</b> muss an sein (grün). Dann tippe auf <b>Hinzufügen</b>.',
     ]);
   }
   return liste([
@@ -12929,8 +12960,9 @@ function letzterText(letzter) {
  * Die Karte „Auf den Startbildschirm".
  *
  * Auf dem iPhone ist das nicht nur Bequemlichkeit. Safari darf gespeicherte
- * Daten einer Seite löschen, die eine Woche lang nicht geöffnet wurde; eine
- * App auf dem Startbildschirm ist davon ausgenommen. Nur fängt sie mit einem
+ * Daten einer Seite löschen, die an sieben Tagen mit Safari nicht benutzt
+ * wurde; eine App auf dem Home-Bildschirm ist davon ausgenommen (WebKit,
+ * „Full Third-Party Cookie Blocking and More", 2020). Nur fängt sie mit einem
  * eigenen, leeren Speicher an – wer schon eingetragen hat, muss seine
  * Einträge mitnehmen, und zwar *bevor* er umzieht. Deshalb steht das hier
  * vorn und nicht in einer Fußnote.
@@ -12942,11 +12974,21 @@ function startbildschirmKarte(s, ort) {
   const g = geraet();
   if (laeuftAlsApp()) {
     if (ort !== 'mehr') return '';
+    /*
+     * Auf Apple-Geräten hat jedes Symbol seinen eigenen Speicher. Wer es
+     * löscht oder ein zweites anlegt, steht vor einem leeren Tagebuch – das
+     * ist der eine Fehler, den man hier noch machen kann. „Wahrscheinlich":
+     * Ob iOS die Daten dabei wirklich löscht oder nur unerreichbar liegen
+     * lässt, ist nirgends dokumentiert; für sie läuft es aufs Gleiche hinaus.
+     */
     return `<div class="karte">
       <h3>Läuft als App</h3>
-      <p class="klein">Bauchbuch liegt auf deinem Startbildschirm. Es öffnet
+      <p class="klein">Bauchbuch liegt auf deinem ${heim()}. Es öffnet
       sich ohne Browserleiste, läuft ohne Netz und holt neue Fassungen von
       selbst. Was du hier einträgst, steht in dieser App – nicht in Safari.</p>
+      ${istApfel() ? `<p class="klein"><b>Lösch das Bauchbuch-Symbol nicht.</b>
+      Sonst sind deine Einträge wahrscheinlich weg. Und leg es nicht ein
+      zweites Mal an: Ein zweites Symbol hat deine Einträge nicht.</p>` : ''}
     </div>`;
   }
   if (installEreignis) {
@@ -12979,29 +13021,50 @@ function startbildschirmKarte(s, ort) {
 
   const hatDaten = !store.istLeer();
   const mitnehmen = hatDaten ? `
-    <p class="klein"><b>Wichtig: Die App auf dem Startbildschirm fängt leer an.</b>
+    <p class="klein"><b>Wichtig: Die App auf dem Home-Bildschirm fängt leer an.</b>
     Sie hat ihren eigenen Speicher, getrennt von Safari. Nimm deine Einträge
     vorher mit – das dauert einen Tipp.</p>
     ${s.umzug
     ? `<p class="klein">Mitgenommen am ${datumKurz(s.umzug.am)}:
        ${mehrzahl(s.umzug.anzahl, 'Eintrag', 'Einträge')}, ${letzterText(s.umzug.letzter)}.
-       Jetzt die App auf den Startbildschirm legen, dort öffnen und auf
-       <b>Einträge holen</b> tippen.</p>
+       Jetzt Bauchbuch auf den Home-Bildschirm legen, dort öffnen und auf
+       <b>Einträge aus Safari holen</b> tippen.</p>
        <p class="klein">Bis dahin liegt dein Tagebuch in der Zwischenablage.
        Kopier in der Zwischenzeit nichts anderes.</p>`
     : ''}
     <div class="reihe">${knopf('umzug-mitnehmen', s.umzug ? 'Nochmal mitnehmen' : '1. Einträge mitnehmen', 'btn-primary')}</div>` : '';
 
+  /*
+   * Die Sieben-Tage-Regel gilt für Safari, belegt vom WebKit-Team: gezählt
+   * werden Tage, an denen Safari benutzt wurde, und „kann löschen", nicht
+   * „löscht". Für Chrome und Co. auf dem iPhone ist sie nicht belegt, also
+   * steht sie dort nicht.
+   */
+  const ding = geraetName(g);
   return `<div class="karte karte-merk">
-    <h3>Als App auf den Startbildschirm</h3>
-    <p class="klein">Dann öffnet sich Bauchbuch mit einem Tipp, ohne
-    Browserleiste, und bekommt Verbesserungen von selbst. Und: In Safari kann
-    iOS deine Einträge löschen, wenn du die Seite eine Woche lang nicht
-    öffnest. Als App auf dem Startbildschirm passiert das nicht.</p>
+    <h3>Als App auf den Home-Bildschirm</h3>
+    <p class="klein">Dann öffnet sich Bauchbuch mit einem Tipp wie eine App.${g.anderer ? '' : ` Und:
+    In Safari kann dein ${ding} deine Einträge löschen, wenn du Bauchbuch eine
+    Weile nicht benutzt – im ungünstigsten Fall schon nach sieben Tagen, an
+    denen du Safari benutzt hast. Als App auf dem Home-Bildschirm passiert das
+    nicht.`}</p>
     ${mitnehmen}
-    ${hatDaten && !g.inApp ? '<p class="klein"><b>2. Dann so:</b></p>' : ''}
+    ${g.inApp ? '' : hatDaten
+    ? `<p class="klein"><b>2. Bauchbuch auf den Home-Bildschirm legen.</b>
+      Liegt es dort schon, lass diesen Schritt aus – ein zweites Symbol hat
+      deine Einträge nicht.</p>`
+    // Die Frage vor die Schritte: Wer Schritt für Schritt abarbeitet, legt
+    // sonst das zweite Symbol an, bevor er sie liest.
+    : `<p class="klein"><b>Liegt Bauchbuch schon auf deinem Home-Bildschirm?</b>
+      Dann öffne es dort und leg es nicht noch einmal an – ein zweites Symbol
+      hat deine Einträge nicht.</p>`}
     ${anleitung(g)}
-    ${hatDaten && !g.inApp ? '<p class="klein"><b>3.</b> Die neue App öffnen und auf <b>Einträge holen</b> tippen.</p>' : ''}
+    ${g.inApp ? '' : hatDaten
+    ? `<p class="klein"><b>Zum Schluss:</b> Öffne Bauchbuch über das Symbol auf
+      deinem Home-Bildschirm und tippe dort auf <b>Einträge aus Safari holen</b>.
+      Benutzt du die App schon, steht der Knopf unter „Mehr“ › „Sicherung“ und
+      heißt <b>Aus Safari holen</b>.</p>`
+    : '<p class="klein">Danach öffnest du Bauchbuch nur noch über das neue Symbol auf deinem Home-Bildschirm.</p>'}
     ${ort === 'tag' ? `<div class="reihe">
       ${knopf('startbildschirm-spaeter', 'Später', 'btn-ghost')}
       ${knopf('startbildschirm-weg', 'Nicht mehr zeigen', 'btn-ghost')}
@@ -13033,7 +13096,7 @@ function umzugHinweis(s, tab) {
     <h3>Mitgenommen am ${datumKurz(s.umzug.am)}</h3>
     <p class="klein">${mehrzahl(s.umzug.anzahl, 'Eintrag', 'Einträge')},
     ${letzterText(s.umzug.letzter)}. <b>Trag ab jetzt bitte nur noch in der
-    App auf dem Startbildschirm ein.</b> Was du hier in Safari einträgst,
+    App auf dem Home-Bildschirm ein.</b> Was du hier in Safari einträgst,
     kommt dort nicht an.</p>
     ${seitdem ? `<p class="klein"><b>Seitdem ${seitdem === 1 ? 'steht hier 1 neuer Eintrag' : `stehen hier ${seitdem} neue Einträge`}.</b>
       Nimm noch einmal mit und hol sie in der App unter „Mehr" › „Aus Safari
@@ -13042,10 +13105,11 @@ function umzugHinweis(s, tab) {
       Stand der App.</p>
       <div class="reihe">${knopf('umzug-mitnehmen', 'Nochmal mitnehmen', 'btn-primary')}</div>` : ''}
     ${voll ? `<details${ui.umzugKopiert ? ' open' : ''}>
-      <summary>So kommt Bauchbuch auf den Startbildschirm</summary>
+      <summary>So kommt Bauchbuch auf den Home-Bildschirm</summary>
       ${anleitung(geraet())}
-      <p class="klein">Dann die neue App öffnen und auf <b>Einträge holen</b>
-      tippen. Bis dahin liegt dein Tagebuch in der Zwischenablage – kopier in
+      <p class="klein">Dann Bauchbuch über das neue Symbol öffnen und auf
+      <b>Einträge aus Safari holen</b> tippen. Bis dahin liegt dein Tagebuch
+      in der Zwischenablage – kopier in
       der Zwischenzeit nichts anderes.</p>
     </details>` : ''}
   </div>`;
@@ -13083,7 +13147,7 @@ function umzugErgebnisKarte() {
     ${e.zusammengefuehrt ? `Zusammengeführt mit dem, was hier schon stand (vorher ${e.vorher}).` : ''}</p>
     <p class="klein">Zwei Dinge noch: Dein Tagebuch liegt gerade in der
     Zwischenablage – leer sie. Und sichere einmal als Datei; die Kopie in
-    Safari verschwindet nach einiger Zeit von selbst.</p>
+    Safari kann nach einiger Zeit von selbst verschwinden.</p>
     <div class="reihe">
       ${knopf('ablage-leeren', 'Zwischenablage leeren', 'btn-primary')}
       ${knopf('export', 'Als Datei sichern')}
@@ -13125,7 +13189,8 @@ function melden(text) {
   toastEl.textContent = text;
   toastEl.classList.add('an');
   clearTimeout(toastUhr);
-  toastUhr = setTimeout(() => toastEl.classList.remove('an'), 2400);
+  // Lange Sätze länger stehen lassen: etwa 60 ms je Zeichen, mindestens 2,4 s.
+  toastUhr = setTimeout(() => toastEl.classList.remove('an'), Math.max(2400, String(text).length * 60));
 }
 
 /* ==================== Bausteine ==================== */
@@ -13553,9 +13618,14 @@ function sicherungKarte(iso) {
   }[f.grund];
   return `<div class="karte karte-merk">
     <h3>Zeit für eine Sicherung</h3>
-    <p class="klein">${satz} Alles liegt nur ${laeuftAlsApp()
-    ? 'auf diesem Gerät, in dieser App' : 'in diesem Browser'} – wird ihr
-    Speicher gelöscht, ist das Tagebuch weg. Dauert zehn Sekunden.</p>
+    <p class="klein">${satz} Alles liegt nur ${speicherOrt().wo} – wird
+    ${speicherOrt().wessen} Speicher gelöscht, ist das Tagebuch weg. Dauert
+    zehn Sekunden.</p>
+    ${istApfel() && typeof navigator.canShare === 'function' ? `<p class="klein">So
+      geht’s: Tippe auf <b>Als Datei</b> und dann weiter unten in der Liste auf
+      <b>In Dateien sichern</b>. Wähle <b>iCloud Drive</b> (steht es nicht da:
+      <b>Auf meinem ${geraetName(geraet())}</b>) und tippe oben rechts auf
+      <b>Sichern</b>. Mehr dazu unter „Mehr“ › „Anleitung“.</p>` : ''}
     <div class="reihe">
       ${knopf('export', 'Als Datei', 'btn-primary')}
       ${knopf('sicherung-text', 'Als Text')}
@@ -15948,7 +16018,226 @@ function befundeKarte(s) {
   </div>`;
 }
 
+/*
+ * DIE ANLEITUNG: HOME-BILDSCHIRM UND SICHERN
+ *
+ * Auf dem iPhone hängt an zwei Handgriffen, ob das Tagebuch über Monate hält:
+ * Bauchbuch als App auf den Home-Bildschirm legen, und ab und zu als Datei
+ * sichern. Beides stand verstreut in Karten, die man wegtippen kann. Hier
+ * steht es an einem Ort, den man unter „Mehr" immer wiederfindet, und so,
+ * dass niemand es erklären muss.
+ *
+ * Was hier steht, ist gegen Quellen geprüft (WebKit-Blog, MDN, web.dev,
+ * Apple-Support), Stand Oktober 2026. Was sich nicht belegen ließ, steht
+ * bewusst nicht da: dass ein iCloud-Backup oder die Übertragung auf ein neues
+ * iPhone die Einträge mitnimmt, wie die Menüpunkte zum Löschen eines Symbols
+ * unter iOS 26 heißen, ob „Websitedaten löschen" auch die App trifft. Wo es
+ * unsicher ist, heißt es „wahrscheinlich" oder „nicht sicher" – und der Weg,
+ * der sicher geht, ist die eigene Sicherung.
+ *
+ * Nur auf Apple-Geräten. Android und der Rechner haben dieses Problem nicht
+ * in dieser Form, und eine Anleitung für ein anderes Gerät liest niemand.
+ */
+function anleitungKarte() {
+  return `<div class="karte">
+    <h3>Anleitung</h3>
+    <p class="klein">Wie Bauchbuch auf deinen Home-Bildschirm kommt, wie du
+    deine Einträge sicherst und was bei einem neuen ${geraetName(geraet())} zu tun ist.</p>
+    ${knopf('anleitung', 'Anleitung öffnen', 'btn-primary btn-block')}
+  </div>`;
+}
+
+function anleitungAnsicht(s) {
+  const g = geraet();
+  const app = laeuftAlsApp();
+  const ding = geraetName(g);
+  const safari = !app && !g.anderer && !g.inApp;
+  const wo = app ? 'in dieser App' : safari ? 'hier in Safari' : 'hier im Browser';
+  const teilen = typeof navigator.canShare === 'function';
+  // Die Adresse aus dem, was gerade läuft – nicht fest im Code. Wer die App
+  // woanders hinlegt, bekommt sonst eine Anleitung zu einer fremden Adresse.
+  const adresse = location.protocol.startsWith('http')
+    ? location.host + location.pathname.replace(/index\.html$/, '')
+    : '';
+
+  const neue = s.lastBackup ? Math.max(0, s.eintraege.length - (s.lastBackup.anzahl || 0)) : 0;
+  const stand = !s.eintraege.length && !s.lastBackup
+    ? 'Noch nichts zu sichern.'
+    : !s.lastBackup
+      ? 'Noch nie gesichert.'
+      : `Zuletzt gesichert am ${fmtDatum(s.lastBackup.on, true)}.${neue
+        ? ` Seitdem ${mehrzahl(neue, 'neuer Eintrag', 'neue Einträge')}.` : ''}`;
+
+  const sichern = `<div class="karte" id="anleitung-sichern">
+    <h3>Sichern</h3>
+    <p class="klein"><b>${stand}</b></p>
+    <p class="klein">Deine Einträge sind nur ${wo} auf diesem ${ding}. Eine
+    Sicherung ist eine Datei mit deinem ganzen Tagebuch. Die hebst du selbst auf.</p>
+    ${teilen ? `<ol class="schritte">
+      <li>Tippe auf <b>Als Datei sichern</b>.</li>
+      <li>Weiter unten in der Liste steht <b>In Dateien sichern</b>. Tippe darauf.</li>
+      <li>Wähle <b>iCloud Drive</b>. Siehst du das nicht, nimm <b>Auf meinem ${ding}</b>.</li>
+      <li>Tippe oben rechts auf <b>Sichern</b>.</li>
+    </ol>
+    ${knopf('export', 'Als Datei sichern', 'btn-primary btn-block')}
+    <p class="klein">In „iCloud Drive“ ist deine Sicherung auch dann noch da,
+    wenn dein ${ding} verloren geht oder kaputtgeht. „Auf meinem ${ding}“ liegt
+    sie nur auf diesem ${ding}.</p>`
+    : `${knopf('export', 'Als Datei sichern', 'btn-primary btn-block')}
+    <p class="klein">Leg die Datei an einen Ort, an den du auch ohne dieses
+    ${ding} kommst, zum Beispiel in „iCloud Drive“.</p>`}
+    <p class="klein">Bauchbuch erinnert dich auf „Tag“, wenn es wieder Zeit
+    ist. Jede Sicherung enthält das ganze Tagebuch.</p>
+    <p class="klein">Klappt „Als Datei sichern“ nicht, tippe auf „Als Text“ und
+    dann auf „Kopieren“, und setz den Text in eine neue Notiz ein.</p>
+    <div class="reihe">${knopf('sicherung-text', 'Als Text')}</div>
+  </div>`;
+
+  const punkte = [];
+  if (app) {
+    punkte.push(`<li><b>Öffne Bauchbuch immer über das Symbol</b> auf deinem
+      Home-Bildschirm. Was du in Safari einträgst, kommt hier nicht an.</li>`);
+    // Zwei Punkte, nicht einer: Löschen kostet wahrscheinlich die Einträge,
+    // ein zweites Symbol nicht – es fängt nur leer an, die Einträge bleiben
+    // im ersten (jede Installation hat ihren eigenen Speicher, web.dev).
+    punkte.push(`<li><b>Lösch das Bauchbuch-Symbol nicht.</b> Sonst sind deine
+      Einträge wahrscheinlich weg.</li>`);
+    punkte.push(`<li><b>Leg es kein zweites Mal an.</b> Ein zweites Symbol fängt
+      leer an, deine Einträge bleiben im ersten. Hast du schon zwei, lösch
+      erst mal keins: Öffne beide, schau, in welchem deine Einträge stehen, und
+      sichere dort als Datei, bevor du das andere löschst.</li>`);
+    punkte.push(`<li><b>Ein paar Wochen nicht reinschauen ist kein Problem.</b>
+      Als App auf dem Home-Bildschirm löscht dein ${ding} deine Einträge deshalb nicht.</li>`);
+  } else if (safari) {
+    // Die Sieben-Tage-Regel steht schon in der Karte darüber.
+    punkte.push(`<li><b>Leg Bauchbuch auf den Home-Bildschirm</b> (siehe oben).
+      Als App löscht dein ${ding} deine Einträge nicht, nur weil du ein paar
+      Wochen nicht reinschaust.</li>`);
+    punkte.push(`<li>Tippst du in den Einstellungen bei Safari auf „Verlauf und
+      Websitedaten löschen“, sind deine Einträge hier in Safari weg.</li>`);
+  } else {
+    punkte.push(`<li><b>Leg Bauchbuch auf den Home-Bildschirm</b> (siehe oben).
+      Dann öffnest du es mit einem Tipp und trägst immer an derselben Stelle ein.</li>`);
+  }
+  punkte.push(`<li><b>Sichere ab und zu als Datei</b>, am besten in „iCloud
+    Drive“. Denn ganz ausschließen kann niemand, dass Einträge verschwinden:
+    Ein ${ding} kann verloren gehen, kaputtgehen oder sehr voll werden.</li>`);
+  punkte.push('<li><b>Neue Fassungen</b> von Bauchbuch kommen von selbst. Deine Einträge bleiben dabei.</li>');
+
+  const erhalten = `<div class="karte">
+    <h3>So bleibt dein Tagebuch erhalten</h3>
+    <ul class="punkte">${punkte.join('')}</ul>
+    <details id="anleitung-neu" class="anleitung-auf">
+      <summary>Neues ${ding} oder Symbol gelöscht?</summary>
+      <p class="klein">Ein neues Bauchbuch-Symbol fängt leer an. Ob deine
+      Einträge von selbst aufs neue ${ding} kommen, ist nicht sicher – auch
+      nicht mit iCloud-Backup oder wenn du dein altes ${ding} direkt aufs neue
+      überträgst. So gehst du sicher:</p>
+      <ol class="schritte">
+        <li><b>Solange das alte Symbol noch da ist</b> (zum Beispiel auf dem
+        alten ${ding}): Tippe dort auf „Als Datei sichern“ und leg die Datei in
+        „iCloud Drive“. Ist es dafür zu spät, mach mit Schritt 2 weiter.</li>
+        <li><b>Auf dem neuen ${ding} oder nach dem Löschen:</b> Ist das
+        Bauchbuch-Symbol da, öffne es – beim ersten Mal am besten mit
+        Internet. ${adresse
+    ? `Ist es nicht da, öffne in Safari <b>${esc(adresse)}</b> und leg Bauchbuch wieder auf den Home-Bildschirm.`
+    : 'Ist es nicht da, öffne Bauchbuch wieder in Safari und leg es auf den Home-Bildschirm.'}</li>
+        <li>Fehlen in der App Einträge, tippe dort auf <b>Datei einlesen</b> –
+        gleich auf dem ersten Bildschirm oder unter „Mehr“ › „Sicherung“. Such
+        deine Sicherung, zum Beispiel unter <b>Durchsuchen</b> › <b>iCloud
+        Drive</b>, und tippe sie an.</li>
+      </ol>
+      <p class="klein">Hast du als Text in eine Notiz gesichert: Kopier dort den
+      ganzen Text. Tippe dann in der App unter „Mehr“ › „Sicherung“ auf
+      <b>Text einlesen</b>, setz den Text ins Feld ein und tippe auf
+      <b>Einlesen</b>.</p>
+      <p class="klein">Beim Einlesen geht nichts verloren, was schon in der App
+      steht. Doppelte Einträge erkennt Bauchbuch. Was nach deiner letzten
+      Sicherung dazukam, fehlt allerdings.</p>
+      <p class="klein">Keine Sicherung? Schau in Safari nach, ob dort noch
+      Einträge stehen. Wenn ja, tippe dort auf „Einträge mitnehmen“ oder
+      „Nochmal mitnehmen“. Öffne dann die App und tippe unter „Mehr“ ›
+      „Sicherung“ auf „Aus Safari holen“.</p>
+      ${app ? `<div class="reihe">${knopf('import', 'Datei einlesen')}${knopf('umzug-holen', 'Aus Safari holen')}</div>`
+    : `<p class="klein">Lies die Sicherung in der App ein, nicht ${wo}. Sonst
+      steht sie danach ${wo} statt in der App.</p>`}
+    </details>
+    <details id="anleitung-update" class="anleitung-auf">
+      <summary>${g.ipad ? 'iPadOS-Update' : 'iOS-Update'}?</summary>
+      <p class="klein">Bei einem Update bleiben deine Einträge normalerweise
+      erhalten. Sichere trotzdem kurz vorher als Datei.</p>
+    </details>
+  </div>`;
+
+  return `
+  <div class="reihe">${knopf('anleitung-zu', '‹ Zurück', 'btn-ghost')}</div>
+  <h2>Anleitung</h2>
+  <p class="klein">Zwei Dinge, dann bleibt dein Tagebuch erhalten: Bauchbuch
+  als App auf den Home-Bildschirm legen. Und ab und zu sichern. Du findest
+  diese Seite immer unter „Mehr“.</p>
+  ${startbildschirmKarte(s, 'mehr')}
+  ${umzugHolenKarte(s)}
+  ${sichern}
+  ${erhalten}
+  ${knopf('anleitung-zu', '‹ Zurück zu „Mehr“', 'btn-ghost btn-block')}`;
+}
+
+/*
+ * Der Satz zum dauerhaften Speicher.
+ *
+ * Gezeigt wird nur, was persist() wirklich gemeldet hat. Safari kennt die
+ * Frage seit iOS 17 und sagt meist nein; was man auf dem iPhone wissen muss,
+ * steht deshalb unabhängig von dieser Antwort da: In Safari gilt die
+ * Sieben-Tage-Regel, in der App nicht. Für die App heißt es „ein paar
+ * Wochen", nicht „eine Weile": Seit Mai 2026 kennt WebKit eine Räumung nach
+ * langer Zeit ohne Zugriff, und ab welcher iOS-Fassung sie gilt, ist offen.
+ * Für Chrome und eingebaute Browser auf dem iPhone ist die Regel nicht
+ * belegt – dort steht nur, was sicher hilft.
+ */
+function speicherSatz() {
+  const g = geraet();
+  const ding = geraetName(g);
+  const antwort = ui.speicher === false ? 'nicht zugesagt' : 'unbekannt';
+  if (ui.speicher === true && g.ios) {
+    return `<b>Dauerhafter Speicher: zugesagt.</b> Dein ${ding} hat zugesagt, `
+      + 'diesen Speicher nicht von selbst aufzuräumen. Sichern solltest du '
+      + `trotzdem – dein ${ding} kann verloren gehen oder kaputtgehen.`;
+  }
+  if (ui.speicher === true) {
+    return '<b>Dauerhafter Speicher: zugesagt.</b> Der Browser hat zugesichert, '
+      + 'diesen Speicher nicht von selbst aufzuräumen. Sichern solltest du '
+      + 'trotzdem – eine Zusage ist kein Gerät, das nicht kaputtgeht.';
+  }
+  if (!g.ios) {
+    return ui.speicher === false
+      ? '<b>Dauerhafter Speicher: nicht zugesagt.</b> Der Browser darf diesen '
+        + 'Speicher bei Platzmangel oder längerer Nichtbenutzung räumen. Meist '
+        + 'gibt er die Zusage, sobald die App auf dem Startbildschirm liegt und '
+        + 'ein paar Mal benutzt wurde. Bis dahin ist die Sicherung das Einzige, '
+        + 'worauf Verlass ist.'
+      : '<b>Dauerhafter Speicher: unbekannt.</b> Dieser Browser sagt nicht, ob '
+        + 'er den Speicher verschont. Dann kann er nach längerer '
+        + 'Nichtbenutzung geräumt werden. Sichern.';
+  }
+  if (laeuftAlsApp()) {
+    return `<b>Dauerhafter Speicher: ${antwort}.</b> `
+      + `${ui.speicher === false ? '' : 'iOS sagt das nicht. '}Als App auf dem `
+      + `Home-Bildschirm löscht dein ${ding} deine Einträge aber nicht, nur weil `
+      + 'du ein paar Wochen nicht reinschaust. Sichern solltest du trotzdem – '
+      + `dein ${ding} kann verloren gehen oder kaputtgehen.`;
+  }
+  if (g.anderer || g.inApp) {
+    return `<b>Dauerhafter Speicher: ${antwort}.</b> Leg Bauchbuch auf den `
+      + 'Home-Bildschirm (siehe oben) und sichere.';
+  }
+  return `<b>Dauerhafter Speicher: ${antwort}.</b> In Safari kann dein ${ding} `
+    + 'deine Einträge löschen, wenn du Bauchbuch eine Weile nicht benutzt – im '
+    + 'ungünstigsten Fall schon nach sieben Tagen, an denen du Safari benutzt '
+    + 'hast. Leg Bauchbuch auf den Home-Bildschirm (siehe oben) und sichere.';
+}
+
 function mehrAnsicht(s) {
+  if (ui.anleitung && istApfel()) return anleitungAnsicht(s);
   const gesichert = s.lastBackup
     ? `zuletzt am ${fmtDatum(s.lastBackup.on, true)} mit ${mehrzahl(s.lastBackup.anzahl, 'Eintrag', 'Einträgen')}`
     : 'noch nie';
@@ -15966,48 +16255,23 @@ function mehrAnsicht(s) {
   </div>` : '';
 
   return `
+  ${istApfel() ? anleitungKarte() : ''}
   ${installKarte()}
   ${fassungKarte()}
 
   <div class="karte">
     <h3>Sicherung</h3>
-    <p class="klein">Alles steht ausschließlich ${laeuftAlsApp()
-    ? 'auf diesem Gerät, in dieser App' : 'in diesem Browser'}. Wird ihr
-    Speicher gelöscht, ist das Tagebuch weg – eine andere Kopie gibt es
-    nirgends. Die Sicherung ist eine gewöhnliche JSON-Datei.</p>
+    <p class="klein">Alles steht ausschließlich ${speicherOrt().wo}. Wird
+    ${speicherOrt().wessen} Speicher gelöscht, ist das Tagebuch weg. Eine Kopie, auf die du dich
+    verlassen kannst, gibt es nur, wenn du sicherst. Die Sicherung ist eine
+    Datei, die du selbst aufbewahrst${istApfel() ? ' – am besten in „iCloud Drive“' : ''}.</p>
     ${(() => {
     const v = store.vorherDa();
     return v ? `<p class="klein">Vor dem letzten Einlesen (${fmtDatum(String(v.am).slice(0, 10), true)})
       standen hier ${mehrzahl(v.anzahl, 'Eintrag', 'Einträge')}.
       ${knopf('rueckgaengig', 'Diesen Stand zurückholen', 'btn-ghost')}</p>` : '';
   })()}
-    <p class="klein">${ui.speicher === true
-    ? '<b>Dauerhafter Speicher: zugesagt.</b> Der Browser hat zugesichert, '
-      + 'diesen Speicher nicht von selbst aufzuräumen. Sichern solltest du '
-      + 'trotzdem – eine Zusage ist kein Gerät, das nicht kaputtgeht.'
-    /*
-     * Safari kennt persist() seit iOS 17 und sagt meist nein. Die Wochenregel
-     * gilt trotzdem, und sie ist das, was man auf dem iPhone wissen muss –
-     * deshalb steht sie bei Apple unabhängig von dieser Antwort da.
-     */
-    : ui.speicher === false && !istApfel()
-      ? '<b>Dauerhafter Speicher: nicht zugesagt.</b> Der Browser darf diesen '
-        + 'Speicher bei Platzmangel oder längerer Nichtbenutzung räumen. Meist '
-        + 'gibt er die Zusage, sobald die App auf dem Startbildschirm liegt und '
-        + 'ein paar Mal benutzt wurde. Bis dahin ist die Sicherung das Einzige, '
-        + 'worauf Verlass ist.'
-      : istApfel() && laeuftAlsApp()
-        ? `<b>Dauerhafter Speicher: ${ui.speicher === false ? 'nicht zugesagt' : 'unbekannt'}.</b> `
-          + `${ui.speicher === false ? '' : 'iOS sagt das nicht. '}Für die `
-          + 'App auf dem Startbildschirm gilt die Wochenregel von Safari aber '
-          + 'nicht. Sichern solltest du trotzdem – ein Telefon kann verloren gehen.'
-        : istApfel()
-          ? `<b>Dauerhafter Speicher: ${ui.speicher === false ? 'nicht zugesagt' : 'unbekannt'}.</b> In Safari löscht iOS die `
-            + 'Daten einer Seite, die eine Woche lang nicht geöffnet wurde. Leg '
-            + 'Bauchbuch auf den Startbildschirm (siehe oben) und sichere.'
-          : '<b>Dauerhafter Speicher: unbekannt.</b> Dieser Browser sagt nicht, ob '
-            + 'er den Speicher verschont. Dann kann er nach längerer '
-            + 'Nichtbenutzung geräumt werden. Sichern.'}</p>
+    <p class="klein">${speicherSatz()}</p>
     <p class="klein ${alt > 30 ? 'warnend' : ''}">Gesichert: ${gesichert}</p>
     <div class="reihe">
       ${knopf('export', 'Als Datei sichern', 'btn-primary')}
@@ -16019,10 +16283,12 @@ function mehrAnsicht(s) {
     ${schlossKarte()}
     ${einfuegeKarte()}
     ${ui.sicherung ? `
-      <p class="klein" style="margin-top:10px">Alles markieren und in eine
-      Notiz oder eine Mail an sich selbst kopieren. Zum Zurückholen denselben
-      Text als <code>.json</code> speichern und über „Einlesen" wählen.</p>
-      <textarea class="bericht" readonly rows="10">${esc(ui.sicherung)}</textarea>
+      <p class="klein" style="margin-top:10px">${istApfel()
+    ? 'Tippe auf <b>Kopieren</b>. Öffne dann die App Notizen, leg eine neue Notiz an, tippe lange hinein und wähle <b>Einsetzen</b>.'
+    : 'Tippe auf <b>Kopieren</b> und setz den Text in eine neue Notiz ein.'}
+      Zum Zurückholen: den ganzen Text aus der Notiz kopieren, hier auf
+      „Text einlesen“ tippen und einsetzen.</p>
+      <textarea class="bericht" id="sicherungsText" readonly rows="10">${esc(ui.sicherung)}</textarea>
       <div class="reihe">
         ${knopf('sicherung-kopieren', 'Kopieren', 'btn-primary')}
         ${knopf('sicherung-zu', 'Schließen', 'btn-ghost')}
@@ -16594,12 +16860,53 @@ function bogenHTML(s) {
 
 /* ==================== Willkommen ==================== */
 
+/*
+ * Die Begrüßung ist der erste Bildschirm, den jemand sieht, der den Link
+ * bekommen hat. Auf dem iPhone steht hier gleich, wie Bauchbuch auf den
+ * Home-Bildschirm kommt – vor dem ersten Eintrag. Wer in Safari anfängt, muss
+ * später umziehen; wer gleich in der App anfängt, nie.
+ */
 function willkommen() {
+  const g = geraet();
+  const app = laeuftAlsApp();
+  const ding = geraetName(g);
+  const zuerst = g.ios && !app
+    ? g.inApp
+      ? `<div class="karte karte-merk"><h3>Zuerst in Safari öffnen</h3>${anleitung(g)}</div>`
+      // Die Frage vor die Schritte: Wer von oben abarbeitet, soll nicht erst
+      // ein zweites Symbol anlegen und dann lesen, dass es schon eins gibt.
+      : `<div class="karte karte-merk">
+        <h3>Zuerst auf den Home-Bildschirm</h3>
+        <p class="klein"><b>Liegt Bauchbuch schon auf deinem Home-Bildschirm?</b>
+        Dann öffne es dort und leg es nicht noch einmal an – ein zweites Symbol
+        hat deine Einträge nicht.</p>
+        <p class="klein"><b>Noch nicht?</b> Leg Bauchbuch als App auf deinen
+        Home-Bildschirm, bevor du etwas einträgst. Dann öffnest du es mit einem
+        Tipp, und dein ${ding} löscht deine Einträge dort nicht, nur weil du ein
+        paar Wochen nicht reinschaust.</p>
+        ${anleitung(g)}
+        <p class="klein">Danach öffnest du Bauchbuch nur noch über das neue
+        Symbol auf deinem Home-Bildschirm.</p>
+      </div>`
+    /*
+     * In der App: sagen, dass es geklappt hat – und das eine, was man jetzt
+     * noch falsch machen kann. Der Link aus der Nachricht öffnet nicht diese
+     * App, sondern Safari oder den Browser der Nachrichten-App; was dort
+     * landet, kommt hier nicht an.
+     */
+    : g.ios && app
+      ? `<div class="karte karte-merk"><h3>Geschafft</h3>
+        <p class="klein">Bauchbuch liegt jetzt als App auf deinem
+        Home-Bildschirm. Öffne es ab jetzt nur noch über dieses Symbol. Der
+        Link, den du bekommen hast, öffnet nicht diese App – was du dort
+        einträgst, kommt hier nicht an.</p></div>`
+      : '';
   return `<div class="willkommen">
     <h2>Bauchbuch</h2>
     <p>Ein Tagebuch für den Magen: was gegessen wurde, wann es zwickt, was
     hilft. Nach ein paar Wochen zeigt es, was zusammenfällt – und macht daraus
     einen Zettel für den nächsten Arzttermin.</p>
+    ${zuerst}
     <ul class="punkte">
       <li><b>Bleibt hier.</b> Kein Konto, kein Server. Was du über deinen
         Bauch einträgst, liegt auf diesem Gerät und geht nirgendwo hin. Einzige Ausnahme: Verbesserungsvorschläge unter „Ideen" – die
@@ -16607,17 +16914,27 @@ function willkommen() {
       <li><b>Läuft ohne Netz.</b> Einmal geöffnet, funktioniert die App auch
         im Flugzeug und im Keller.</li>
       <li><b>Sichern nicht vergessen.</b> Was nur auf einem Gerät liegt, ist
-        mit dem Gerät weg. Unter „Mehr" gibt es eine Sicherungsdatei.</li>
+        mit dem Gerät weg. ${g.ios
+    ? 'Wie du sicherst, steht unter „Mehr“ › „Anleitung“.'
+    : 'Unter „Mehr" gibt es eine Sicherungsdatei.'}</li>
+      ${g.ios && app ? `<li><b>Das Symbol behalten.</b> Lösch es nicht – sonst
+        sind deine Einträge wahrscheinlich weg.</li>` : ''}
     </ul>
     <p class="klein">Die App zählt mit, sie diagnostiziert nicht. Was sie
     „auffällig" nennt, ist eine Häufigkeit – die Einordnung gehört in die
     Praxis.</p>
-    ${knopf('los', 'Anfangen', 'btn-primary btn-block')}
-    ${laeuftAlsApp() ? `
+    ${g.ios && !app
+    ? knopf('los', 'Erst mal hier anschauen', 'btn-block')
+    : knopf('los', 'Anfangen', 'btn-primary btn-block')}
+    ${app ? `
       <p class="klein willkommen-umzug">Schon in Safari eingetragen? Diese App
       hat ihren eigenen Speicher – hol deine Einträge herein. Gleich erscheint
       oben ein kleines Feld <b>Einsetzen</b>, darauf tippen.</p>
-      ${knopf('umzug-holen', 'Einträge aus Safari holen', 'btn-block')}` : ''}
+      ${knopf('umzug-holen', 'Einträge aus Safari holen', 'btn-block')}
+      ${g.ios ? `<p class="klein willkommen-umzug">Neues ${ding}? Oder Bauchbuch
+      gelöscht und wieder auf den Home-Bildschirm gelegt? Hast du eine
+      Sicherung als Datei, hol sie hier herein.</p>
+      ${knopf('import', 'Datei einlesen', 'btn-block')}` : ''}` : ''}
   </div>`;
 }
 
@@ -16662,8 +16979,17 @@ function male() {
       auswahl = [fokus.selectionStart, fokus.selectionEnd, fokus.selectionDirection || 'none'];
     }
   } catch { /* Felder ohne Cursor, etwa Zahlen in älterem Safari */ }
+  // Aufgeklappt bleibt aufgeklappt – für Abschnitte mit id, etwa in der
+  // Anleitung: Wer „Neues iPhone?" liest und dabei sichert, verliert sonst
+  // die Stelle.
+  const offenIds = [...viewEl.querySelectorAll('details[id][open]')].map((d) => d.id);
 
   viewEl.innerHTML = warnung + umzugHinweis(s, tab) + inhalt(s) + bogenHTML(s);
+
+  offenIds.forEach((id) => {
+    const d = document.getElementById(id);
+    if (d && viewEl.contains(d)) d.open = true;
+  });
 
   const wieder = fokusId ? document.getElementById(fokusId) : null;
   if (wieder && wieder !== fokus && viewEl.contains(wieder)) {
@@ -16833,14 +17159,17 @@ function datenAusgeben(text, name, typ) {
  * In die Zwischenablage – und wenn der Browser das nicht erlaubt, wenigstens
  * das Feld markieren. Von Hand kopieren kann man immer.
  */
+/** Gibt zurück, ob der Text wirklich in der Zwischenablage gelandet ist. */
 async function kopiere(text, wahl) {
   try {
     await navigator.clipboard.writeText(text || '');
     melden('Kopiert.');
+    return true;
   } catch {
     const feld = viewEl.querySelector(wahl);
     if (feld) { feld.focus(); feld.select(); }
     melden('Bitte von Hand kopieren.');
+    return false;
   }
 }
 
@@ -16876,18 +17205,35 @@ function eingelesenText(e) {
     : `${mehrzahl(e.anzahl, 'Eintrag', 'Einträge')} eingelesen.`;
 }
 
+/*
+ * Das Dateifeld hängt für die Dauer der Auswahl im Dokument, unsichtbar, aber
+ * nicht mit display:none. Ein Feld, das nirgends hängt, kommt auf dem iPhone
+ * nicht immer mit seinem change-Ereignis zurück (WebKit-Fehlerbericht
+ * 201289) – gerade bei einer Datei aus iCloud Drive. Dann täte „Datei
+ * einlesen" still nichts, und die Sicherung sähe kaputt aus.
+ */
 function sicherungLaden() {
+  const alt = document.getElementById('sicherung-datei');
+  if (alt) alt.remove();
   const feld = document.createElement('input');
   feld.type = 'file';
   feld.accept = 'application/json,.json';
+  feld.id = 'sicherung-datei';
+  feld.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0';
+  feld.addEventListener('cancel', () => feld.remove());
   feld.addEventListener('change', () => {
     const datei = feld.files && feld.files[0];
+    feld.remove();
     if (!datei) return;
     const leser = new FileReader();
     leser.onload = async () => {
       try {
         const ergebnis = await sicherungEinlesen(String(leser.result));
-        if (ergebnis !== null) melden(eingelesenText(ergebnis));
+        if (ergebnis !== null) {
+          // Aus der Begrüßung heraus eingelesen: danach gleich ins Tagebuch.
+          store.einstellen('begruesst', true);
+          melden(eingelesenText(ergebnis));
+        }
       } catch (fehler) {
         melden(lesbarerFehler(fehler));
       }
@@ -16895,6 +17241,7 @@ function sicherungLaden() {
     };
     leser.readAsText(datei);
   });
+  document.body.appendChild(feld);
   feld.click();
 }
 
@@ -16911,6 +17258,8 @@ const AKTION = {
     ui.bericht = null;
     ui.sicherung = null;
     ui.mittel = false;
+    // Ein Tipp auf „Mehr" führt zu „Mehr", auch aus der Anleitung heraus.
+    ui.anleitung = false;
     // Wer auf „Ideen" wechselt, gibt einem gescheiterten Versand einen
     // neuen Anlauf – genau einen, nicht einen je Neuzeichnen.
     if (el.dataset.tab === 'ideen') sendenAnstossen();
@@ -17332,11 +17681,12 @@ const AKTION = {
         store.umzugMerken();
         ui.umzugKopiert = true;
         store.einstellen('tab', 'heute');
-        melden('Kopiert. Jetzt auf den Startbildschirm.');
+        melden('Kopiert. Jetzt auf den Home-Bildschirm.');
       })
       .catch(() => {
         // Ohne Zwischenablage bleibt der Text zum Markieren – unter „Mehr".
         ui.sicherung = text;
+        ui.anleitung = false;
         store.einstellen('tab', 'mehr');
         melden('Bitte den Text unter „Sicherung" markieren und kopieren.');
       })
@@ -17359,6 +17709,8 @@ const AKTION = {
     const vonHand = (satz) => {
       store.einstellen('begruesst', true);
       store.einstellen('tab', 'mehr');
+      // Das Einsetzfeld steht unter „Mehr", nicht in der Anleitung.
+      ui.anleitung = false;
       ui.einfuegen = '';
       ui.einfuegenUmzug = true;
       melden(satz);
@@ -17546,7 +17898,10 @@ const AKTION = {
       navigator.share({ files: [datei], title: 'Bauchbuch-Sicherung' })
         .then(() => {
           store.sicherungNotiert();
-          melden('Gesichert. Am besten unter „In Dateien sichern › Auf meinem iPhone".');
+          // Vorsichtig: Ob ein Abbruch erst in der Ortsauswahl hier als
+          // Erfolg ankommt, ist nicht geprüft. Und „Auf meinem iPhone" ist
+          // mit dem iPhone weg – deshalb kein Rat mehr dorthin.
+          melden('Gesichert, wenn du zum Schluss auf „Sichern“ getippt hast. Sonst sichere einfach noch einmal.');
         })
         .catch(() => melden('Nicht gesichert – abgebrochen.'))
         .finally(() => { beschaeftigt -= 1; zeichne(); });
@@ -17563,12 +17918,34 @@ const AKTION = {
     melden('In einer Woche frage ich wieder.');
     zeichne();
   },
+  /*
+   * Die Textfläche gibt es nur unter „Mehr". Vom Tag-Reiter aus vermerkte der
+   * Knopf früher „gesichert" und zeigte nichts – jetzt geht er dorthin, wo der
+   * Text steht, und rollt ihn ins Bild. Vermerkt wird erst beim Kopieren.
+   */
   'sicherung-text': () => {
     ui.sicherung = store.alsJSON();
-    store.sicherungNotiert();
+    ui.anleitung = false;
+    store.einstellen('tab', 'mehr');
     zeichne();
+    requestAnimationFrame(() => {
+      const feld = document.getElementById('sicherungsText');
+      if (feld) feld.scrollIntoView({ block: 'center' });
+    });
   },
   'sicherung-zu': () => { ui.sicherung = null; zeichne(); },
+  // Die Anleitung lebt unter „Mehr" – auch wenn der Hinweis von woanders kommt.
+  anleitung: () => {
+    store.einstellen('tab', 'mehr');
+    ui.anleitung = true;
+    zeichne();
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+  },
+  'anleitung-zu': () => {
+    ui.anleitung = false;
+    zeichne();
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+  },
   'gewicht-los': () => {
     const feld = viewEl.querySelector('[data-act="gewicht-neu"]');
     const kg = Number(String(feld && feld.value).replace(',', '.'));
@@ -17609,7 +17986,19 @@ const AKTION = {
     }
     zeichne();
   },
-  'sicherung-kopieren': () => kopiere(ui.sicherung, '.bericht'),
+  /*
+   * Erst hier gilt als gesichert, nicht schon beim Aufmachen des Textes. Wer
+   * „Als Text" antippt und wieder schließt, hat nichts gesichert – und soll
+   * weiter erinnert werden. Wer von Hand kopiert, weil die Zwischenablage
+   * nicht ging, tippt danach auf „Kopieren" noch einmal oder bekommt die
+   * Erinnerung, und das ist der ehrlichere Fehler.
+   */
+  'sicherung-kopieren': async () => {
+    if (!(await kopiere(ui.sicherung, '.bericht'))) return;
+    store.sicherungNotiert();
+    melden('Kopiert. Jetzt in eine Notiz einsetzen.');
+    zeichne();
+  },
 
   'schloss-auf': () => { ui.schloss = true; ui.tresorWort = ''; zeichne(); },
   'schloss-zu': () => { ui.schloss = false; ui.tresorWort = ''; zeichne(); },
@@ -17884,6 +18273,7 @@ try {
       if (z.zeitraum) ui.zeitraum = z.zeitraum;
       ui.kuecheOffen = !!z.kuecheOffen;
       ui.umzug = z.umzug || null;
+      ui.anleitung = !!z.anleitung;
     }
   }
 } catch { /* dann eben von vorn */ }
@@ -17891,6 +18281,12 @@ try {
 male();
 
 if (nachNeuladen) {
+  // Erst aufklappen, dann rollen – sonst ist die Seite für die alte Stelle
+  // noch zu kurz.
+  (Array.isArray(nachNeuladen.offen) ? nachNeuladen.offen : []).forEach((id) => {
+    const d = document.getElementById(id);
+    if (d && viewEl.contains(d)) d.open = true;
+  });
   window.scrollTo(0, Number(nachNeuladen.scrollY) || 0);
   if (nachNeuladen.warum === 'selbst') melden('Bauchbuch wurde gerade erneuert. Deine Einträge sind alle da.');
 }
@@ -17987,6 +18383,10 @@ function neuLaden(warum) {
       zeitraum: ui.zeitraum,
       kuecheOffen: ui.kuecheOffen,
       umzug: ui.umzug,
+      // Wer gerade die Anleitung liest und kurz zu Safari wechselt – wozu sie
+      // selbst auffordert –, soll danach an derselben Stelle stehen.
+      anleitung: ui.anleitung,
+      offen: [...viewEl.querySelectorAll('details[id][open]')].map((d) => d.id),
       scrollY: window.scrollY,
     }));
   } catch {

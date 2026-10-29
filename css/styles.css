@@ -784,6 +784,9 @@ p { margin: 0 0 8px; }
 .schritte { margin: 6px 0 10px; padding-left: 22px; font-size: 14px; }
 .schritte li { margin: 4px 0; }
 .willkommen-umzug { margin-top: 18px; }
+/* Zwei Aufklapper direkt untereinander: Mit 23 px Höhe traf ein Tipp knapp
+   unter „Neues iPhone?" schon „iOS-Update?". So sind es gut 44 px je Zeile. */
+.anleitung-auf > summary { padding: 11px 0; }
 
 /* ---------- Notausgang (index.html) ----------
    Erst nach vier Sekunden sichtbar: Startet die App normal, hat js/app.js

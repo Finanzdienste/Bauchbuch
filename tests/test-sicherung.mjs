@@ -17,6 +17,9 @@ import { URL, KEY, HANDY, ABLAGE, SHOT, vorTagen, pruefer } from './umgebung.mjs
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: HANDY, acceptDownloads: true });
+// „Als Text" gilt erst als gesichert, wenn kopiert wurde – dafür braucht der
+// Test die Zwischenablage.
+await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
 const page = await ctx.newPage();
 const fehler = [];
 page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
@@ -206,6 +209,8 @@ await page.evaluate(([k, e]) => localStorage.setItem(k, JSON.stringify({
 })), [KEY, vieleEintraege]);
 await page.reload({ waitUntil: 'networkidle' });
 await page.locator('[data-act="sicherung-text"]').click();
+await page.waitForTimeout(300);
+await page.locator('[data-act="sicherung-kopieren"]').click();
 await page.waitForTimeout(300);
 await page.locator('[data-act="tab"][data-tab="heute"]').click();
 await page.waitForTimeout(300);

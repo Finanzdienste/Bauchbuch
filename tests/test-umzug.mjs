@@ -300,9 +300,9 @@ await S.page.reload({ waitUntil: 'networkidle' });
 await S.page.waitForTimeout(400);
 
 const sKarte = S.page.locator('#view .karte', {
-  has: S.page.locator('h3', { hasText: 'Als App auf den Startbildschirm' }),
+  has: S.page.locator('h3', { hasText: 'Als App auf den Home-Bildschirm' }),
 });
-check(await sKarte.count() === 1, 'Safari zeigt auf dem Tag-Reiter die Karte „Als App auf den Startbildschirm"');
+check(await sKarte.count() === 1, 'Safari zeigt auf dem Tag-Reiter die Karte „Als App auf den Home-Bildschirm"');
 const aufbau = await sKarte.evaluate((k) => {
   const knopf = k.querySelector('[data-act="umzug-mitnehmen"]');
   const schritte = k.querySelector('ol.schritte');

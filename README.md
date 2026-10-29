@@ -1278,6 +1278,27 @@ aus dem es gar nicht geht. Safari auf dem Mac – dieselbe Kennung wie das iPad,
 nur ohne Berührung – bekommt „Ablage › Zum Dock hinzufügen". Läuft sie
 bereits als App, sagt sie das unter „Mehr" und schweigt ansonsten.
 
+### Die Anleitung in der App
+
+Wer den Link bekommt, soll niemanden fragen müssen. Auf dem iPhone und dem
+iPad zeigt deshalb schon die Begrüßung die Schritte auf den Home-Bildschirm –
+vor dem ersten Eintrag, damit gar nicht erst umgezogen werden muss. Und unter
+„Mehr" › „Anleitung" steht an einem Ort, was sonst über mehrere Karten
+verstreut wäre: der Weg auf den Home-Bildschirm, das Holen aus Safari, das
+Sichern als Datei (Teilen-Blatt › „In Dateien sichern" › „iCloud Drive"), was
+das Tagebuch erhält und was es kosten kann, und was bei einem neuen Gerät zu
+tun ist. Die Seite zeigt den Stand dieses Geräts: ob Bauchbuch schon als App
+läuft, wann zuletzt gesichert wurde und wie viel seitdem dazukam.
+
+Was dort steht, ist gegen Quellen geprüft (WebKit-Blog, MDN, web.dev,
+Apple-Support). Was sich nicht belegen ließ, steht bewusst nicht da: dass ein
+iCloud-Backup oder die Übertragung auf ein neues iPhone die Einträge
+mitnimmt, wie die Menüpunkte zum Löschen eines Symbols unter iOS 26 heißen,
+ob „Websitedaten löschen" auch die App trifft. Wo es unsicher ist, heißt es
+„wahrscheinlich" oder „nicht sicher" – und der Weg, der sicher geht, ist die
+eigene Sicherung. Die Sieben-Tage-Regel heißt dort, wie sie ist: Tage, an
+denen Safari benutzt wurde, und „kann löschen", nicht „löscht".
+
 ### Auf dem iPhone: eigener Speicher, und deshalb ein Umzug
 
 Eine App auf dem Startbildschirm hat auf dem iPhone **ihren eigenen
@@ -1512,7 +1533,8 @@ den Rückgabewert.
 | `test-nachschub.mjs` | kommt eine neue Fassung überhaupt an – über einen Server mit `max-age=600`, wie GitHub Pages ihn schickt, und ohne das Tagebuch mitzunehmen |
 | `test-auffrischen.mjs` | die neue Fassung kommt nie unter den Fingern: nicht bei offenem Bogen, nicht bei Text im Feld, nicht ohne Speicher – und eine halb geladene Fassung nimmt der laufenden den Vorrat nicht weg |
 | `test-umzug.mjs` | von Safari in die App: nichts doppelt, nichts verloren, keine Idee zweimal verschickt – und ein falsches Passwort heißt „falsches Passwort", nicht „Zwischenablage" |
-| `test-geraete.mjs` | elf Geräte, jedes mit seiner Anleitung: das iPad, das sich als Mac meldet, der Mac, der kein iPad ist, und die Wochenregel, auch wenn Safari zur Speicherfrage nein sagt |
+| `test-geraete.mjs` | elf Geräte, jedes mit seiner Anleitung: das iPad, das sich als Mac meldet, der Mac, der kein iPad ist, und die Sieben-Tage-Regel in Safari, auch wenn Safari zur Speicherfrage nein sagt |
+| `test-anleitung.mjs` | die Anleitung nur auf iPhone und iPad: die Schritte auf den Home-Bildschirm schon in der Begrüßung, die Frage „liegt es schon da?" vor den Schritten, ein Tipp auf „Mehr" führt immer zu „Mehr", „Als Text" gilt erst nach dem Kopieren als gesichert, das Dateifeld hängt beim Einlesen im Dokument – und in der App steht keine Sieben-Tage-Regel |
 | `test-ablaeufe.mjs` | jeder Shell-Schritt der GitHub-Abläufe geht durch `bash -n` – ein falsches Anführungszeichen fällt hier auf, nicht erst, wenn der Schritt gebraucht wird |
 | `test-zeitknoepfe.mjs` | „morgens" und „vor dem Essen" ergeben eine Uhrzeit, die als ungefähr gilt – und eine ungefähre Zeit zählt bei „wie lange nach dem Essen" nicht mit |
 | `test-standardmittel.mjs` | ein Mittel mit Dosis einmal anlegen, dann mit einem Tipp eintragen – ohne Dubletten und höchstens zwölf |
