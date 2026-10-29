@@ -771,6 +771,10 @@ p { margin: 0 0 8px; }
 .tab.an { color: var(--accent); }
 .ti { font-size: 19px; line-height: 1; }
 
+/* ---------- Eigene Mittel ---------- */
+.standard-zeile { margin-top: 8px; }
+.standard-zeile .btn { min-height: 36px; }
+
 /* ---------- Ungefähre Zeiten im Bogen ---------- */
 .zeit-knoepfe { margin: -2px 0 12px; }
 .zeit-knoepfe .marken { margin-bottom: 6px; }

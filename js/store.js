@@ -64,6 +64,16 @@ const VORGABE = {
    */
   befunde: [],
   zuletztMittel: [],     // zuletzt eingetragene Medikamente, als Vorschlag
+  /*
+   * Die eigenen Mittel, die regelmäßig genommen werden – mit Dosis und, wenn
+   * gewählt, der üblichen Zeit: [{ id, mittel, dosis, tageszeit, bezug }].
+   *
+   * Anders als zuletztMittel (die fünf zuletzt benutzten Namen) legt diese
+   * Liste nur der Mensch an, ausdrücklich, im Bogen. Ein Mittel, das einmal
+   * wegen Kopfschmerzen genommen wurde, ist noch keins, das man täglich
+   * nimmt – und genau dafür ist sie da: die tägliche Tablette mit einem Tipp.
+   */
+  standardMittel: [],
   // Welche Tagesfragen erscheinen. Im Auslieferungszustand alle – wer eine
   // davon nicht beantworten will, schaltet sie unter Mehr ab.
   tagesfragen: ['stimmung', 'stress', 'schlaf', 'bewegung', 'blutung', 'sex', 'nachtwach'],
@@ -513,6 +523,57 @@ export function ausloeserAnlegen(id, name) {
  */
 export function ausloeserLoeschen(id) {
   zustand.eigeneAusloeser = zustand.eigeneAusloeser.filter((a) => a.id !== id);
+  merke();
+  melde();
+}
+
+/* ---------- Die eigenen Mittel ---------- */
+
+const STANDARD_HOECHSTENS = 12;
+
+/** Woran zwei Standardmittel als dasselbe erkannt werden: Name und Dosis. */
+function mittelSchluessel(x) {
+  return `${String(x.mittel || '').trim().toLowerCase()}|${String(x.dosis || '').trim().toLowerCase()}`;
+}
+
+/**
+ * Ein Mittel als eigenes Standardmittel merken.
+ *
+ * Steht dasselbe Mittel mit derselben Dosis schon da, wird nur die übliche
+ * Zeit aufgefrischt – sonst stünde „Pantoprazol 40 mg" nach dem zweiten
+ * Merken zweimal in der Reihe. Eine andere Dosis ist dagegen ein eigener
+ * Eintrag: Wer morgens 40 und abends 20 nimmt, will beides mit einem Tipp.
+ */
+export function standardMerken({ mittel, dosis, tageszeit, bezug }) {
+  const neu = {
+    id: neueId(),
+    mittel: String(mittel || '').trim().slice(0, 80),
+    dosis: String(dosis || '').trim().slice(0, 40),
+    tageszeit: tageszeit || null,
+    bezug: bezug || null,
+  };
+  if (!neu.mittel) return null;
+  const i = zustand.standardMittel.findIndex((x) => mittelSchluessel(x) === mittelSchluessel(neu));
+  if (i >= 0) {
+    zustand.standardMittel[i] = { ...zustand.standardMittel[i], tageszeit: neu.tageszeit, bezug: neu.bezug };
+  } else {
+    zustand.standardMittel = [...zustand.standardMittel, neu].slice(0, STANDARD_HOECHSTENS);
+  }
+  merke();
+  melde();
+  return i >= 0 ? zustand.standardMittel[i].id : neu.id;
+}
+
+/** Das Standardmittel mit diesem Namen und dieser Dosis – oder null. */
+export function standardVon(mittel, dosis) {
+  const k = mittelSchluessel({ mittel, dosis });
+  return zustand.standardMittel.find((x) => mittelSchluessel(x) === k) || null;
+}
+
+export function standardEntfernen(id) {
+  const vorher = zustand.standardMittel.length;
+  zustand.standardMittel = zustand.standardMittel.filter((x) => x.id !== id);
+  if (zustand.standardMittel.length === vorher) return;
   merke();
   melde();
 }
@@ -1089,6 +1150,9 @@ function sicherungLesen(text) {
   frisch.eintraege = sortiert(gelesen.eintraege.filter((e) => (
     e && typeof e === 'object' && typeof e.am === 'string' && typeof e.art === 'string'
   )).map((e) => mahlzeitFrisch({ ...e, id: e.id || neueId() })));
+  frisch.standardMittel = frisch.standardMittel
+    .filter((x) => x && typeof x === 'object' && typeof x.mittel === 'string' && x.mittel.trim())
+    .map((x) => ({ ...x, id: x.id || neueId(), dosis: String(x.dosis || '') }));
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
@@ -1217,6 +1281,8 @@ function zusammenfuehren(hier, dazu) {
   neu.kueche = vereinigt(hier.kueche, dazu.kueche, (k) => String(k.name || '').toLowerCase());
   neu.befunde = vereinigt(hier.befunde, dazu.befunde, (b) => b.id);
   neu.zuletztMittel = [...new Set([...hier.zuletztMittel, ...dazu.zuletztMittel])].slice(0, 5);
+  neu.standardMittel = vereinigt(hier.standardMittel, dazu.standardMittel, mittelSchluessel)
+    .slice(0, STANDARD_HOECHSTENS);
   neu.termine = [...new Set([...hier.termine, ...dazu.termine])].sort().reverse();
   neu.gewicht = vereinigt(hier.gewicht, dazu.gewicht, (g) => g.am)
     .sort((a, b) => String(b.am).localeCompare(String(a.am)));

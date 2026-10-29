@@ -596,6 +596,23 @@ function tagAnsicht(s) {
    */
   const schnell = iso === heuteISO()
     ? haeufigeMahlzeiten(s.eintraege, 12).filter((v) => v.anzahl >= 2).slice(0, 3) : [];
+  /*
+   * Die eigenen Mittel als Direkttaste – auf jedem Tag, nicht nur heute: Wer
+   * abends den ganzen Tag nachträgt, trägt auch gestern nach. Ein Häkchen
+   * zeigt, was an diesem Tag schon steht; ein zweiter Tipp legt trotzdem
+   * einen zweiten Eintrag an, denn manches wird zweimal am Tag genommen.
+   */
+  const schonDa = (m) => liste.some((x) => x.art === 'medikament'
+    && String(x.mittel || '').trim().toLowerCase() === m.mittel.trim().toLowerCase());
+  const mittelReihe = s.standardMittel.length && !kuenftig ? `<div class="schnell">
+    <p class="feld-name">Meine Mittel – ein Tipp trägt ein</p>
+    <div class="marken marken-eng">${s.standardMittel.map((m) => `
+      <button type="button" class="marke marke-schnell" data-act="standard-eintragen" data-id="${esc(m.id)}"
+              ${schonDa(m) ? 'aria-label="' + esc(mittelText(m)) + ', heute schon eingetragen"' : ''}>
+        ${esc(kuerze(mittelText(m), 26))}${schonDa(m) ? ' <span class="marke-zahl">✓</span>' : ''}
+      </button>`).join('')}</div>
+  </div>` : '';
+
   const schnellReihe = schnell.length ? `<div class="schnell">
     <p class="feld-name">Noch mal wie immer</p>
     <div class="marken marken-eng">${schnell.map((v, i) => `
@@ -656,7 +673,7 @@ function tagAnsicht(s) {
   return umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
     + provokationZeile(s, iso) + bilanz + zyklusZeile + kopfNachtragKarte(s, iso)
-    + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + anlegen + zeilen + umstaende
+    + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + mittelReihe + anlegen + zeilen + umstaende
     // Ans Ende und zugeklappt: Die Liste ist zum Nachsehen da, nicht zum
     // täglichen Durchscrollen. Wer sie sucht, findet sie an derselben Stelle.
     + (iso === heuteISO() ? kuecheKarte(s) : '');
@@ -3579,6 +3596,39 @@ function zeitMitBezug(s, am, basis, bezugId) {
   return { um: uhrVon(ab + bezug.minuten), bezugMahlzeit: mahlzeit ? mahlzeit.id : null };
 }
 
+/**
+ * Tageszeit und Bezug zum Essen in Felder eines Eintrags umsetzen – dieselbe
+ * Rechnung wie bei den Knöpfen. Ohne beides: ein leeres Ergebnis.
+ */
+function zeitAusVorlage(s, am, um, tageszeit, bezug) {
+  const t = TAGESZEITEN.find((x) => x.id === tageszeit);
+  if (!t && !bezug) return {};
+  const basis = t ? t.um : um;
+  const patch = {
+    ungefaehr: true,
+    tageszeit: t ? t.id : null,
+    um: basis,
+    bezugBasis: basis,
+    bezug: null,
+    bezugMahlzeit: null,
+  };
+  if (bezug && ESSENSBEZUG.some((x) => x.id === bezug)) {
+    Object.assign(patch, { bezug }, zeitMitBezug(s, am, basis, bezug));
+  }
+  return patch;
+}
+
+/** „Pantoprazol · 40 mg" */
+const mittelText = (m) => `${m.mittel}${m.dosis ? ` · ${m.dosis}` : ''}`;
+
+/** „morgens, vor dem Essen" – die übliche Zeit eines Standardmittels. */
+function vorlageText(m) {
+  return [
+    (TAGESZEITEN.find((x) => x.id === m.tageszeit) || {}).name,
+    (ESSENSBEZUG.find((x) => x.id === m.bezug) || {}).name,
+  ].filter(Boolean).join(', ');
+}
+
 /** „abends, nach dem Essen" – in der Liste unter dem Eintrag. */
 function zeitWorte(e) {
   if (!e.ungefaehr) return '';
@@ -3777,7 +3827,31 @@ function bogenHTML(s) {
       </details>`;
   } else if (b.art === 'medikament') {
     const vorschlaege = [...new Set([...s.zuletztMittel, ...MITTEL_VORSCHLAEGE])].slice(0, 8);
-    mitte = `
+    /*
+     * Die eigenen Mittel stehen oben, mit Dosis: ein Tipp füllt Name, Dosis
+     * und – wenn gemerkt – die übliche Zeit. Darunter wie bisher die
+     * zuletzt benutzten Namen, ohne Dosis.
+     */
+    const eigene = s.standardMittel.length ? `
+      <p class="feld-name">Meine Mittel</p>
+      <div class="marken">${s.standardMittel.map((m) => {
+        const an = e.mittel === m.mittel && (e.dosis || '') === (m.dosis || '');
+        return `<button type="button" class="marke${an ? ' an' : ''}" data-act="standard-waehlen"
+                data-id="${esc(m.id)}" aria-pressed="${an}">${esc(mittelText(m))}${vorlageText(m)
+  ? `<span class="marke-zahl">${esc(vorlageText(m))}</span>` : ''}</button>`;
+      }).join('')}</div>` : '';
+    const gemerkt = store.standardVon(e.mittel, e.dosis);
+    // Immer da, nicht erst mit einem Namen im Feld: Beim Tippen zeichnet der
+    // Bogen nicht neu, ein Schalter, der davon abhinge, erschiene nie.
+    const merken = (gemerkt && String(e.mittel || '').trim()
+      ? `<p class="klein standard-zeile">Steht bei deinen Mitteln.
+         ${knopf('standard-entfernen', 'Dort entfernen', 'btn-ghost', `data-id="${esc(gemerkt.id)}"`)}</p>`
+      : `<div class="reihe standard-zeile">
+         <button type="button" class="btn btn-ghost" data-act="standard-umschalten"
+                 aria-pressed="${!!b.alsStandard}">${b.alsStandard ? '✓ ' : ''}Als mein Mittel merken</button>
+         </div>
+         ${b.alsStandard ? `<p class="klein">Mit Dosis${e.ungefaehr ? ' und Zeit' : ''} – beim nächsten Mal genügt ein Tipp, auch auf dem Tag-Reiter.</p>` : ''}`);
+    mitte = `${eigene}
       <label class="feld-name" for="bogenMittel">Mittel</label>
       <input type="text" class="feld feld-breit" id="bogenMittel" data-act="mittel"
              value="${esc(e.mittel || '')}" placeholder="Name" autocomplete="off">
@@ -3791,7 +3865,8 @@ function bogenHTML(s) {
       })()}
       <label class="feld-name" for="bogenDosis">Dosis</label>
       <input type="text" class="feld feld-breit" id="bogenDosis" data-act="dosis"
-             value="${esc(e.dosis || '')}" placeholder="z. B. 20 mg" autocomplete="off">`;
+             value="${esc(e.dosis || '')}" placeholder="z. B. 20 mg" autocomplete="off">
+      ${merken}`;
   } else {
     mitte = `
       <label class="feld-name" for="bogenText">Notiz</label>
@@ -3969,6 +4044,14 @@ function bogenSpeichern() {
     }
   }
   if (b.art === 'medikament') store.mittelMerken(e.mittel);
+  if (b.art === 'medikament' && b.alsStandard) {
+    store.standardMerken({
+      mittel: e.mittel,
+      dosis: e.dosis,
+      tageszeit: e.ungefaehr ? e.tageszeit : null,
+      bezug: e.ungefaehr ? e.bezug : null,
+    });
+  }
   if (b.id) store.eintragAendern(b.id, e);
   else store.eintragen(e);
   dazu.forEach((name) => {
@@ -4109,6 +4192,49 @@ const AKTION = {
     zeichne();
   },
   'bogen-zu': () => { ui.bogen = null; zeichne(); },
+  'standard-waehlen': (el) => {
+    const s = store.zustandLesen();
+    const m = s.standardMittel.find((x) => x.id === el.dataset.id);
+    const e = ui.bogen && ui.bogen.entwurf;
+    if (!m || !e) return;
+    entwurf({ mittel: m.mittel, dosis: m.dosis, ...zeitAusVorlage(s, e.am, e.um, m.tageszeit, m.bezug) });
+  },
+  'standard-umschalten': () => {
+    if (!ui.bogen) return;
+    ui.bogen.alsStandard = !ui.bogen.alsStandard;
+    zeichne();
+  },
+  'standard-entfernen': (el) => {
+    store.standardEntfernen(el.dataset.id);
+    melden('Aus deinen Mitteln genommen. Die Einträge bleiben.');
+    zeichne();
+  },
+  /*
+   * Ein Tipp auf dem Tag-Reiter: das Mittel mit Dosis und üblicher Zeit an
+   * diesem Tag eintragen. Fehlt eine übliche Zeit und ist der Tag nicht
+   * heute, öffnet sich stattdessen der Bogen – eine erfundene Mittagszeit
+   * für gestern wäre schlechter als ein Tipp auf „morgens".
+   */
+  'standard-eintragen': (el) => {
+    const s = store.zustandLesen();
+    const m = s.standardMittel.find((x) => x.id === el.dataset.id);
+    if (!m) return;
+    const am = ui.tag;
+    const zeit = zeitAusVorlage(s, am, am === heuteISO() ? jetztUhr() : '12:00', m.tageszeit, m.bezug);
+    if (!zeit.um && am !== heuteISO()) {
+      bogenOeffnen('medikament');
+      entwurf({ mittel: m.mittel, dosis: m.dosis });
+      melden('An welchem Teil des Tages? Unter der Uhrzeit antippen.');
+      return;
+    }
+    delete zeit.bezugBasis;
+    store.eintragen({
+      art: 'medikament', am, um: zeit.um || jetztUhr(), mittel: m.mittel, dosis: m.dosis, ...zeit,
+    });
+    store.mittelMerken(m.mittel);
+    melden(`${mittelText(m)} eingetragen${zeit.ungefaehr ? ` (≈${zeit.um})` : ''}.`);
+    zeichne();
+  },
   'zeit-tageszeit': (el) => {
     const t = TAGESZEITEN.find((x) => x.id === el.dataset.id);
     const e = ui.bogen && ui.bogen.entwurf;

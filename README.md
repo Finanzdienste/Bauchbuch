@@ -37,6 +37,17 @@ ein, die der gewählten Zeit am nächsten liegt (eine halbe Stunde danach),
 Beginn. Solche Einträge stehen in der Liste als „≈ 19:40 · abends, nach dem
 Essen", und eine von Hand gesetzte Uhrzeit macht sie wieder genau.
 
+**Meine Mittel.** Im Medikamenten-Bogen merkt „Als mein Mittel merken" Name,
+Dosis und – wenn gewählt – die übliche Zeit („morgens, vor dem Essen"). Danach
+stehen die eigenen Mittel oben im Bogen (ein Tipp füllt alles aus) und als
+Reihe auf dem Tag-Reiter: Ein Tipp trägt das Mittel an diesem Tag ein, mit
+Dosis, und die übliche Zeit rastet an der Mahlzeit dieses Tages ein. Ein
+Häkchen zeigt, was schon eingetragen ist; ein zweiter Tipp legt trotzdem
+einen zweiten Eintrag an. Ohne übliche Zeit trägt ein Tipp heute mit der
+jetzigen Uhrzeit ein; für einen anderen Tag öffnet sich stattdessen der
+Bogen, statt eine Mittagszeit zu erfinden. Die App selbst nennt weiterhin keine Dosierungen – die Dosis in
+„Meine Mittel" ist die eigene Eintragung.
+
 **Verlauf.** Ein Balken je Tag über 14, 30 oder 90 Tage, ein Monatskalender
 und vier Zahlen: notierte Tage, Anteil mit Beschwerden, mittlere Stärke,
 beschwerdefreie Tage in Folge. Darüber die **Richtung**: die letzten vierzehn
