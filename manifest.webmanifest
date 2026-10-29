@@ -1,6 +1,6 @@
 {
-  "name": "Bauchbuch – Gesundheitstagebuch",
-  "short_name": "Bauchbuch",
+  "name": "Body Check – Gesundheitstagebuch",
+  "short_name": "Body Check",
   "id": "/Bauchbuch/",
   "start_url": ".",
   "display": "standalone",

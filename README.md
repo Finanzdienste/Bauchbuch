@@ -1,4 +1,4 @@
-# Bauchbuch
+# Body Check
 
 Ein Gesundheitstagebuch mit Schwerpunkt Magen und Verdauung. Man trägt ein, was
 man gegessen hat und wie es einem danach ging – dazu Stimmung, Anspannung,
@@ -13,6 +13,21 @@ weg. Das Einzige, was diese App je verschickt, sind die Verbesserungsvorschläge
 unter „Ideen" – die gehen von selbst hinaus, kurz nachdem sie eingetragen
 wurden, und in der App steht das auch. Das ist keine Absichtserklärung, sondern
 eine dreifach geprüfte Eigenschaft: siehe [Die Zusage](#die-zusage).
+
+Bis Oktober 2026 hieß die App **Bauchbuch**. Umbenannt ist, was man liest:
+der Titel, der Name auf dem Home-Bildschirm bei neuer Installation, die Texte
+und die Dateinamen der Sicherungen. Den alten Namen behalten mit Absicht die
+Adresse (`…/Bauchbuch/`) und das Repository: Eine neue Adresse wäre eine neue
+App mit leerem Speicher, und wer die App schon auf dem Home-Bildschirm hat,
+bekäme keine neue Fassung mehr. Ebenso bleiben die Kennung im Manifest
+(`"id": "/Bauchbuch/"`; an ihr erkennt das Gerät die installierte App), die
+Schlüssel im Speicher und das Format verschlüsselter Sicherungen
+(`bauchbuch-tresor`), damit vorhandene Einträge und alte Sicherungen weiter
+gelesen werden. Ein Symbol, das schon auf dem Home-Bildschirm liegt, behält
+seinen Namen; iOS übernimmt einen neuen Namen nur beim Hinzufügen. Deshalb
+nennen die Texte, die nach dem Symbol fragen, auch den alten Namen, und eine
+App von vor der Umbenennung sagt einmal auf „Tag“, dass ihr Symbol so heißen
+bleibt.
 
 ---
 
@@ -397,7 +412,7 @@ Zusatz, wogegen das Mittel genommen wurde, und ist so formuliert, dass man sie
 vorlesen kann – „regelmäßig" stimmt bei anfallsweiser Einnahme nicht. Mit
 Gastritis Typ C im Befund steht dazu, was feststeht und was nicht: Diese Mittel
 gehören zu den häufigsten Gründen für eine chemisch gereizte Schleimhaut; ob
-sie es *bei ihr* sind, steht im Befund und nicht im Tagebuch. Sicher ist nur,
+sie es *im Einzelfall* sind, steht im Befund und nicht im Tagebuch. Sicher ist nur,
 dass sie eine Schleimhaut treffen, die schon gereizt ist. Mit Zwerchfellbruch
 im Befund wird aus Blutbild und Ferritin eine konkrete Frage: An der Engstelle
 des Bruchs bluten kleine Defekte unbemerkt, und ein NSAR macht sie
@@ -1262,7 +1277,7 @@ werden vorher geöffnet, sonst fehlten sie stillschweigend.
 
 ## Als App, nicht als Lesezeichen
 
-Bauchbuch ist eine installierbare App: Manifest, Symbole in allen Größen (auch
+Body Check ist eine installierbare App: Manifest, Symbole in allen Größen (auch
 maskierbar, sonst schneidet Android schief zu), Service Worker, `standalone`.
 Auf dem Startbildschirm liegt sie als eigenes Symbol, öffnet ohne
 Browserleiste und startet ohne Netz.
@@ -1287,7 +1302,7 @@ vor dem ersten Eintrag, damit gar nicht erst umgezogen werden muss. Und unter
 verstreut wäre: der Weg auf den Home-Bildschirm, das Holen aus Safari, das
 Sichern als Datei (Teilen-Blatt › „In Dateien sichern" › „iCloud Drive"), was
 das Tagebuch erhält und was es kosten kann, und was bei einem neuen Gerät zu
-tun ist. Die Seite zeigt den Stand dieses Geräts: ob Bauchbuch schon als App
+tun ist. Die Seite zeigt den Stand dieses Geräts: ob Body Check schon als App
 läuft, wann zuletzt gesichert wurde und wie viel seitdem dazukam.
 
 Was dort steht, ist gegen Quellen geprüft (WebKit-Blog, MDN, web.dev,

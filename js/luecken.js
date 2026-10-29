@@ -430,7 +430,7 @@ const VERDAECHTE = [
       /*
        * Mit einer Gastritis Typ C im Befund: Typ C heißt chemisch gereizt, und
        * diese Mittel gehören zu den häufigsten Gründen dafür – neben
-       * Gallenrückfluss und Alkohol. Welcher davon bei ihr zutrifft, steht im
+       * Gallenrückfluss und Alkohol. Welcher davon zutrifft, steht im
        * Befund und nicht hier; das Tagebuch sieht es nicht. Sicher ist nur,
        * dass jede weitere Einnahme eine Schleimhaut trifft, die schon gereizt
        * ist. Deshalb lohnt die Frage hier vom ersten Tag an.

@@ -1,31 +1,79 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bauchbuch">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Body Check">
   <defs>
     <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#2b2029"/>
       <stop offset="1" stop-color="#141013"/>
     </linearGradient>
-    <linearGradient id="blatt" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffb3d0"/>
-      <stop offset="1" stop-color="#f06a9e"/>
-    </linearGradient>
-    <radialGradient id="schein" cx="0.5" cy="0.4" r="0.55">
-      <stop offset="0" stop-color="#ff7fb0" stop-opacity="0.30"/>
+    <radialGradient id="schein" cx="0.5" cy="0.54" r="0.56">
+      <stop offset="0" stop-color="#ff7fb0" stop-opacity="0.34"/>
       <stop offset="1" stop-color="#ff7fb0" stop-opacity="0"/>
     </radialGradient>
+
+    <!-- Apfelhaut: helles Rosé oben links, zum Rand das Rosa der App -->
+    <radialGradient id="haut" cx="0.36" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#ffe3ee"/>
+      <stop offset="0.24" stop-color="#ffb3d0"/>
+      <stop offset="0.55" stop-color="#f784b2"/>
+      <stop offset="0.85" stop-color="#e95892"/>
+      <stop offset="1" stop-color="#c2386f"/>
+    </radialGradient>
+    <!-- Rundung: zum Rand hin dunkler, unten rechts am stärksten -->
+    <radialGradient id="rundung" gradientUnits="userSpaceOnUse" cx="226" cy="236" r="230">
+      <stop offset="0.6" stop-color="#7a1a45" stop-opacity="0"/>
+      <stop offset="1" stop-color="#7a1a45" stop-opacity="0.5"/>
+    </radialGradient>
+    <!-- Reflexlicht am linken unteren Rand -->
+    <radialGradient id="reflex" gradientUnits="userSpaceOnUse" cx="304" cy="232" r="218">
+      <stop offset="0.84" stop-color="#ffd3e4" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ffd3e4" stop-opacity="0.6"/>
+    </radialGradient>
+    <!-- Delle oben -->
+    <radialGradient id="delle" cx="0.5" cy="0.42" r="0.5">
+      <stop offset="0" stop-color="#8e2352" stop-opacity="0.85"/>
+      <stop offset="0.6" stop-color="#a52f61" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#a52f61" stop-opacity="0"/>
+    </radialGradient>
+    <!-- weiches Glanzlicht -->
+    <radialGradient id="glanz" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="stiel" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#73304f"/>
+      <stop offset="1" stop-color="#b56a8b"/>
+    </linearGradient>
+    <linearGradient id="laub" x1="0" y1="1" x2="0.8" y2="0">
+      <stop offset="0" stop-color="#86c99d"/>
+      <stop offset="1" stop-color="#cbefcf"/>
+    </linearGradient>
+    <linearGradient id="laub-schatten" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3f7c5d" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#3f7c5d" stop-opacity="0.2"/>
+    </linearGradient>
   </defs>
 
   <rect width="512" height="512" rx="112" fill="url(#hg)"/>
   <rect width="512" height="512" rx="112" fill="url(#schein)"/>
 
-  <!-- Ein aufgeschlagenes Buch: zwei Seiten, die sich am Bund treffen. -->
-  <g id="marke" fill="url(#blatt)">
-    <path d="M250 176c-30-22-76-30-122-26a10 10 0 0 0-9 10v170a10 10 0 0 0 11 10c40-4 82 3 108 22 6 5 12 1 12-6z"/>
-    <path d="M262 176c30-22 76-30 122-26a10 10 0 0 1 9 10v170a10 10 0 0 1-11 10c-40-4-82 3-108 22-6 5-12 1-12-6z"/>
-    <!-- Der Eintrag von heute: drei Zeilen auf der rechten Seite. -->
-    <g fill="#141013" opacity="0.42">
-      <rect x="292" y="204" width="76" height="13" rx="6.5"/>
-      <rect x="292" y="238" width="60" height="13" rx="6.5"/>
-      <rect x="292" y="272" width="70" height="13" rx="6.5"/>
-    </g>
+  <!-- Ein rosa Apfel mit Glanz, Delle, Stiel und Blatt. -->
+  <g id="marke">
+    <!-- Körper -->
+    <path fill="url(#haut)" d="M256 172C230 148 198 138 168 141C114 146 88 198 90 258C92 332 132 402 188 419C214 427 238 419 256 413C274 419 298 427 324 419C380 402 420 332 422 258C424 198 398 146 344 141C314 138 282 148 256 172Z"/>
+    <path fill="url(#rundung)" d="M256 172C230 148 198 138 168 141C114 146 88 198 90 258C92 332 132 402 188 419C214 427 238 419 256 413C274 419 298 427 324 419C380 402 420 332 422 258C424 198 398 146 344 141C314 138 282 148 256 172Z"/>
+    <path fill="url(#reflex)" d="M256 172C230 148 198 138 168 141C114 146 88 198 90 258C92 332 132 402 188 419C214 427 238 419 256 413C274 419 298 427 324 419C380 402 420 332 422 258C424 198 398 146 344 141C314 138 282 148 256 172Z"/>
+    <!-- Delle mit hellem Vorderrand -->
+    <ellipse cx="256" cy="178" rx="46" ry="19" fill="url(#delle)"/>
+    <path d="M222 190C240 199 272 199 290 190" fill="none" stroke="#ffd0e2" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+    <!-- Glanzlicht: weicher Schimmer, ein kleines Herz als Lichtpunkt, zarter Glanz rechts -->
+    <ellipse cx="182" cy="224" rx="74" ry="46" transform="rotate(-40 182 224)" fill="url(#glanz)"/>
+    <path transform="translate(160 205) rotate(-22) scale(0.78)" d="M0 14C-6 8-20 0-20-10C-20-18-14-22-8-22C-4-22-1-19 0-16C1-19 4-22 8-22C14-22 20-18 20-10C20 0 6 8 0 14Z" fill="#ffffff" opacity="0.92"/>
+    <ellipse cx="350" cy="168" rx="22" ry="9" transform="rotate(14 350 168)" fill="url(#glanz)" opacity="0.7"/>
+    <!-- Stiel -->
+    <path d="M256 182C255 154 260 126 275 102" fill="none" stroke="url(#stiel)" stroke-width="17" stroke-linecap="round"/>
+    <!-- Blatt mit Mittelrippe -->
+    <path fill="url(#laub)" d="M268 124C274 90 318 60 396 64C382 106 336 140 268 124Z"/>
+    <path fill="url(#laub-schatten)" d="M268 124C306 110 348 88 396 64C382 106 336 140 268 124Z"/>
+    <path d="M273 121C308 108 346 88 386 70" fill="none" stroke="#4d8a69" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
   </g>
 </svg>

@@ -421,7 +421,7 @@ export function naechsterSchritt(p, heute) {
     return {
       dran: false,
       am: plusTage(letzter.am, ABSTAND_TAGE),
-      titel: `Bauchbuch: ${p.was || 'Provokationstest'} – nächster Durchgang`,
+      titel: `Body Check: ${p.was || 'Provokationstest'} – nächster Durchgang`,
       satz: `Heute nicht – zwischen zwei Durchgängen liegen ${ABSTAND_TAGE} Tage, `
         + 'sonst hallt der letzte noch nach.',
     };

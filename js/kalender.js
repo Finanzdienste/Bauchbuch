@@ -100,14 +100,14 @@ function utcStempel(d) {
 /** Vorschläge für die Uhrzeit – abends, wenn der Tag zu Ende ist. */
 export const ZEIT_VORSCHLAEGE = ['12:00', '18:00', '20:00', '21:00'];
 
-export const KALENDER_NAME = 'bauchbuch-erinnerung.ics';
+export const KALENDER_NAME = 'body-check-erinnerung.ics';
 
 /** Der gemeinsame Rahmen, in den ein oder mehrere Termine kommen. */
 function kalender(inhalt) {
   const zeilen = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Bauchbuch//Erinnerung//DE',
+    'PRODID:-//Body Check//Erinnerung//DE',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     ...inhalt,
@@ -206,7 +206,7 @@ export function erinnerungsTermin(uhr, jetzt = new Date()) {
     `DTSTART:${lokal}`,
     'DURATION:PT10M',
     'RRULE:FREQ=DAILY',
-    `SUMMARY:${schuetzen('Bauchbuch: Tag eintragen')}`,
+    `SUMMARY:${schuetzen('Body Check: Tag eintragen')}`,
     `DESCRIPTION:${schuetzen(
       'Zwei Minuten: Was gegessen, wie es dem Bauch ging, Stuhlgang. '
       + 'Auch ein Tag ohne Beschwerden gehört hinein – ein Tag ohne Eintragung '
@@ -214,7 +214,7 @@ export function erinnerungsTermin(uhr, jetzt = new Date()) {
       + 'eingetragene zählt in der Auswertung mit.',
     )}`,
     'TRANSP:TRANSPARENT',
-    ...wecker('Bauchbuch: Tag eintragen'),
+    ...wecker('Body Check: Tag eintragen'),
     'END:VEVENT',
   ]);
 }

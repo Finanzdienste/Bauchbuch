@@ -10,8 +10,8 @@
  *
  * Das maskierbare Symbol ist eine eigene Fassung: Android schneidet daraus
  * einen Kreis oder ein Quadrat mit runden Ecken, je nach Gerät. Deshalb reicht
- * der Hintergrund dort bis an den Rand und das Buch sitzt kleiner in der
- * Mitte, damit es den Schnitt überlebt.
+ * der Hintergrund dort bis an den Rand und der Apfel sitzt kleiner in der
+ * Mitte, damit er den Schnitt überlebt.
  *
  * Gebraucht wird das nur, wenn sich icon.svg ändert – die erzeugten Dateien
  * liegen im Repository. Playwright wird zum Rastern benutzt und ist bewusst
@@ -25,7 +25,7 @@ import { dirname, join } from 'node:path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const svg = readFileSync(join(ROOT, 'icon.svg'), 'utf8');
 
-/** Maskierbare Fassung: randlos und mit Luft um das Buch. */
+/** Maskierbare Fassung: randlos und mit Luft um den Apfel. */
 function maskierbar(quelle) {
   const flach = quelle.replaceAll('rx="112"', 'rx="0"');
   if (flach === quelle) throw new Error('Ecken nicht gefunden – icon.svg geändert?');
@@ -40,8 +40,8 @@ function maskierbar(quelle) {
  *
  * iOS legt über apple-touch-icon seine eigene runde Maske. Durchsichtige
  * Ecken füllt es vorher schwarz auf – mit icon-192.png ergab das doppelt
- * gerundete Ecken mit dunklem Saum. Das Buch bleibt etwas kleiner, damit die
- * Maske es nicht anschneidet.
+ * gerundete Ecken mit dunklem Saum. Das Motiv (der rosa Apfel) bleibt etwas
+ * kleiner, damit die Maske es nicht anschneidet.
  */
 function apfel(quelle) {
   const flach = quelle.replaceAll('rx="112"', 'rx="0"');

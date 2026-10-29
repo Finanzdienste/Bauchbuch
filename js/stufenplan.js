@@ -568,7 +568,7 @@ export function planBild(plan, eintraege, tage, heute) {
     schritt = {
       am: stand.ab,
       gruppe: stand.naechste,
-      titel: `Bauchbuch: ${g.name || stand.naechste} anfangen`,
+      titel: `Body Check: ${g.name || stand.naechste} anfangen`,
       satz: `Pause: noch ${stand.rest} Tage zurück auf die Karenz, damit die `
         + `nächste Gruppe nicht misst, was die letzte hinterlassen hat.`,
     };

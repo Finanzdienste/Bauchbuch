@@ -121,7 +121,7 @@ export async function verschluesseln(klartext, passwort) {
   return JSON.stringify({
     art: TRESOR_ART,
     fassung: TRESOR_FASSUNG,
-    hinweis: 'Verschlüsselte Bauchbuch-Sicherung. Ohne das Passwort ist hier '
+    hinweis: 'Verschlüsselte Body-Check-Sicherung. Ohne das Passwort ist hier '
       + 'nichts zu holen – auch nicht für den, der sie geschrieben hat.',
     verfahren: 'PBKDF2-SHA256/AES-GCM',
     runden: RUNDEN,

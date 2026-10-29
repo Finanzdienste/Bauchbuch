@@ -50,7 +50,7 @@ const [download] = await Promise.all([
 ]);
 const datei = path.join(ABLAGE, 'sicherung.json');
 await download.saveAs(datei);
-check(/^bauchbuch-\d{4}-\d{2}-\d{2}\.json$/.test(download.suggestedFilename()),
+check(/^body-check-\d{4}-\d{2}-\d{2}\.json$/.test(download.suggestedFilename()),
   `der Dateiname trägt das Datum (${download.suggestedFilename()})`);
 
 const roh = readFileSync(datei, 'utf8');

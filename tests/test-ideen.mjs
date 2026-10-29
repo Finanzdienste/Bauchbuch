@@ -115,7 +115,7 @@ check(await page.locator('.idee.ab').count() === 0, 'ein zweites Tippen macht si
 await page.locator('[data-act="ideen-kopieren"]').last().click();
 await page.waitForTimeout(300);
 const ablage = await page.evaluate(() => navigator.clipboard.readText());
-check(ablage.includes('Bauchbuch'), 'der kopierte Text ist überschrieben');
+check(ablage.includes('Body Check'), 'der kopierte Text ist überschrieben');
 check(ablage.includes('Uhrzeit') && ablage.includes('Mehr Platz'), 'und enthält beide Ideen');
 
 /* ---------- Ideen sind kein Tagebuch ---------- */

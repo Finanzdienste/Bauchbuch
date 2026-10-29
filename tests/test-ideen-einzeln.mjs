@@ -36,7 +36,7 @@ const PRUEFLING = process.env.BAUCHBUCH_PRUEFLING
   ? path.resolve(process.env.BAUCHBUCH_PRUEFLING)
   : ROOT;
 if (!existsSync(path.join(PRUEFLING, 'index.html'))) {
-  throw new Error(`${PRUEFLING} enthält keine index.html – das ist kein Bauchbuch`);
+  throw new Error(`${PRUEFLING} enthält keine index.html – das ist keine Kopie der App`);
 }
 console.log(`Prüfling: ${PRUEFLING}\n`);
 
@@ -234,7 +234,7 @@ const idee = (id, text, tageAlt, extra = {}) => ({
     `jede Anfrage trägt genau ihre eine Idee, die älteste zuerst (${k.texte().map(kurz).join(' | ')})`,
   );
   check(
-    !k.posts.some((p) => /Bauchbuch/.test(p.roh) || /Verbesserungsvorschl/.test(p.roh)),
+    !k.posts.some((p) => /Body Check|Bauchbuch/.test(p.roh) || /Verbesserungsvorschl/.test(p.roh)),
     'keine Anfrage trägt die Überschrift der Liste',
   );
   check(

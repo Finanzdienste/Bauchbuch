@@ -2,7 +2,7 @@
  * Die Anleitung „Home-Bildschirm und Sichern" – nur auf iPhone und iPad.
  *
  * Auf dem iPhone hängt an zwei Handgriffen, ob ein Tagebuch über Monate hält:
- * Bauchbuch als App auf den Home-Bildschirm legen, und ab und zu als Datei
+ * Body Check als App auf den Home-Bildschirm legen, und ab und zu als Datei
  * sichern. Wer das nicht weiß, verliert seine Einträge nicht mit einem Knall,
  * sondern still: Safari räumt auf, ein Symbol wird gelöscht, ein neues iPhone
  * fängt leer an. Gesagt wird es an zwei Stellen – in der Begrüßung und in der
@@ -12,7 +12,7 @@
  *
  * WAS SCHIEFGEHEN KANN, UND WORAN ES HIER ZU SEHEN WÄRE
  *
- *   * Die Begrüßung in Safari sagt nicht gleich, wie Bauchbuch auf den
+ *   * Die Begrüßung in Safari sagt nicht gleich, wie Body Check auf den
  *     Home-Bildschirm kommt. Dann fängt jemand in Safari an und muss später
  *     umziehen (Fall 1). Im eingebauten Browser von WhatsApp gibt es diesen
  *     Weg gar nicht; dort muss „Zuerst in Safari öffnen" stehen (Fall 2).
@@ -378,14 +378,15 @@ try {
     check(await frage(page, () => !!document.querySelector('#view .willkommen')), `${w} die Begrüßung steht da`);
     const text = await ansicht(page);
     for (const t of ['Zuerst auf den Home-Bildschirm', '•••', 'Als Web-App öffnen', 'muss an sein',
-      'Zum Home-Bildschirm', 'Aktionen bearbeiten', 'leg es nicht noch einmal an']) {
+      'Zum Home-Bildschirm', 'Aktionen bearbeiten', 'leg sie nicht noch einmal an',
+      'Vielleicht noch unter dem alten Namen „Bauchbuch“?']) {
       check(text.includes(t), `${w} mit „${t}"`);
     }
     // Wer Schritt für Schritt abarbeitet, soll die Frage „Liegt es schon da?"
     // lesen, bevor er ein zweites Symbol anlegt – nicht danach.
-    const frageStelle = text.indexOf('Liegt Bauchbuch schon auf deinem Home-Bildschirm?');
+    const frageStelle = text.indexOf('Liegt Body Check schon auf deinem Home-Bildschirm?');
     check(frageStelle >= 0 && frageStelle < text.indexOf('•••'),
-      `${w} die Frage „Liegt Bauchbuch schon …?" steht vor den Schritten`);
+      `${w} die Frage „Liegt Body Check schon …?" steht vor den Schritten`);
     // „Gleich oben": vor den drei Punkten, nicht irgendwo darunter.
     const oben = await frage(page, () => {
       const k = [...document.querySelectorAll('#view .willkommen .karte')]
@@ -619,7 +620,7 @@ try {
     const text = await ansicht(page);
     const liste = await karten(page);
     check(!!karte(liste, 'Läuft als App'), `${w} 6. mit der Karte „Läuft als App"`);
-    for (const t of ['Lösch das Bauchbuch-Symbol nicht', 'Ein paar Wochen nicht reinschauen',
+    for (const t of ['Lösch das Body-Check-Symbol nicht', 'Ein paar Wochen nicht reinschauen',
       'Leg es kein zweites Mal an', 'deine Einträge bleiben im ersten']) {
       check(text.includes(t), `${w} 6. mit „${t}"`);
     }
@@ -628,7 +629,7 @@ try {
     // glaubte sie nach einem zweiten Symbol, alles sei verloren.
     const loeschPunkt = await frage(page, () => [...document.querySelectorAll('#view ul.punkte li')]
       .map((li) => li.textContent.replace(/\s+/g, ' ').trim())
-      .find((t) => t.startsWith('Lösch das Bauchbuch-Symbol nicht')) || '');
+      .find((t) => t.startsWith('Lösch das Body-Check-Symbol nicht')) || '');
     check(!!loeschPunkt && !loeschPunkt.includes('zweit'),
       `${w} 6. „Lösch das Symbol nicht" ist ein eigener Punkt, ohne das zweite Symbol („${loeschPunkt}")`);
     for (const t of ['Verlauf und Websitedaten', 'sieben Tage']) {
@@ -653,7 +654,7 @@ try {
     check(!!neu && neu.text.includes('Text einlesen'),
       `${w} 6. darin der Weg für eine Sicherung als Text („Text einlesen")`);
     // Die Adresse kommt aus dem, was gerade läuft – nicht fest aus dem Code.
-    check(!!neu && neu.text.includes(`127.0.0.1:${PORT}/`), `${w} 6. darin die Adresse, unter der Bauchbuch gerade läuft (127.0.0.1:${PORT}/)`);
+    check(!!neu && neu.text.includes(`127.0.0.1:${PORT}/`), `${w} 6. darin die Adresse, unter der Body Check gerade läuft (127.0.0.1:${PORT}/)`);
     check(!!neu && !neu.text.includes('index.html'), `${w} 6. ohne „index.html" – die tippt niemand ab`);
 
     await merkeText('Anleitung, App', page);
@@ -713,7 +714,7 @@ try {
     const letzte = geteilt[geteilt.length - 1] || {};
     let inhalt = null;
     try { inhalt = JSON.parse(letzte.text); } catch { inhalt = null; }
-    check(/^bauchbuch-\d{4}-\d{2}-\d{2}\.json$/.test(letzte.name || '') && !!inhalt && inhalt.eintraege.length === 3,
+    check(/^body-check-\d{4}-\d{2}-\d{2}\.json$/.test(letzte.name || '') && !!inhalt && inhalt.eintraege.length === 3,
       `${w} 9. geteilt wurde eine Datei mit dem ganzen Tagebuch (${letzte.name || 'keine'})`);
 
     // 10. „Als Text" aus der Anleitung führt zur Textfläche unter „Mehr".
@@ -1024,6 +1025,99 @@ try {
       check(masse.breit <= masse.fenster, `${w} nichts ragt über den Rand (scrollWidth ${masse.breit}, innerWidth ${masse.fenster})`);
     });
   }
+
+  /* ---------- 16. Der alte Name ---------- */
+
+  /*
+   * Bis Oktober 2026 hieß die App „Bauchbuch". Ein Symbol von damals heißt
+   * auf dem Home-Bildschirm weiter so – iOS übernimmt den Namen nur beim
+   * Hinzufügen. Wer dort „Bauchbuch" sieht und in der App nur „Body Check"
+   * liest, legt sonst ein zweites, leeres Symbol an oder löscht das alte.
+   *
+   * Ein Stand ohne den Schlüssel alterName hat eine Fassung von vor der
+   * Umbenennung geschrieben – so wie DREI hier.
+   */
+  await fall('16. Der alte Name, App mit Einträgen von vor der Umbenennung', async (auf) => {
+    const w = '[16 alter Name]';
+    const { page } = await auf({ kurz: 'alter Name', ua: KENNUNG.ios26, standalone: true, stand: DREI });
+    const titel = 'Bauchbuch heißt jetzt Body Check';
+    const erste = (await karten(page))[0] || null;
+    check(!!erste && erste.titel === titel,
+      `${w} die erste Karte auf „Tag" ist „${titel}" (${erste ? `„${erste.titel}"` : 'keine'})`);
+    check(!!erste && erste.text.includes('Lösch es nicht und leg kein neues an')
+      && erste.text.includes('Deine Einträge sind alle da'),
+      `${w} sie sagt, dass die Einträge da sind und das Symbol bleiben soll`);
+    check(!!erste && erste.acts.includes('alter-name-weg'), `${w} mit „Verstanden"`);
+
+    await reiter(page, 'mehr');
+    check(await anleitungOeffnen(page), `${w} die Anleitung geht auf`);
+    await alleAuf(page);
+    const text = await ansicht(page);
+    check(text.includes('Lösch das Body-Check-Symbol nicht, auch wenn es noch den alten Namen „Bauchbuch“ trägt'),
+      `${w} „Lösch das Symbol nicht" nennt den alten Namen`);
+    check(text.includes('es kann auch noch „Bauchbuch“ heißen'),
+      `${w} „Neues iPhone?" sagt, dass das Symbol noch „Bauchbuch" heißen kann`);
+    check(text.includes('„body-check-“') && text.includes('„bauchbuch-“') && text.includes('Nimm die mit dem neuesten Datum'),
+      `${w} „Neues iPhone?" nennt beide Dateinamen der Sicherungen`);
+
+    await reiter(page, 'heute');
+    await tippe(page, '#view [data-act="alter-name-weg"]', 'Verstanden');
+    check(!karte(await karten(page), titel), `${w} nach „Verstanden" ist die Karte weg`);
+    check((await zustand(page) || {}).alterName === 'gesehen', `${w} und das ist vermerkt`);
+    await page.reload({ waitUntil: 'load' });
+    await bereitStehen(page);
+    check(!karte(await karten(page), titel), `${w} auch nach dem Neuladen bleibt sie weg`);
+  });
+
+  await fall('16. Der alte Name, App angelegt nach der Umbenennung', async (auf) => {
+    const w = '[16 neuer Name]';
+    const { page } = await auf({
+      kurz: 'neuer Name', ua: KENNUNG.ios26, standalone: true, stand: { ...DREI, alterName: null },
+    });
+    check(!karte(await karten(page), 'Bauchbuch heißt jetzt Body Check'), `${w} keine Karte zum alten Namen`);
+    await reiter(page, 'mehr');
+    check(await anleitungOeffnen(page), `${w} die Anleitung geht auf`);
+    const loesch = await frage(page, () => [...document.querySelectorAll('#view ul.punkte li')]
+      .map((li) => li.textContent.replace(/\s+/g, ' ').trim())
+      .find((x) => x.startsWith('Lösch das Body-Check-Symbol nicht')) || '');
+    check(loesch.startsWith('Lösch das Body-Check-Symbol nicht.') && !loesch.includes('Bauchbuch'),
+      `${w} „Lösch das Symbol nicht" ohne den alten Namen („${loesch}")`);
+  });
+
+  await fall('16. Der alte Name, Safari und ein frisches Symbol', async (auf) => {
+    const w = '[16 Safari]';
+    const safari = await auf({ kurz: 'alter Name Safari', ua: KENNUNG.ios26, stand: DREI });
+    check(!karte(await karten(safari.page), 'Bauchbuch heißt jetzt Body Check'),
+      `${w} in Safari keine Karte zum alten Namen – dort gibt es kein Symbol`);
+
+    // Ein frisch angelegtes Symbol: Speicher leer, also nach der Umbenennung.
+    const frisch = await auf({ kurz: 'alter Name frisch', ua: KENNUNG.ios26, standalone: true, stand: NEU });
+    const begruessung = await ansicht(frisch.page);
+    check(begruessung.includes('„body-check-“') && begruessung.includes('„bauchbuch-“'),
+      `${w} die Begrüßung der frischen App nennt beide Dateinamen der Sicherungen`);
+    await tippe(frisch.page, '#view [data-act="los"]', 'Anfangen');
+    check(((await zustand(frisch.page)) || {}).alterName === null,
+      `${w} ein frisch angelegter Speicher gilt als neu (alterName null)`);
+    check(!karte(await karten(frisch.page), 'Bauchbuch heißt jetzt Body Check'),
+      `${w} und zeigt keine Karte zum alten Namen`);
+
+    // Eine kaputte Datei: Die Meldung nennt nicht den neuen Namen – sonst
+    // läse sie sich bei einer alten bauchbuch-Datei wie „die gehen nicht".
+    const datei = path.join(ABLAGE, 'bauchbuch-2026-09-01.json');
+    writeFileSync(datei, '{"eintraege": [{"id": "a", "am": "2026-09-');
+    await reiter(frisch.page, 'mehr');
+    await toastLeeren(frisch.page);
+    const [waehler] = await Promise.all([
+      frisch.page.waitForEvent('filechooser', { timeout: 5000 }),
+      frisch.page.locator('#view [data-act="import"]').first().click(),
+    ]);
+    await waehler.setFiles(datei);
+    await toastAbwarten(frisch.page);
+    const meldung = await toast(frisch.page);
+    check(meldung.includes('Das ist keine Sicherung, oder sie ist beschädigt') && meldung.includes('„bauchbuch-“')
+      && !meldung.includes('Body-Check-Sicherung'),
+      `${w} eine kaputte Datei: Meldung ohne den neuen Namen, mit beiden Dateinamen („${meldung}")`);
+  });
 
   /* ---------- 13. Die Wörter ---------- */
 

@@ -365,7 +365,7 @@ const FAELLE = [
       hat: ['In Safari öffnen'],
       // Von hier aus gibt es keinen Home-Bildschirm – also auch keine
       // nummerierten Schritte dorthin.
-      nicht: ['Zum Home-Bildschirm', '2. Bauchbuch auf den Home-Bildschirm legen', 'Browsermenü'],
+      nicht: ['Zum Home-Bildschirm', '2. Body Check auf den Home-Bildschirm legen', 'Browsermenü'],
     },
     mehr: { titel: IOS_TITEL, hat: ['In Safari öffnen'], nicht: ['Zum Home-Bildschirm'] },
     speicher: 'ios-browser',
@@ -409,7 +409,7 @@ const FAELLE = [
     tag: null,
     mehr: {
       titel: APP_TITEL,
-      hat: ['Bauchbuch liegt auf deinem Home-Bildschirm', 'nicht in Safari', 'Lösch das Bauchbuch-Symbol nicht'],
+      hat: ['Body Check liegt auf deinem Home-Bildschirm', 'nicht in Safari', 'Lösch das Body-Check-Symbol nicht'],
       nicht: ['Zum Home-Bildschirm', 'Einträge mitnehmen', '•••'],
     },
     speicher: 'app',
@@ -425,7 +425,7 @@ const FAELLE = [
     tag: null,
     mehr: {
       titel: APP_TITEL,
-      hat: ['Bauchbuch liegt auf deinem Home-Bildschirm', 'nicht in Safari', 'Lösch das Bauchbuch-Symbol nicht'],
+      hat: ['Body Check liegt auf deinem Home-Bildschirm', 'nicht in Safari', 'Lösch das Body-Check-Symbol nicht'],
       nicht: ['Zum Home-Bildschirm', 'Einträge mitnehmen', '•••'],
     },
     speicher: 'app',
@@ -442,13 +442,13 @@ const FAELLE = [
  */
 const SPEICHER = {
   safari: {
-    hat: ['hier in Safari', 'deine Einträge löschen, wenn du Bauchbuch eine Weile nicht benutzt', 'sieben Tagen, an denen du Safari benutzt hast'],
+    hat: ['hier in Safari', 'deine Einträge löschen, wenn du Body Check eine Weile nicht benutzt', 'sieben Tagen, an denen du Safari benutzt hast'],
     nicht: ['ein paar Wochen nicht reinschaust', 'in diesem Browser'],
   },
   // Chrome und eingebaute Browser auf dem iPhone: Die Sieben-Tage-Regel ist
   // dort nicht belegt, also steht sie nicht da – nur, was sicher hilft.
   'ios-browser': {
-    hat: ['in diesem Browser', 'Leg Bauchbuch auf den Home-Bildschirm'],
+    hat: ['in diesem Browser', 'Leg Body Check auf den Home-Bildschirm'],
     nicht: ['sieben Tagen', 'reinschaust', 'hier in Safari'],
   },
   app: {
@@ -600,7 +600,7 @@ try {
     vergleiche(k, {
       titel: IOS_TITEL,
       hat: ['•••', 'Als Web-App öffnen', 'Zum Home-Bildschirm'],
-      nicht: ['Einträge mitnehmen', 'fängt leer an', '2. Bauchbuch auf den Home-Bildschirm legen', 'Einträge holen'],
+      nicht: ['Einträge mitnehmen', 'fängt leer an', '2. Body Check auf den Home-Bildschirm legen', 'Einträge holen'],
     }, '[iOS 26, leer] Tag-Reiter');
     check(!!k && !k.acts.includes('umzug-mitnehmen'), '[iOS 26, leer] Tag-Reiter: kein Knopf zum Mitnehmen');
     check(!!k && k.acts.includes('startbildschirm-spaeter'), '[iOS 26, leer] Tag-Reiter: „Später" gibt es trotzdem');

@@ -505,10 +505,10 @@ check(
 
 await ablageSchreiben(A.page, 'Hallo');
 await tippe(holenKnopf, 'Einträge aus Safari holen');
-await bisToast(A.page, 'kein Bauchbuch', 5000);
+await bisToast(A.page, 'kein Tagebuch', 5000);
 const hallo = await toast(A.page);
 check(
-  /kein Bauchbuch/.test(hallo) && /Safari/.test(hallo) && /Einträge mitnehmen/.test(hallo),
+  /kein Tagebuch/.test(hallo) && /Safari/.test(hallo) && /Einträge mitnehmen/.test(hallo),
   `steht „Hallo" in der Zwischenablage, sagt die App freundlich, was zu tun ist („${hallo}")`,
 );
 check(await A.page.locator('[data-act="einfuegen-text"]').isVisible(), 'und öffnet das Feld zum Einsetzen von Hand');
@@ -533,7 +533,7 @@ await tippe(A.page.locator('#view [data-act="einfuegen-los"]'), 'Einlesen');
 await A.page.waitForTimeout(300);
 const halloFeld = await toast(A.page);
 check(
-  /kein Bauchbuch/.test(halloFeld) && /Safari/.test(halloFeld),
+  /keine Body-Check-Sicherung/.test(halloFeld) && /Safari/.test(halloFeld),
   `auch von Hand eingesetzt bleibt es bei einem verständlichen Satz („${halloFeld}")`,
 );
 check((await zustand(A.page)).eintraege.length === 0, 'und wieder ohne Änderung');

@@ -881,7 +881,7 @@ p { margin: 0 0 8px; }
 
   /* Ein Fuß, der auf jedem Ausdruck sagt, woher das Blatt kommt. */
   .view::after {
-    content: "Selbst geführtes Tagebuch (Bauchbuch). Gezählt, nicht gedeutet – keine Diagnose.";
+    content: "Selbst geführtes Tagebuch aus der App „Body Check“. Gezählt, nicht gedeutet – keine Diagnose.";
     display: block;
     margin-top: 10pt;
     padding-top: 6pt;

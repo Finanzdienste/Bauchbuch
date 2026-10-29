@@ -162,13 +162,13 @@ const einzeln = await page.evaluate(async () => {
   return m.terminEintrag({
     am: '2026-04-20',
     uhr: '09:00',
-    titel: 'Bauchbuch: Laktose – Milchzucker anfangen',
+    titel: 'Body Check: Laktose – Milchzucker anfangen',
     text: 'Pause: noch 3 Tage zurück auf die Karenz, damit die nächste Gruppe '
       + 'nicht misst, was die letzte hinterlassen hat.',
   }, new Date('2026-04-16T10:00:00'));
 });
 check(/DTSTART:20260420T090000/.test(einzeln), 'der Einzeltermin liegt am richtigen Tag');
-check(/SUMMARY:Bauchbuch: Laktose/.test(einzeln), 'und trägt, worum es geht');
+check(/SUMMARY:Body Check: Laktose/.test(einzeln), 'und trägt, worum es geht');
 check(/BEGIN:VALARM/.test(einzeln), 'mit Wecker');
 
 /*

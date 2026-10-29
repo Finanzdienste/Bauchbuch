@@ -231,6 +231,14 @@ const VORGABE = {
   umzug: null,
   umzugGeholt: null,
   startbildschirmWeg: false,
+  /*
+   * Bis Oktober 2026 hieß die App „Bauchbuch". Ein Symbol, das damals auf den
+   * Home-Bildschirm kam, heißt dort weiter so und zeigt das alte Bild: iOS
+   * übernimmt Name und Bild nur beim Hinzufügen. 'offen': Dieser Speicher
+   * stammt aus der Zeit davor, und der Hinweis darauf steht noch auf „Tag".
+   * 'gesehen': weggetippt. null: angelegt nach der Umbenennung.
+   */
+  alterName: null,
 };
 
 /*
@@ -249,7 +257,7 @@ const EINSTELLUNGEN = [
  * neuen Telefon „Mitgenommen am …" mit den Zahlen eines anderen, und die
  * Anleitung für den Startbildschirm fehlte.
  */
-const GERAETEBEZOGEN = ['umzug', 'umzugGeholt', 'startbildschirmWeg', 'sicherungSpaeter'];
+const GERAETEBEZOGEN = ['umzug', 'umzugGeholt', 'startbildschirmWeg', 'sicherungSpaeter', 'alterName'];
 const geraetBehalten = (dazu) => { GERAETEBEZOGEN.forEach((k) => { dazu[k] = zustand[k]; }); };
 
 const klon = (o) => JSON.parse(JSON.stringify(o));
@@ -284,6 +292,9 @@ function laden() {
     // wenn der Stand aus einer Fassung stammt, die den Schlüssel noch nicht
     // kannte. Sonst stünde die Einführung eines Tages wieder vor dem Tagebuch.
     if (!('begruesst' in gelesen) && s.eintraege.length) s.begruesst = true;
+    // Ein Stand ohne diesen Schlüssel hat eine Fassung von vor der
+    // Umbenennung geschrieben – das Symbol dazu heißt noch „Bauchbuch".
+    if (!('alterName' in gelesen)) s.alterName = 'offen';
     s.eintraege = sortiert((Array.isArray(s.eintraege) ? s.eintraege : []).map(mahlzeitFrisch));
     s.ideen = ideenMitMarke(s.ideen, s.ideenGeschickt);
     return s;

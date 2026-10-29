@@ -274,9 +274,9 @@ function speicherOrt() {
 function anleitung(g) {
   const liste = (punkte) => `<ol class="schritte">${punkte.map((x) => `<li>${x}</li>`).join('')}</ol>`;
   if (g.inApp) {
-    return `<p class="klein">Du hast Bauchbuch gerade in einer anderen App geöffnet,
+    return `<p class="klein">Du hast Body Check gerade in einer anderen App geöffnet,
       zum Beispiel aus einer Nachricht. Von dort geht es nicht auf den
-      Home-Bildschirm. Öffne es in Safari: Tippe auf <b>•••</b> und dann auf
+      Home-Bildschirm. Öffne Body Check in Safari: Tippe auf <b>•••</b> und dann auf
       <b>In Safari öffnen</b>. Siehst du stattdessen ein Kompass-Symbol, tippe
       darauf.</p>`;
   }
@@ -351,10 +351,11 @@ function startbildschirmKarte(s, ort) {
      */
     return `<div class="karte">
       <h3>Läuft als App</h3>
-      <p class="klein">Bauchbuch liegt auf deinem ${heim()}. Es öffnet
+      <p class="klein">Body Check liegt auf deinem ${heim()}. Die App öffnet
       sich ohne Browserleiste, läuft ohne Netz und holt neue Fassungen von
       selbst. Was du hier einträgst, steht in dieser App – nicht in Safari.</p>
-      ${istApfel() ? `<p class="klein"><b>Lösch das Bauchbuch-Symbol nicht.</b>
+      ${istApfel() ? `<p class="klein"><b>Lösch das Body-Check-Symbol nicht</b>${s.alterName
+    ? ', auch wenn es noch den alten Namen „Bauchbuch“ trägt' : ''}.
       Sonst sind deine Einträge wahrscheinlich weg. Und leg es nicht ein
       zweites Mal an: Ein zweites Symbol hat deine Einträge nicht.</p>` : ''}
     </div>`;
@@ -362,7 +363,7 @@ function startbildschirmKarte(s, ort) {
   if (installEreignis) {
     return `<div class="karte karte-merk">
       <h3>Auf den Startbildschirm</h3>
-      <p class="klein">Dann liegt Bauchbuch als eigenes Symbol zwischen deinen
+      <p class="klein">Dann liegt Body Check als eigenes Symbol zwischen deinen
       Apps, öffnet sich ohne Browserleiste und startet auch ohne Netz.</p>
       ${knopf('installieren', 'Installieren', 'btn-primary btn-block')}
     </div>`;
@@ -372,7 +373,7 @@ function startbildschirmKarte(s, ort) {
     return `<div class="karte">
       <h3>Ins Dock</h3>
       <p class="klein">In Safari oben in der Menüleiste <b>Ablage › Zum Dock hinzufügen</b>
-      wählen. Danach öffnet sich Bauchbuch wie ein eigenes Programm, mit
+      wählen. Danach öffnet sich Body Check wie ein eigenes Programm, mit
       eigenem Speicher – getrennt von dem in Safari.</p>
     </div>`;
   }
@@ -381,7 +382,7 @@ function startbildschirmKarte(s, ort) {
     return `<div class="karte">
       <h3>Auf den Startbildschirm</h3>
       <p class="klein">Im Browsermenü (die drei Punkte) auf <b>App installieren</b>
-      oder <b>Zum Startbildschirm hinzufügen</b>. Danach liegt Bauchbuch als
+      oder <b>Zum Startbildschirm hinzufügen</b>. Danach liegt Body Check als
       eigenes Symbol zwischen deinen Apps.</p>
     </div>`;
   }
@@ -395,7 +396,7 @@ function startbildschirmKarte(s, ort) {
     ${s.umzug
     ? `<p class="klein">Mitgenommen am ${datumKurz(s.umzug.am)}:
        ${mehrzahl(s.umzug.anzahl, 'Eintrag', 'Einträge')}, ${letzterText(s.umzug.letzter)}.
-       Jetzt Bauchbuch auf den Home-Bildschirm legen, dort öffnen und auf
+       Jetzt Body Check auf den Home-Bildschirm legen, dort öffnen und auf
        <b>Einträge aus Safari holen</b> tippen.</p>
        <p class="klein">Bis dahin liegt dein Tagebuch in der Zwischenablage.
        Kopier in der Zwischenzeit nichts anderes.</p>`
@@ -411,32 +412,58 @@ function startbildschirmKarte(s, ort) {
   const ding = geraetName(g);
   return `<div class="karte karte-merk">
     <h3>Als App auf den Home-Bildschirm</h3>
-    <p class="klein">Dann öffnet sich Bauchbuch mit einem Tipp wie eine App.${g.anderer ? '' : ` Und:
-    In Safari kann dein ${ding} deine Einträge löschen, wenn du Bauchbuch eine
+    <p class="klein">Dann öffnet sich Body Check mit einem Tipp wie eine App.${g.anderer ? '' : ` Und:
+    In Safari kann dein ${ding} deine Einträge löschen, wenn du Body Check eine
     Weile nicht benutzt – im ungünstigsten Fall schon nach sieben Tagen, an
     denen du Safari benutzt hast. Als App auf dem Home-Bildschirm passiert das
     nicht.`}</p>
     ${mitnehmen}
     ${g.inApp ? '' : hatDaten
-    ? `<p class="klein"><b>2. Bauchbuch auf den Home-Bildschirm legen.</b>
-      Liegt es dort schon, lass diesen Schritt aus – ein zweites Symbol hat
-      deine Einträge nicht.</p>`
+    ? `<p class="klein"><b>2. Body Check auf den Home-Bildschirm legen.</b>
+      Liegt die App dort schon (vielleicht noch unter dem alten Namen
+      „Bauchbuch“), lass diesen Schritt aus – ein zweites Symbol hat deine
+      Einträge nicht.</p>`
     // Die Frage vor die Schritte: Wer Schritt für Schritt abarbeitet, legt
-    // sonst das zweite Symbol an, bevor er sie liest.
-    : `<p class="klein"><b>Liegt Bauchbuch schon auf deinem Home-Bildschirm?</b>
-      Dann öffne es dort und leg es nicht noch einmal an – ein zweites Symbol
-      hat deine Einträge nicht.</p>`}
+    // sonst das zweite Symbol an, bevor er sie liest. Den alten Namen nennt
+    // sie, weil ein Symbol von vor der Umbenennung ihn behält.
+    : `<p class="klein"><b>Liegt Body Check schon auf deinem Home-Bildschirm?</b>
+      Vielleicht noch unter dem alten Namen „Bauchbuch“? Dann öffne die App
+      dort und leg sie nicht noch einmal an – ein zweites Symbol hat deine
+      Einträge nicht.</p>`}
     ${anleitung(g)}
     ${g.inApp ? '' : hatDaten
-    ? `<p class="klein"><b>Zum Schluss:</b> Öffne Bauchbuch über das Symbol auf
+    ? `<p class="klein"><b>Zum Schluss:</b> Öffne Body Check über das Symbol auf
       deinem Home-Bildschirm und tippe dort auf <b>Einträge aus Safari holen</b>.
       Benutzt du die App schon, steht der Knopf unter „Mehr“ › „Sicherung“ und
       heißt <b>Aus Safari holen</b>.</p>`
-    : '<p class="klein">Danach öffnest du Bauchbuch nur noch über das neue Symbol auf deinem Home-Bildschirm.</p>'}
+    : '<p class="klein">Danach öffnest du Body Check nur noch über das neue Symbol auf deinem Home-Bildschirm.</p>'}
     ${ort === 'tag' ? `<div class="reihe">
       ${knopf('startbildschirm-spaeter', 'Später', 'btn-ghost')}
       ${knopf('startbildschirm-weg', 'Nicht mehr zeigen', 'btn-ghost')}
     </div>` : ''}
+  </div>`;
+}
+
+/**
+ * Einmal, auf „Tag": Bauchbuch heißt jetzt Body Check.
+ *
+ * Nur in der App auf iPhone und iPad, und nur, wenn ihr Speicher von vor der
+ * Umbenennung stammt. Ihr Symbol heißt weiter „Bauchbuch": iOS übernimmt den
+ * Namen beim Hinzufügen und fragt danach nie wieder. Ob es auch das alte Bild
+ * behält, ist nicht dokumentiert – wahrscheinlich ja. Wer den neuen Namen
+ * sehen will, legt sonst ein zweites Symbol an, das leer anfängt, und löscht
+ * danach womöglich das alte, in dem die Einträge stehen.
+ */
+function alterNameKarte(s) {
+  if (s.alterName !== 'offen' || !laeuftAlsApp() || !istApfel()) return '';
+  return `<div class="karte karte-merk">
+    <h3>Bauchbuch heißt jetzt Body Check</h3>
+    <p class="klein">Deine Einträge sind alle da. Auf deinem ${heim()}
+    heißt das Symbol weiter „Bauchbuch“ und zeigt wahrscheinlich das alte
+    Bild. Das bleibt so, und das ist richtig so.</p>
+    <p class="klein"><b>Lösch es nicht und leg kein neues an.</b> Ein neues
+    Symbol fängt leer an – deine Einträge stehen in diesem.</p>
+    <div class="reihe">${knopf('alter-name-weg', 'Verstanden', 'btn-primary')}</div>
   </div>`;
 }
 
@@ -473,9 +500,9 @@ function umzugHinweis(s, tab) {
       Stand der App.</p>
       <div class="reihe">${knopf('umzug-mitnehmen', 'Nochmal mitnehmen', 'btn-primary')}</div>` : ''}
     ${voll ? `<details${ui.umzugKopiert ? ' open' : ''}>
-      <summary>So kommt Bauchbuch auf den Home-Bildschirm</summary>
+      <summary>So kommt Body Check auf den Home-Bildschirm</summary>
       ${anleitung(geraet())}
-      <p class="klein">Dann Bauchbuch über das neue Symbol öffnen und auf
+      <p class="klein">Dann Body Check über das neue Symbol öffnen und auf
       <b>Einträge aus Safari holen</b> tippen. Bis dahin liegt dein Tagebuch
       in der Zwischenablage – kopier in
       der Zwischenzeit nichts anderes.</p>
@@ -538,16 +565,30 @@ function umzugAbschliessen(ergebnis) {
   melden(`${mehrzahl(ergebnis.anzahl, 'Eintrag', 'Einträge')} geholt.`);
 }
 
+/*
+ * Wie die Sicherungsdateien heißen. Bis zur Umbenennung hießen sie
+ * bauchbuch-…, seitdem body-check-… – in „iCloud Drive“ stehen beide, nach
+ * Namen sortiert weit auseinander, und die neueste ist nicht mehr die letzte.
+ */
+const SICHERUNGSNAMEN = 'Deine Sicherungen heißen „body-check-“ und dann das Datum, ältere noch „bauchbuch-“ und dann das Datum.';
+
 /**
  * Fehler so sagen, dass jemand ohne Technikkenntnis weiß, was zu tun ist.
  * Eine rohe Meldung wie „Unexpected token 'H'" hilft niemandem.
+ *
+ * `ausDatei`: Die Datei kam über „Datei einlesen“. Dann hilft der Dateiname
+ * beim nächsten Versuch.
  */
-function lesbarerFehler(fehler) {
+function lesbarerFehler(fehler, ausDatei = false) {
   const m = String(fehler && fehler.message || fehler || '');
   if (/JSON|Unexpected|token|eintraege/i.test(m)) {
-    return ui.einfuegenUmzug
-      ? 'Das ist kein Bauchbuch. Öffne Bauchbuch in Safari, tippe dort auf „Einträge mitnehmen" und komm dann hierher zurück.'
-      : 'Ging nicht: Das ist keine Bauchbuch-Sicherung.';
+    if (ui.einfuegenUmzug) {
+      return 'Das ist keine Body-Check-Sicherung. Öffne Body Check in Safari, tippe dort auf „Einträge mitnehmen" und komm dann hierher zurück.';
+    }
+    // Ohne den Namen der App: Die Sicherungen von vor der Umbenennung
+    // heißen bauchbuch-…, und „keine Body-Check-Sicherung" läse sich bei
+    // einer beschädigten davon wie „die alten gehen hier nicht".
+    return `Ging nicht: Das ist keine Sicherung, oder sie ist beschädigt.${ausDatei ? ` ${SICHERUNGSNAMEN}` : ''}`;
   }
   return `Ging nicht: ${m}`;
 }
@@ -765,7 +806,7 @@ function tagAnsicht(s) {
     ${stand.laenge ? ` · deine Zyklen dauern im Mittel ${stand.laenge} Tage` : ''}
   </p>` : '';
 
-  return umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
+  return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
     + provokationZeile(s, iso) + bilanz + zyklusZeile + kopfNachtragKarte(s, iso)
     + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + mittelReihe + anlegen + zeilen + umstaende
@@ -2768,7 +2809,7 @@ document.addEventListener('visibilitychange', () => {
 /** Die Ideen als Text – zum Kopieren oder Weitergeben. */
 function ideenText(s) {
   const zeile = (i) => `${i.erledigt ? '[erledigt] ' : ''}${i.text}`;
-  return ['Bauchbuch – Ideen und Verbesserungsvorschläge', '']
+  return ['Body Check – Ideen und Verbesserungsvorschläge', '']
     .concat(s.ideen.map(zeile)).join('\n');
 }
 
@@ -2954,7 +2995,7 @@ function ideenAnsicht(s) {
   </div>` : '';
 
   return `
-  <h2>Ideen fürs Bauchbuch</h2>
+  <h2>Ideen für Body Check</h2>
   <p class="klein">Was fehlt, was stört, was du anders hättest. <b>Was du hier
   einträgst, geht automatisch an Tobi</b>, sobald du auf „Eintragen" tippst.</p>
   <p class="klein">Es gehen <b>nur deine Ideen</b> raus, jede einzeln, sonst
@@ -3183,7 +3224,7 @@ function terminKnopf(schritt) {
   if (!schritt || !schritt.am || schritt.am <= heuteISO()) return '';
   return `<div class="reihe">
     <button type="button" class="btn btn-ghost" data-act="termin-kalender"
-            data-am="${schritt.am}" data-titel="${esc(schritt.titel || 'Bauchbuch')}"
+            data-am="${schritt.am}" data-titel="${esc(schritt.titel || 'Body Check')}"
             data-text="${esc(schritt.satz || '')}">
       Am ${esc(fmtDatum(schritt.am, true))} erinnern
     </button>
@@ -3282,7 +3323,7 @@ function einfuegeKarte() {
   return `<div class="schloss">
     <p class="feld-name">Sicherungstext hier einfügen</p>
     <textarea class="bericht" rows="6" data-act="einfuegen-text"
-      placeholder="Den kopierten Text einfügen (beginnt mit { oder mit BAUCHBUCH)"></textarea>
+      placeholder="Den kopierten Text einfügen (beginnt mit „{“)"></textarea>
     <p class="klein">${ui.einfuegenUmzug
     ? 'Kam das „Einsetzen" nicht? Dann hier lange tippen, „Einsetzen" wählen und auf „Einlesen" tippen.'
     : 'Was hier schon steht, bleibt: Einträge, die es auf beiden Seiten gibt, werden erkannt und nicht doppelt angelegt. Der Stand von vorher lässt sich danach unter „Sicherung" zurückholen.'}</p>
@@ -3390,7 +3431,7 @@ function befundeKarte(s) {
  * DIE ANLEITUNG: HOME-BILDSCHIRM UND SICHERN
  *
  * Auf dem iPhone hängt an zwei Handgriffen, ob das Tagebuch über Monate hält:
- * Bauchbuch als App auf den Home-Bildschirm legen, und ab und zu als Datei
+ * Body Check als App auf den Home-Bildschirm legen, und ab und zu als Datei
  * sichern. Beides stand verstreut in Karten, die man wegtippen kann. Hier
  * steht es an einem Ort, den man unter „Mehr" immer wiederfindet, und so,
  * dass niemand es erklären muss.
@@ -3409,7 +3450,7 @@ function befundeKarte(s) {
 function anleitungKarte() {
   return `<div class="karte">
     <h3>Anleitung</h3>
-    <p class="klein">Wie Bauchbuch auf deinen Home-Bildschirm kommt, wie du
+    <p class="klein">Wie Body Check auf deinen Home-Bildschirm kommt, wie du
     deine Einträge sicherst und was bei einem neuen ${geraetName(geraet())} zu tun ist.</p>
     ${knopf('anleitung', 'Anleitung öffnen', 'btn-primary btn-block')}
   </div>`;
@@ -3454,7 +3495,7 @@ function anleitungAnsicht(s) {
     : `${knopf('export', 'Als Datei sichern', 'btn-primary btn-block')}
     <p class="klein">Leg die Datei an einen Ort, an den du auch ohne dieses
     ${ding} kommst, zum Beispiel in „iCloud Drive“.</p>`}
-    <p class="klein">Bauchbuch erinnert dich auf „Tag“, wenn es wieder Zeit
+    <p class="klein">Body Check erinnert dich auf „Tag“, wenn es wieder Zeit
     ist. Jede Sicherung enthält das ganze Tagebuch.</p>
     <p class="klein">Klappt „Als Datei sichern“ nicht, tippe auf „Als Text“ und
     dann auf „Kopieren“, und setz den Text in eine neue Notiz ein.</p>
@@ -3463,13 +3504,14 @@ function anleitungAnsicht(s) {
 
   const punkte = [];
   if (app) {
-    punkte.push(`<li><b>Öffne Bauchbuch immer über das Symbol</b> auf deinem
+    punkte.push(`<li><b>Öffne Body Check immer über das Symbol</b> auf deinem
       Home-Bildschirm. Was du in Safari einträgst, kommt hier nicht an.</li>`);
     // Zwei Punkte, nicht einer: Löschen kostet wahrscheinlich die Einträge,
     // ein zweites Symbol nicht – es fängt nur leer an, die Einträge bleiben
     // im ersten (jede Installation hat ihren eigenen Speicher, web.dev).
-    punkte.push(`<li><b>Lösch das Bauchbuch-Symbol nicht.</b> Sonst sind deine
-      Einträge wahrscheinlich weg.</li>`);
+    punkte.push(`<li><b>Lösch das Body-Check-Symbol nicht</b>${s.alterName
+      ? ', auch wenn es noch den alten Namen „Bauchbuch“ trägt' : ''}. Sonst
+      sind deine Einträge wahrscheinlich weg.</li>`);
     punkte.push(`<li><b>Leg es kein zweites Mal an.</b> Ein zweites Symbol fängt
       leer an, deine Einträge bleiben im ersten. Hast du schon zwei, lösch
       erst mal keins: Öffne beide, schau, in welchem deine Einträge stehen, und
@@ -3478,26 +3520,26 @@ function anleitungAnsicht(s) {
       Als App auf dem Home-Bildschirm löscht dein ${ding} deine Einträge deshalb nicht.</li>`);
   } else if (safari) {
     // Die Sieben-Tage-Regel steht schon in der Karte darüber.
-    punkte.push(`<li><b>Leg Bauchbuch auf den Home-Bildschirm</b> (siehe oben).
+    punkte.push(`<li><b>Leg Body Check auf den Home-Bildschirm</b> (siehe oben).
       Als App löscht dein ${ding} deine Einträge nicht, nur weil du ein paar
       Wochen nicht reinschaust.</li>`);
     punkte.push(`<li>Tippst du in den Einstellungen bei Safari auf „Verlauf und
       Websitedaten löschen“, sind deine Einträge hier in Safari weg.</li>`);
   } else {
-    punkte.push(`<li><b>Leg Bauchbuch auf den Home-Bildschirm</b> (siehe oben).
-      Dann öffnest du es mit einem Tipp und trägst immer an derselben Stelle ein.</li>`);
+    punkte.push(`<li><b>Leg Body Check auf den Home-Bildschirm</b> (siehe oben).
+      Dann öffnest du die App mit einem Tipp und trägst immer an derselben Stelle ein.</li>`);
   }
   punkte.push(`<li><b>Sichere ab und zu als Datei</b>, am besten in „iCloud
     Drive“. Denn ganz ausschließen kann niemand, dass Einträge verschwinden:
     Ein ${ding} kann verloren gehen, kaputtgehen oder sehr voll werden.</li>`);
-  punkte.push('<li><b>Neue Fassungen</b> von Bauchbuch kommen von selbst. Deine Einträge bleiben dabei.</li>');
+  punkte.push('<li><b>Neue Fassungen</b> von Body Check kommen von selbst. Deine Einträge bleiben dabei.</li>');
 
   const erhalten = `<div class="karte">
     <h3>So bleibt dein Tagebuch erhalten</h3>
     <ul class="punkte">${punkte.join('')}</ul>
     <details id="anleitung-neu" class="anleitung-auf">
       <summary>Neues ${ding} oder Symbol gelöscht?</summary>
-      <p class="klein">Ein neues Bauchbuch-Symbol fängt leer an. Ob deine
+      <p class="klein">Ein neu angelegtes Symbol fängt leer an. Ob deine
       Einträge von selbst aufs neue ${ding} kommen, ist nicht sicher – auch
       nicht mit iCloud-Backup oder wenn du dein altes ${ding} direkt aufs neue
       überträgst. So gehst du sicher:</p>
@@ -3506,21 +3548,23 @@ function anleitungAnsicht(s) {
         alten ${ding}): Tippe dort auf „Als Datei sichern“ und leg die Datei in
         „iCloud Drive“. Ist es dafür zu spät, mach mit Schritt 2 weiter.</li>
         <li><b>Auf dem neuen ${ding} oder nach dem Löschen:</b> Ist das
-        Bauchbuch-Symbol da, öffne es – beim ersten Mal am besten mit
-        Internet. ${adresse
-    ? `Ist es nicht da, öffne in Safari <b>${esc(adresse)}</b> und leg Bauchbuch wieder auf den Home-Bildschirm.`
-    : 'Ist es nicht da, öffne Bauchbuch wieder in Safari und leg es auf den Home-Bildschirm.'}</li>
+        Body-Check-Symbol da (es kann auch noch „Bauchbuch“ heißen), öffne
+        es – beim ersten Mal am besten mit Internet. ${adresse
+    ? `Ist es nicht da, öffne in Safari <b>${esc(adresse)}</b>${/bauchbuch/i.test(adresse)
+      ? ' (die Adresse trägt noch den alten Namen)' : ''} und leg Body Check wieder auf den Home-Bildschirm.`
+    : 'Ist es nicht da, öffne Body Check in Safari und leg die App wieder auf den Home-Bildschirm.'}</li>
         <li>Fehlen in der App Einträge, tippe dort auf <b>Datei einlesen</b> –
         gleich auf dem ersten Bildschirm oder unter „Mehr“ › „Sicherung“. Such
         deine Sicherung, zum Beispiel unter <b>Durchsuchen</b> › <b>iCloud
-        Drive</b>, und tippe sie an.</li>
+        Drive</b>, und tippe sie an. ${SICHERUNGSNAMEN} Nimm die mit dem
+        neuesten Datum.</li>
       </ol>
       <p class="klein">Hast du als Text in eine Notiz gesichert: Kopier dort den
       ganzen Text. Tippe dann in der App unter „Mehr“ › „Sicherung“ auf
       <b>Text einlesen</b>, setz den Text ins Feld ein und tippe auf
       <b>Einlesen</b>.</p>
       <p class="klein">Beim Einlesen geht nichts verloren, was schon in der App
-      steht. Doppelte Einträge erkennt Bauchbuch. Was nach deiner letzten
+      steht. Doppelte Einträge erkennt Body Check. Was nach deiner letzten
       Sicherung dazukam, fehlt allerdings.</p>
       <p class="klein">Keine Sicherung? Schau in Safari nach, ob dort noch
       Einträge stehen. Wenn ja, tippe dort auf „Einträge mitnehmen“ oder
@@ -3540,7 +3584,7 @@ function anleitungAnsicht(s) {
   return `
   <div class="reihe">${knopf('anleitung-zu', '‹ Zurück', 'btn-ghost')}</div>
   <h2>Anleitung</h2>
-  <p class="klein">Zwei Dinge, dann bleibt dein Tagebuch erhalten: Bauchbuch
+  <p class="klein">Zwei Dinge, dann bleibt dein Tagebuch erhalten: Body Check
   als App auf den Home-Bildschirm legen. Und ab und zu sichern. Du findest
   diese Seite immer unter „Mehr“.</p>
   ${startbildschirmKarte(s, 'mehr')}
@@ -3595,13 +3639,13 @@ function speicherSatz() {
       + `dein ${ding} kann verloren gehen oder kaputtgehen.`;
   }
   if (g.anderer || g.inApp) {
-    return `<b>Dauerhafter Speicher: ${antwort}.</b> Leg Bauchbuch auf den `
+    return `<b>Dauerhafter Speicher: ${antwort}.</b> Leg Body Check auf den `
       + 'Home-Bildschirm (siehe oben) und sichere.';
   }
   return `<b>Dauerhafter Speicher: ${antwort}.</b> In Safari kann dein ${ding} `
-    + 'deine Einträge löschen, wenn du Bauchbuch eine Weile nicht benutzt – im '
+    + 'deine Einträge löschen, wenn du Body Check eine Weile nicht benutzt – im '
     + 'ungünstigsten Fall schon nach sieben Tagen, an denen du Safari benutzt '
-    + 'hast. Leg Bauchbuch auf den Home-Bildschirm (siehe oben) und sichere.';
+    + 'hast. Leg Body Check auf den Home-Bildschirm (siehe oben) und sichere.';
 }
 
 function mehrAnsicht(s) {
@@ -4230,7 +4274,7 @@ function bogenHTML(s) {
 
 /*
  * Die Begrüßung ist der erste Bildschirm, den jemand sieht, der den Link
- * bekommen hat. Auf dem iPhone steht hier gleich, wie Bauchbuch auf den
+ * bekommen hat. Auf dem iPhone steht hier gleich, wie Body Check auf den
  * Home-Bildschirm kommt – vor dem ersten Eintrag. Wer in Safari anfängt, muss
  * später umziehen; wer gleich in der App anfängt, nie.
  */
@@ -4245,15 +4289,16 @@ function willkommen() {
       // ein zweites Symbol anlegen und dann lesen, dass es schon eins gibt.
       : `<div class="karte karte-merk">
         <h3>Zuerst auf den Home-Bildschirm</h3>
-        <p class="klein"><b>Liegt Bauchbuch schon auf deinem Home-Bildschirm?</b>
-        Dann öffne es dort und leg es nicht noch einmal an – ein zweites Symbol
-        hat deine Einträge nicht.</p>
-        <p class="klein"><b>Noch nicht?</b> Leg Bauchbuch als App auf deinen
-        Home-Bildschirm, bevor du etwas einträgst. Dann öffnest du es mit einem
-        Tipp, und dein ${ding} löscht deine Einträge dort nicht, nur weil du ein
+        <p class="klein"><b>Liegt Body Check schon auf deinem Home-Bildschirm?</b>
+        Vielleicht noch unter dem alten Namen „Bauchbuch“? Dann öffne die App
+        dort und leg sie nicht noch einmal an – ein zweites Symbol hat deine
+        Einträge nicht.</p>
+        <p class="klein"><b>Noch nicht?</b> Leg Body Check als App auf deinen
+        Home-Bildschirm, bevor du etwas einträgst. Dann öffnest du die App mit
+        einem Tipp, und dein ${ding} löscht deine Einträge dort nicht, nur weil du ein
         paar Wochen nicht reinschaust.</p>
         ${anleitung(g)}
-        <p class="klein">Danach öffnest du Bauchbuch nur noch über das neue
+        <p class="klein">Danach öffnest du Body Check nur noch über das neue
         Symbol auf deinem Home-Bildschirm.</p>
       </div>`
     /*
@@ -4264,13 +4309,13 @@ function willkommen() {
      */
     : g.ios && app
       ? `<div class="karte karte-merk"><h3>Geschafft</h3>
-        <p class="klein">Bauchbuch liegt jetzt als App auf deinem
-        Home-Bildschirm. Öffne es ab jetzt nur noch über dieses Symbol. Der
+        <p class="klein">Body Check liegt jetzt als App auf deinem
+        Home-Bildschirm. Öffne die App ab jetzt nur noch über dieses Symbol. Der
         Link, den du bekommen hast, öffnet nicht diese App – was du dort
         einträgst, kommt hier nicht an.</p></div>`
       : '';
   return `<div class="willkommen">
-    <h2>Bauchbuch</h2>
+    <h2>Body Check</h2>
     <p>Ein Tagebuch für den Magen: was gegessen wurde, wann es zwickt, was
     hilft. Nach ein paar Wochen zeigt es, was zusammenfällt – und macht daraus
     einen Zettel für den nächsten Arzttermin.</p>
@@ -4299,9 +4344,10 @@ function willkommen() {
       hat ihren eigenen Speicher – hol deine Einträge herein. Gleich erscheint
       oben ein kleines Feld <b>Einsetzen</b>, darauf tippen.</p>
       ${knopf('umzug-holen', 'Einträge aus Safari holen', 'btn-block')}
-      ${g.ios ? `<p class="klein willkommen-umzug">Neues ${ding}? Oder Bauchbuch
+      ${g.ios ? `<p class="klein willkommen-umzug">Neues ${ding}? Oder Body Check
       gelöscht und wieder auf den Home-Bildschirm gelegt? Hast du eine
-      Sicherung als Datei, hol sie hier herein.</p>
+      Sicherung als Datei, hol sie hier herein. ${SICHERUNGSNAMEN} Nimm die
+      mit dem neuesten Datum.</p>
       ${knopf('import', 'Datei einlesen', 'btn-block')}` : ''}` : ''}
   </div>`;
 }
@@ -4603,7 +4649,7 @@ function sicherungLaden() {
           melden(eingelesenText(ergebnis));
         }
       } catch (fehler) {
-        melden(lesbarerFehler(fehler));
+        melden(lesbarerFehler(fehler, true));
       }
       zeichne();
     };
@@ -4943,7 +4989,7 @@ const AKTION = {
       text: el.dataset.text,
     });
     if (!text) { melden('Für diesen Tag geht das nicht.'); return; }
-    datenAusgeben(text, `bauchbuch-${el.dataset.am}.ics`, 'text/calendar;charset=utf-8');
+    datenAusgeben(text, `body-check-${el.dataset.am}.ics`, 'text/calendar;charset=utf-8');
     melden('Termin erzeugt – dein Kalender fragt gleich, ob er ihn übernehmen soll.');
   },
   'erinnern-datei': () => {
@@ -4962,7 +5008,7 @@ const AKTION = {
     try {
       const datei = new File([text], KALENDER_NAME, { type: 'text/calendar' });
       if (navigator.canShare && navigator.canShare({ files: [datei] })) {
-        await navigator.share({ files: [datei], title: 'Bauchbuch – Erinnerung' });
+        await navigator.share({ files: [datei], title: 'Body Check – Erinnerung' });
         return;
       }
       throw new Error('kein Teilen von Dateien');
@@ -5073,7 +5119,7 @@ const AKTION = {
     beschaeftigt += 1;
     // Zwei verschiedene Lagen, zwei verschiedene Sätze: Die Zwischenablage
     // ließ sich nicht lesen (dann von Hand einsetzen) – oder sie ließ sich
-    // lesen, und der Inhalt passte nicht (falsches Passwort, kein Bauchbuch).
+    // lesen, und der Inhalt passte nicht (falsches Passwort, keine Sicherung).
     const vonHand = (satz) => {
       store.einstellen('begruesst', true);
       store.einstellen('tab', 'mehr');
@@ -5087,7 +5133,7 @@ const AKTION = {
       .then(async (text) => {
         const roh = String(text || '').trim();
         if (!roh.startsWith('{') && !istTresor(roh)) {
-          vonHand('Da ist gerade kein Bauchbuch zum Einfügen. Öffne Bauchbuch in Safari, tippe dort auf „Einträge mitnehmen" und komm dann hierher zurück.');
+          vonHand('In der Zwischenablage liegt gerade kein Tagebuch. Öffne Body Check in Safari, tippe dort auf „Einträge mitnehmen" und komm dann hierher zurück.');
           return;
         }
         try {
@@ -5125,6 +5171,7 @@ const AKTION = {
   },
   'startbildschirm-spaeter': () => { ui.startbildschirmZu = true; zeichne(); },
   'startbildschirm-weg': () => { store.einstellen('startbildschirmWeg', true); zeichne(); },
+  'alter-name-weg': () => { store.einstellen('alterName', 'gesehen'); zeichne(); },
 
   installieren: async () => {
     if (!installEreignis) return;
@@ -5229,7 +5276,7 @@ const AKTION = {
       return;
     }
     try {
-      await navigator.share({ title: 'Bauchbuch – Ideen', text });
+      await navigator.share({ title: 'Body Check – Ideen', text });
       /*
        * Erst nach dem Teilen abhaken, nicht davor.
        *
@@ -5256,14 +5303,14 @@ const AKTION = {
    */
   export: () => {
     const text = store.alsJSON();
-    const name = `bauchbuch-${heuteISO()}.json`;
+    const name = `body-check-${heuteISO()}.json`;
     let datei = null;
     if (istApfel() && navigator.canShare) {
       try { datei = new File([text], name, { type: 'application/json' }); } catch { datei = null; }
     }
     if (datei && navigator.canShare({ files: [datei] })) {
       beschaeftigt += 1;
-      navigator.share({ files: [datei], title: 'Bauchbuch-Sicherung' })
+      navigator.share({ files: [datei], title: 'Body-Check-Sicherung' })
         .then(() => {
           store.sicherungNotiert();
           // Vorsichtig: Ob ein Abbruch erst in der Ortsauswahl hier als
@@ -5377,7 +5424,7 @@ const AKTION = {
     melden('Wird verschlüsselt …');
     try {
       const text = await verschluesseln(store.alsJSON(), ui.tresorWort);
-      datenAusgeben(text, `bauchbuch-${heuteISO()}.json`, 'application/json');
+      datenAusgeben(text, `body-check-${heuteISO()}.json`, 'application/json');
       store.sicherungNotiert();
       ui.schloss = false;
       ui.tresorWort = '';
@@ -5656,7 +5703,11 @@ if (nachNeuladen) {
     if (d && viewEl.contains(d)) d.open = true;
   });
   window.scrollTo(0, Number(nachNeuladen.scrollY) || 0);
-  if (nachNeuladen.warum === 'selbst') melden('Bauchbuch wurde gerade erneuert. Deine Einträge sind alle da.');
+  if (nachNeuladen.warum === 'selbst') {
+    melden(store.zustandLesen().alterName === 'offen'
+      ? 'Bauchbuch wurde gerade erneuert und heißt jetzt Body Check. Deine Einträge sind alle da.'
+      : 'Body Check wurde gerade erneuert. Deine Einträge sind alle da.');
+  }
 }
 
 /* Ohne Netz benutzbar. Aus einer Datei heraus (file://) gibt es keinen
