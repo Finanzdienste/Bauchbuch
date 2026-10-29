@@ -771,6 +771,11 @@ p { margin: 0 0 8px; }
 .tab.an { color: var(--accent); }
 .ti { font-size: 19px; line-height: 1; }
 
+/* ---------- Ungefähre Zeiten im Bogen ---------- */
+.zeit-knoepfe { margin: -2px 0 12px; }
+.zeit-knoepfe .marken { margin-bottom: 6px; }
+.zeit-hinweis { margin: 2px 0 0; }
+
 /* ---------- Anleitung auf den Startbildschirm ---------- */
 .schritte { margin: 6px 0 10px; padding-left: 22px; font-size: 14px; }
 .schritte li { margin: 4px 0; }

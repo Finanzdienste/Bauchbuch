@@ -29,6 +29,14 @@ unverändert?") und eine Notiz. Der Stuhlgang wird über die
 bis flüssig. Dazu für den ganzen Tag: Anspannung, Schlaf, Zyklus, und ob die
 Beschwerden nachts geweckt haben.
 
+**Ungefähre Zeiten.** Unter der Uhrzeit stehen „morgens · mittags · abends"
+und, bei Beschwerden und Medikamenten, „vor dem Essen · beim Essen · nach dem
+Essen" – für Einträge im Nachhinein, wenn niemand mehr die Minute weiß. „Nach dem Essen" rastet an der Mahlzeit dieses Tages
+ein, die der gewählten Zeit am nächsten liegt (eine halbe Stunde danach),
+„vor dem Essen" eine halbe Stunde davor, „beim Essen" zehn Minuten nach
+Beginn. Solche Einträge stehen in der Liste als „≈ 19:40 · abends, nach dem
+Essen", und eine von Hand gesetzte Uhrzeit macht sie wieder genau.
+
 **Verlauf.** Ein Balken je Tag über 14, 30 oder 90 Tage, ein Monatskalender
 und vier Zahlen: notierte Tage, Anteil mit Beschwerden, mittlere Stärke,
 beschwerdefreie Tage in Folge. Darüber die **Richtung**: die letzten vierzehn
@@ -1041,7 +1049,10 @@ dem Mittagessen. Sie gehört deshalb **der letzten Mahlzeit davor und keiner
 anderen** – sonst stünde am Ende jede Beschwerde in jedem Fenster. Das bedeutet
 umgekehrt: Das späte Fenster einer Mahlzeit ist nur dann *beobachtbar*, wenn in
 diesen Stunden nichts dazwischengegessen wurde und das Tagebuch noch lief. Ist
-es das nicht, zählt es als nicht erhoben und nicht als beschwerdefrei. Wer also
+es das nicht, zählt es als nicht erhoben und nicht als beschwerdefrei. Dasselbe
+gilt für eine Mahlzeit mit einer ungefähren Zeit – ihr eigenen oder der einer
+Beschwerde, die zu ihr gehört: „Nach dem Essen" sagt, zu welcher Mahlzeit etwas
+gehört, aber nicht, ob es nach zwanzig Minuten oder nach drei Stunden kam. Wer also
 wissen will, was der Dickdarm macht, braucht mehr Tage als jemand, der nach dem
 Magen fragt – und die App sagt das, statt die Lücke mit einer Null zu füllen.
 

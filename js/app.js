@@ -613,10 +613,10 @@ function tagAnsicht(s) {
 
   const zeilen = liste.length ? `<ul class="strang">${liste.map((e) => `
     <li class="strang-zeile z-${e.art}">
-      <span class="strang-uhr">${esc(e.um)}</span>
+      <span class="strang-uhr"${e.ungefaehr ? ' title="ungefähre Zeit"' : ''}>${e.ungefaehr ? '≈' : ''}${esc(e.um)}</span>
       <span class="strang-punkt" aria-hidden="true">${ART_ICON[e.art]}</span>
       <button type="button" class="strang-text" data-act="bearbeiten" data-id="${e.id}">
-        ${zeileText(e, s.eigeneAusloeser)}
+        ${zeileText(e, s.eigeneAusloeser)}${zeitWorte(e)}
       </button>
       <button type="button" class="strang-weg" data-act="loeschen" data-id="${e.id}"
               aria-label="Eintrag löschen">×</button>
@@ -3490,6 +3490,105 @@ function mittelKarte(s) {
 
 /* ==================== Eingabebogen ==================== */
 
+/* ==================== Ungefähre Zeiten ==================== */
+
+/*
+ * „morgens, mittags, abends" und „vor, beim, nach dem Essen" – mit einem
+ * Tipp statt einer Uhrzeit.
+ *
+ * Wer im Nachhinein einträgt, weiß nicht mehr, ob die Tablette um 7:40 oder
+ * um 8:05 war, aber sehr wohl, dass es morgens vor dem Frühstück war. Die Uhrzeit-Auswahl zwang bisher zu
+ * einer Genauigkeit, die es nicht gab – und eine erfundene Minute ist
+ * schlechter als eine ehrliche Tageszeit.
+ *
+ * Was ein Knopf einträgt, ist trotzdem eine Uhrzeit, damit alles, was nach
+ * Tag, Tageszeit und Mahlzeit fragt, weiter funktioniert: „nach dem Essen"
+ * liegt eine halbe Stunde hinter der Mahlzeit, die an diesem Tag am nächsten
+ * liegt, und gehört damit zu genau dieser Mahlzeit. Der Eintrag trägt aber
+ * `ungefaehr: true`. Das Zeitprofil (js/zeitprofil.js), das auf die Stunde
+ * genau fragt, wie lange nach dem Essen etwas kommt, zählt solche Mahlzeiten
+ * deshalb als nicht erhoben – sonst landete jede „nach dem Essen"-Beschwerde
+ * künstlich im frühen Fenster.
+ */
+const TAGESZEITEN = [
+  { id: 'morgens', name: 'morgens', um: '08:00' },
+  { id: 'mittags', name: 'mittags', um: '12:30' },
+  { id: 'abends', name: 'abends', um: '18:30' },
+];
+/*
+ * „beim Essen" liegt zehn Minuten nach dem Beginn der Mahlzeit und nicht auf
+ * derselben Minute. Die Auswertung rechnet eine Beschwerde, die zur selben
+ * Minute wie die Mahlzeit eingetragen ist, ausdrücklich *nicht* dieser
+ * Mahlzeit zu (sie war schon da, siehe folgende() in js/auswertung.js). Wer
+ * „beim Essen" tippt, meint aber: während ich esse.
+ */
+const ESSENSBEZUG = [
+  { id: 'vor', name: 'vor dem Essen', minuten: -30 },
+  { id: 'beim', name: 'beim Essen', minuten: 10 },
+  { id: 'nach', name: 'nach dem Essen', minuten: 30 },
+];
+// Wobei der Bezug zum Essen etwas aussagt. Bei einer Mahlzeit selbst nicht,
+// beim Stuhlgang und beim Kopf kaum.
+const MIT_ESSENSBEZUG = ['beschwerde', 'medikament'];
+
+function minutenVon(um) {
+  const [h, m] = String(um || '').split(':').map(Number);
+  return Number.isFinite(h) ? h * 60 + (Number.isFinite(m) ? m : 0) : null;
+}
+
+function uhrVon(minuten) {
+  // Ungefähr heißt nicht „am Vortag": Über Mitternacht wird nicht gerechnet.
+  const x = Math.max(0, Math.min(23 * 60 + 59, Math.round(minuten)));
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(Math.floor(x / 60))}:${p(x % 60)}`;
+}
+
+/** Die Mahlzeit dieses Tages, die der Uhrzeit am nächsten liegt – oder null. */
+function bezugsMahlzeit(s, am, um) {
+  const ziel = minutenVon(um);
+  let beste = null;
+  s.eintraege.filter((x) => x.art === 'essen' && x.am === am).forEach((x) => {
+    const abstand = Math.abs(minutenVon(x.um) - ziel);
+    if (!beste || abstand < beste.abstand) beste = { e: x, abstand };
+  });
+  return beste ? beste.e : null;
+}
+
+/** Die beiden Knopfreihen unter der Uhrzeit. */
+function zeitKnoepfe(art, e) {
+  const reihe = (liste, act, aktiv) => `<div class="marken marken-eng">${liste.map((x) => `
+    <button type="button" class="marke${aktiv === x.id ? ' an' : ''}" data-act="${act}"
+            data-id="${x.id}" aria-pressed="${aktiv === x.id}">${x.name}</button>`).join('')}</div>`;
+  const hinweis = e.ungefaehr
+    ? `<p class="klein zeit-hinweis">Ungefähr${e.bezug && !e.bezugMahlzeit
+      ? ' – an diesem Tag steht noch keine Mahlzeit, gerechnet wird mit der Tageszeit' : ''}.
+      Zählt für den Tag und die Mahlzeit, nicht für die Minute.</p>`
+    : '';
+  return `<div class="zeit-knoepfe" role="group" aria-label="Ungefähre Zeit">
+    ${reihe(TAGESZEITEN, 'zeit-tageszeit', e.tageszeit)}
+    ${MIT_ESSENSBEZUG.includes(art) ? reihe(ESSENSBEZUG, 'zeit-bezug', e.bezug) : ''}
+    ${hinweis}
+  </div>`;
+}
+
+/** Die Uhrzeit für einen Bezug zum Essen, ausgehend von einer Grundzeit. */
+function zeitMitBezug(s, am, basis, bezugId) {
+  const bezug = ESSENSBEZUG.find((x) => x.id === bezugId);
+  const mahlzeit = bezugsMahlzeit(s, am, basis);
+  const ab = mahlzeit ? minutenVon(mahlzeit.um) : minutenVon(basis);
+  return { um: uhrVon(ab + bezug.minuten), bezugMahlzeit: mahlzeit ? mahlzeit.id : null };
+}
+
+/** „abends, nach dem Essen" – in der Liste unter dem Eintrag. */
+function zeitWorte(e) {
+  if (!e.ungefaehr) return '';
+  const teile = [
+    (TAGESZEITEN.find((x) => x.id === e.tageszeit) || {}).name,
+    (ESSENSBEZUG.find((x) => x.id === e.bezug) || {}).name,
+  ].filter(Boolean);
+  return `<span class="zeile-tags">${esc(teile.length ? teile.join(', ') : 'ungefähre Zeit')}</span>`;
+}
+
 function bogenHTML(s) {
   const b = ui.bogen;
   if (!b) return '';
@@ -3504,7 +3603,8 @@ function bogenHTML(s) {
     <input type="time" class="feld" id="bogenUhr" data-act="uhr" value="${esc(e.um)}">
     <label class="feld-name" for="bogenTag">am</label>
     <input type="date" class="feld" id="bogenTag" data-act="bogen-datum" value="${e.am}" max="${heuteISO()}">
-  </div>`;
+  </div>
+  ${zeitKnoepfe(b.art, e)}`;
 
   let mitte = '';
   if (b.art === 'essen') {
@@ -3854,11 +3954,28 @@ function bogenSpeichern() {
   // Liste selbst bleibt nicht am Kopfeintrag hängen.
   const dazu = b.art === 'kopf' ? (e.dazuMittel || []) : [];
   if (b.art === 'kopf') delete e.dazuMittel;
+  delete e.bezugBasis;
+  if (!e.ungefaehr) {
+    // Beim Ändern mischt der Speicher den Bogen in den alten Eintrag. Ein
+    // bloß gelöschtes Feld bliebe dort stehen – und eine von Hand genau
+    // gesetzte Uhrzeit hieße weiter „ungefähr". Also ausdrücklich zurück.
+    if (b.id) {
+      Object.assign(e, { ungefaehr: false, tageszeit: null, bezug: null, bezugMahlzeit: null });
+    } else {
+      delete e.ungefaehr;
+      delete e.tageszeit;
+      delete e.bezug;
+      delete e.bezugMahlzeit;
+    }
+  }
   if (b.art === 'medikament') store.mittelMerken(e.mittel);
   if (b.id) store.eintragAendern(b.id, e);
   else store.eintragen(e);
   dazu.forEach((name) => {
-    store.eintragen({ art: 'medikament', am: e.am, um: e.um, mittel: name, dosis: '' });
+    store.eintragen({
+      art: 'medikament', am: e.am, um: e.um, mittel: name, dosis: '',
+      ...(e.ungefaehr ? { ungefaehr: true, tageszeit: e.tageszeit || null } : {}),
+    });
     store.mittelMerken(name);
   });
   ui.tag = e.am;
@@ -3992,6 +4109,36 @@ const AKTION = {
     zeichne();
   },
   'bogen-zu': () => { ui.bogen = null; zeichne(); },
+  'zeit-tageszeit': (el) => {
+    const t = TAGESZEITEN.find((x) => x.id === el.dataset.id);
+    const e = ui.bogen && ui.bogen.entwurf;
+    if (!t || !e) return;
+    const patch = { tageszeit: t.id, ungefaehr: true, um: t.um, bezugBasis: t.um, bezugMahlzeit: null };
+    // Steht schon ein Bezug zum Essen, gilt er jetzt für die Mahlzeit dieser
+    // Tageszeit: „nach dem Essen" und dann „mittags" heißt nach dem Mittagessen.
+    if (e.bezug && MIT_ESSENSBEZUG.includes(ui.bogen.art)) {
+      Object.assign(patch, zeitMitBezug(store.zustandLesen(), e.am, t.um, e.bezug));
+    }
+    entwurf(patch);
+  },
+  'zeit-bezug': (el) => {
+    const e = ui.bogen && ui.bogen.entwurf;
+    if (!e || !ESSENSBEZUG.some((x) => x.id === el.dataset.id)) return;
+    // Noch einmal getippt: der Bezug fällt weg, die Zeit bleibt.
+    if (e.bezug === el.dataset.id) {
+      entwurf({ bezug: null, bezugMahlzeit: null, ungefaehr: !!e.tageszeit });
+      return;
+    }
+    // Gerechnet wird von der Zeit vor dem ersten Bezug aus. Sonst wanderte die
+    // Uhrzeit bei „vor" und dann „nach" jedes Mal eine halbe Stunde weiter.
+    const basis = e.bezugBasis || e.um;
+    entwurf({
+      bezug: el.dataset.id,
+      ungefaehr: true,
+      bezugBasis: basis,
+      ...zeitMitBezug(store.zustandLesen(), e.am, basis, el.dataset.id),
+    });
+  },
   'bogen-speichern': bogenSpeichern,
   staerke: (el) => entwurf({ staerke: Number(el.dataset.n) }),
   portion: (el) => entwurf({ portion: el.dataset.id }),
@@ -4686,7 +4833,12 @@ function eingabe(ev) {
     case 'mittel': entwurf({ mittel: wert }, false); break;
     case 'dosis': entwurf({ dosis: wert }, false); break;
     case 'text': entwurf({ text: wert }, false); break;
-    case 'uhr': entwurf({ um: wert }, false); break;
+    // Von Hand gesetzt ist die Zeit wieder genau – die Knöpfe gelten dann
+    // nicht mehr. Ohne Neuzeichnen, sonst verlöre das Feld beim Tippen den
+    // Fokus; die Markierung der Knöpfe stimmt beim nächsten Zeichnen.
+    case 'uhr': entwurf({
+      um: wert, ungefaehr: false, tageszeit: null, bezug: null, bezugMahlzeit: null, bezugBasis: null,
+    }, false); break;
     case 'bogen-datum': entwurf({ am: wert }, false); break;
     case 'tag-datum':
       if (/^\d{4}-\d{2}-\d{2}$/.test(wert)) { ui.tag = wert; zeichne(); }

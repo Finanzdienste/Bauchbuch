@@ -128,7 +128,7 @@ function zuordnen(eintraege) {
     if (!letzte) return;
     const stunden = stundenDazwischen(letzte.t, t);
     if (stunden > 8) return;
-    zu.get(letzte.e.id).push({ stunden, staerke: Number(b.staerke) || 0 });
+    zu.get(letzte.e.id).push({ stunden, staerke: Number(b.staerke) || 0, ungefaehr: !!b.ungefaehr });
   });
   return zu;
 }
@@ -157,9 +157,18 @@ export function fensterWerte(eintraege) {
     const naechste = essen[i + 1] ? stundenDazwischen(x.t, essen[i + 1].t) : Infinity;
     const tagebuchBis = stundenDazwischen(x.t, letzterEintrag);
     const liste = zu.get(x.e.id) || [];
+    /*
+     * Eine ungefähre Zeit – „abends", „nach dem Essen" – sagt, zu welcher
+     * Mahlzeit etwas gehört, aber nicht, wie lange danach es kam. Hängt an
+     * dieser Mahlzeit eine solche Angabe, oder ist sie selbst nur ungefähr
+     * eingetragen, ist keines ihrer Fenster beobachtet: Sonst landete jede
+     * „nach dem Essen"-Beschwerde künstlich nach einer halben Stunde, und das
+     * Profil zeigte einen Magen, wo es nur einen Knopf zeigt.
+     */
+    const unklar = !!x.e.ungefaehr || liste.some((b) => b.ungefaehr);
     const werte = {};
     FENSTER.forEach((f) => {
-      const beobachtbar = naechste >= f.bis && tagebuchBis >= f.bis;
+      const beobachtbar = !unklar && naechste >= f.bis && tagebuchBis >= f.bis;
       const drin = liste.filter((b) => b.stunden > f.von && b.stunden <= f.bis);
       werte[f.id] = {
         beobachtbar,
