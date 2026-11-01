@@ -581,6 +581,34 @@ await S.page.waitForTimeout(200);
 check(!(await ansicht(S.page)).includes('Seitdem'), 'danach ist in Safari nichts mehr offen');
 
 /*
+ * Ein Glas Wasser in Safari ist kein Eintrag im Strang – und kommt beim Holen
+ * trotzdem mit. Also muss es „Nochmal mitnehmen" auslösen, sonst bliebe es
+ * in Safari, deren Kopie nach einer Woche ohne Besuch verschwindet.
+ */
+await tippe(S.page.locator('#wasserMehr'), 'Ein Glas dazu');
+await bisText(S.page, 'Seitdem hast du hier an 1 Tag Wasser gezählt', 4000);
+check((await ansicht(S.page)).includes('Seitdem hast du hier an 1 Tag Wasser gezählt'),
+  'ein Glas Wasser in Safari nach dem Mitnehmen: der Hinweis sagt es');
+const nochmalWasser = S.page.locator('#view [data-act="umzug-mitnehmen"]', { hasText: 'Nochmal mitnehmen' });
+check(await nochmalWasser.count() >= 1, 'und bietet „Nochmal mitnehmen" an');
+// Ein Vermerk aus der Zeit vor dem Wasser hat das Feld nicht: Dann zählt
+// jedes Glas als neu, und nichts geht schief.
+await S.page.evaluate((k) => {
+  const st = JSON.parse(localStorage.getItem(k));
+  delete st.umzug.wasser;
+  delete st.umzug.mittel;
+  delete st.umzug.aktiv;
+  localStorage.setItem(k, JSON.stringify(st));
+}, KEY);
+await S.page.reload({ waitUntil: 'networkidle' });
+await S.page.waitForTimeout(300);
+check((await ansicht(S.page)).includes('an 1 Tag Wasser gezählt'), 'ein alter Vermerk ohne Wasser lädt, und das Glas zählt als neu');
+await tippe(S.page.locator('#view [data-act="umzug-mitnehmen"]', { hasText: 'Nochmal mitnehmen' }), 'Nochmal mitnehmen');
+await bisGespeichert(S.page, (st) => !!st && !!st.umzug && !!st.umzug.wasser && Object.keys(st.umzug.wasser).length === 1);
+await S.page.waitForTimeout(200);
+check(!(await ansicht(S.page)).includes('Seitdem'), 'nach dem erneuten Mitnehmen ist der Knopf weg');
+
+/*
  * In der App wird ein zweites Mal geholt. Safari verspricht genau das („hol
  * in der App noch einmal"). Einen Knopf „Einträge holen" gibt es in der App
  * nach dem ersten Holen aber nirgends mehr – übrig bleibt „Mehr › Text
@@ -603,6 +631,7 @@ await bisGespeichert(A.page, (s) => !!s && s.eintraege.length >= 32);
 const aZwei = await zustand(A.page);
 check(aZwei.eintraege.length === 32, `nach dem zweiten Holen stehen 32 Einträge in der App (${aZwei.eintraege.length})`);
 check(doppelte(ids(aZwei)) === 0, 'keiner davon doppelt');
+check(Object.values(aZwei.tage || {}).some((t) => Number(t.wasser) >= 1), 'und das Glas Wasser aus Safari ist mitgekommen');
 check(
   ['Reis mit Gemüse', 'Apfel'].every((w) => aZwei.eintraege.some((e) => e.was === w)),
   'die zwei neuen aus Safari sind dabei',

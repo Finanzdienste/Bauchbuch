@@ -74,6 +74,7 @@ async function pruefen(daten) {
     return {
       urteil: b.urteil,
       wort: b.wort,
+      laeufe: b.laeufe.length,
       satz: b.satz,
       grundlage: b.grundlage,
       echte: b.echte,
@@ -225,6 +226,83 @@ check(
   /Leerdurchgänge/.test(ohneLeer.satz),
   'sondern die Aufforderung, zwei Leerdurchgänge zu machen',
 );
+
+/* ---------- 6b. Eine Beschwerde nur mit „morgens" ---------- */
+
+/*
+ * Die Reaktion abends mit dem Knopf „morgens" nachgetragen: Ob sie vor oder
+ * nach dem Glas kam, ist offen. Sie zählt als Wert des Durchgangs – bei
+ * Durchgängen mit der Sache wie bei Leerdurchgängen. Früher fielen damit
+ * genau die Durchgänge mit Reaktion heraus, und übrig blieb „bestätigt sich
+ * nicht", das Ergebnis, das dieser Test das belastbarste nennt.
+ */
+const knopfMorgen = (tage, i, staerke) => ({
+  id: `k${i}`, am: vorTagen(tage), um: '08:00', art: 'beschwerde', staerke, ungefaehr: true, tageszeit: 'morgens',
+});
+const mitKnopf = (plan) => {
+  const d = bauen(plan.map(([t, leer]) => [t, leer, 0]));
+  d.provokation.laeufe = d.provokation.laeufe.map((l) => ({ ...l, um: '07:40' }));
+  d.eintraege = plan.filter(([, , st]) => st > 0).map(([t, , st], i) => knopfMorgen(t, i, st));
+  return d;
+};
+const knopfReaktion = await pruefen(mitKnopf([
+  [30, false, 7], [27, false, 7], [24, false, 7], [21, false, 7], [18, false, 7], [15, false, 7],
+  [12, false, 0], [9, false, 0], [6, false, 0], [29, true, 0], [23, true, 0], [17, true, 0],
+]));
+check(knopfReaktion.urteil === 'bestaetigt' && knopfReaktion.verworfen === 0,
+  `Reaktionen nur mit „morgens" eingetragen: kein Durchgang fällt heraus, und es bestätigt sich (${knopfReaktion.urteil}, ${knopfReaktion.verworfen} verworfen)`);
+check(!/belastbarste/.test(knopfReaktion.satz), 'und nirgends steht „das belastbarste Ergebnis"');
+const knopfNuechtern = await pruefen(mitKnopf([
+  [20, false, 7], [17, false, 6], [14, false, 7], [11, true, 7], [8, true, 6],
+]));
+check(knopfNuechtern.urteil === 'nicht-bestaetigt',
+  `Nüchternschmerz „morgens" an Test- und Leermorgen: der leere Magen wird nicht der Milch angelastet (${knopfNuechtern.urteil})`);
+const knopfLauf = await page.evaluate(async ([t]) => {
+  const m = await import('./js/provokation.js');
+  return m.laufBild([{ id: 'x', art: 'beschwerde', am: t, um: '08:00', staerke: 5, ungefaehr: true, tageszeit: 'morgens' }],
+    { am: t, um: '07:40' }, { nuechtern: 4, fenster: 4 });
+}, [vorTagen(5)]);
+check(knopfLauf.sauber && knopfLauf.wert === 5 && knopfLauf.ungefaehr, 'ein einzelner Durchgang: sauber, mit der Beschwerde als Wert, und gekennzeichnet');
+
+/* ---------- 6c. Der Grund, der wirklich dahintersteht ---------- */
+
+const zuDicht = await pruefen(bauen([[20, false, 7], [19, false, 6]]));
+check(zuDicht.urteil === 'laeuft' && zuDicht.verworfen === 1 && !/gegessen/.test(zuDicht.satz)
+    && /1 zählt nicht mit, warum, steht beim Durchgang/.test(zuDicht.satz),
+  `zu dicht am vorigen: der Satz sagt nicht „gegessen" (${zuDicht.satz.slice(0, 110)})`);
+const einmalGegessen = await pruefen(bauen([[20, false, 7], [17, false, 6]],
+  [{ id: 'm1', am: vorTagen(20), um: '09:30', art: 'essen', was: 'Brötchen', zutaten: [] }]));
+check(/\(1 zählt nicht mit, weil dabei gegessen wurde\)/.test(einmalGegessen.satz),
+  'wo gegessen wurde, sagt er das – und „zählt" in der Einzahl');
+const zweimalGegessen = await pruefen(bauen([[20, false, 7], [17, false, 6], [14, false, 5]], [
+  { id: 'm1', am: vorTagen(20), um: '09:30', art: 'essen', was: 'Brötchen', zutaten: [] },
+  { id: 'm2', am: vorTagen(17), um: '06:00', art: 'essen', was: 'Müsli', zutaten: [] },
+]));
+check(/\(2 zählen nicht mit, weil dabei gegessen wurde\)/.test(zweimalGegessen.satz), 'und „zählen" in der Mehrzahl');
+const zettelDicht = await page.evaluate(async ([p, e, v, h]) => {
+  const b = await import('./js/bericht.js');
+  return b.arztBericht({ provokation: p, eintraege: e, tage: {} }, v, h);
+}, [bauen([[20, false, 7], [19, false, 6]]).provokation, bauen([[20, false, 7], [19, false, 6]]).eintraege, vorTagen(60), heute]);
+check(/1 nicht auswertbar(?! \(dabei gegessen\))/.test(zettelDicht), 'auch der Bericht schreibt dort nicht „dabei gegessen"');
+
+/* ---------- 6d. Reaktion in der Mehrzahl, aber noch im Zufall ---------- */
+
+/*
+ * Zwei von drei Durchgängen mit deutlicher Reaktion, die Leerdurchgänge
+ * ruhig – aber bei so wenigen Werten noch im Spielraum des Zufalls. Das ist
+ * kein „bestätigt sich", und erst recht kein „kein Unterschied".
+ */
+const deutet = await pruefen(bauen([[20, false, 6], [17, false, 6], [14, false, 0], [11, true, 0], [8, true, 0]]));
+check(deutet.urteil === 'offen' && deutet.wort === 'deutet sich an',
+  `zwei von drei mit Reaktion, noch im Zufall: „deutet sich an" (${deutet.urteil})`);
+check(!/Kein Unterschied|belastbarste/.test(deutet.satz) && /weitere Durchgänge und Leerdurchgänge/.test(deutet.satz),
+  'ohne „kein Unterschied", mit dem, was jetzt hilft');
+const weiter = await page.evaluate(async ([p, e, h]) => {
+  const m = await import('./js/provokation.js');
+  return m.naechsterSchritt(p, h, m.provokationsBild(p, e, h).urteil);
+}, [bauen([[20, false, 6], [17, false, 6], [14, false, 0], [11, true, 0], [8, true, 0]]).provokation,
+  bauen([[20, false, 6], [17, false, 6], [14, false, 0], [11, true, 0], [8, true, 0]]).eintraege, heute]);
+check(weiter && weiter.dran === true, `und der nächste Schritt ist dran, statt „genug beisammen" (${weiter && weiter.satz})`);
 
 /* ---------- 7. In der Anzeige ---------- */
 

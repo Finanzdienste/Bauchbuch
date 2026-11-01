@@ -150,6 +150,33 @@ check(
   'ein Tipp – und das Medikament steht als eigener Eintrag daneben',
 );
 check(beide.every((e) => e.am === beide[0].am && e.um === beide[0].um), 'zur selben Zeit wie der Kopfschmerz');
+// Das Mittel aus „Dazu genommen?" gehört zum Kopfbogen: Für den Bauch bleibt
+// der Tag eine Lücke, kein „Bauch beschwerdefrei".
+const mitMittel = eng(await page.locator('.tagbilanz').textContent());
+check(mitMittel.includes('als Lücke') && !mitMittel.includes('Bauch beschwerdefrei'),
+  `Kopfschmerz mit „Dazu genommen": für den Bauch eine Lücke (${mitMittel.slice(0, 60)})`);
+const nennerDazu = await page.evaluate(async () => {
+  const a = await import('./js/auswertung.js');
+  const st = await import('./js/stuhl.js');
+  const iso = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const e = [];
+  for (let n = 1; n <= 10; n++) {
+    e.push({ id: `b${n}`, art: 'essen', am: iso(n), um: '12:00', was: 'x', zutaten: [] });
+    e.push({ id: `k${n}`, art: 'kopf', am: iso(n + 10), um: '09:00', staerke: 7, kopfArten: [] });
+    e.push({ id: `m${n}`, art: 'medikament', am: iso(n + 10), um: '09:00', mittel: 'Ibuprofen', zuKopf: `k${n}` });
+  }
+  const frei = [{ id: 'f', art: 'medikament', am: iso(25), um: '09:00', mittel: 'Ibuprofen' }];
+  const heute = iso(0);
+  return {
+    notiert: a.tagesWert(e, iso(11), {}).notiert,
+    tage: a.gesamtZahlen(e, {}, iso(30), heute).notierteTage,
+    frei: a.tagesWert(frei, iso(25), {}).notiert,
+    stuhl: st.stuhlZahlen(e, {}).proTag === st.stuhlZahlen(e.filter((x) => x.art !== 'medikament'), {}).proTag,
+  };
+});
+check(!nennerDazu.notiert && nennerDazu.tage === 10, `zehn Kopftage mit Mittel sind keine zehn Bauchtage (${nennerDazu.tage} notiert)`);
+check(nennerDazu.frei, 'ein frei eingetragenes Mittel ohne Kopfschmerz macht den Tag weiter zu einem notierten');
+check(nennerDazu.stuhl, 'und die Stuhlzahl je Tag ändert sich durch das Mittel nicht');
 
 /* ---------- 2. Der Bauchbogen bietet die Kopf-Warnzeichen nicht an ---------- */
 

@@ -31,14 +31,16 @@
  * eingebauten Fehler bemerkt.
  */
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { ROOT, KEY, SHOT, vorTagen, pruefer } from './umgebung.mjs';
 import { kopieServer } from './vorrat.mjs';
 import { KNOPF_TAGESZEIT, tageszeit } from '../js/datum.js';
 import {
-  bewerteteMahlzeiten, essensbezug, folgende, klassenBilanz, nachTageszeit,
-  reihenfolgeUnklar, stundenSeitEssen, wertNach,
+  ausloeserBilanz, bewerteteMahlzeiten, einstufung, essensbezug, folgende, klassenBilanz, nachTageszeit,
+  reihenfolgeUnklar, stundenSeitEssen, stundenSeitLetzterMahlzeit, wertNach,
 } from '../js/auswertung.js';
+import { dosisBild } from '../js/dosis.js';
 import { fensterWerte, zeitBild } from '../js/zeitprofil.js';
 import { laufBild } from '../js/provokation.js';
 import { bildLesen } from '../js/bild.js';
@@ -66,6 +68,26 @@ for (const [id, t] of Object.entries(KNOPF_TAGESZEIT)) {
     [t.um, plus(t.um, -30), plus(t.um, 30)].every((um) => tageszeit(um) === t.fach),
     `„${id}" trägt ${t.um} ein, und das liegt – auch eine halbe Stunde davor oder danach – im Fach „${t.fach}" der Auswertung`,
   );
+}
+
+/*
+ * Tageszeit und Bezug zum Essen stehen im Speicher noch einmal (er soll von
+ * der Anzeige nichts wissen). Weichen die Listen ab, verwirft das Merken eine
+ * Zeit still – also müssen sie gleich sein.
+ */
+{
+  const speicherQuelle = readFileSync(path.join(ROOT, 'js/store.js'), 'utf8');
+  const anzeigeQuelle = readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+  const bezugSpeicher = (/const BEZUG_IDS = \[([^\]]*)\];/.exec(speicherQuelle) || [])[1] || '';
+  const bezugAnzeige = (/const ESSENSBEZUG = \[([\s\S]*?)\n\];/.exec(anzeigeQuelle) || [])[1] || '';
+  const ids = (t, re) => [...t.matchAll(re)].map((m) => m[1]);
+  check(
+    JSON.stringify(ids(bezugSpeicher, /'([^']+)'/g)) === JSON.stringify(ids(bezugAnzeige, /id: '([^']+)'/g))
+      && ids(bezugSpeicher, /'([^']+)'/g).length === 3,
+    'der Bezug zum Essen im Speicher ist derselbe wie in den Knöpfen',
+  );
+  check(/const TAGESZEIT_IDS = Object\.keys\(KNOPF_TAGESZEIT\)/.test(speicherQuelle),
+    'die Tageszeiten im Speicher kommen aus den Zeitknöpfen selbst');
 }
 
 /*
@@ -119,18 +141,99 @@ check(
   `die Einordnung nennt keinen Nüchternschmerz (${bild.muster.map((m) => m.id).join(', ') || 'nichts'})`,
 );
 
-// Die Abendessen sind nicht bewertbar – weder gut noch schlecht –, die
-// übrigen Mahlzeiten schon.
+// Für die Bilanz zählt die offene Beschwerde zum Abendessen derselben
+// Tageszeit – als danach, und so gekennzeichnet. Keine Mahlzeit fällt
+// heraus: Herausfielen sonst genau die mit Beschwerde (siehe wertNach).
 const bewertet = bewerteteMahlzeiten(knopfTage, 4);
+const abendBewertet = bewertet.filter((b) => b.m.tageszeit === 'abends');
 check(
-  bewertet.length === 18 && !bewertet.some((b) => b.m.tageszeit === 'abends'),
-  `die Abendessen fehlen in der Bilanz, statt als beschwerdefrei zu zählen (${bewertet.length} von 27)`,
+  bewertet.length === 27 && abendBewertet.length === 9 && abendBewertet.every((b) => b.wert === 5 && b.offen),
+  `alle 27 Mahlzeiten stehen in der Bilanz, die Abendessen mit der offenen Beschwerde (${bewertet.length}, ${abendBewertet.map((b) => b.wert).join('/')})`,
 );
-check(wertNach(knopfTage, knopfTage[2], 4) === null, 'wertNach sagt dafür null, nicht 0');
 check(
-  !klassenBilanz(knopfTage, { fenster: 4 }).some((k) => k.faelle + k.gegenFaelle > 18),
-  'die Klassenbilanz rechnet ebenfalls ohne sie',
+  bewertet.filter((b) => b.m.tageszeit !== 'abends').every((b) => b.wert === 0 && !b.offen),
+  'Frühstück und Mittag rechnen ohne sie – „abends" liegt nicht in ihrer Tageszeit',
 );
+check(wertNach(knopfTage, knopfTage[2], 4) === 5, 'wertNach gibt dafür die Stärke, nicht null');
+const fettZeile = ausloeserBilanz(knopfTage, { fenster: 4, mindestFaelle: 5 }).find((z) => z.id === 'fett');
+check(
+  !!fettZeile && fettZeile.faelle === 9 && fettZeile.offen === 9 && einstufung(fettZeile) === 'auffaellig',
+  `„fett" nur in den Abendessen: auffällig, mit der Zahl der offenen Fälle (${fettZeile && `${fettZeile.faelle}, offen ${fettZeile.offen}, ${einstufung(fettZeile)}`})`,
+);
+check(
+  klassenBilanz(knopfTage, { fenster: 4 }).every((k) => k.faelle + k.gegenFaelle === 27),
+  'die Klassenbilanz rechnet ebenso mit allen 27',
+);
+
+/*
+ * Der Grundsatz dahinter: Ob eine Mahlzeit zählt, hängt nie davon ab, ob
+ * danach etwas kam. Sechzig Tage, Abendessen mit dem Knopf „abends", jedes
+ * zweite mit Zwiebel; nach 23 der 30 Zwiebel-Abende eine Beschwerde der
+ * Stärke 6 – einmal genau um 21:00, einmal selbst „abends", einmal gegen ein
+ * genau eingetragenes Abendessen um 19:30.
+ */
+const zwiebelTage = (art) => {
+  const e = [];
+  let mitBeschwerde = 0;
+  for (let i = 1; i <= 60; i++) {
+    const am = vorTagen(i + 2);
+    const zwiebel = i % 2 === 0;
+    const abend = art === 'genauesEssen'
+      ? { id: `za${i}`, art: 'essen', am, um: '19:30', zutaten: [] }
+      : { id: `za${i}`, art: 'essen', am, um: '19:30', ungefaehr: true, tageszeit: 'abends', zutaten: [] };
+    if (zwiebel) abend.zutaten = [{ id: 'zwiebel', rolle: 'haupt' }];
+    e.push({ id: `zf${i}`, art: 'essen', am, um: '08:00', zutaten: [{ id: 'kaffee', rolle: 'haupt' }] }, abend);
+    if (zwiebel && mitBeschwerde < 23) {
+      mitBeschwerde += 1;
+      e.push(art === 'genau'
+        ? { id: `zb${i}`, art: 'beschwerde', am, um: '21:00', staerke: 6 }
+        : { id: `zb${i}`, art: 'beschwerde', am, um: '19:30', ungefaehr: true, tageszeit: 'abends', staerke: 6 });
+    }
+  }
+  return e;
+};
+for (const [art, text] of [['genau', 'Knopf-Abendessen, genaue Beschwerde um 21:00'],
+  ['knopf', 'beides „abends"'], ['genauesEssen', 'genaues Abendessen, Beschwerde „abends" ohne Bezug']]) {
+  const e = zwiebelTage(art);
+  const z = ausloeserBilanz(e, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'zwiebel');
+  check(
+    !!z && z.faelle === 30 && z.schnittMit > z.schnittOhne && einstufung(z) === 'auffaellig',
+    `${text}: Zwiebel fällt auf, mit allen 30 Fällen (${z && `${z.faelle}, ${z.schnittMit.toFixed(1)} gegen ${z.schnittOhne.toFixed(1)}, ${einstufung(z)}`})`,
+  );
+  const k = klassenBilanz(e, { fenster: 4 }).find((x) => x.id === 'fodmap');
+  check(!k || k.faelle + k.gegenFaelle === 120, `${text}: auch die Klassenbilanz zählt alle 120 Mahlzeiten`);
+  const d = dosisBild(e, 'zwiebel', 4);
+  const haupt = d.stufen.find((x) => x.id === 'haupt');
+  check(haupt && haupt.faelle === 30, `${text}: und die Mengenrechnung alle 30 (${haupt && haupt.faelle})`);
+  check(essensbezug(e).nuechtern === 0, `${text}: und keine dieser Beschwerden zählt als nüchtern`);
+}
+{
+  // Gegenprobe: Wie viele Abendessen zählen, hängt nicht an den Beschwerden.
+  const mit = bewerteteMahlzeiten(zwiebelTage('knopf'), 4).length;
+  const ohne = bewerteteMahlzeiten(zwiebelTage('knopf').filter((x) => x.art !== 'beschwerde'), 4).length;
+  check(mit === ohne && mit === 120, `mit und ohne Beschwerden werden gleich viele Mahlzeiten bewertet (${mit}/${ohne})`);
+  const ruhig = ausloeserBilanz(zwiebelTage('knopf').filter((x) => x.art !== 'beschwerde'), { fenster: 4, mindestFaelle: 5 })
+    .find((x) => x.id === 'zwiebel');
+  check(ruhig && einstufung(ruhig) === 'neutral', 'ohne jede Beschwerde bleibt Zwiebel ohne Befund');
+}
+{
+  // Der Fall aus der Gegenprüfung: Mittag genau mit Kaffee, Abendbrot mit dem
+  // Knopf und Zwiebel, danach genaue Beschwerden. Vorher sah Zwiebel harmlos
+  // aus und Kaffee wie der Auslöser.
+  const e = [];
+  for (let i = 1; i <= 50; i++) {
+    const am = vorTagen(i + 2);
+    e.push({ id: `km${i}`, art: 'essen', am, um: '12:30', zutaten: [{ id: 'kaffee', rolle: 'haupt' }] });
+    e.push({ id: `ka${i}`, art: 'essen', am, um: '19:30', ungefaehr: true, tageszeit: 'abends', zutaten: [{ id: 'zwiebel', rolle: 'haupt' }] });
+    if (i % 10 < 2) e.push({ id: `kb${i}`, art: 'beschwerde', am, um: '14:00', staerke: 3 });
+    if (i % 10 < 7) e.push({ id: `kc${i}`, art: 'beschwerde', am, um: '21:00', staerke: 6 });
+  }
+  const b = ausloeserBilanz(e, { fenster: 4, mindestFaelle: 5 });
+  const zw = b.find((x) => x.id === 'zwiebel');
+  const ka = b.find((x) => x.id === 'kaffee');
+  check(zw && zw.faelle === 50, `Abendbrot mit dem Knopf: Zwiebel mit allen 50 Fällen (${zw && zw.faelle})`);
+  check(ka && !['auffaellig', 'moeglich'].includes(einstufung(ka)), `und Kaffee wird nicht zum Auslöser (${ka && einstufung(ka)})`);
+}
 
 // Mit „nach dem Essen" ist die Reihenfolge gesagt: nach dem Essen.
 const gebunden = knopfTage.map((e) => (e.art === 'beschwerde'
@@ -146,7 +249,12 @@ check(
 const genauesAbendessen = { id: 'ga', art: 'essen', am: T, um: '18:45', zutaten: [] };
 const abendsOhne = { id: 'ao', art: 'beschwerde', am: T, um: '19:30', ungefaehr: true, tageszeit: 'abends', staerke: 6 };
 check(reihenfolgeUnklar(genauesAbendessen, abendsOhne), 'auch gegen ein genau eingetragenes Abendessen ist „abends" offen');
-check(folgende([genauesAbendessen, abendsOhne], genauesAbendessen, 4).length === 0, 'und wird ihm nicht zugerechnet');
+check(
+  folgende([genauesAbendessen, abendsOhne], genauesAbendessen, 4).length === 0
+    && wertNach([genauesAbendessen, abendsOhne], genauesAbendessen, 4) === 6,
+  'sie folgt ihm nicht nach der Uhr – in der Bilanz zählt sie als offen dazu',
+);
+check(stundenSeitEssen([genauesAbendessen, abendsOhne], abendsOhne) === null, 'und der Abstand zum Essen bleibt unbekannt');
 // Gegenprobe: genau gegen genau rechnet weiter wie immer.
 const genaueBeschwerde = { id: 'gb', art: 'beschwerde', am: T, um: '19:30', staerke: 6 };
 check(
@@ -159,6 +267,44 @@ check(
 const morgensOhne = { ...abendsOhne, id: 'mo', um: '08:00', tageszeit: 'morgens' };
 check(!reihenfolgeUnklar(genauesAbendessen, morgensOhne), '„morgens" gegen ein Abendessen hat eine klare Reihenfolge');
 
+/*
+ * „Nach dem Essen" ohne die Mahlzeit dazu: Gegessen wurde, nur steht es
+ * nicht da. Mit der letzten eingetragenen davor – dem Mittag – zählte es als
+ * nüchtern, und neun solche Abende ergäben „Nüchternschmerz".
+ */
+const ohneAbendessen = knopfTage.filter((e) => !e.id.startsWith('a'))
+  .map((e) => (e.art === 'beschwerde' ? { ...e, um: '20:00', bezug: 'nach', bezugMahlzeit: null } : e));
+const eb3 = essensbezug(ohneAbendessen);
+check(eb3.nuechtern === 0 && eb3.unbekannt === 9, `„abends, nach dem Essen" ohne Abendessen zählt nicht als nüchtern (${eb3.nuechtern}, unbekannt ${eb3.unbekannt})`);
+check(
+  !bildLesen({ eintraege: ohneAbendessen, tage: tageDazu }).muster.some((m) => m.id === 'nuechtern'),
+  'und die Einordnung nennt keinen Nüchternschmerz',
+);
+const beimOhne = ohneAbendessen.map((e) => (e.art === 'beschwerde' ? { ...e, um: '19:40', bezug: 'beim' } : e));
+check(essensbezug(beimOhne).nuechtern === 0, '„beim Essen" ohne Mahlzeit ebenso');
+const mittagsOhne = knopfTage.filter((e) => e.id.startsWith('f')).concat(knopfTage.filter((e) => e.art === 'beschwerde')
+  .map((e) => ({ ...e, um: '13:00', tageszeit: 'mittags', bezug: 'nach', bezugMahlzeit: null })));
+check(essensbezug(mittagsOhne).nuechtern === 0, '„mittags, nach dem Essen" ohne Mittagessen, nur mit Frühstück: auch nicht nüchtern');
+const fremdeMahlzeit = ohneAbendessen.map((e) => (e.art === 'beschwerde' ? { ...e, bezugMahlzeit: 'gibtsnicht' } : e));
+check(stundenSeitEssen(fremdeMahlzeit, fremdeMahlzeit.find((e) => e.art === 'beschwerde')) === null,
+  'eine Kennung, die auf keine Mahlzeit zeigt, macht es nicht besser');
+const vorOhne = ohneAbendessen.map((e) => (e.art === 'beschwerde' ? { ...e, um: '19:00', bezug: 'vor' } : e));
+check(essensbezug(vorOhne).nuechtern === 9, '„vor dem Essen" ohne Abendessen rechnet weiter vom Mittag aus');
+check(essensbezug(gebunden).nachDemEssen === 9, 'gebunden an ein eingetragenes Abendessen bleibt es „nach dem Essen"');
+
+/*
+ * Der Rat „Für heute" fragt, wie lange das Essen jetzt her ist – ohne die
+ * Reihenfolge-Frage einer Beschwerde. Ein Mittagessen nur mit „mittags"
+ * liegt vor jetzt, wenn es schon eingetragen ist.
+ */
+const mittagKnopf = [{ id: 'mk', art: 'essen', am: T, um: '12:30', ungefaehr: true, tageszeit: 'mittags', zutaten: [] }];
+check(stundenSeitLetzterMahlzeit(mittagKnopf, T, '13:30') === 1, 'Mittag per Knopf, jetzt 13:30: eine Stunde her');
+check(stundenSeitLetzterMahlzeit([{ ...mittagKnopf[0], ungefaehr: false, tageszeit: null }], T, '13:30') === 1,
+  'genau eingetragen ebenso');
+check(stundenSeitLetzterMahlzeit(mittagKnopf, T, '11:40') === 0, 'die Knopfzeit liegt noch vor uns: gerade gegessen, nicht gestern');
+check(stundenSeitLetzterMahlzeit(mittagKnopf, T, '15:10') > 2, 'um zehn nach drei ist es länger her');
+check(stundenSeitLetzterMahlzeit([], T, '13:30') === null, 'ohne Mahlzeit: unbekannt');
+
 // Das Zeitprofil fragt nach Stunden; Knopfzeiten haben keine.
 const spaeter = { id: 'n', art: 'notiz', am: '2026-10-30', um: '08:00', text: 'x' };
 const fw = fensterWerte([genauesAbendessen, abendsOhne, spaeter])[0].werte;
@@ -168,6 +314,27 @@ check(
   zb.zugeordnet === 0 && zb.satz.includes('9 weitere sind mit ungefährer Zeit eingetragen'),
   `das Zeitbild zählt Knopfzeiten nicht als Stunden – und sagt das (${zb.zugeordnet})`,
 );
+{
+  /*
+   * Eine genaue Beschwerde vor einem Abendbrot, das nur mit „abends"
+   * eingetragen ist: Welche Mahlzeit vorausging, ist offen – also auch die
+   * Stunden seit dem Mittag. Sonst stünde da „4–8 Stunden, Dickdarm".
+   */
+  const e = [];
+  for (let i = 1; i <= 12; i++) {
+    const am = `2026-09-${String(i + 10).padStart(2, '0')}`;
+    e.push({ id: `pm${i}`, art: 'essen', am, um: '12:30', zutaten: [] });
+    e.push({ id: `pa${i}`, art: 'essen', am, um: '19:30', ungefaehr: true, tageszeit: 'abends', zutaten: [] });
+    e.push({ id: `pb${i}`, art: 'beschwerde', am, um: '19:00', staerke: 5 });
+  }
+  const z = zeitBild(e);
+  check(z.zugeordnet === 0 && !z.schwerpunkt && z.satz.includes('12 weitere'),
+    `genaue Beschwerde vor einem Abendbrot mit dem Knopf: kein erfundener Abstand (${z.zugeordnet}, ${z.schwerpunkt || '–'})`);
+  check(essensbezug(e).unbekannt === 12, 'und die Nüchternrechnung sagt dasselbe: unbekannt');
+  const genau = e.map((x) => (x.id.startsWith('pa') ? { ...x, ungefaehr: false, tageszeit: null } : x));
+  const zg = zeitBild(genau);
+  check(zg.zugeordnet === 12, `Gegenprobe mit genauem Abendbrot: zugeordnet wie immer (${zg.zugeordnet})`);
+}
 
 // Der Provokationstest: ein Frühstück „morgens" am Testmorgen macht den
 // Durchgang unsauber, statt auf derselben Minute unsichtbar zu bleiben.
@@ -262,11 +429,26 @@ check(
   sauber(await page.locator('.zeit-hinweis').textContent()).includes('abends noch keine Mahlzeit'),
   'der Bogen sagt, dass abends noch keine Mahlzeit steht und mit der Tageszeit gerechnet wird',
 );
-// Ohne gewählte Tageszeit bleibt es bei der nächsten Mahlzeit des Tages.
+// Ohne gewählte Tageszeit gilt die Tageszeit der Uhrzeit: 09:00 findet das
+// Frühstück, 20:30 nicht.
 await tippe('zeit-bezug', 'nach');
 await page.locator('#bogenUhr').fill('09:00');
 await tippe('zeit-bezug', 'nach');
-check(await uhr() === '08:15', `ohne Tageszeit gilt die nächste Mahlzeit, das Frühstück (${await uhr()})`);
+check(await uhr() === '08:15', `ohne Tageszeit gilt die nächste Mahlzeit derselben Tageszeit, das Frühstück (${await uhr()})`);
+await tippe('zeit-bezug', 'nach');
+await page.locator('#bogenUhr').fill('20:30');
+await tippe('zeit-bezug', 'nach');
+check(await uhr() === '21:00', `20:30 und „nach dem Essen" rastet nicht am Frühstück ein, 13 Stunden früher (${await uhr()})`);
+check(
+  sauber(await page.locator('.zeit-hinweis').textContent()).includes('um diese Zeit steht an diesem Tag noch keine Mahlzeit'),
+  'und der Hinweis sagt „um diese Zeit", nicht „an diesem Tag keine Mahlzeit" – das Frühstück steht ja da',
+);
+// Ein leeres Uhrzeitfeld und „nach dem Essen": keine 00:30.
+await tippe('zeit-bezug', 'nach');
+await page.locator('#bogenUhr').fill('');
+await tippe('zeit-bezug', 'nach');
+check(await uhr() === '' && (await meldung()).includes('Erst „morgens“'),
+  `ohne Uhrzeit und Tageszeit rechnet „nach dem Essen" nichts aus – es fragt (${await uhr()})`);
 await zu();
 
 await zuTag(vorTagen(3));
@@ -364,6 +546,131 @@ mb = s.eintraege.find((e) => e.id === 'mb');
 check(mb.um === '13:00' && !mb.bezugMahlzeit, `die letzte Mahlzeit gelöscht: an die Tageszeit (${mb.um})`);
 check((await meldung()).includes('1 Eintrag an die Tageszeit angepasst.'), `mit Meldung (${await meldung()})`);
 
+/*
+ * Ohne Tageszeit, in beliebiger Reihenfolge nachgetragen: Die Beschwerde
+ * „20:30, nach dem Essen" rastet am Abendessen ein, nie am Frühstück – auch
+ * wenn das Frühstück zuerst nachgetragen wird. Vorher wanderte sie dann auf
+ * halb acht am Morgen, und das Abendessen holte sie nicht mehr zurück.
+ */
+async function abendsOhneTageszeit(reihenfolge) {
+  await setze({ eintraege: [] });
+  await zuTag(gestern);
+  await neu('beschwerde');
+  await page.locator('#bogenUhr').fill('20:30');
+  await tippe('zeit-bezug', 'nach');
+  await page.locator('.stufe[data-n="5"]').click();
+  await speichern();
+  const meldungen = [];
+  for (const [was, um] of reihenfolge) {
+    await neu('essen');
+    await page.locator('#bogenWas').fill(was);
+    await page.locator('#bogenUhr').fill(um);
+    await speichern();
+    meldungen.push(await meldung());
+    const st = await speicher();
+    const b = st.eintraege.find((e) => e.art === 'beschwerde');
+    const m = (id) => (st.eintraege.find((e) => e.id === id) || {}).was || null;
+    meldungen.push({ um: b.um, an: m(b.bezugMahlzeit) });
+  }
+  return meldungen;
+}
+{
+  const r = await abendsOhneTageszeit([['Frühstück', '07:00'], ['Abendessen', '19:45']]);
+  check(r[1].um === '21:00' && r[1].an === null && !r[0].includes('angepasst'),
+    `erst das Frühstück: die Abendbeschwerde bleibt um 21:00, ohne Meldung (${r[1].um}, ${r[0]})`);
+  check(r[3].um === '20:15' && r[3].an === 'Abendessen' && r[2].includes('1 Eintrag an die Mahlzeit angepasst.'),
+    `dann das Abendessen: sie rückt an 19:45 heran (${r[3].um}, ${r[3].an})`);
+  const u = await abendsOhneTageszeit([['Abendessen', '19:45'], ['Frühstück', '07:00']]);
+  check(u[3].um === '20:15' && u[3].an === 'Abendessen' && !u[2].includes('angepasst'),
+    `in umgekehrter Reihenfolge derselbe Stand (${u[3].um}, ${u[3].an})`);
+}
+{
+  /*
+   * Eine Tablette „vor dem Essen", Uhrzeit 07:50, ohne Tageszeit. Ein
+   * Abendessen danach verschiebt sie nicht; das Frühstück schon. Und wird das
+   * Frühstück gelöscht, springt sie nicht an das Mittagessen, sondern kommt
+   * mit dem neuen Frühstück zurück.
+   */
+  await setze({ eintraege: [] });
+  await zuTag(gestern);
+  await neu('medikament');
+  await page.locator('#bogenMittel').fill('L-Thyroxin');
+  await page.locator('#bogenUhr').fill('07:50');
+  await tippe('zeit-bezug', 'vor');
+  check(await uhr() === '07:20', `ohne Mahlzeit von der Uhrzeit aus (${await uhr()})`);
+  await speichern();
+  const tablette = async () => (await speicher()).eintraege.find((e) => e.mittel === 'L-Thyroxin');
+  let t = await tablette();
+  check(t.tageszeit === null && t.bezugMahlzeit === null && t.um === '07:20', 'gespeichert ohne Tageszeit und ohne Mahlzeit');
+  await neu('essen');
+  await page.locator('#bogenWas').fill('Abendbrot');
+  await page.locator('#bogenUhr').fill('19:00');
+  await speichern();
+  t = await tablette();
+  check(t.um === '07:20' && !t.bezugMahlzeit && !(await meldung()).includes('angepasst'),
+    `ein Abendessen schiebt die Morgentablette nicht auf 18:30 (${t.um})`);
+  await neu('essen');
+  await page.locator('#bogenWas').fill('Mittag');
+  await page.locator('#bogenUhr').fill('12:30');
+  await speichern();
+  check((await tablette()).um === '07:20', 'ein Mittagessen ebenso wenig');
+  await neu('essen');
+  await page.locator('#bogenWas').fill('Brot');
+  await page.locator('#bogenUhr').fill('08:00');
+  await speichern();
+  t = await tablette();
+  let st = await speicher();
+  const brot = () => st.eintraege.find((e) => e.was === 'Brot');
+  check(t.um === '07:30' && t.bezugMahlzeit === brot().id, `das Frühstück dazu: 07:30 vor dem Frühstück (${t.um})`);
+  await page.locator(`[data-act="loeschen"][data-id="${brot().id}"]`).click();
+  await page.locator(`[data-act="loeschen"][data-id="${brot().id}"]`).click();
+  await kurz(300);
+  t = await tablette();
+  check(t.um === '07:30' && !t.bezugMahlzeit, `das Frühstück gelöscht: sie bleibt am Morgen, nicht 12:00 vor dem Mittag (${t.um})`);
+  await neu('essen');
+  await page.locator('#bogenWas').fill('Brot');
+  await page.locator('#bogenUhr').fill('08:00');
+  await speichern();
+  t = await tablette();
+  st = await speicher();
+  check(t.um === '07:30' && t.bezugMahlzeit === brot().id, `das Frühstück neu eingetragen: wieder daran (${t.um})`);
+}
+{
+  /*
+   * Zwei Zusagen, die eine Mutationsprobe ohne Prüfung fand: „abends" beginnt
+   * um 15 Uhr, und ein Eintrag ohne Tageszeit, der noch an keiner Mahlzeit
+   * hängt, rückt beim Anlegen einer passenden nach.
+   */
+  await setze({ eintraege: [essen('kaffee', vorTagen(4), '16:00'), essen('frueh4', vorTagen(4), '07:45'), essen('spaetmittag', vorTagen(4), '14:45')] });
+  await zuTag(vorTagen(4));
+  await neu('beschwerde');
+  await tippe('zeit-tageszeit', 'abends');
+  await tippe('zeit-bezug', 'nach');
+  check(await uhr() === '16:30', `„abends" beginnt um 15 Uhr: die Mahlzeit um 16:00 zählt dazu (${await uhr()})`);
+  await tippe('zeit-tageszeit', 'mittags');
+  check(await uhr() === '15:15', `und 14:45 ist noch mittags (${await uhr()})`);
+  await zu();
+  await setze({ eintraege: [] });
+  await zuTag(gestern);
+  await neu('medikament');
+  await page.locator('#bogenMittel').fill('Iberogast');
+  await page.locator('#bogenUhr').fill('09:00');
+  await tippe('zeit-bezug', 'nach');
+  check(await uhr() === '09:30', `nur „nach dem Essen", ohne Mahlzeit: von 09:00 aus (${await uhr()})`);
+  await speichern();
+  let st = await speicher();
+  const ib = () => st.eintraege.find((e) => e.mittel === 'Iberogast');
+  check(ib().tageszeit === null && ib().bezugMahlzeit === null, 'ohne Tageszeit und ohne Mahlzeit gespeichert');
+  await neu('essen');
+  await page.locator('#bogenWas').fill('Müsli');
+  await page.locator('#bogenUhr').fill('10:00');
+  await speichern();
+  st = await speicher();
+  check(ib().um === '10:30' && ib().bezugMahlzeit === st.eintraege.find((e) => e.was === 'Müsli').id
+    && (await meldung()).includes('1 Eintrag an die Mahlzeit angepasst.'),
+  `die Mahlzeit dazu: es rückt nach, mit Meldung (${ib().um})`);
+}
+
 /* ---------- 3. Ein anderes Datum rechnet die Zeit neu ---------- */
 
 await setze({
@@ -429,10 +736,26 @@ knoepfe = await texte();
 check(knoepfe[0].includes('✓') && !knoepfe[1].includes('✓'), 'die Morgentablette eingetragen: Häkchen nur am Morgenknopf');
 const aria = await reihe.first().getAttribute('aria-label');
 check(aria.includes('gestern schon eingetragen') && !aria.includes('heute'), `die Ansage nennt den richtigen Tag (${aria})`);
+check(aria.endsWith('noch einmal eintragen'), 'und dass ein Tipp ein zweites Mal einträgt – wie bei den Aktivitäten');
 check(
   (await reihe.nth(1).getAttribute('aria-label')).includes('gestern eintragen'),
   'und beim anderen, dass er für gestern einträgt',
 );
+check(
+  (await reihe.nth(2).getAttribute('aria-label')).endsWith('gestern, die Zeit wählst du im Bogen'),
+  `ohne übliche Zeit sagt die Ansage, dass sich der Bogen öffnet (${await reihe.nth(2).getAttribute('aria-label')})`,
+);
+check(
+  sauber(await page.locator('.schnell .feld-name', { hasText: 'Meine Mittel' }).textContent()).includes('ohne übliche Zeit wählst du sie im Bogen'),
+  'und die Überschrift der Reihe ebenso',
+);
+await neu('medikament');
+check(
+  await page.getByRole('button', { name: 'Pantoprazol 40 mg morgens, vor dem Essen', exact: true }).count() === 1
+    && await page.getByRole('button', { name: 'Pantoprazol 40 mg abends', exact: true }).count() === 1,
+  'im Bogen liest VoiceOver Name und Zeit getrennt, nicht „40 mgmorgens"',
+);
+await zu();
 await zuTag(vorTagen(5));
 check(
   (await reihe.first().getAttribute('aria-label')).includes(`am ${sauber(await page.locator('.tagkopf h2').textContent())}`),
@@ -449,6 +772,17 @@ check(
 await page.locator('[data-act="meine-mittel-zeigen"]').click();
 await kurz(300);
 check(await page.locator('#mmName').count() === 1, 'ein Tipp darauf führt zur Karte, das Formular offen');
+check(await page.evaluate(() => document.activeElement && document.activeElement.id === 'mmName'), 'der Fokus steht im Namensfeld');
+{
+  const lage = await page.evaluate(() => {
+    const h = document.querySelector('#meineMittel h3').getBoundingClientRect();
+    const leiste = document.querySelector('.topbar').getBoundingClientRect();
+    const mitte = document.elementFromPoint(h.left + 10, h.top + h.height / 2);
+    return { oben: h.top, leiste: leiste.bottom, trifft: !!mitte && mitte.closest('h3') !== null };
+  });
+  check(lage.oben >= lage.leiste && lage.trifft,
+    `die Überschrift „Meine Mittel" steht unter der Kopfleiste, nicht dahinter (${Math.round(lage.oben)} ≥ ${Math.round(lage.leiste)})`);
+}
 await page.locator('#mmName').fill('Pantoprazol');
 await page.locator('#mmDosis').fill('40 mg');
 await tippe('mm-tageszeit', 'morgens');
@@ -467,8 +801,11 @@ const karte = async () => sauber(await page.locator('#meineMittel').textContent(
 check((await karte()).includes('Pantoprazol 40 mg') && (await karte()).includes('morgens, vor dem Essen'), 'die Liste zeigt Name, Dosis und Zeit');
 
 // Dasselbe Mittel für abends – ein zweiter Eintrag, kein Überschreiben.
-await page.locator('[data-act="meinmittel-neu"]').click();
+await page.locator('[data-act="meinmittel-neu"]').focus();
+await page.keyboard.press('Enter');
 await kurz();
+check(await page.evaluate(() => document.activeElement && document.activeElement.id === 'mmName'),
+  '„Mittel hinzufügen" mit der Tastatur: der Fokus geht ins Namensfeld');
 await page.locator('#mmName').fill('Pantoprazol');
 await page.locator('#mmDosis').fill('40 mg');
 await tippe('mm-tageszeit', 'abends');
@@ -480,8 +817,11 @@ check(s.standardMittel.length === 2, 'dasselbe Mittel abends kommt als zweites d
 // Ändern: Dosis und Zeit. (Das letzte in der Liste – fehlt das zweite, hat
 // die Prüfung davor das schon gemeldet.)
 const abendlich = () => s.standardMittel[s.standardMittel.length - 1];
-await page.locator(`[data-act="meinmittel-aendern"][data-id="${abendlich().id}"]`).click();
+await page.locator(`[data-act="meinmittel-aendern"][data-id="${abendlich().id}"]`).focus();
+await page.keyboard.press('Enter');
 await kurz();
+check(await page.evaluate(() => document.activeElement && document.activeElement.id === 'mmName'),
+  '„Ändern": der Fokus geht ins Namensfeld');
 await page.locator('#mmDosis').fill('20 mg');
 await tippe('mm-bezug', 'nach');
 await page.locator('[data-act="mm-speichern"]').click();
@@ -493,12 +833,30 @@ check(
 );
 await page.screenshot({ path: `${SHOT}/zeit-mittel-mehr.png`, fullPage: true });
 
-// Entfernen.
+// Entfernen: zwei Tipps, wie beim Löschen im Strang – und „Rückgängig".
 const vorWeg = s.standardMittel.length;
-await page.locator(`[data-act="meinmittel-weg"][data-id="${abendlich().id}"]`).click();
+const wegId = abendlich().id;
+await page.locator(`[data-act="meinmittel-weg"][data-id="${wegId}"]`).click();
+await kurz(300);
+check((await speicher()).standardMittel.length === vorWeg, 'ein Tipp aufs × entfernt noch nichts, er fragt');
+check(sauber(await page.locator(`[data-act="meinmittel-weg"][data-id="${wegId}"]`).textContent()) === 'Entfernen?', 'der Knopf fragt „Entfernen?"');
+await ohneQuerscrollen('„Entfernen?" unter „Meine Mittel", 320 Pixel');
+await page.locator(`[data-act="meinmittel-weg"][data-id="${wegId}"]`).click();
 await kurz(300);
 s = await speicher();
-check(s.standardMittel.length === vorWeg - 1 && s.eintraege.length === 1, 'entfernen nimmt es aus der Liste, sonst nichts');
+check(s.standardMittel.length === vorWeg - 1 && s.eintraege.length === 1, 'der zweite entfernt es aus der Liste, sonst nichts');
+check(await page.evaluate(() => document.activeElement && document.activeElement.classList.contains('toast-knopf')),
+  'der Fokus steht danach auf „Rückgängig", nicht am Anfang der Seite');
+await page.locator('[data-act="entfernt-zurueck"]').click();
+await kurz(300);
+s = await speicher();
+check(s.standardMittel.length === vorWeg && abendlich().id === wegId && abendlich().dosis === '20 mg',
+  '„Rückgängig" holt es mit Kennung und Dosis an seine Stelle zurück');
+await page.locator(`[data-act="meinmittel-weg"][data-id="${wegId}"]`).click();
+await page.locator(`[data-act="meinmittel-weg"][data-id="${wegId}"]`).click();
+await kurz(300);
+s = await speicher();
+check(s.standardMittel.length === vorWeg - 1, 'und ein zweites Mal entfernt');
 
 // Im Bogen: merken und eintragen – mit eigener Meldung.
 await page.locator('[data-act="tab"][data-tab="heute"]').click();
@@ -551,7 +909,22 @@ await neu('medikament');
 await page.locator('#bogenUhr').fill('06:10');
 await tippe('standard-waehlen', pp[0].id);
 check(await uhr() === '06:10', `eine von Hand gesetzte Uhrzeit bleibt ebenso (${await uhr()})`);
-await zu();
+// Eine genaue Uhrzeit sagt, wann es heute war – nicht, dass das Mittel keine
+// übliche Zeit mehr hat.
+check(sauber(await page.locator('#bogenMerken').textContent()).includes('Steht bei deinen Mitteln'),
+  `mit genauer Uhrzeit „Steht bei deinen Mitteln", nicht „Anders als" (${sauber(await page.locator('#bogenMerken').textContent()).slice(0, 50)})`);
+await page.locator('#bogenDosis').fill('30 mg');
+await kurz();
+await page.locator('[data-act="standard-anpassen"]').click();
+await kurz();
+await speichern();
+s = await speicher();
+const pp30 = s.standardMittel.find((x) => x.id === pp[0].id);
+check(pp30 && pp30.dosis === '30 mg' && pp30.tageszeit === 'morgens' && pp30.bezug === pp[0].bezug,
+  `„Dort so ändern" mit genauer Uhrzeit ändert die Dosis und behält die übliche Zeit (${JSON.stringify(pp30)})`);
+await page.locator('[data-act="standard-eintragen"]').first().waitFor();
+check(sauber(await page.locator('[data-act="standard-eintragen"]').first().textContent()).includes('· morgens'),
+  'der Knopf auf dem Tag-Reiter trägt weiter „· morgens"');
 await neu('medikament');
 await tippe('standard-waehlen', pp[0].id);
 check(
@@ -704,6 +1077,76 @@ check(
   `beim Zusammenführen kommt die Abendzeit dazu, das Gleiche nicht doppelt (${s.standardMittel.map((x) => `${x.tageszeit}/${x.bezug}`).join(', ')})`,
 );
 
+/*
+ * Dieselbe Kennung ist dasselbe Mittel. Hier wurde die Zeit geändert (Ändern
+ * behält die Kennung), die Sicherung trägt noch die alte: Beim Einlesen darf
+ * daraus kein zweites Mittel mit derselben Kennung werden – sonst trug der
+ * Knopf „· morgens" die Abendzeit ein, und „×" entfernte beide.
+ */
+await setze({ standardMittel: [{ id: 'sm1', mittel: 'Pantoprazol', dosis: '40 mg', tageszeit: 'abends', bezug: 'vor' }] });
+await page.evaluate(async () => {
+  const st = await import('./js/store.js');
+  st.einlesen(JSON.stringify({
+    eintraege: [],
+    standardMittel: [
+      { id: 'sm1', mittel: 'Pantoprazol', dosis: '40 mg', tageszeit: 'morgens', bezug: 'vor' },
+      { id: 'sm9', mittel: 'Pantoprazol', dosis: '40 mg', tageszeit: 'morgens', bezug: 'vor' },
+    ],
+  }));
+});
+await kurz(300);
+s = await speicher();
+const mitSm1 = s.standardMittel.filter((x) => x.id === 'sm1');
+check(mitSm1.length === 1 && mitSm1[0].tageszeit === 'abends',
+  `genau ein Mittel mit dieser Kennung, und zwar das von hier (${s.standardMittel.map((x) => `${x.id}/${x.tageszeit}`).join(', ')})`);
+check(s.standardMittel.length === 2 && s.standardMittel.some((x) => x.id === 'sm9' && x.tageszeit === 'morgens'),
+  'ein anderes Mittel aus der Sicherung – andere Kennung, andere Zeit – kommt dazu');
+
+// Ein schon so gespeicherter Stand heilt beim Laden.
+await setze({
+  eintraege: [essen('fr', gestern, '07:45')],
+  standardMittel: [
+    { id: 'dd', mittel: 'Pantoprazol', dosis: '40 mg', tageszeit: 'abends', bezug: 'vor' },
+    { id: 'dd', mittel: 'Pantoprazol', dosis: '40 mg', tageszeit: 'morgens', bezug: 'vor' },
+    { id: 'dd', mittel: 'Pantoprazol', dosis: '40 mg', tageszeit: 'abends', bezug: 'vor' },
+  ],
+});
+await kurz(300);
+s = await speicher();
+check(s.standardMittel.length === 2 && new Set(s.standardMittel.map((x) => x.id)).size === 2,
+  `ein gespeicherter Stand mit doppelter Kennung heilt beim Laden (${s.standardMittel.map((x) => `${x.id}/${x.tageszeit}`).join(', ')})`);
+await zuTag(gestern);
+const morgenKnopf = page.locator('[data-act="standard-eintragen"]').filter({ hasText: '· morgens' });
+await morgenKnopf.click();
+await kurz(300);
+s = await speicher();
+const genommen = s.eintraege.find((e) => e.art === 'medikament');
+check(genommen && genommen.tageszeit === 'morgens' && genommen.um === '07:15',
+  `der Knopf „· morgens" trägt danach die Morgenzeit ein (${genommen && `${genommen.um}/${genommen.tageszeit}`})`);
+await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+await kurz();
+const ersteWeg = page.locator('[data-act="meinmittel-weg"]').first();
+await ersteWeg.click();
+await ersteWeg.click();
+await kurz(300);
+check((await speicher()).standardMittel.length === 1, 'und „×" entfernt nur eins');
+{
+  // Auch eine Sicherung, die in sich doppelt ist.
+  const r = await page.evaluate(async () => {
+    const st = await import('./js/store.js');
+    st.allesLoeschen();
+    st.einlesen(JSON.stringify({
+      eintraege: [{ id: 'n1', art: 'notiz', am: '2026-10-01', um: '09:00', text: 'x' }],
+      standardMittel: [
+        { id: 'zz', mittel: 'Iberogast', dosis: '', tageszeit: 'morgens' },
+        { id: 'zz', mittel: 'Iberogast', dosis: '', tageszeit: 'abends' },
+      ],
+    }));
+    return st.zustandLesen().standardMittel.map((x) => x.id);
+  });
+  check(r.length === 2 && new Set(r).size === 2, `eine in sich doppelte Sicherung bekommt eindeutige Kennungen (${r.join(', ')})`);
+}
+
 /* ---------- 13. „Noch mal wie immer" auf einem vergangenen Tag ---------- */
 
 await setze({
@@ -714,6 +1157,12 @@ const vorher = (await speicher()).eintraege.length;
 await page.locator('[data-act="schnell"]').first().click();
 await kurz(300);
 check((await speicher()).eintraege.length === vorher && await page.locator('#bogenWas').inputValue() === 'Haferbrei', 'gestern: der Tipp öffnet den Bogen, vorgefüllt');
+// Ohne vorbelegte Uhrzeit: Ein eiliges „Eintragen" speichert kein Frühstück um 12:00.
+check(await uhr() === '', `die Uhrzeit ist leer, nicht 12:00 (${await uhr()})`);
+await speichern();
+check((await speicher()).eintraege.length === vorher && (await meldung()).startsWith('Um wie viel Uhr?')
+    && await page.locator('#bogenUhr').getAttribute('aria-invalid') === 'true',
+  'ohne Zeitwahl wird nichts gespeichert – der Bogen fragt nach der Uhrzeit');
 await tippe('zeit-tageszeit', 'morgens');
 await speichern();
 const hafer = (await speicher()).eintraege.find((e) => e.am === gestern);

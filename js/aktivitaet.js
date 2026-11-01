@@ -28,7 +28,7 @@
  * die Mahlzeiten zu Hause. Als Aktivität stünde es neben der Mahlzeit, die
  * es meint, und hätte nichts, womit es sich vergleichen ließe.
  */
-import { minutenAmTag, plusTage, tageDazwischen, zeitpunkt } from './datum.js';
+import { knopfTageszeit, minutenAmTag, plusTage, tageDazwischen, zeitpunkt } from './datum.js';
 import { fmtZahl } from './text.js';
 import { einstufung, reihenfolgeUnklar, tagesWert } from './auswertung.js';
 import { kopfTagesWert } from './kopf.js';
@@ -80,13 +80,44 @@ export function intensitaetName(id) {
  * Mit der Vorsilbe `a:`, wie die eigenen Auslöser `x:` tragen: Keine spätere
  * Erweiterung der Liste oben kann so eine schon vergebene eigene Kennung
  * überschreiben. Derselbe Name ergibt dieselbe Kennung – zweimal „Klettern"
- * angelegt ist einmal Klettern.
+ * angelegt ist einmal Klettern, auch auf zwei Geräten, die später
+ * zusammengeführt werden.
+ *
+ * Buchstaben jeder Schrift bleiben stehen. Früher blieb nur a–z: „Йога" und
+ * „Бег" wurden beide zu „a:eigen", und die zweite landete still unter dem
+ * Namen der ersten. Umlaute werden wie bisher ausgeschrieben, damit schon
+ * vergebene Kennungen gleich bleiben; Akzente lateinischer Buchstaben fallen
+ * weg („Café" → „a:cafe"). Was dann noch zusammenfällt – ein Name nur aus
+ * Zeichen ohne Buchstaben –, trennt freieAktivitaetId().
  */
 export function eigeneAktivitaetId(name) {
   const rumpf = String(name).toLowerCase()
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    .normalize('NFD').replace(/([a-z])[\u0300-\u036f]+/g, '$1').normalize('NFC')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-|-$/g, '');
   return `a:${rumpf || 'eigen'}`;
+}
+
+/**
+ * Die Kennung für einen neuen Namen, die es noch nicht für einen anderen
+ * Namen gibt: „a:eigen", dann „a:eigen-2" und so weiter. Gibt es den Namen
+ * schon (ohne Groß und klein), dessen Kennung – dann bleibt es bei einer.
+ */
+export function freieAktivitaetId(name, eigene = []) {
+  const basis = eigeneAktivitaetId(name);
+  const gleich = (a) => String(a.name || '').trim().toLowerCase() === String(name).trim().toLowerCase();
+  for (let n = 1; n < 1000; n++) {
+    const id = n === 1 ? basis : `${basis}-${n}`;
+    const da = (eigene || []).find((a) => a && a.id === id);
+    if (!da || gleich(da)) return id;
+  }
+  return `${basis}-${Date.now()}`;
+}
+
+/** Die eigenen Aktivitäten, die zur Auswahl stehen – ohne die entfernten. */
+export function sichtbareEigene(eigene = []) {
+  return (eigene || []).filter((a) => a && !a.ausgeblendet);
 }
 
 /**
@@ -94,15 +125,17 @@ export function eigeneAktivitaetId(name) {
  * der Auswahl nicht mehr gibt.
  *
  * Wer eine eigene Aktivität unter „Mehr" entfernt, nimmt sie aus der Auswahl,
- * nicht aus dem Tagebuch. Die Einträge damit bleiben und brauchen weiter einen
- * Namen; der kommt dann aus der Kennung selbst („a:kletterhalle" →
- * „Kletterhalle"). Umlaute sind dabei verloren – besser als eine Kennung im
- * Klartext.
+ * nicht aus dem Tagebuch. Die Einträge damit bleiben und behalten ihren
+ * Namen: Entfernt wird nur zum Schein (`ausgeblendet`, siehe
+ * aktivitaetEntfernen in js/store.js). Ältere Fassungen löschten wirklich;
+ * für solche Kennungen kommt der Name aus der Kennung selbst
+ * („a:kletterhalle" → „Kletterhalle"). Umlaute sind dabei verloren – besser
+ * als eine Kennung im Klartext.
  */
 export function aktivitaetVon(id, eigene = []) {
   if (AKTIV_MAP[id]) return AKTIV_MAP[id];
   const selbst = (eigene || []).find((a) => a && a.id === id);
-  if (selbst) return { id, name: selbst.name, icon: '•', eigen: true };
+  if (selbst) return { id, name: selbst.name, icon: '•', eigen: true, ...(selbst.ausgeblendet ? { weg: true } : {}) };
   const rumpf = String(id || '').replace(/^a:/, '').replace(/-/g, ' ').trim();
   return {
     id,
@@ -119,7 +152,7 @@ export function aktivitaetName(id, eigene = []) {
 
 /** Gibt es diese Aktivität in der Auswahl – im Katalog oder als eigene? */
 export function aktivitaetBekannt(id, eigene = []) {
-  return !!AKTIV_MAP[id] || (eigene || []).some((a) => a && a.id === id);
+  return !!AKTIV_MAP[id] || sichtbareEigene(eigene).some((a) => a.id === id);
 }
 
 /**
@@ -243,9 +276,6 @@ function aktivVergleich(mit, ohne, mindest) {
  *     danach, denn das Fenster reicht hinein.
  *   * Fenster, die noch laufen. Das Training von vor einer Stunde ist noch
  *     kein Training ohne Folgen.
- *   * Beim Bauch eine Aktivität, bei der offen ist, ob die Beschwerde des
- *     Tages davor oder danach kam (beide mit dem Knopf „abends" eingetragen,
- *     siehe reihenfolgeUnklar in js/auswertung.js).
  *   * Beim Kopf ein Fenster, vor dem am selben Tag schon ein Kopfschmerz
  *     stand: Was schon da war, kam nicht danach.
  *   * Vergleichsfenster, in denen oder kurz vor denen die Aktivität doch
@@ -254,6 +284,30 @@ function aktivVergleich(mit, ohne, mindest) {
  *     letzten Tag, an dem überhaupt eine eingetragen wurde. Davor ist
  *     unbekannt, ob jemand ins Training ging – er hat es nur noch nicht
  *     aufgeschrieben.
+ *
+ * Gezählt wird beim Kopf je Tag: Zweimal Spazieren am selben Tag ist ein Tag
+ * mit Spazieren, so wie die Vergleichsseite Tage zählt. Zwei 24-Stunden-
+ * Fenster desselben Tages überlappen fast ganz, und derselbe Kopfschmerz
+ * stünde sonst zweimal da. Beim Bauch zählt jedes Vorkommen, wie jede
+ * Mahlzeit bei den Auslösern – nur eins, das im Fenster des vorigen beginnt,
+ * ist kein eigenes: Es teilte sich mit ihm die Beschwerde.
+ *
+ * UND WENN DIE REIHENFOLGE OFFEN IST
+ *
+ * Mit den Zeitknöpfen eingetragen, steht „Gym, abends" auf 19:30 – die Minute
+ * ist ausgedacht. Ob eine Beschwerde desselben Abends davor oder danach kam,
+ * weiß dann niemand (siehe reihenfolgeUnklar in js/auswertung.js), ebenso
+ * wenig bei einer Beschwerde „abends" ohne Bezug zum Essen. Eine solche
+ * Beschwerde zählt als danach – auf beiden Seiten gleich: Die Vergleichszeit
+ * gilt als genauso ungefähr wie die Aktivität meistens war, und eine offene
+ * Beschwerde am Vergleichsabend zählt dort ebenso. Das misst dann „am selben
+ * Teil des Tages" statt „in den Stunden danach", und `offen` sagt, bei wie
+ * vielen Fällen das so ist.
+ *
+ * Früher fiel eine Aktivität mit offener Reihenfolge heraus. Heraus fielen
+ * damit genau die Abende mit Beschwerde, die ruhigen blieben, und auf der
+ * Vergleichsseite gab es die Regel nicht – jede Knopf-Aktivität sah danach
+ * schützend aus. Ob ein Fall zählt, darf nie davon abhängen, was danach kam.
  *
  * @param {object[]} eintraege
  * @param {object} tage   der Tagesspeicher
@@ -294,21 +348,39 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
     vorkommen.get(id).push(e);
   }));
 
-  /** Die stärkste Beschwerde in (t0, t0 + fenster]. */
-  const bauchWert = (t0, iso) => zweiTage(iso)
-    .filter((b) => b.art === 'beschwerde')
-    .filter((b) => abstand(t0, b) > 0 && abstand(t0, b) <= fenster)
-    .reduce((m, b) => Math.max(m, Number(b.staerke) || 0), 0);
+  /*
+   * Ist bei diesem Eintrag offen, ob er vor oder nach `orte` kam – einer
+   * Aktivität oder der Vergleichszeit? Dann zählt er als danach (siehe oben).
+   */
+  const offenGegen = (orte, e) => orte.some((o) => reihenfolgeUnklar(o, e));
+
+  /**
+   * Die stärkste Beschwerde in (t0, t0 + fenster] – und dazu jede, deren
+   * Reihenfolge zu `orte` offen ist. `offen`, wenn eine solche mitzählt.
+   */
+  const bauchWert = (t0, iso, orte) => {
+    let wert = 0;
+    let offen = false;
+    zweiTage(iso).filter((b) => b.art === 'beschwerde').forEach((b) => {
+      const st = Number(b.staerke) || 0;
+      if (abstand(t0, b) > 0 && abstand(t0, b) <= fenster) wert = Math.max(wert, st);
+      else if (b.am === iso && offenGegen(orte, b)) {
+        wert = Math.max(wert, st);
+        offen = true;
+      }
+    });
+    return { wert, offen };
+  };
 
   /** 1 oder 0 – oder null, wenn sich das Fenster nicht beurteilen lässt. */
-  const kopfWert = (t0, iso, aktivitaet) => {
+  const kopfWert = (t0, iso, orte) => {
     if (t0 + AKTIV_KOPF_STUNDEN * STUNDE_MS > jetzt) return null;
     if (!kopfNotiert(iso) || !kopfNotiert(plusTage(iso, 1))) return null;
     const koepfe = zweiTage(iso).filter((k) => k.art === 'kopf' && Number(k.staerke) >= 1);
-    const schonDa = koepfe.some((k) => k.am === iso
-      && (abstand(t0, k) <= 0 || (aktivitaet && reihenfolgeUnklar(aktivitaet, k))));
-    if (schonDa) return null;
-    return koepfe.some((k) => abstand(t0, k) > 0 && abstand(t0, k) <= AKTIV_KOPF_STUNDEN) ? 1 : 0;
+    const offen = (k) => k.am === iso && offenGegen(orte, k);
+    if (koepfe.some((k) => k.am === iso && abstand(t0, k) <= 0 && !offen(k))) return null;
+    return koepfe.some((k) => (abstand(t0, k) > 0 && abstand(t0, k) <= AKTIV_KOPF_STUNDEN) || offen(k))
+      ? 1 : 0;
   };
 
   const zeilen = [];
@@ -320,30 +392,56 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
     // Kein Vorkommen dieser Aktivität im Fenster und in den Stunden davor.
     const frei = (t0, stunden) => !zeiten.some((t) => t > t0 - stunden * STUNDE_MS
       && t <= t0 + stunden * STUNDE_MS);
+    // Die Vergleichszeit ist so ungefähr, wie die Aktivität meistens
+    // eingetragen ist: Wer nur „abends" sagt, hat auch an den Tagen ohne
+    // Training keinen genaueren Abend.
+    const meistUngefaehr = liste.filter((e) => e.ungefaehr).length * 2 >= liste.length;
+    const vergleichszeit = (iso) => (meistUngefaehr
+      ? { am: iso, um: uhr, ungefaehr: true, tageszeit: knopfTageszeit(uhr) }
+      : { am: iso, um: uhr });
+    const sortiert = [...liste].sort((a, b) => zeitpunkt(a.am, a.um) - zeitpunkt(b.am, b.um));
 
     const bauchMit = [];
     const kopfMit = [];
-    liste.forEach((a) => {
+    let offenMit = 0;
+    let letztesFenster = -Infinity;
+    sortiert.forEach((a) => {
       const t0 = zeitpunkt(a.am, a.um);
-      const bauchOffen = t0 + fenster * STUNDE_MS > jetzt || !bauchNotiert(a.am)
-        || am(a.am).some((b) => b.art === 'beschwerde' && reihenfolgeUnklar(a, b));
-      if (!bauchOffen) bauchMit.push(bauchWert(t0, a.am));
-      const k = kopfWert(t0, a.am, a);
+      // Beginnt im Fenster des vorigen Vorkommens: kein eigener Fall.
+      if (t0 <= letztesFenster + fenster * STUNDE_MS) return;
+      letztesFenster = t0;
+      if (t0 + fenster * STUNDE_MS > jetzt || !bauchNotiert(a.am)) return;
+      const w = bauchWert(t0, a.am, [a]);
+      bauchMit.push(w.wert);
+      if (w.offen) offenMit += 1;
+    });
+    // Beim Kopf je Tag ein Fall, ab dem ersten Vorkommen des Tages.
+    const jeTag = new Map();
+    sortiert.forEach((a) => {
+      if (!jeTag.has(a.am)) jeTag.set(a.am, []);
+      jeTag.get(a.am).push(a);
+    });
+    jeTag.forEach((amTag, iso) => {
+      const k = kopfWert(zeitpunkt(iso, amTag[0].um), iso, amTag);
       if (k !== null) kopfMit.push(k);
     });
 
     const bauchOhne = [];
     const kopfOhne = [];
+    let offenOhne = 0;
     const n = tageDazwischen(erster, letzterTag);
     for (let i = 0; i <= n; i++) {
       const iso = plusTage(erster, i);
       if (tageMit.has(iso)) continue;
       const t0 = zeitpunkt(iso, uhr);
+      const ort = [vergleichszeit(iso)];
       if (t0 + fenster * STUNDE_MS <= jetzt && bauchNotiert(iso) && frei(t0, fenster)) {
-        bauchOhne.push(bauchWert(t0, iso));
+        const w = bauchWert(t0, iso, ort);
+        bauchOhne.push(w.wert);
+        if (w.offen) offenOhne += 1;
       }
       if (frei(t0, AKTIV_KOPF_STUNDEN)) {
-        const k = kopfWert(t0, iso, null);
+        const k = kopfWert(t0, iso, ort);
         if (k !== null) kopfOhne.push(k);
       }
     }
@@ -353,7 +451,7 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
       anzahl: liste.length,
       zuletzt: liste[liste.length - 1].am,
       uhr,
-      bauch: aktivVergleich(bauchMit, bauchOhne, mindest),
+      bauch: { ...aktivVergleich(bauchMit, bauchOhne, mindest), offen: offenMit, offenOhne },
       kopf: aktivVergleich(kopfMit, kopfOhne, kopfMindest),
     });
   });
@@ -407,15 +505,25 @@ const prozentVon = (x) => `${Math.round(x * 100)} %`;
  */
 export function aktivBauchSatz(z, fenster) {
   const b = z.bauch;
+  // Wo nur die Tageszeit feststeht, wird das gesagt – sonst läse sich „danach"
+  // wie eine erhobene Reihenfolge.
+  const offen = b.offen
+    ? ` Bei ${b.offen} davon steht nur die Tageszeit fest – dort zählt, was am selben `
+      + 'Teil des Tages kam, an den Tagen ohne genauso.'
+    : '';
   return `In den ${fenster} Stunden danach ${b.mitTreffer} von ${b.faelle} Mal Beschwerden `
     + `(${prozentVon(b.quoteMit)}, im Mittel ${fmtZahl(b.schnittMit)}) – an ${b.gegenFaelle} Tagen `
-    + `ohne, ab ${z.uhr}, ${prozentVon(b.quoteOhne)} (${fmtZahl(b.schnittOhne)}).`;
+    + `ohne, ab ${z.uhr}, ${prozentVon(b.quoteOhne)} (${fmtZahl(b.schnittOhne)}).${offen}`;
 }
 
-/** „In den 24 Stunden danach 5 von 12 Mal Kopfschmerz (42 %) – an Tagen ohne 6 von 40 (15 %)." */
+/**
+ * „In den 24 Stunden danach an 5 von 12 Tagen Kopfschmerz (42 %) – an Tagen
+ * ohne 6 von 40 (15 %)." Tage, nicht Male: Gezählt wird je Tag (siehe
+ * aktivitaetBilanz).
+ */
 export function aktivKopfSatz(z) {
   const k = z.kopf;
-  return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach ${k.mitTreffer} von ${k.faelle} Mal `
+  return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach an ${k.mitTreffer} von ${k.faelle} Tagen `
     + `Kopfschmerz (${prozentVon(k.quoteMit)}) – an Tagen ohne ${k.ohneTreffer} von `
     + `${k.gegenFaelle} (${prozentVon(k.quoteOhne)}).`;
 }
@@ -432,9 +540,12 @@ export function bewegungSatz(f) {
   const tage = `${f.hoch.tage} gegen ${f.niedrig.tage} Tage`;
   // Eine ganze Stufe, wie überall bei den Tagesfragen: Darunter ist es
   // Schwankung, und das wird auch so gesagt.
+  // Mit derselben Größe wie im anderen Zweig: „im Mittel 2,2" allein läse
+  // sich wie eine Stufe der Bewegung.
   if (Math.abs(f.differenz) < 1) {
-    return `Bewegung am Tag: kein deutlicher Unterschied – mit intensiver im Mittel `
-      + `${fmtZahl(f.hoch.schnitt)}, mit wenig oder keiner ${fmtZahl(f.niedrig.schnitt)} (${tage}).`;
+    return 'Bewegung am Tag: kein deutlicher Unterschied – an Tagen mit intensiver Bewegung '
+      + `lag die Beschwerdestärke im Mittel bei ${fmtZahl(f.hoch.schnitt)}, an Tagen mit wenig `
+      + `oder keiner bei ${fmtZahl(f.niedrig.schnitt)} (${tage}).`;
   }
   return `An Tagen mit intensiver Bewegung lag die Beschwerdestärke im Mittel bei `
     + `${fmtZahl(f.hoch.schnitt)}, an Tagen mit wenig oder keiner bei `

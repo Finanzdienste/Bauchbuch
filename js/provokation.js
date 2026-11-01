@@ -58,7 +58,7 @@
 import { plusTage, stundenDazwischen, tageDazwischen, tageszeitVon, zeitpunkt } from './datum.js';
 import { reihenfolgeUnklar } from './auswertung.js';
 import { zufallsSpielraum } from './zufall.js';
-import { eintragZaehlt } from './wasser.js';
+import { zaehltFuerBauch } from './wasser.js';
 
 /** So viele Durchgänge mit der Sache, bevor überhaupt ein Urteil fällt. */
 export const MINDEST_LAEUFE = 3;
@@ -171,10 +171,19 @@ export function laufBild(eintraege, lauf, p, vorheriger = null) {
   /*
    * Mit den Zeitknöpfen eingetragen, steht ein Frühstück „morgens" auf acht
    * Uhr – womöglich auf derselben Minute wie der Durchgang. Ob es davor,
-   * danach oder weit weg davon war, weiß dann niemand, und ebenso wenig bei
-   * einer Beschwerde „morgens" ohne Bezug zum Essen. Ein Durchgang, bei dem
-   * das offen ist, zählt nicht: Sonst wäre er sauber oder hätte eine
-   * Reaktion, weil eine Minute ausgedacht ist.
+   * danach oder weit weg davon war, weiß dann niemand. Ein Durchgang, bei dem
+   * das offen ist, zählt nicht: Sonst wäre er sauber, weil eine Minute
+   * ausgedacht ist. Ob gegessen wurde, hängt nicht davon ab, wie der
+   * Durchgang ausging – dieser Grund siebt nicht nach dem Ergebnis.
+   *
+   * Eine Beschwerde „morgens" ohne Bezug zum Essen ist offen auf dieselbe
+   * Weise, und doch etwas anderes: Sie *ist* das Ergebnis. Wer Durchgänge mit
+   * einer solchen Beschwerde verwirft, verwirft genau die mit Reaktion und
+   * behält die ruhigen – und am Ende stünde „bestätigt sich nicht", das
+   * Ergebnis, das dieser Test das belastbarste nennt. Deshalb zählt sie als
+   * Wert des Durchgangs, bei Durchgängen mit der Sache wie bei
+   * Leerdurchgängen. War sie in Wahrheit schon vorher da, ist sie genau das,
+   * was der Leerdurchgang auffängt: Sie steht dann auf beiden Seiten.
    */
   const ort = { am: lauf.am, um: lauf.um };
   const ungefaehrGegessen = mahlzeiten.filter((e) => e.ungefaehr && e.am === lauf.am
@@ -186,7 +195,7 @@ export function laufBild(eintraege, lauf, p, vorheriger = null) {
     .filter((e) => e.art === 'beschwerde')
     .filter((e) => {
       const d = stundenDazwischen(t0, zeitpunkt(e.am, e.um));
-      return d >= 0 && d <= fenster;
+      return (d >= 0 && d <= fenster) || ungefaehrBeschwerde.includes(e);
     })
     .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
 
@@ -203,7 +212,6 @@ export function laufBild(eintraege, lauf, p, vorheriger = null) {
   if (ungefaehrGegessen.length) {
     warum.push(`${ungefaehrGegessen.length}× gegessen zur selben Tageszeit, ohne genaue Uhrzeit`);
   }
-  if (ungefaehrBeschwerde.length) warum.push('Beschwerde ohne genaue Uhrzeit – ob vor oder nach dem Durchgang, ist offen');
   if (zuNah) warum.push(`weniger als ${ABSTAND_TAGE} Tage nach dem vorigen Durchgang`);
 
   return {
@@ -213,6 +221,13 @@ export function laufBild(eintraege, lauf, p, vorheriger = null) {
     wert,
     sauber: warum.length === 0,
     warum,
+    // Woran es lag – für den Satz über die verworfenen Durchgänge, der sonst
+    // „weil dabei gegessen wurde" sagte, auch wo nur der Abstand fehlte.
+    gegessen: davor.length > 0 || waehrend.length > 0 || ungefaehrGegessen.length > 0,
+    zuNah,
+    // Eine Beschwerde ohne genaue Uhrzeit zählt mit (siehe oben) – die
+    // Anzeige sagt das beim Durchgang dazu.
+    ungefaehr: ungefaehrBeschwerde.length > 0,
   };
 }
 
@@ -240,13 +255,17 @@ function alltagsWerte(eintraege, p, laufTage, heute) {
     // unbekannter. Er darf den Vergleichswert nicht nach unten ziehen. Ein
     // Tag mit nur einem Kopfschmerz ebenso wenig – zum Bauch steht da nichts –,
     // und einer mit nur einer Aktivität auch nicht.
-    if (!amTag.some((e) => e.art !== 'kopf' && eintragZaehlt(e))) continue;
+    if (!amTag.some(zaehltFuerBauch)) continue;
     const t0 = zeitpunkt(iso, uhr);
+    // Eine Beschwerde ohne genaue Uhrzeit in derselben Tageszeit zählt hier
+    // wie am Testmorgen (siehe laufBild) – sonst zählte die Testseite
+    // großzügiger als ihr Vergleich.
+    const ort = { am: iso, um: uhr };
     werte.push(amTag
       .filter((e) => e.art === 'beschwerde')
       .filter((e) => {
         const d = stundenDazwischen(t0, zeitpunkt(e.am, e.um));
-        return d >= 0 && d <= fenster;
+        return (d >= 0 && d <= fenster) || reihenfolgeUnklar(ort, e);
       })
       .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0));
   }
@@ -257,6 +276,7 @@ export const PROVOKATION_WORT = {
   laeuft: 'läuft noch',
   unsauber: 'nicht auswertbar',
   bestaetigt: 'bestätigt sich',
+  offen: 'deutet sich an',
   wechselhaft: 'mal so, mal so',
   'nicht-bestaetigt': 'bestätigt sich nicht',
   abgebrochen: 'abgebrochen',
@@ -311,13 +331,19 @@ export function provokationsBild(p, eintraege, heute) {
 
   if (echte.length < MINDEST_LAEUFE) {
     const fehlt = MINDEST_LAEUFE - echte.length;
+    // Der Grund, der wirklich dahintersteht: Gegessen wurde nicht bei jedem
+    // verworfenen Durchgang – mancher lag nur zu dicht am vorigen.
+    const nurEssen = verworfen.every((b) => b.gegessen && !b.zuNah);
+    const klammer = verworfen.length
+      ? ` (${verworfen.length} ${verworfen.length === 1 ? 'zählt' : 'zählen'} nicht mit, `
+        + `${nurEssen ? 'weil dabei gegessen wurde' : 'warum, steht beim Durchgang'})`
+      : '';
     return {
       ...grund,
       urteil: 'laeuft',
       wort: PROVOKATION_WORT.laeuft,
       satz: `Noch ${fehlt} auswertbare${fehlt === 1 ? 'r' : ''} Durchgang${fehlt === 1 ? '' : 'e'}`
-        + `, dann steht hier ein Ergebnis${verworfen.length
-          ? ` (${verworfen.length} zählt nicht mit, weil dabei gegessen wurde)` : ''}. `
+        + `, dann steht hier ein Ergebnis${klammer}. `
         + `Ein einzelner Durchgang beweist nichts: An genau dem Tag können auch `
         + `Schlaf, Anspannung oder der Zyklus schuld sein. Erst die Wiederholung `
         + `trennt die Sache vom Tag.`,
@@ -406,6 +432,26 @@ export function provokationsBild(p, eintraege, heute) {
     };
   }
 
+  /*
+   * Mehr als die Hälfte der Durchgänge über dem Vergleich, aber der
+   * Unterschied noch innerhalb dessen, was bei dieser Streuung und so wenigen
+   * Werten auch der Zufall hergibt. Das ist kein „bestätigt sich" – und erst
+   * recht kein „kein Unterschied": Das stünde mit dem Satz da, es sei das
+   * belastbarste Ergebnis, während die Zahlen gerade in die andere Richtung
+   * zeigen. Was hilft, sind mehr Durchgänge auf beiden Seiten.
+   */
+  if (reagiert > echte.length / 2) {
+    return {
+      ...gemeinsam,
+      urteil: 'offen',
+      wort: PROVOKATION_WORT.offen,
+      satz: `In ${reagiert} von ${echte.length} Durchgängen kam es (${zahlen}) Das deutet `
+        + 'auf eine Reaktion, ist aber noch nicht sicher vom Zufall zu trennen: Dafür '
+        + 'schwanken die Werte zu stark, oder es gibt zu wenige Vergleiche. Ein, zwei '
+        + `weitere Durchgänge und Leerdurchgänge machen das Ergebnis klarer.${nachsatz}`,
+    };
+  }
+
   return {
     ...gemeinsam,
     urteil: 'nicht-bestaetigt',
@@ -424,7 +470,7 @@ export function provokationsBild(p, eintraege, heute) {
  * Ein Test ohne diese Zeile wird vergessen. Er besteht ja gerade nicht aus
  * einem Knopf, sondern aus Terminen, die man sich selbst setzt.
  */
-export function naechsterSchritt(p, heute) {
+export function naechsterSchritt(p, heute, urteil = null) {
   if (!p || p.beendet) return null;
   const laeufe = [...(p.laeufe || [])].sort((a, b) => (a.am < b.am ? -1 : 1));
   const letzter = laeufe[laeufe.length - 1];
@@ -461,6 +507,23 @@ export function naechsterSchritt(p, heute) {
       satz: 'Jetzt ein Leerdurchgang: derselbe Ablauf, gleiche Uhrzeit, nüchtern – '
         + 'nur ohne die Sache. Er kostet einen Morgen und ist der Teil, der aus '
         + 'den Durchgängen einen Test macht.',
+    };
+  }
+  /*
+   * „Deutet sich an": Mehr Durchgänge machen es klarer, und zwar abwechselnd –
+   * ein weiterer mit der Sache, dann ein weiterer Leerdurchgang. Nur eine
+   * Seite zu verlängern, verschöbe den Vergleich.
+   */
+  if (urteil === 'offen') {
+    const leer = !!letzter && !letzter.leer;
+    return {
+      dran: true,
+      leer,
+      satz: leer
+        ? 'Noch ein Leerdurchgang: derselbe Ablauf, gleiche Uhrzeit, nüchtern – nur ohne '
+          + 'die Sache. Mehr Vergleiche machen das Ergebnis klarer.'
+        : `Noch ein Durchgang: morgen früh nüchtern ${p.was || 'die festgelegte Menge'}, `
+          + `danach ${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht.`,
     };
   }
   return { dran: false, satz: 'Genug Durchgänge beisammen – das Ergebnis steht unten.' };

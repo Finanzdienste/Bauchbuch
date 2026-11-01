@@ -314,6 +314,17 @@ p { margin: 0 0 8px; }
   font-size: 13px; font-weight: 600; white-space: nowrap;
 }
 .strang-weg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Das × behält seinen Platz in der Zeile, „Löschen?" wächst nach links über
+   das „›" hinweg. Würde der Knopf in der Zeile breiter, bräche der Text enger
+   um, die Zeile würde höher, und der mittig sitzende Knopf rutschte unter dem
+   Finger weg – der zweite Tipp an derselben Stelle ginge daneben. Weil die
+   Frage selbst der Knopf ist, landet auch ein Tipp auf ihren linken Teil
+   nicht bei „Ändern". */
+.strang-weg-platz { flex: none; position: relative; width: 36px; height: 36px; }
+.strang-weg-platz .strang-weg { position: absolute; top: 0; right: 0; }
+.strang-weg-platz .strang-weg.frage { z-index: 1; background: var(--bg-elev); }
+/* Dieselbe Frage auf einem gewöhnlichen Knopf („Dort entfernen"). */
+.btn.frage { border-color: var(--bad); color: var(--bad); }
 
 /* ---------- Marken, Skala, Wahl ---------- */
 .marken { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -328,6 +339,8 @@ p { margin: 0 0 8px; }
 }
 .marke.an { background: var(--accent-weich); border-color: var(--accent); color: var(--text); }
 .marke-i { margin-right: 5px; }
+/* Ebenso in den Marken: Ein Name ohne Leerzeichen bleibt in der Reihe. */
+.marke { max-width: 100%; overflow-wrap: anywhere; }
 
 .skala { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
 .stufe {
@@ -538,7 +551,9 @@ p { margin: 0 0 8px; }
    den Kartenrand. Beide Spalten teilen sich die Breite, der Satz bricht um. */
 .fortschritt li > span:first-child { flex: 1 1 50%; }
 .fortschritt li > .klein { white-space: normal; flex: 0 1 50%; text-align: right; }
-.wartend li > span:first-child { min-width: 0; }
+/* Ein langes Wort – ein eigener Name ohne Leerzeichen – bricht um, statt die
+   Seite bei 320 Pixeln seitlich schieben zu lassen. */
+.wartend li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
 
 .bericht {
   width: 100%; background: var(--bg); color: var(--text);
@@ -868,6 +883,11 @@ p { margin: 0 0 8px; }
 .mittel-formular { margin-top: 6px; }
 .mittel-formular .reihe { margin-top: 10px; }
 
+/* Sprungziele landen sonst unter der feststehenden Kopfleiste – samt
+   Überschrift. Der Sprung zu „Meine Mittel" misst die Leiste ohnehin; das
+   hier gilt für alles andere, das dorthin scrollt. */
+#meineMittel { scroll-margin-top: calc(64px + env(safe-area-inset-top, 0px)); }
+
 /* ---------- Ungefähre Zeiten im Bogen ---------- */
 .zeit-knoepfe { margin: -2px 0 12px; }
 .zeit-knoepfe .marken { margin-bottom: 6px; }
@@ -960,7 +980,7 @@ body.bogen-auf .toast.an { transform: translateX(-50%) translateY(0); }
 
   /* Alles, was man auf Papier nicht antippen kann. */
   .tabbar, .toast, .anlegen, .bogen, .bogen-hg, .topbar, .wahl,
-  .btn, .strang-weg, .idee-haken, .tag-datum, .rat-quelle, .strang-auf, .strang-tipp { display: none !important; }
+  .btn, .strang-weg, .strang-weg-platz, .idee-haken, .tag-datum, .rat-quelle, .strang-auf, .strang-tipp { display: none !important; }
 
   .view { max-width: none; padding: 0; }
   .karte {
@@ -1423,6 +1443,23 @@ function eintragZaehlt(e) {
   return !!e && typeof e === 'object' && !SAGT_NICHTS.includes(e.art);
 }
 
+/**
+ * Sagt dieser Eintrag etwas über den Bauch?
+ *
+ * Wie eintragZaehlt(), ohne den Kopf: Ein Tag, an dem nur ein Kopfschmerz
+ * steht, ist für den Bauch eine Lücke. Und ohne das Mittel, das über „Dazu
+ * genommen?" an diesem Kopfschmerz hängt (`zuKopf`) – es gehört zum
+ * Kopfbogen und sagt über den Bauch so wenig wie der Kopfschmerz selbst.
+ * Sonst machte das Ibuprofen gegen die Migräne aus dem Tag einen notierten
+ * Bauchtag, und ohne Beschwerde einen beschwerdefreien.
+ *
+ * Ältere Mittel ohne `zuKopf` zählen weiter: Woher sie kamen, lässt sich
+ * nicht mehr sicher sagen, und rückwirkend umgezählt würde nichts.
+ */
+function zaehltFuerBauch(e) {
+  return eintragZaehlt(e) && e.art !== 'kopf' && !(e.art === 'medikament' && e.zuKopf);
+}
+
 /** Die Gläser eines Tages als ganze Zahl von 0 bis WASSER_HOECHSTENS. */
 function wasserVon(tag) {
   const n = Number(tag && typeof tag === 'object' ? tag.wasser : 0);
@@ -1441,8 +1478,10 @@ function glasName(ml) {
 }
 
 /**
- * „≈ 0,75 l" – oder '' ohne Glas. Auf eine Nachkommastelle, ab zwei Litern
- * auf halbe: Mehr Genauigkeit gibt eine Zählung in Gläsern nicht her.
+ * „≈ 0,75 l" – oder '' ohne Glas. Unter einem Liter auf Hundertstel, damit
+ * kleine Gläser (0,33 l) nicht verschwimmen; bis zwei Liter auf eine
+ * Nachkommastelle, darüber auf halbe: Mehr Genauigkeit gibt eine Zählung in
+ * Gläsern nicht her.
  */
 function literText(glaeser, ml) {
   const n = Number(glaeser) || 0;
@@ -4283,9 +4322,13 @@ const VORGABE = {
    * Safari. Wer in Safari angefangen hat, nimmt seine Einträge über die
    * Zwischenablage mit (siehe js/app.js, „Einträge mitnehmen").
    *
-   *   umzug         { am, anzahl, letzter } – in Safari gesetzt, sobald
-   *                 mitgenommen wurde. Danach sagt Safari auf jedem Reiter,
-   *                 dass dort nicht mehr eingetragen werden sollte.
+   *   umzug         { am, anzahl, letzter, ids, wasser, mittel, aktiv } – in
+   *                 Safari gesetzt, sobald mitgenommen wurde. Danach sagt
+   *                 Safari auf jedem Reiter, dass dort nicht mehr eingetragen
+   *                 werden sollte, und bietet „Nochmal mitnehmen" an, sobald
+   *                 seitdem etwas dazukam – ein Eintrag, ein Glas Wasser, ein
+   *                 eigenes Mittel, eine eigene Aktivität. Ältere Vermerke
+   *                 haben nur einen Teil davon.
    *   umzugGeholt   { am, anzahl } – in der App gesetzt, nachdem geholt wurde.
    *   startbildschirmWeg  der Hinweis „auf den Startbildschirm" wurde
    *                 weggetippt.
@@ -4361,6 +4404,7 @@ function laden() {
     s.eintraege = sortiert((Array.isArray(s.eintraege) ? s.eintraege : []).map(mahlzeitFrisch));
     s.ideen = ideenMitMarke(s.ideen, s.ideenGeschickt);
     if (!Array.isArray(s.eigeneAktivitaeten)) s.eigeneAktivitaeten = [];
+    if (!Array.isArray(s.standardMittel)) s.standardMittel = [];
     return s;
   } catch {
     return klon(VORGABE);
@@ -4706,34 +4750,82 @@ function ausloeserLoeschen(id) {
 const AKTIV_HOECHSTENS = 24;
 const AKTIV_NAME_MAX = 40;
 
+/** Wie viele eigene Aktivitäten zur Auswahl stehen – ohne die entfernten. */
+const sichtbarAktiv = () => zustand.eigeneAktivitaeten.filter((a) => !a.ausgeblendet).length;
+
 /**
  * Eine eigene Aktivität anlegen. Die Kennung kommt von außen (siehe
- * eigeneAktivitaetId in js/aktivitaet.js), wie bei den eigenen Auslösern.
+ * freieAktivitaetId in js/aktivitaet.js), wie bei den eigenen Auslösern.
  *
  * Zurück kommt { id, schon } – `schon`, wenn es sie genau so gibt; dann bleibt
- * es bei einer –, { fehler: 'leer' } ohne Namen oder { fehler: 'voll' }.
+ * es bei einer –, { fehler: 'leer' } ohne Namen oder { fehler: 'voll' }. Eine
+ * entfernte mit dieser Kennung kommt zurück in die Auswahl, mit ihrem Namen.
  */
 function aktivitaetAnlegen(id, name) {
   const sauber = String(name || '').trim().slice(0, AKTIV_NAME_MAX);
   if (!sauber || typeof id !== 'string' || !id.startsWith('a:')) return { fehler: 'leer' };
-  if (zustand.eigeneAktivitaeten.some((a) => a.id === id)) return { id, schon: true };
-  if (zustand.eigeneAktivitaeten.length >= AKTIV_HOECHSTENS) return { fehler: 'voll' };
-  zustand.eigeneAktivitaeten = [...zustand.eigeneAktivitaeten, { id, name: sauber }];
+  const da = zustand.eigeneAktivitaeten.find((a) => a.id === id);
+  if (da && !da.ausgeblendet) return { id, schon: true };
+  if (sichtbarAktiv() >= AKTIV_HOECHSTENS) return { fehler: 'voll' };
+  zustand.eigeneAktivitaeten = da
+    ? zustand.eigeneAktivitaeten.map((a) => (a.id === id ? { id, name: a.name } : a))
+    : [...zustand.eigeneAktivitaeten, { id, name: sauber }];
   merke();
   melde();
   return { id, schon: false };
 }
 
-/** Aus der Auswahl nehmen. Die Einträge, in denen sie steht, bleiben. */
+/**
+ * Aus der Auswahl nehmen. Die Einträge, in denen sie steht, bleiben – und
+ * mit ihnen ihr Name: Die Aktivität bleibt im Speicher, nur `ausgeblendet`.
+ * Ganz gelöscht, hieße „Rückenschule" in jedem alten Eintrag danach
+ * „Rueckenschule", gebaut aus der Kennung.
+ */
 function aktivitaetEntfernen(id) {
-  const vorher = zustand.eigeneAktivitaeten.length;
-  zustand.eigeneAktivitaeten = zustand.eigeneAktivitaeten.filter((a) => a.id !== id);
-  if (zustand.eigeneAktivitaeten.length === vorher) return;
+  if (!zustand.eigeneAktivitaeten.some((a) => a.id === id && !a.ausgeblendet)) return;
+  zustand.eigeneAktivitaeten = zustand.eigeneAktivitaeten
+    .map((a) => (a.id === id ? { ...a, ausgeblendet: true } : a));
   merke();
   melde();
 }
 
+/** „Rückgängig" nach dem Entfernen: wieder in die Auswahl, an ihrer Stelle. */
+function aktivitaetZurueck(id) {
+  if (!zustand.eigeneAktivitaeten.some((a) => a.id === id && a.ausgeblendet)) return false;
+  if (sichtbarAktiv() >= AKTIV_HOECHSTENS) return false;
+  zustand.eigeneAktivitaeten = zustand.eigeneAktivitaeten
+    .map((a) => (a.id === id ? { id, name: a.name } : a));
+  merke();
+  melde();
+  return true;
+}
+
 /* ---------- Die eigenen Mittel ---------- */
+
+/**
+ * Doppelte Kennungen in den eigenen Mitteln auflösen.
+ *
+ * Seit die übliche Zeit zum Schlüssel gehört (siehe mittelSchluessel), konnte
+ * das Zusammenführen dasselbe Mittel zweimal mit einer Kennung anlegen – hier
+ * mit geänderter Zeit, in der Sicherung mit der alten. Alles, was nach der
+ * Kennung sucht, traf dann das falsche oder beide: Der Tipp auf „· morgens"
+ * trug die Abendzeit ein, und „×" entfernte beide. Ein späteres mit
+ * gleichem Schlüssel fällt weg, sonst bekommt es eine neue Kennung.
+ */
+function mittelEindeutig(liste) {
+  const ids = new Set();
+  const schluessel = new Set();
+  const raus = [];
+  liste.forEach((x) => {
+    if (ids.has(x.id)) {
+      if (schluessel.has(mittelSchluessel(x))) return;
+      raus.push({ ...x, id: neueId() });
+    } else raus.push(x);
+    ids.add(raus[raus.length - 1].id);
+    schluessel.add(mittelSchluessel(x));
+  });
+  return raus;
+}
 
 /*
  * Mehr passen in die Reihe auf dem Tag-Reiter nicht, ohne dass man darin
@@ -4742,7 +4834,14 @@ function aktivitaetEntfernen(id) {
  */
 const STANDARD_HOECHSTENS = 12;
 
-const TAGESZEIT_IDS = ['morgens', 'mittags', 'abends'];
+// Dieselben Kennungen wie die Zeitknöpfe. Eine zweite Liste hier verwürfe
+// eine neue Tageszeit beim Merken und Einlesen still.
+const TAGESZEIT_IDS = Object.keys(KNOPF_TAGESZEIT);
+/*
+ * Der Bezug zum Essen – dieselben Kennungen wie ESSENSBEZUG in js/app.js.
+ * Hier noch einmal, weil der Speicher nichts von der Anzeige wissen soll;
+ * tests/test-zeit-mittel.mjs prüft, dass beide Listen gleich sind.
+ */
 const BEZUG_IDS = ['vor', 'beim', 'nach'];
 
 /** Ein Standardmittel in seine gespeicherte Form bringen. */
@@ -4816,12 +4915,36 @@ function standardVon(vorlage) {
   return zustand.standardMittel.find((x) => mittelSchluessel(x) === k) || null;
 }
 
+/**
+ * Entfernen. Zurück kommt, was entfernt wurde, samt seiner Stelle – für
+ * „Rückgängig" (standardZurueck) – oder null.
+ */
 function standardEntfernen(id) {
-  const vorher = zustand.standardMittel.length;
+  const stelle = zustand.standardMittel.findIndex((x) => x.id === id);
+  if (stelle < 0) return null;
+  const mittel = zustand.standardMittel[stelle];
   zustand.standardMittel = zustand.standardMittel.filter((x) => x.id !== id);
-  if (zustand.standardMittel.length === vorher) return;
   merke();
   melde();
+  return { mittel: klon(mittel), stelle };
+}
+
+/**
+ * „Rückgängig" nach dem Entfernen: mit derselben Kennung an dieselbe Stelle.
+ * Nicht, wenn es inzwischen genau so wieder dasteht oder die Liste voll ist.
+ */
+function standardZurueck(weg) {
+  if (!weg || !weg.mittel) return false;
+  const m = { ...weg.mittel, ...standardSauber(weg.mittel) };
+  if (!m.mittel || zustand.standardMittel.some((x) => x.id === m.id
+    || mittelSchluessel(x) === mittelSchluessel(m))) return false;
+  if (zustand.standardMittel.length >= STANDARD_HOECHSTENS) return false;
+  const liste = [...zustand.standardMittel];
+  liste.splice(Math.min(Math.max(0, weg.stelle || 0), liste.length), 0, m);
+  zustand.standardMittel = liste;
+  merke();
+  melde();
+  return true;
 }
 
 /** Ein benutztes Mittel als Vorschlag merken – die fünf jüngsten. */
@@ -5398,15 +5521,20 @@ function sicherungLesen(text) {
   )).map((e) => aktivitaetFrisch(mahlzeitFrisch({ ...e, id: e.id || neueId() }))));
   // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
   // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
-  frisch.standardMittel = frisch.standardMittel
+  frisch.standardMittel = mittelEindeutig(frisch.standardMittel
     .filter((x) => x && typeof x === 'object' && typeof x.mittel === 'string' && x.mittel.trim())
-    .map((x) => ({ ...x, ...standardSauber(x), id: x.id || neueId() }));
+    .map((x) => ({ ...x, ...standardSauber(x), id: x.id || neueId() })));
   // Eigene Aktivitäten: eine Kennung mit `a:` und ein Name – sonst stünde im
   // Bogen ein Knopf ohne Beschriftung. Doppelte fallen weg.
   frisch.eigeneAktivitaeten = frisch.eigeneAktivitaeten
     .filter((a) => a && typeof a === 'object' && typeof a.id === 'string' && a.id.startsWith('a:')
       && typeof a.name === 'string' && a.name.trim())
-    .map((a) => ({ id: a.id, name: a.name.trim().slice(0, AKTIV_NAME_MAX) }))
+    .map((a) => ({
+      id: a.id,
+      name: a.name.trim().slice(0, AKTIV_NAME_MAX),
+      // Eine entfernte bleibt entfernt – und behält ihren Namen.
+      ...(a.ausgeblendet === true ? { ausgeblendet: true } : {}),
+    }))
     .filter((a, i, alle) => alle.findIndex((x) => x.id === a.id) === i);
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
@@ -5592,7 +5720,13 @@ function zusammenfuehren(hier, dazu) {
   neu.zuletztMittel = [...new Set([...hier.zuletztMittel, ...dazu.zuletztMittel])].slice(0, 5);
   // Ohne Kürzen auf STANDARD_HOECHSTENS: Was in einer Sicherung steht, geht
   // beim Zusammenführen nicht still verloren. Die Grenze gilt fürs Merken.
-  neu.standardMittel = vereinigt(hier.standardMittel, dazu.standardMittel, mittelSchluessel);
+  // Erst nach der Kennung: Dieselbe Kennung ist dasselbe Mittel, auch wenn
+  // hier inzwischen die Zeit geändert wurde (Ändern behält die Kennung) –
+  // und wie bei den Einträgen gewinnt dann, was hier steht. Danach nach dem
+  // Schlüssel, damit dasselbe Mittel von zwei Geräten nicht doppelt dasteht.
+  const hierIds = new Set(hier.standardMittel.map((x) => x.id));
+  neu.standardMittel = mittelEindeutig(vereinigt(hier.standardMittel,
+    dazu.standardMittel.filter((x) => !hierIds.has(x.id)), mittelSchluessel));
   neu.termine = [...new Set([...hier.termine, ...dazu.termine])].sort().reverse();
   neu.gewicht = vereinigt(hier.gewicht, dazu.gewicht, (g) => g.am)
     .sort((a, b) => String(b.am).localeCompare(String(a.am)));
@@ -5650,6 +5784,18 @@ function umzugMerken() {
     letzter: letzter ? { am: letzter.am, um: letzter.um || '' } : null,
     // Woran Safari später erkennt, was seitdem dazukam.
     ids: zustand.eintraege.map((e) => e.id),
+    /*
+     * Und was sonst beim Holen mitkommt: das Wasser je Tag (dort kommt die
+     * größere Zahl mit, siehe zusammenfuehren), die eigenen Mittel und
+     * Aktivitäten. Ein Glas, das danach in Safari gezählt wird, ist sonst für
+     * den Hinweis unsichtbar – es steht nicht im Strang.
+     */
+    wasser: Object.fromEntries(Object.entries(zustand.tage || {})
+      .map(([iso, t]) => [iso, wasserVon(t)]).filter(([, n]) => n > 0)),
+    // Nach Kennung: Ein hier nur geändertes Mittel kommt beim Holen nicht
+    // mit (dort gewinnt dieselbe Kennung), ein neu angelegtes schon.
+    mittel: zustand.standardMittel.map((m) => m.id),
+    aktiv: zustand.eigeneAktivitaeten.map((a) => a.id),
   };
   merke();
   melde();
@@ -5683,7 +5829,23 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { AKTIV_HOECHSTENS, AKTIV_NAME_MAX, STANDARD_HOECHSTENS, aktivitaetAnlegen, aktivitaetEntfernen, allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, befundLoeschen, befundNotieren, einlesen, einstellen, eintraegeAm, eintraegeZurueck, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeGeschicktMerken, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, ideenUnterwegs, istLeer, kannSpeichern, kuecheLoeschen, kuecheNotieren, kuecheUmschalten, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, rueckgaengig, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, standardAendern, standardEntfernen, standardMerken, standardVon, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, umzugGeholtMerken, umzugMerken, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, vorherDa, wasserZaehlen, zustandLesen };
+/*
+ * Schon gespeicherte doppelte Kennungen bei den eigenen Mitteln heilen (siehe
+ * mittelEindeutig), ohne dass jemand neu einlesen muss. Hier am Ende und
+ * nicht in laden(): laden() läuft, wenn das Modul startet – bevor die Listen
+ * und Zähler weiter oben stehen, die es dafür braucht. Ein Fehler dort fiele
+ * in dessen catch und begänne mit einem leeren Tagebuch.
+ */
+try {
+  const geheilt = mittelEindeutig(zustand.standardMittel);
+  if (geheilt.length !== zustand.standardMittel.length
+    || geheilt.some((x, i) => x.id !== zustand.standardMittel[i].id)) {
+    zustand.standardMittel = geheilt;
+    merke();
+  }
+} catch { /* dann bleibt es, wie es war */ }
+
+const store = { AKTIV_HOECHSTENS, AKTIV_NAME_MAX, STANDARD_HOECHSTENS, aktivitaetAnlegen, aktivitaetEntfernen, aktivitaetZurueck, allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, befundLoeschen, befundNotieren, einlesen, einstellen, eintraegeAm, eintraegeZurueck, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeGeschicktMerken, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, ideenUnterwegs, istLeer, kannSpeichern, kuecheLoeschen, kuecheNotieren, kuecheUmschalten, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, rueckgaengig, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, standardAendern, standardEntfernen, standardMerken, standardVon, standardZurueck, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, umzugGeholtMerken, umzugMerken, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, vorherDa, wasserZaehlen, zustandLesen };
 
 /* ===== js/zufall.js ===== */
 /*
@@ -5935,17 +6097,38 @@ function folgende(eintraege, mahlzeit, fensterStunden) {
 }
 
 /**
+ * Die Beschwerden, bei denen offen ist, ob sie vor oder nach dieser Mahlzeit
+ * kamen (siehe reihenfolgeUnklar) – für die Bilanz zählen sie als danach.
+ */
+function offeneNach(eintraege, mahlzeit) {
+  return eintraege.filter((e) => e.art === 'beschwerde' && reihenfolgeUnklar(mahlzeit, e));
+}
+
+/**
  * Die stärkste Beschwerde im Fenster, oder 0, wenn keine kam.
  *
- * `null`, wenn bei einer Beschwerde dieses Tages offen ist, ob sie vor oder
- * nach der Mahlzeit kam. Dann ist die Mahlzeit weder gut noch schlecht
- * gelaufen, sondern nicht bewertbar: Mit 0 stünde sie als beschwerdefrei in
- * der Bilanz, mit der Beschwerde als Auslöser – beides wäre erfunden.
+ * Eine Beschwerde, bei der offen ist, ob sie vor oder nach der Mahlzeit kam,
+ * zählt hier als danach – ohne Stundenfenster, denn ihre Minute ist
+ * ausgedacht; was zählt, ist dieselbe Tageszeit. Das ist eine Annahme, und
+ * zwar bewusst die vorsichtige: Im Zweifel steht die Beschwerde bei der
+ * Mahlzeit, und ein Anhaltspunkt fürs Gespräch beim Arzt geht nicht verloren.
+ *
+ * Früher war eine solche Mahlzeit nicht bewertbar und fiel aus der Bilanz.
+ * Das klang ehrlich und war es nicht: Heraus fielen genau die Mahlzeiten,
+ * nach denen es wehtat, die beschwerdefreien blieben mit 0 drin. Wer sein
+ * Abendessen mit dem Knopf nachträgt, bekam so für jede Zutat des Abends
+ * einen Schnitt nahe null, und ein echter Auslöser sah harmlos aus. Ob eine
+ * Mahlzeit gezählt wird, darf nie davon abhängen, ob danach etwas kam. Liegt
+ * die Annahme einmal falsch, trifft sie alle Mahlzeiten dieser Tageszeit
+ * gleich, mit welcher Zutat auch immer – das verrauscht, verzerrt aber nicht.
+ *
+ * Für die Frage „nach dem Essen oder nüchtern?" gilt das nicht: Dort ist eine
+ * solche Beschwerde unbekannt (siehe stundenSeitEssen), denn dort ginge es um
+ * die Stunden, und die kennt niemand.
  */
 function wertNach(eintraege, mahlzeit, fensterStunden) {
-  if (eintraege.some((e) => e.art === 'beschwerde' && reihenfolgeUnklar(mahlzeit, e))) return null;
-  const nach = folgende(eintraege, mahlzeit, fensterStunden);
-  return nach.reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
+  return [...folgende(eintraege, mahlzeit, fensterStunden), ...offeneNach(eintraege, mahlzeit)]
+    .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
 }
 
 /**
@@ -5969,8 +6152,9 @@ function wertNach(eintraege, mahlzeit, fensterStunden) {
  * `am` liegt bewusst obenauf: Die Schichtung schlägt damit den Tag nach, an
  * dem die Mahlzeit war, ohne den ganzen Eintrag auseinandernehmen zu müssen.
  *
- * Mahlzeiten, die sich nicht bewerten lassen (wertNach gibt null), fehlen
- * hier – und damit in jeder Rechnung, die auf dieser Liste aufbaut.
+ * Jede Mahlzeit steht hier, mit oder ohne Beschwerde danach. `offen` sagt,
+ * dass bei ihr eine Beschwerde mitzählt, deren Reihenfolge offen ist (siehe
+ * wertNach) – die Bilanz nennt, bei wie vielen das so ist.
  */
 function bewerteteMahlzeiten(eintraege, fenster = 4) {
   return eintraege.filter((e) => e.art === 'essen').map((m) => ({
@@ -5978,7 +6162,8 @@ function bewerteteMahlzeiten(eintraege, fenster = 4) {
     am: m.am,
     merkmale: new Set(merkmale(m)),
     wert: wertNach(eintraege, m, fenster),
-  })).filter((b) => b.wert !== null);
+    offen: offeneNach(eintraege, m).length > 0,
+  }));
 }
 
 function ausloeserBilanz(eintraege, opt = {}) {
@@ -6015,6 +6200,9 @@ function ausloeserBilanz(eintraege, opt = {}) {
       quoteOhne: quote(ohne),
       genug: mit.length >= mindest && ohne.length >= mindest,
       fehlt: Math.max(0, mindest - mit.length),
+      // Bei wie vielen davon eine Beschwerde mitzählt, von der nur die
+      // Tageszeit feststeht – siehe wertNach.
+      offen: mit.filter((b) => b.offen).length,
       zuletzt: mit[mit.length - 1].m.am,
       werte: { mit: mit.map((b) => b.wert), ohne: ohne.map((b) => b.wert) },
     });
@@ -6075,7 +6263,7 @@ function klassenBilanz(eintraege, opt = {}) {
   const bewertet = mahlzeiten.map((m) => ({
     klassen: new Set(zutatenVon(m).flatMap((z) => klassenVon(z.id))),
     wert: wertNach(eintraege, m, fenster),
-  })).filter((b) => b.wert !== null);
+  }));
 
   const zeilen = [];
   KLASSEN.forEach((k) => {
@@ -6206,8 +6394,7 @@ function rollenBilanz(eintraege, id, fensterStunden) {
   ROLLEN.forEach((r) => {
     const werte = treffer.filter((e) => zutatenVon(e)
       .some((z) => z.id === id && z.rolle === r.id))
-      .map((e) => wertNach(eintraege, e, fensterStunden))
-      .filter((w) => w !== null);
+      .map((e) => wertNach(eintraege, e, fensterStunden));
     if (!werte.length) return;
     const summe = werte.reduce((sum, w) => sum + w, 0);
     raus.push({ rolle: r.id, faelle: werte.length, schnitt: summe / werte.length });
@@ -6226,11 +6413,26 @@ function rollenBilanz(eintraege, id, fensterStunden) {
  * Tages vor oder nach der Beschwerde lag (siehe reihenfolgeUnklar): Dann kann
  * es zehn Minuten oder sechs Stunden her sein, und weder „nach dem Essen"
  * noch „nüchtern" wäre ehrlich.
+ *
+ * Und `null` bei „nach dem Essen" oder „beim Essen", wenn die Mahlzeit dazu
+ * nicht im Tagebuch steht – weder die, an der der Eintrag hängt, noch eine
+ * derselben Tageszeit davor. Gegessen wurde, nur fehlt die Mahlzeit; die
+ * letzte eingetragene davor ist dann nicht die gemeinte. Mit ihr zählte
+ * „abends, nach dem Essen" ohne Abendessen als sieben Stunden nach dem
+ * Mittag, also als nüchtern – das Gegenteil dessen, was eingetragen wurde.
+ * „Vor dem Essen" sagt nichts über die Mahlzeit davor und rechnet weiter.
  */
 function stundenSeitEssen(eintraege, beschwerde) {
   const t = zeitpunkt(beschwerde.am, beschwerde.um);
   const essen = eintraege.filter((e) => e.art === 'essen');
   if (essen.some((e) => reihenfolgeUnklar(e, beschwerde))) return null;
+  if (beschwerde.bezug === 'nach' || beschwerde.bezug === 'beim') {
+    const tz = tageszeitVon(beschwerde);
+    const gebunden = essen.some((e) => e.id === beschwerde.bezugMahlzeit && e.am === beschwerde.am);
+    const davorGleich = essen.some((e) => e.am === beschwerde.am && tageszeitVon(e) === tz
+      && zeitpunkt(e.am, e.um) < t);
+    if (!gebunden && !davorGleich) return null;
+  }
   let letzte = null;
   essen.forEach((e) => {
     const te = zeitpunkt(e.am, e.um);
@@ -6239,6 +6441,35 @@ function stundenSeitEssen(eintraege, beschwerde) {
   if (letzte === null) return null;
   const std = stundenDazwischen(letzte, t);
   return std <= 24 ? std : null;
+}
+
+/**
+ * Wie lange die letzte eingetragene Mahlzeit jetzt her ist – für den Rat
+ * „Für heute", nicht für eine Beschwerde.
+ *
+ * Eine eigene Rechnung und nicht stundenSeitEssen mit „jetzt" als
+ * Beschwerde: Dort ist eine Mahlzeit, die nur mit „mittags" eingetragen ist,
+ * neben einer Beschwerde derselben Tageszeit in ungeklärter Reihenfolge. Hier
+ * gibt es keine Reihenfolge zu klären – was schon eingetragen ist, wurde
+ * vorher gegessen. Deshalb zählt auch eine Mahlzeit von heute in derselben
+ * Tageszeit, deren Knopfzeit noch vor uns liegt („mittags" ist 12:30, und es
+ * ist 11:40), als gerade gegessen. Sonst wäre das Abendessen von gestern die
+ * letzte Mahlzeit, und der Rat sagte „Heute geht auch intensiv".
+ *
+ * `null` ohne Mahlzeit in den letzten 24 Stunden.
+ */
+function stundenSeitLetzterMahlzeit(eintraege, am, um) {
+  const t = zeitpunkt(am, um);
+  const tz = tageszeitVon({ am, um });
+  let stunden = null;
+  (eintraege || []).filter((e) => e.art === 'essen').forEach((e) => {
+    const te = zeitpunkt(e.am, e.um);
+    let std = null;
+    if (te <= t) std = stundenDazwischen(te, t);
+    else if (e.ungefaehr && e.am === am && tz !== null && tageszeitVon(e) === tz) std = 0;
+    if (std !== null && std <= 24 && (stunden === null || std < stunden)) stunden = std;
+  });
+  return stunden;
 }
 
 /**
@@ -6411,9 +6642,11 @@ function tagesWert(eintraege, iso, tage = {}) {
    * Dasselbe gilt für einen Tag, an dem nur Wasser gezählt ist (tagZaehlt in
    * js/wasser.js): Ein getipptes Glas sagt über den Bauch nichts. Und für
    * einen, an dem nur eine Aktivität steht (eintragZaehlt, ebendort): „Gym"
-   * sagt, was jemand gemacht hat, nicht wie es dem Bauch ging.
+   * sagt, was jemand gemacht hat, nicht wie es dem Bauch ging. Ein Mittel
+   * zählt – außer dem, das über „Dazu genommen?" am Kopfschmerz hängt
+   * (zaehltFuerBauch, ebendort).
    */
-  const notiert = amTag.some((e) => e.art !== 'kopf' && eintragZaehlt(e))
+  const notiert = amTag.some(zaehltFuerBauch)
     || tagZaehlt((tage || {})[iso]);
   const max = beschwerden.reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
   const summe = beschwerden.reduce((s, e) => s + (Number(e.staerke) || 0), 0);
@@ -6668,13 +6901,44 @@ function intensitaetName(id) {
  * Mit der Vorsilbe `a:`, wie die eigenen Auslöser `x:` tragen: Keine spätere
  * Erweiterung der Liste oben kann so eine schon vergebene eigene Kennung
  * überschreiben. Derselbe Name ergibt dieselbe Kennung – zweimal „Klettern"
- * angelegt ist einmal Klettern.
+ * angelegt ist einmal Klettern, auch auf zwei Geräten, die später
+ * zusammengeführt werden.
+ *
+ * Buchstaben jeder Schrift bleiben stehen. Früher blieb nur a–z: „Йога" und
+ * „Бег" wurden beide zu „a:eigen", und die zweite landete still unter dem
+ * Namen der ersten. Umlaute werden wie bisher ausgeschrieben, damit schon
+ * vergebene Kennungen gleich bleiben; Akzente lateinischer Buchstaben fallen
+ * weg („Café" → „a:cafe"). Was dann noch zusammenfällt – ein Name nur aus
+ * Zeichen ohne Buchstaben –, trennt freieAktivitaetId().
  */
 function eigeneAktivitaetId(name) {
   const rumpf = String(name).toLowerCase()
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    .normalize('NFD').replace(/([a-z])[\u0300-\u036f]+/g, '$1').normalize('NFC')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-|-$/g, '');
   return `a:${rumpf || 'eigen'}`;
+}
+
+/**
+ * Die Kennung für einen neuen Namen, die es noch nicht für einen anderen
+ * Namen gibt: „a:eigen", dann „a:eigen-2" und so weiter. Gibt es den Namen
+ * schon (ohne Groß und klein), dessen Kennung – dann bleibt es bei einer.
+ */
+function freieAktivitaetId(name, eigene = []) {
+  const basis = eigeneAktivitaetId(name);
+  const gleich = (a) => String(a.name || '').trim().toLowerCase() === String(name).trim().toLowerCase();
+  for (let n = 1; n < 1000; n++) {
+    const id = n === 1 ? basis : `${basis}-${n}`;
+    const da = (eigene || []).find((a) => a && a.id === id);
+    if (!da || gleich(da)) return id;
+  }
+  return `${basis}-${Date.now()}`;
+}
+
+/** Die eigenen Aktivitäten, die zur Auswahl stehen – ohne die entfernten. */
+function sichtbareEigene(eigene = []) {
+  return (eigene || []).filter((a) => a && !a.ausgeblendet);
 }
 
 /**
@@ -6682,15 +6946,17 @@ function eigeneAktivitaetId(name) {
  * der Auswahl nicht mehr gibt.
  *
  * Wer eine eigene Aktivität unter „Mehr" entfernt, nimmt sie aus der Auswahl,
- * nicht aus dem Tagebuch. Die Einträge damit bleiben und brauchen weiter einen
- * Namen; der kommt dann aus der Kennung selbst („a:kletterhalle" →
- * „Kletterhalle"). Umlaute sind dabei verloren – besser als eine Kennung im
- * Klartext.
+ * nicht aus dem Tagebuch. Die Einträge damit bleiben und behalten ihren
+ * Namen: Entfernt wird nur zum Schein (`ausgeblendet`, siehe
+ * aktivitaetEntfernen in js/store.js). Ältere Fassungen löschten wirklich;
+ * für solche Kennungen kommt der Name aus der Kennung selbst
+ * („a:kletterhalle" → „Kletterhalle"). Umlaute sind dabei verloren – besser
+ * als eine Kennung im Klartext.
  */
 function aktivitaetVon(id, eigene = []) {
   if (AKTIV_MAP[id]) return AKTIV_MAP[id];
   const selbst = (eigene || []).find((a) => a && a.id === id);
-  if (selbst) return { id, name: selbst.name, icon: '•', eigen: true };
+  if (selbst) return { id, name: selbst.name, icon: '•', eigen: true, ...(selbst.ausgeblendet ? { weg: true } : {}) };
   const rumpf = String(id || '').replace(/^a:/, '').replace(/-/g, ' ').trim();
   return {
     id,
@@ -6707,7 +6973,7 @@ function aktivitaetName(id, eigene = []) {
 
 /** Gibt es diese Aktivität in der Auswahl – im Katalog oder als eigene? */
 function aktivitaetBekannt(id, eigene = []) {
-  return !!AKTIV_MAP[id] || (eigene || []).some((a) => a && a.id === id);
+  return !!AKTIV_MAP[id] || sichtbareEigene(eigene).some((a) => a.id === id);
 }
 
 /**
@@ -6831,9 +7097,6 @@ function aktivVergleich(mit, ohne, mindest) {
  *     danach, denn das Fenster reicht hinein.
  *   * Fenster, die noch laufen. Das Training von vor einer Stunde ist noch
  *     kein Training ohne Folgen.
- *   * Beim Bauch eine Aktivität, bei der offen ist, ob die Beschwerde des
- *     Tages davor oder danach kam (beide mit dem Knopf „abends" eingetragen,
- *     siehe reihenfolgeUnklar in js/auswertung.js).
  *   * Beim Kopf ein Fenster, vor dem am selben Tag schon ein Kopfschmerz
  *     stand: Was schon da war, kam nicht danach.
  *   * Vergleichsfenster, in denen oder kurz vor denen die Aktivität doch
@@ -6842,6 +7105,30 @@ function aktivVergleich(mit, ohne, mindest) {
  *     letzten Tag, an dem überhaupt eine eingetragen wurde. Davor ist
  *     unbekannt, ob jemand ins Training ging – er hat es nur noch nicht
  *     aufgeschrieben.
+ *
+ * Gezählt wird beim Kopf je Tag: Zweimal Spazieren am selben Tag ist ein Tag
+ * mit Spazieren, so wie die Vergleichsseite Tage zählt. Zwei 24-Stunden-
+ * Fenster desselben Tages überlappen fast ganz, und derselbe Kopfschmerz
+ * stünde sonst zweimal da. Beim Bauch zählt jedes Vorkommen, wie jede
+ * Mahlzeit bei den Auslösern – nur eins, das im Fenster des vorigen beginnt,
+ * ist kein eigenes: Es teilte sich mit ihm die Beschwerde.
+ *
+ * UND WENN DIE REIHENFOLGE OFFEN IST
+ *
+ * Mit den Zeitknöpfen eingetragen, steht „Gym, abends" auf 19:30 – die Minute
+ * ist ausgedacht. Ob eine Beschwerde desselben Abends davor oder danach kam,
+ * weiß dann niemand (siehe reihenfolgeUnklar in js/auswertung.js), ebenso
+ * wenig bei einer Beschwerde „abends" ohne Bezug zum Essen. Eine solche
+ * Beschwerde zählt als danach – auf beiden Seiten gleich: Die Vergleichszeit
+ * gilt als genauso ungefähr wie die Aktivität meistens war, und eine offene
+ * Beschwerde am Vergleichsabend zählt dort ebenso. Das misst dann „am selben
+ * Teil des Tages" statt „in den Stunden danach", und `offen` sagt, bei wie
+ * vielen Fällen das so ist.
+ *
+ * Früher fiel eine Aktivität mit offener Reihenfolge heraus. Heraus fielen
+ * damit genau die Abende mit Beschwerde, die ruhigen blieben, und auf der
+ * Vergleichsseite gab es die Regel nicht – jede Knopf-Aktivität sah danach
+ * schützend aus. Ob ein Fall zählt, darf nie davon abhängen, was danach kam.
  *
  * @param {object[]} eintraege
  * @param {object} tage   der Tagesspeicher
@@ -6882,21 +7169,39 @@ function aktivitaetBilanz(eintraege, tage, opt = {}) {
     vorkommen.get(id).push(e);
   }));
 
-  /** Die stärkste Beschwerde in (t0, t0 + fenster]. */
-  const bauchWert = (t0, iso) => zweiTage(iso)
-    .filter((b) => b.art === 'beschwerde')
-    .filter((b) => abstand(t0, b) > 0 && abstand(t0, b) <= fenster)
-    .reduce((m, b) => Math.max(m, Number(b.staerke) || 0), 0);
+  /*
+   * Ist bei diesem Eintrag offen, ob er vor oder nach `orte` kam – einer
+   * Aktivität oder der Vergleichszeit? Dann zählt er als danach (siehe oben).
+   */
+  const offenGegen = (orte, e) => orte.some((o) => reihenfolgeUnklar(o, e));
+
+  /**
+   * Die stärkste Beschwerde in (t0, t0 + fenster] – und dazu jede, deren
+   * Reihenfolge zu `orte` offen ist. `offen`, wenn eine solche mitzählt.
+   */
+  const bauchWert = (t0, iso, orte) => {
+    let wert = 0;
+    let offen = false;
+    zweiTage(iso).filter((b) => b.art === 'beschwerde').forEach((b) => {
+      const st = Number(b.staerke) || 0;
+      if (abstand(t0, b) > 0 && abstand(t0, b) <= fenster) wert = Math.max(wert, st);
+      else if (b.am === iso && offenGegen(orte, b)) {
+        wert = Math.max(wert, st);
+        offen = true;
+      }
+    });
+    return { wert, offen };
+  };
 
   /** 1 oder 0 – oder null, wenn sich das Fenster nicht beurteilen lässt. */
-  const kopfWert = (t0, iso, aktivitaet) => {
+  const kopfWert = (t0, iso, orte) => {
     if (t0 + AKTIV_KOPF_STUNDEN * STUNDE_MS > jetzt) return null;
     if (!kopfNotiert(iso) || !kopfNotiert(plusTage(iso, 1))) return null;
     const koepfe = zweiTage(iso).filter((k) => k.art === 'kopf' && Number(k.staerke) >= 1);
-    const schonDa = koepfe.some((k) => k.am === iso
-      && (abstand(t0, k) <= 0 || (aktivitaet && reihenfolgeUnklar(aktivitaet, k))));
-    if (schonDa) return null;
-    return koepfe.some((k) => abstand(t0, k) > 0 && abstand(t0, k) <= AKTIV_KOPF_STUNDEN) ? 1 : 0;
+    const offen = (k) => k.am === iso && offenGegen(orte, k);
+    if (koepfe.some((k) => k.am === iso && abstand(t0, k) <= 0 && !offen(k))) return null;
+    return koepfe.some((k) => (abstand(t0, k) > 0 && abstand(t0, k) <= AKTIV_KOPF_STUNDEN) || offen(k))
+      ? 1 : 0;
   };
 
   const zeilen = [];
@@ -6908,30 +7213,56 @@ function aktivitaetBilanz(eintraege, tage, opt = {}) {
     // Kein Vorkommen dieser Aktivität im Fenster und in den Stunden davor.
     const frei = (t0, stunden) => !zeiten.some((t) => t > t0 - stunden * STUNDE_MS
       && t <= t0 + stunden * STUNDE_MS);
+    // Die Vergleichszeit ist so ungefähr, wie die Aktivität meistens
+    // eingetragen ist: Wer nur „abends" sagt, hat auch an den Tagen ohne
+    // Training keinen genaueren Abend.
+    const meistUngefaehr = liste.filter((e) => e.ungefaehr).length * 2 >= liste.length;
+    const vergleichszeit = (iso) => (meistUngefaehr
+      ? { am: iso, um: uhr, ungefaehr: true, tageszeit: knopfTageszeit(uhr) }
+      : { am: iso, um: uhr });
+    const sortiert = [...liste].sort((a, b) => zeitpunkt(a.am, a.um) - zeitpunkt(b.am, b.um));
 
     const bauchMit = [];
     const kopfMit = [];
-    liste.forEach((a) => {
+    let offenMit = 0;
+    let letztesFenster = -Infinity;
+    sortiert.forEach((a) => {
       const t0 = zeitpunkt(a.am, a.um);
-      const bauchOffen = t0 + fenster * STUNDE_MS > jetzt || !bauchNotiert(a.am)
-        || am(a.am).some((b) => b.art === 'beschwerde' && reihenfolgeUnklar(a, b));
-      if (!bauchOffen) bauchMit.push(bauchWert(t0, a.am));
-      const k = kopfWert(t0, a.am, a);
+      // Beginnt im Fenster des vorigen Vorkommens: kein eigener Fall.
+      if (t0 <= letztesFenster + fenster * STUNDE_MS) return;
+      letztesFenster = t0;
+      if (t0 + fenster * STUNDE_MS > jetzt || !bauchNotiert(a.am)) return;
+      const w = bauchWert(t0, a.am, [a]);
+      bauchMit.push(w.wert);
+      if (w.offen) offenMit += 1;
+    });
+    // Beim Kopf je Tag ein Fall, ab dem ersten Vorkommen des Tages.
+    const jeTag = new Map();
+    sortiert.forEach((a) => {
+      if (!jeTag.has(a.am)) jeTag.set(a.am, []);
+      jeTag.get(a.am).push(a);
+    });
+    jeTag.forEach((amTag, iso) => {
+      const k = kopfWert(zeitpunkt(iso, amTag[0].um), iso, amTag);
       if (k !== null) kopfMit.push(k);
     });
 
     const bauchOhne = [];
     const kopfOhne = [];
+    let offenOhne = 0;
     const n = tageDazwischen(erster, letzterTag);
     for (let i = 0; i <= n; i++) {
       const iso = plusTage(erster, i);
       if (tageMit.has(iso)) continue;
       const t0 = zeitpunkt(iso, uhr);
+      const ort = [vergleichszeit(iso)];
       if (t0 + fenster * STUNDE_MS <= jetzt && bauchNotiert(iso) && frei(t0, fenster)) {
-        bauchOhne.push(bauchWert(t0, iso));
+        const w = bauchWert(t0, iso, ort);
+        bauchOhne.push(w.wert);
+        if (w.offen) offenOhne += 1;
       }
       if (frei(t0, AKTIV_KOPF_STUNDEN)) {
-        const k = kopfWert(t0, iso, null);
+        const k = kopfWert(t0, iso, ort);
         if (k !== null) kopfOhne.push(k);
       }
     }
@@ -6941,7 +7272,7 @@ function aktivitaetBilanz(eintraege, tage, opt = {}) {
       anzahl: liste.length,
       zuletzt: liste[liste.length - 1].am,
       uhr,
-      bauch: aktivVergleich(bauchMit, bauchOhne, mindest),
+      bauch: { ...aktivVergleich(bauchMit, bauchOhne, mindest), offen: offenMit, offenOhne },
       kopf: aktivVergleich(kopfMit, kopfOhne, kopfMindest),
     });
   });
@@ -6995,15 +7326,25 @@ const prozentVon = (x) => `${Math.round(x * 100)} %`;
  */
 function aktivBauchSatz(z, fenster) {
   const b = z.bauch;
+  // Wo nur die Tageszeit feststeht, wird das gesagt – sonst läse sich „danach"
+  // wie eine erhobene Reihenfolge.
+  const offen = b.offen
+    ? ` Bei ${b.offen} davon steht nur die Tageszeit fest – dort zählt, was am selben `
+      + 'Teil des Tages kam, an den Tagen ohne genauso.'
+    : '';
   return `In den ${fenster} Stunden danach ${b.mitTreffer} von ${b.faelle} Mal Beschwerden `
     + `(${prozentVon(b.quoteMit)}, im Mittel ${fmtZahl(b.schnittMit)}) – an ${b.gegenFaelle} Tagen `
-    + `ohne, ab ${z.uhr}, ${prozentVon(b.quoteOhne)} (${fmtZahl(b.schnittOhne)}).`;
+    + `ohne, ab ${z.uhr}, ${prozentVon(b.quoteOhne)} (${fmtZahl(b.schnittOhne)}).${offen}`;
 }
 
-/** „In den 24 Stunden danach 5 von 12 Mal Kopfschmerz (42 %) – an Tagen ohne 6 von 40 (15 %)." */
+/**
+ * „In den 24 Stunden danach an 5 von 12 Tagen Kopfschmerz (42 %) – an Tagen
+ * ohne 6 von 40 (15 %)." Tage, nicht Male: Gezählt wird je Tag (siehe
+ * aktivitaetBilanz).
+ */
 function aktivKopfSatz(z) {
   const k = z.kopf;
-  return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach ${k.mitTreffer} von ${k.faelle} Mal `
+  return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach an ${k.mitTreffer} von ${k.faelle} Tagen `
     + `Kopfschmerz (${prozentVon(k.quoteMit)}) – an Tagen ohne ${k.ohneTreffer} von `
     + `${k.gegenFaelle} (${prozentVon(k.quoteOhne)}).`;
 }
@@ -7020,9 +7361,12 @@ function bewegungSatz(f) {
   const tage = `${f.hoch.tage} gegen ${f.niedrig.tage} Tage`;
   // Eine ganze Stufe, wie überall bei den Tagesfragen: Darunter ist es
   // Schwankung, und das wird auch so gesagt.
+  // Mit derselben Größe wie im anderen Zweig: „im Mittel 2,2" allein läse
+  // sich wie eine Stufe der Bewegung.
   if (Math.abs(f.differenz) < 1) {
-    return `Bewegung am Tag: kein deutlicher Unterschied – mit intensiver im Mittel `
-      + `${fmtZahl(f.hoch.schnitt)}, mit wenig oder keiner ${fmtZahl(f.niedrig.schnitt)} (${tage}).`;
+    return 'Bewegung am Tag: kein deutlicher Unterschied – an Tagen mit intensiver Bewegung '
+      + `lag die Beschwerdestärke im Mittel bei ${fmtZahl(f.hoch.schnitt)}, an Tagen mit wenig `
+      + `oder keiner bei ${fmtZahl(f.niedrig.schnitt)} (${tage}).`;
   }
   return `An Tagen mit intensiver Bewegung lag die Beschwerdestärke im Mittel bei `
     + `${fmtZahl(f.hoch.schnitt)}, an Tagen mit wenig oder keiner bei `
@@ -7140,7 +7484,7 @@ function schmerzVergleich(eintraege, tage, schmerzArten = ['krampf']) {
   // Bauch eine Lücke, kein Tag ohne Bauchschmerz (siehe tagesWert). Ohne die
   // Tage mit nur gezähltem Wasser oder nur einer Aktivität aus demselben Grund.
   const notierte = [...new Set([
-    ...alle.filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).map((e) => e.am), ...tageMitAngabe(tage),
+    ...alle.filter(zaehltFuerBauch).map((e) => e.am), ...tageMitAngabe(tage),
   ])].sort();
   const mitSchmerz = new Set(alle
     .filter((e) => e.art === 'beschwerde' && (e.arten || []).some((a) => schmerzArten.includes(a)))
@@ -7286,7 +7630,7 @@ function wasserSatz(v) {
 function stuhlZahlen(eintraege, tage) {
   const alle = stuhlgaenge(eintraege);
   const notierte = [...new Set([
-    ...(eintraege || []).filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).map((e) => e.am),
+    ...(eintraege || []).filter(zaehltFuerBauch).map((e) => e.am),
     ...tageMitAngabe(tage),
   ])];
   const b = formBilanz(eintraege);
@@ -7365,7 +7709,7 @@ function notierteTage(eintraege, tage, von, bis) {
   // Bauchschmerz im Nenner und verwässerte Rom und GerdQ. Ein Tag mit nur
   // gezähltem Wasser ebenso wenig, und einer mit nur einer Aktivität auch nicht.
   (eintraege || []).forEach((e) => {
-    if (e.art !== 'kopf' && eintragZaehlt(e) && inFenster(e.am, von, bis)) isos.add(e.am);
+    if (zaehltFuerBauch(e) && inFenster(e.am, von, bis)) isos.add(e.am);
   });
   Object.keys(tage || {}).forEach((iso) => {
     if (inFenster(iso, von, bis) && tagZaehlt(tage[iso])) isos.add(iso);
@@ -9046,9 +9390,18 @@ function zuordnen(eintraege) {
     const stunden = stundenDazwischen(letzte.t, t);
     if (stunden > 8) return;
     // `ungefaehr`: Die Stunden sind dann aus einem Knopf gerechnet, nicht
-    // erhoben – auf der Seite der Beschwerde oder auf der der Mahlzeit.
+    // erhoben – auf der Seite der Beschwerde oder auf der der Mahlzeit. Und
+    // wenn bei einer Mahlzeit dieses Tages offen ist, ob sie vor oder nach
+    // der Beschwerde kam (ein Abendessen nur mit „abends", eine genaue
+    // Beschwerde um sieben), ist auch „die letzte Mahlzeit davor" nur geraten
+    // – und mit ihr die Stunden. Es ist dieselbe Prüfung wie in
+    // stundenSeitEssen (js/auswertung.js); ohne sie stünde hier „vier bis acht
+    // Stunden nach dem Mittag, Dickdarm", wo die Nüchternrechnung zu Recht
+    // „unbekannt" sagt.
     zu.get(letzte.e.id).push({
-      stunden, staerke: Number(b.staerke) || 0, ungefaehr: !!b.ungefaehr || !!letzte.e.ungefaehr,
+      stunden,
+      staerke: Number(b.staerke) || 0,
+      ungefaehr: !!b.ungefaehr || !!letzte.e.ungefaehr || essen.some((x) => reihenfolgeUnklar(x.e, b)),
     });
   });
   return zu;
@@ -9071,7 +9424,7 @@ function fensterWerte(eintraege) {
   // „Das Tagebuch lief noch" – aber nur für den Bauch: Ein abendlicher
   // Kopfeintrag macht ein Spätfenster nicht beobachtbar, eine abends
   // eingetragene Aktivität ebenso wenig.
-  const letzterEintrag = eintraege.filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).reduce(
+  const letzterEintrag = eintraege.filter(zaehltFuerBauch).reduce(
     (m, e) => Math.max(m, zeitpunkt(e.am, e.um)), 0,
   );
   const beschwerden = eintraege.filter((e) => e.art === 'beschwerde');
@@ -9092,6 +9445,14 @@ function fensterWerte(eintraege) {
      * Mahlzeit kam, hängt vielleicht an ihr, vielleicht an der davor. Ohne
      * diese Zeile stünde die Mahlzeit als beschwerdefrei da, weil die
      * Beschwerde zufällig eine Minute früher eingetragen ist.
+     *
+     * Dass damit nur Mahlzeiten mit einer solchen Beschwerde herausfallen,
+     * ist hier – anders als in der Auslöserbilanz (siehe wertNach) – der
+     * kleinere Fehler. Das Zeitprofil fragt nach der Stunde, und eine
+     * Beschwerde ohne Stunde in alle Fenster zu legen, erfände genau die
+     * Stunden, um die es geht. Weglassen kann hier nur verbergen, nicht
+     * erfinden: Das Profil meldet nur einen Schwerpunkt, nie ein
+     * „unauffällig".
      */
     const unklar = !!x.e.ungefaehr || liste.some((b) => b.ungefaehr)
       || beschwerden.some((b) => reihenfolgeUnklar(x.e, b));
@@ -9642,12 +10003,13 @@ const schnittVon = (l) => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 
  * @param {number} fenster  Stunden nach dem Essen
  */
 function dosisBild(eintraege, id, fenster = 4) {
-  // Ohne die Mahlzeiten, bei denen offen ist, ob eine Beschwerde vor oder
-  // nach ihnen kam (wertNach gibt dann null) – wie in der Auslöserbilanz.
+  // Jede Mahlzeit, auch eine, bei der offen ist, ob eine Beschwerde vor oder
+  // nach ihr kam – sie zählt dann als danach, wie in der Auslöserbilanz
+  // (siehe wertNach). Sie wegzulassen, ließe nur die beschwerdefreien übrig.
   const mahlzeiten = eintraege.filter((e) => e.art === 'essen').map((m) => ({
     wert: wertNach(eintraege, m, fenster),
     rolle: (zutatenVon(m).find((z) => z.id === id) || {}).rolle || null,
-  })).filter((x) => x.wert !== null);
+  }));
 
   // Die Vergleichsgruppe ist für alle Stufen dieselbe: Mahlzeiten, in denen
   // diese Zutat gar nicht vorkam. Jede Stufe gegen ihre eigene Gruppe zu
@@ -10138,10 +10500,19 @@ function laufBild(eintraege, lauf, p, vorheriger = null) {
   /*
    * Mit den Zeitknöpfen eingetragen, steht ein Frühstück „morgens" auf acht
    * Uhr – womöglich auf derselben Minute wie der Durchgang. Ob es davor,
-   * danach oder weit weg davon war, weiß dann niemand, und ebenso wenig bei
-   * einer Beschwerde „morgens" ohne Bezug zum Essen. Ein Durchgang, bei dem
-   * das offen ist, zählt nicht: Sonst wäre er sauber oder hätte eine
-   * Reaktion, weil eine Minute ausgedacht ist.
+   * danach oder weit weg davon war, weiß dann niemand. Ein Durchgang, bei dem
+   * das offen ist, zählt nicht: Sonst wäre er sauber, weil eine Minute
+   * ausgedacht ist. Ob gegessen wurde, hängt nicht davon ab, wie der
+   * Durchgang ausging – dieser Grund siebt nicht nach dem Ergebnis.
+   *
+   * Eine Beschwerde „morgens" ohne Bezug zum Essen ist offen auf dieselbe
+   * Weise, und doch etwas anderes: Sie *ist* das Ergebnis. Wer Durchgänge mit
+   * einer solchen Beschwerde verwirft, verwirft genau die mit Reaktion und
+   * behält die ruhigen – und am Ende stünde „bestätigt sich nicht", das
+   * Ergebnis, das dieser Test das belastbarste nennt. Deshalb zählt sie als
+   * Wert des Durchgangs, bei Durchgängen mit der Sache wie bei
+   * Leerdurchgängen. War sie in Wahrheit schon vorher da, ist sie genau das,
+   * was der Leerdurchgang auffängt: Sie steht dann auf beiden Seiten.
    */
   const ort = { am: lauf.am, um: lauf.um };
   const ungefaehrGegessen = mahlzeiten.filter((e) => e.ungefaehr && e.am === lauf.am
@@ -10153,7 +10524,7 @@ function laufBild(eintraege, lauf, p, vorheriger = null) {
     .filter((e) => e.art === 'beschwerde')
     .filter((e) => {
       const d = stundenDazwischen(t0, zeitpunkt(e.am, e.um));
-      return d >= 0 && d <= fenster;
+      return (d >= 0 && d <= fenster) || ungefaehrBeschwerde.includes(e);
     })
     .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
 
@@ -10170,7 +10541,6 @@ function laufBild(eintraege, lauf, p, vorheriger = null) {
   if (ungefaehrGegessen.length) {
     warum.push(`${ungefaehrGegessen.length}× gegessen zur selben Tageszeit, ohne genaue Uhrzeit`);
   }
-  if (ungefaehrBeschwerde.length) warum.push('Beschwerde ohne genaue Uhrzeit – ob vor oder nach dem Durchgang, ist offen');
   if (zuNah) warum.push(`weniger als ${ABSTAND_TAGE} Tage nach dem vorigen Durchgang`);
 
   return {
@@ -10180,6 +10550,13 @@ function laufBild(eintraege, lauf, p, vorheriger = null) {
     wert,
     sauber: warum.length === 0,
     warum,
+    // Woran es lag – für den Satz über die verworfenen Durchgänge, der sonst
+    // „weil dabei gegessen wurde" sagte, auch wo nur der Abstand fehlte.
+    gegessen: davor.length > 0 || waehrend.length > 0 || ungefaehrGegessen.length > 0,
+    zuNah,
+    // Eine Beschwerde ohne genaue Uhrzeit zählt mit (siehe oben) – die
+    // Anzeige sagt das beim Durchgang dazu.
+    ungefaehr: ungefaehrBeschwerde.length > 0,
   };
 }
 
@@ -10207,13 +10584,17 @@ function alltagsWerte(eintraege, p, laufTage, heute) {
     // unbekannter. Er darf den Vergleichswert nicht nach unten ziehen. Ein
     // Tag mit nur einem Kopfschmerz ebenso wenig – zum Bauch steht da nichts –,
     // und einer mit nur einer Aktivität auch nicht.
-    if (!amTag.some((e) => e.art !== 'kopf' && eintragZaehlt(e))) continue;
+    if (!amTag.some(zaehltFuerBauch)) continue;
     const t0 = zeitpunkt(iso, uhr);
+    // Eine Beschwerde ohne genaue Uhrzeit in derselben Tageszeit zählt hier
+    // wie am Testmorgen (siehe laufBild) – sonst zählte die Testseite
+    // großzügiger als ihr Vergleich.
+    const ort = { am: iso, um: uhr };
     werte.push(amTag
       .filter((e) => e.art === 'beschwerde')
       .filter((e) => {
         const d = stundenDazwischen(t0, zeitpunkt(e.am, e.um));
-        return d >= 0 && d <= fenster;
+        return (d >= 0 && d <= fenster) || reihenfolgeUnklar(ort, e);
       })
       .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0));
   }
@@ -10224,6 +10605,7 @@ const PROVOKATION_WORT = {
   laeuft: 'läuft noch',
   unsauber: 'nicht auswertbar',
   bestaetigt: 'bestätigt sich',
+  offen: 'deutet sich an',
   wechselhaft: 'mal so, mal so',
   'nicht-bestaetigt': 'bestätigt sich nicht',
   abgebrochen: 'abgebrochen',
@@ -10278,13 +10660,19 @@ function provokationsBild(p, eintraege, heute) {
 
   if (echte.length < MINDEST_LAEUFE) {
     const fehlt = MINDEST_LAEUFE - echte.length;
+    // Der Grund, der wirklich dahintersteht: Gegessen wurde nicht bei jedem
+    // verworfenen Durchgang – mancher lag nur zu dicht am vorigen.
+    const nurEssen = verworfen.every((b) => b.gegessen && !b.zuNah);
+    const klammer = verworfen.length
+      ? ` (${verworfen.length} ${verworfen.length === 1 ? 'zählt' : 'zählen'} nicht mit, `
+        + `${nurEssen ? 'weil dabei gegessen wurde' : 'warum, steht beim Durchgang'})`
+      : '';
     return {
       ...grund,
       urteil: 'laeuft',
       wort: PROVOKATION_WORT.laeuft,
       satz: `Noch ${fehlt} auswertbare${fehlt === 1 ? 'r' : ''} Durchgang${fehlt === 1 ? '' : 'e'}`
-        + `, dann steht hier ein Ergebnis${verworfen.length
-          ? ` (${verworfen.length} zählt nicht mit, weil dabei gegessen wurde)` : ''}. `
+        + `, dann steht hier ein Ergebnis${klammer}. `
         + `Ein einzelner Durchgang beweist nichts: An genau dem Tag können auch `
         + `Schlaf, Anspannung oder der Zyklus schuld sein. Erst die Wiederholung `
         + `trennt die Sache vom Tag.`,
@@ -10373,6 +10761,26 @@ function provokationsBild(p, eintraege, heute) {
     };
   }
 
+  /*
+   * Mehr als die Hälfte der Durchgänge über dem Vergleich, aber der
+   * Unterschied noch innerhalb dessen, was bei dieser Streuung und so wenigen
+   * Werten auch der Zufall hergibt. Das ist kein „bestätigt sich" – und erst
+   * recht kein „kein Unterschied": Das stünde mit dem Satz da, es sei das
+   * belastbarste Ergebnis, während die Zahlen gerade in die andere Richtung
+   * zeigen. Was hilft, sind mehr Durchgänge auf beiden Seiten.
+   */
+  if (reagiert > echte.length / 2) {
+    return {
+      ...gemeinsam,
+      urteil: 'offen',
+      wort: PROVOKATION_WORT.offen,
+      satz: `In ${reagiert} von ${echte.length} Durchgängen kam es (${zahlen}) Das deutet `
+        + 'auf eine Reaktion, ist aber noch nicht sicher vom Zufall zu trennen: Dafür '
+        + 'schwanken die Werte zu stark, oder es gibt zu wenige Vergleiche. Ein, zwei '
+        + `weitere Durchgänge und Leerdurchgänge machen das Ergebnis klarer.${nachsatz}`,
+    };
+  }
+
   return {
     ...gemeinsam,
     urteil: 'nicht-bestaetigt',
@@ -10391,7 +10799,7 @@ function provokationsBild(p, eintraege, heute) {
  * Ein Test ohne diese Zeile wird vergessen. Er besteht ja gerade nicht aus
  * einem Knopf, sondern aus Terminen, die man sich selbst setzt.
  */
-function naechsterSchritt(p, heute) {
+function naechsterSchritt(p, heute, urteil = null) {
   if (!p || p.beendet) return null;
   const laeufe = [...(p.laeufe || [])].sort((a, b) => (a.am < b.am ? -1 : 1));
   const letzter = laeufe[laeufe.length - 1];
@@ -10428,6 +10836,23 @@ function naechsterSchritt(p, heute) {
       satz: 'Jetzt ein Leerdurchgang: derselbe Ablauf, gleiche Uhrzeit, nüchtern – '
         + 'nur ohne die Sache. Er kostet einen Morgen und ist der Teil, der aus '
         + 'den Durchgängen einen Test macht.',
+    };
+  }
+  /*
+   * „Deutet sich an": Mehr Durchgänge machen es klarer, und zwar abwechselnd –
+   * ein weiterer mit der Sache, dann ein weiterer Leerdurchgang. Nur eine
+   * Seite zu verlängern, verschöbe den Vergleich.
+   */
+  if (urteil === 'offen') {
+    const leer = !!letzter && !letzter.leer;
+    return {
+      dran: true,
+      leer,
+      satz: leer
+        ? 'Noch ein Leerdurchgang: derselbe Ablauf, gleiche Uhrzeit, nüchtern – nur ohne '
+          + 'die Sache. Mehr Vergleiche machen das Ergebnis klarer.'
+        : `Noch ein Durchgang: morgen früh nüchtern ${p.was || 'die festgelegte Menge'}, `
+          + `danach ${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht.`,
     };
   }
   return { dran: false, satz: 'Genug Durchgänge beisammen – das Ergebnis steht unten.' };
@@ -13735,7 +14160,8 @@ function arztBericht(zustand, von, bis) {
           + `${wort(x.bauch.art)}`);
       }
       if (x.kopf.genug) {
-        sag(`    Kopf ${x.kopf.mitTreffer} von ${x.kopf.faelle} (${prozent(x.kopf.quoteMit)}), `
+        // Beim Kopf zählen Tage, nicht Male – siehe aktivitaetBilanz.
+        sag(`    Kopf an ${x.kopf.mitTreffer} von ${x.kopf.faelle} Tagen (${prozent(x.kopf.quoteMit)}), `
           + `sonst ${x.kopf.ohneTreffer} von ${x.kopf.gegenFaelle} (${prozent(x.kopf.quoteOhne)})`
           + `${x.kopf.art === 'auffaellig' ? ' – öfter' : ''}`);
       }
@@ -13856,8 +14282,12 @@ function arztBericht(zustand, von, bis) {
     prov.slice(0, 6).forEach((p) => {
       const b = provokationsBild(p, eintraege, bis);
       sag(`  ${p.was || p.ziel} nüchtern, Fenster ${p.fenster || 4} h – ${b.wort}`);
+      // Der Grund nur, wo er für alle stimmt – mancher Durchgang lag bloß zu
+      // dicht am vorigen, und dann wäre „dabei gegessen" falsch.
+      const weg = b.laeufe.filter((l) => !l.sauber);
+      const nurEssen = weg.every((l) => l.gegessen && !l.zuNah);
       sag(`     ${b.echte} Durchgänge, ${b.leere} Leerdurchgänge`
-        + (b.verworfen ? `, ${b.verworfen} nicht auswertbar (dabei gegessen)` : '')
+        + (b.verworfen ? `, ${b.verworfen} nicht auswertbar${nurEssen ? ' (dabei gegessen)' : ''}` : '')
         + (Number.isFinite(b.unterschied)
           ? `; ${fmtZahl(b.schnitt)} gegen ${fmtZahl(b.vergleich)} von 10` : ''));
       umbrochen(b.satz).forEach((z) => sag(`     ${z}`));
@@ -14190,6 +14620,9 @@ const ui = {
   // Was zuletzt gelöscht wurde, für „Rückgängig":
   // { eintraege: [wie vorher], nachher: { id: wie direkt nach dem Löschen } }.
   geloescht: null,
+  // Was zuletzt unter „Meine Mittel" oder „Eigene Aktivitäten" entfernt
+  // wurde, für „Rückgängig": { art: 'mittel', weg } oder { art: 'aktiv', id }.
+  entfernt: null,
 };
 
 /*
@@ -14513,6 +14946,32 @@ function umzugHinweis(s, tab) {
   const seitdem = damals
     ? s.eintraege.filter((x) => !damals.has(x.id)).length
     : Math.max(0, s.eintraege.length - (s.umzug.anzahl || 0));
+  /*
+   * Und was nicht im Strang steht, beim Holen aber mitkommt: Wasser (die
+   * größere Zahl gewinnt), neue eigene Mittel und Aktivitäten. Ein Tipp aufs
+   * Glas in Safari liegt nahe – Links öffnen auf dem iPhone dort. Ein Vermerk
+   * aus der Zeit vor dem Wasser hat kein Feld dafür; dann zählt jedes Glas,
+   * denn damals gab es keins.
+   */
+  const wasserDamals = s.umzug.wasser || {};
+  const wasserTage = Object.keys(s.tage || {})
+    .filter((iso) => wasserVon(s.tage[iso]) > (Number(wasserDamals[iso]) || 0)).length;
+  const neuMittel = Array.isArray(s.umzug.mittel)
+    ? s.standardMittel.filter((m) => !s.umzug.mittel.includes(m.id)).length : 0;
+  const neuAktiv = Array.isArray(s.umzug.aktiv)
+    ? (s.eigeneAktivitaeten || []).filter((a) => !s.umzug.aktiv.includes(a.id)).length : 0;
+  const sonst = [
+    wasserTage ? `an ${mehrzahl(wasserTage, 'Tag', 'Tagen')} Wasser gezählt` : '',
+    neuMittel ? `${mehrzahl(neuMittel, 'eigenes Mittel', 'eigene Mittel')} angelegt` : '',
+    neuAktiv ? `${mehrzahl(neuAktiv, 'eigene Aktivität', 'eigene Aktivitäten')} angelegt` : '',
+  ].filter(Boolean);
+  const sonstText = sonst.length > 1 ? `${sonst.slice(0, -1).join(', ')} und ${sonst[sonst.length - 1]}` : sonst[0];
+  const eintragText = seitdem === 1 ? 'steht hier 1 neuer Eintrag' : `stehen hier ${seitdem} neue Einträge`;
+  // „Seitdem hast du …" allein, sonst „…, und du hast …" – die Wortstellung
+  // hängt daran, was vorne steht.
+  const neuText = seitdem
+    ? `${eintragText}${sonst.length ? `, und du hast hier ${sonstText}` : ''}`
+    : (sonst.length ? `hast du hier ${sonstText}` : '');
   const voll = tab === 'heute';
   return `<div class="karte karte-merk">
     <h3>Mitgenommen am ${datumKurz(s.umzug.am)}</h3>
@@ -14520,9 +14979,9 @@ function umzugHinweis(s, tab) {
     ${letzterText(s.umzug.letzter)}. <b>Trag ab jetzt bitte nur noch in der
     App auf dem Home-Bildschirm ein.</b> Was du hier in Safari einträgst,
     kommt dort nicht an.</p>
-    ${seitdem ? `<p class="klein"><b>Seitdem ${seitdem === 1 ? 'steht hier 1 neuer Eintrag' : `stehen hier ${seitdem} neue Einträge`}.</b>
-      Nimm noch einmal mit und hol sie in der App unter „Mehr" › „Aus Safari
-      holen" – doppelte Einträge erkennt sie. Was du hier an schon
+    ${neuText ? `<p class="klein"><b>Seitdem ${neuText}.</b>
+      Nimm noch einmal mit und hol es in der App unter „Mehr" › „Aus Safari
+      holen" – Doppeltes erkennt sie. Was du hier an schon
       mitgenommenen Einträgen änderst, kommt dabei nicht mit; dort gilt der
       Stand der App.</p>
       <div class="reihe">${knopf('umzug-mitnehmen', 'Nochmal mitnehmen', 'btn-primary')}</div>` : ''}
@@ -14647,8 +15106,46 @@ function melden(text, knopf = null) {
   toastUhr = setTimeout(() => {
     toastEl.classList.remove('an', 'mit-knopf');
     const k = toastEl.querySelector('button');
+    // Hatte der Knopf den Fokus, fiele er mit ihm an den Anfang der Seite –
+    // und VoiceOver begänne oben. Er geht dorthin, wo zuletzt etwas geschah.
+    const mitFokus = k && document.activeElement === k;
     if (k) k.remove();
+    if (mitFokus) fokusAnker();
   }, Math.max(knopf ? 8000 : 2400, String(text).length * 60));
+}
+
+/**
+ * Das Formular unter „Meine Mittel" ist eben aufgegangen: der Fokus ins
+ * Namensfeld. Der Knopf, der es öffnete, ist beim Neuzeichnen verschwunden,
+ * und ohne das hier stünde VoiceOver wieder am Anfang der Seite.
+ */
+function mittelFeldFokus() {
+  setTimeout(() => {
+    const f = document.getElementById('mmName');
+    if (f) f.focus({ preventScroll: true });
+  }, 0);
+}
+
+/** Der Fokus an eine feste Stelle der Seite: den Tag, sonst die Überschrift. */
+function fokusAnker() {
+  const ziel = document.querySelector('.tag-datum') || viewEl.querySelector('h2, h3');
+  if (!ziel) return;
+  if (!ziel.matches('input, button, [tabindex]')) ziel.setAttribute('tabindex', '-1');
+  ziel.focus({ preventScroll: true });
+}
+
+/*
+ * Nach einem Löschen oder Entfernen ist der Knopf weg, der den Fokus hatte.
+ * Hatte er ihn, geht er auf „Rückgängig" in der Meldung – dorthin, wo man
+ * jetzt am ehesten hin will, und nicht an den Anfang der Seite.
+ */
+function fokusNachEntfernen(hatteFokus) {
+  if (!hatteFokus) return;
+  setTimeout(() => {
+    const k = toastEl.querySelector('.toast-knopf');
+    if (k) k.focus();
+    else fokusAnker();
+  }, 0);
 }
 
 /* ==================== Bausteine ==================== */
@@ -14866,9 +15363,9 @@ function strangZeile(e, s) {
         <span class="strang-inhalt">${zeileText(e, s.eigeneAusloeser, s.eigeneAktivitaeten)}${zeitWorte(e)}</span>
         <span class="strang-auf" aria-hidden="true">›</span>
       </button>
-      ${loeschKnopf('loeschen', e.id, {
+      <span class="strang-weg-platz">${loeschKnopf('loeschen', e.id, {
     normal: '×', frage: 'Löschen?', sagt: `${worte} löschen`, klasse: 'strang-weg strang-loeschen',
-  })}
+  })}</span>
     </li>`;
 }
 
@@ -14920,8 +15417,12 @@ function tagAnsicht(s) {
    * Weg über den Medikamenten-Bogen ist sonst nur zu finden, wenn man ihn
    * schon kennt.
    */
+  const imBogen = s.standardMittel.some((m) => mittelImBogen(m, iso));
   const mittelReihe = kuenftig ? '' : s.standardMittel.length ? `<div class="schnell">
-    <p class="feld-name">Meine Mittel – ein Tipp trägt ein</p>
+    <p class="feld-name">Meine Mittel – ${imBogen
+    ? (s.standardMittel.every((m) => mittelImBogen(m, iso)) ? 'die Zeit wählst du im Bogen'
+      : 'ohne übliche Zeit wählst du sie im Bogen')
+    : 'ein Tipp trägt ein'}</p>
     <div class="marken marken-eng">${s.standardMittel.map((m) => standardKnopf(m, liste, iso, s.standardMittel)).join('')}</div>
   </div>` : `<p class="klein mittel-tipp">Deine täglichen Mittel kannst du einmal unter
     <button type="button" class="link-knopf" data-act="meine-mittel-zeigen">„Mehr“ › „Meine Mittel“</button>
@@ -15228,7 +15729,7 @@ function planZeile(s, iso) {
 function provokationZeile(s, iso) {
   const p = s.provokation;
   if (!p || p.beendet || iso !== heuteISO()) return '';
-  const schritt = naechsterSchritt(p, heuteISO());
+  const schritt = naechsterSchritt(p, heuteISO(), provokationsBild(p, s.eintraege, heuteISO()).urteil);
   if (!schritt || !schritt.dran) {
     return schritt ? `<div class="karte provokation-zeile">
       <h3>Provokationstest</h3>
@@ -15309,8 +15810,10 @@ function ratKarte(s) {
     }),
     faktoren: faktorenBilanz(s.eintraege, s.tage, tagesWert),
     phasen: phasenBilanz(s.eintraege, s.tage, tagesWert),
+    // Wie lange das Essen jetzt her ist – ohne die Reihenfolge-Frage einer
+    // Beschwerde: Was schon eingetragen ist, wurde vorher gegessen.
     letzteMahlzeitStunden: letzteMahlzeit
-      ? stundenSeitEssen(s.eintraege, { am: heuteISO(), um: jetztUhr() }) : null,
+      ? stundenSeitLetzterMahlzeit(s.eintraege, heuteISO(), jetztUhr()) : null,
     mittel: [...mittel.entries()].slice(-3).map(([name, am]) => ({ name, zuletzt: fmtDatum(am) })),
   });
 
@@ -15725,8 +16228,10 @@ function lageTeil(s, d) {
       faelle: b.faelle,
       gegenFaelle: b.gegenFaelle,
       urteil: stand.urteil,
-      menge: dosis.urteil,
-      mengeSatz: dosis.satz,
+      // Ein Umstand – große Portion, spät, auswärts – hat keine Mengenfrage
+      // (siehe musterDaten), dann fehlt der Zusatz einfach.
+      menge: dosis ? dosis.urteil : null,
+      mengeSatz: dosis ? dosis.satz : '',
     })),
     spaet: d.uebersehen.map((x) => ({
       name: ausloeserName(x.id, s.eigeneAusloeser),
@@ -16300,8 +16805,10 @@ function provokationTeil(s, d) {
 
   if (p) {
     const b = provokationsBild(p, s.eintraege, d.heute);
-    const schritt = naechsterSchritt(p, d.heute);
-    const fertig = p.beendet || b.urteil !== 'laeuft';
+    const schritt = naechsterSchritt(p, d.heute, b.urteil);
+    // „Deutet sich an" ist noch nicht fertig: Dort geht es mit weiteren
+    // Durchgängen weiter, samt Termin und Knopf.
+    const fertig = p.beendet || !['laeuft', 'offen'].includes(b.urteil);
     return `<div class="karte provokation p-${b.urteil}">
       <div class="fund-kopf">
         <b>Provokationstest: ${esc(p.was || p.ziel)}</b>
@@ -16309,7 +16816,7 @@ function provokationTeil(s, d) {
       </div>
       ${b.laeufe.length ? `<ul class="wartend prov-laeufe">${b.laeufe.map((l) => `<li${l.sauber ? '' : ' class="prov-weg"'}>
         <span>${esc(fmtDatum(l.am, true))} ${esc(l.um)}
-          <span class="zeile-tags">${l.leer ? 'Leerdurchgang' : 'mit'}${l.sauber ? '' : ` · zählt nicht: ${esc(l.warum.join(', '))}`}</span></span>
+          <span class="zeile-tags">${l.leer ? 'Leerdurchgang' : 'mit'}${l.sauber ? '' : ` · zählt nicht: ${esc(l.warum.join(', '))}`}${l.sauber && l.ungefaehr ? ' · Beschwerde ohne genaue Uhrzeit, mitgezählt' : ''}</span></span>
         <span class="klein">${l.sauber ? `${l.wert} von 10` : '–'}
           <button type="button" class="strang-weg" data-act="prov-lauf-weg"
                   data-am="${l.am}" data-um="${esc(l.um)}"
@@ -16738,6 +17245,18 @@ const AKTIV_KOPF_WORT = {
   zuwenig: 'zu wenige Fälle',
 };
 
+/*
+ * Was einer Seite noch fehlt. Gezählt wird erst mit genug Fällen auf beiden
+ * Seiten; bei einer Aktivität, die fast täglich vorkommt, reichen die Fälle
+ * mit ihr längst, und es fehlen die Tage ohne. „40 von 5" läse sich dann wie
+ * ein Rechenfehler und sagte nicht, worauf es wartet. Beim Kopf zählen Tage.
+ */
+function aktivNoch(v, kopf = false) {
+  return v.fehlt || !v.fehltGegen
+    ? `${v.faelle} von ${v.mindest} ${kopf ? 'Tagen' : 'Mal'}`
+    : `${v.gegenFaelle} von ${v.mindest} Tagen ohne`;
+}
+
 function aktivTeil(s, nurFertig = false) {
   const fenster = s.fenster || 4;
   const zeilen = aktivitaetBilanz(s.eintraege, s.tage, { fenster, mindestFaelle: s.mindestFaelle });
@@ -16751,10 +17270,10 @@ function aktivTeil(s, nurFertig = false) {
     const art = [z.bauch.art, z.kopf.art].sort((x, y) => rang.indexOf(x) - rang.indexOf(y))[0];
     const bauch = z.bauch.genug
       ? `<b>Bauch, ${esc(AKTIV_BAUCH_WORT[z.bauch.art])}:</b> ${esc(aktivBauchSatz(z, fenster))}`
-      : `<b>Bauch:</b> zählt noch – ${z.bauch.faelle} von ${z.bauch.mindest} Mal auswertbar.`;
+      : `<b>Bauch:</b> zählt noch – ${aktivNoch(z.bauch)} auswertbar.`;
     const kopf = z.kopf.genug
       ? `<b>Kopf, ${esc(AKTIV_KOPF_WORT[z.kopf.art])}:</b> ${esc(aktivKopfSatz(z))}`
-      : `<b>Kopf:</b> zählt noch – ${z.kopf.faelle} von ${z.kopf.mindest} Mal auswertbar.`;
+      : `<b>Kopf:</b> zählt noch – ${aktivNoch(z.kopf, true)} auswertbar.`;
     return `<li class="fund f-${art}">
       <div class="fund-kopf">
         <b><span aria-hidden="true">${a.icon}</span> ${mitUmbruch(a.name)}</b>
@@ -16769,12 +17288,12 @@ function aktivTeil(s, nurFertig = false) {
     <p class="klein">Wie oft in den ${fenster} Stunden nach einer Aktivität Beschwerden
     kamen und in den ${AKTIV_KOPF_STUNDEN} Stunden danach Kopfschmerz – verglichen mit
     denselben Stunden an Tagen ohne sie. Erst ab ${s.mindestFaelle || 5} Fällen auf
-    beiden Seiten, beim Kopf ab ${Math.max(s.mindestFaelle || 5, AKTIV_KOPF_MINDEST)}.</p>
+    beiden Seiten, beim Kopf ab ${Math.max(s.mindestFaelle || 5, AKTIV_KOPF_MINDEST)} Tagen.</p>
     ${fertig.length ? `<ul class="funde funde-aktiv">${fertig.map(fund).join('')}</ul>` : ''}
     ${!nurFertig && offen.length ? `<p class="feld-name">Zählt noch</p>
       <ul class="wartend">${offen.slice(0, 8).map((z) => `<li>
         <span>${esc(aktivitaetVon(z.id, s.eigeneAktivitaeten).name)}</span>
-        <span class="klein">${z.bauch.faelle} von ${z.bauch.mindest}</span>
+        <span class="klein">${aktivNoch(z.bauch).replace(/ Mal$/, '')}</span>
       </li>`).join('')}</ul>` : ''}
     ${bewegung ? `<p class="klein aktiv-bewegung">${esc(bewegung)} Gezählt am selben Tag –
       an schlechten Tagen bewegt man sich oft weniger.</p>` : ''}
@@ -18191,19 +18710,22 @@ function mehrAnsicht(s) {
  * Einträge damit bleiben, wie sie sind, und behalten ihren Namen.
  */
 function eigeneAktivKarte(s) {
-  const liste = s.eigeneAktivitaeten || [];
+  const liste = sichtbareEigene(s.eigeneAktivitaeten);
   const voll = liste.length >= store.AKTIV_HOECHSTENS;
+  // Die Eingabereihe wie im Bogen (.aktiv-eigen): Das Feld nimmt, was der
+  // Knopf übrig lässt, statt bei 320 Pixeln über den Kartenrand zu ragen.
   return `<div class="karte" id="eigeneAktivitaeten">
     <h3>Eigene Aktivitäten</h3>
     <p class="klein">Was unter „Aktivität“ in der Auswahl fehlt – ein Sport, ein Ort,
     eine Gewohnheit. Entfernst du eine, bleiben die Einträge damit.</p>
     ${liste.length ? `<ul class="wartend">${liste.map((a) => `<li>
       <span>${esc(a.name)}</span>
-      <button type="button" class="strang-weg" data-act="aktiv-weg" data-id="${esc(a.id)}"
-              aria-label="${esc(`${a.name} aus der Auswahl nehmen`)}">×</button>
+      <span class="strang-weg-platz">${loeschKnopf('aktiv-weg', a.id, {
+    normal: '×', frage: 'Entfernen?', sagt: `${a.name} aus der Auswahl nehmen`, klasse: 'strang-weg',
+  })}</span>
     </li>`).join('')}</ul>` : '<p class="klein">Noch keine.</p>'}
     ${voll ? `<p class="klein">Mehr als ${store.AKTIV_HOECHSTENS} passen nicht. Entferne erst eine,
-      die du nicht mehr brauchst.</p>` : `<div class="reihe">
+      die du nicht mehr brauchst.</p>` : `<div class="reihe aktiv-eigen">
       <input type="text" class="feld" id="neueAktivitaet" maxlength="${store.AKTIV_NAME_MAX}"
              placeholder="z. B. Klettern" aria-label="Name der eigenen Aktivität">
       ${knopf('aktiv-neu', 'Hinzufügen')}
@@ -18275,8 +18797,9 @@ function meineMittelKarte(s) {
     <span>${esc(mittelName(m))}<span class="zeile-tags">${esc(vorlageText(m) || 'ohne übliche Zeit')}</span></span>
     <span class="mm-knoepfe">
       ${knopf('meinmittel-aendern', 'Ändern', 'btn-ghost btn-klein', `data-id="${esc(m.id)}" aria-label="${esc(mittelName(m))} ändern"`)}
-      <button type="button" class="strang-weg" data-act="meinmittel-weg" data-id="${esc(m.id)}"
-              aria-label="${esc(mittelName(m))} entfernen">×</button>
+      <span class="strang-weg-platz">${loeschKnopf('meinmittel-weg', m.id, {
+    normal: '×', frage: 'Entfernen?', sagt: `${mittelName(m)} entfernen`, klasse: 'strang-weg',
+  })}</span>
     </span>
   </li>`);
   return `<div class="karte" id="meineMittel">
@@ -18403,6 +18926,9 @@ function uhrVon(minuten) {
   return `${p(Math.floor(x / 60))}:${p(x % 60)}`;
 }
 
+/** Nachts gibt es keine Knopf-Tageszeit – dann höchstens so weit entfernt. */
+const NACHTS_HOECHSTENS_MIN = 3 * 60;
+
 /**
  * Die Mahlzeit, an der ein Bezug zum Essen einrastet – oder null.
  *
@@ -18410,13 +18936,24 @@ function uhrVon(minuten) {
  * Frage (Fenster in js/datum.js), und von ihnen die, die der Uhrzeit am
  * nächsten liegt. Sonst rastete „abends, nach dem Essen" am Frühstück ein,
  * wenn das Abendessen noch nicht eingetragen ist – mit 08:15 als
- * „Abendzeit". Ohne gewählte Tageszeit gilt die nächste Mahlzeit des Tages.
+ * „Abendzeit".
+ *
+ * Ohne gewählte Tageszeit gilt still die Tageszeit der Uhrzeit, aus demselben
+ * Grund: 20:30 und „nach dem Essen" meint das Abendessen, auch wenn bisher
+ * nur das Frühstück dasteht. Früher galt dann die nächste Mahlzeit des ganzen
+ * Tages, und die Abendbeschwerde wanderte auf halb acht am Morgen – je
+ * nachdem, welche Mahlzeit zuerst nachgetragen war. Nachts, wo es keine
+ * Tageszeit gibt, nur eine Mahlzeit höchstens drei Stunden entfernt. Ohne
+ * gültige Uhrzeit gibt es nichts, wovon aus zu suchen.
  */
 function bezugsMahlzeit(s, am, um, tageszeit = null) {
   const ziel = minutenVon(um);
+  if (!tageszeit && !istUhr(um)) return null;
+  const fenster = tageszeit || knopfTageszeit(um);
   let beste = null;
   s.eintraege.filter((x) => x.art === 'essen' && x.am === am
-    && (!tageszeit || tageszeitVon(x) === tageszeit)).forEach((x) => {
+    && (fenster ? tageszeitVon(x) === fenster
+      : Math.abs(minutenVon(x.um) - ziel) <= NACHTS_HOECHSTENS_MIN)).forEach((x) => {
     const abstand = Math.abs(minutenVon(x.um) - ziel);
     if (!beste || abstand < beste.abstand) beste = { e: x, abstand };
   });
@@ -18433,7 +18970,7 @@ function zeitKnoepfe(art, e) {
   const ohne = e.bezug && !e.bezugMahlzeit
     ? (e.tageszeit
       ? ` – an diesem Tag steht ${esc(e.tageszeit)} noch keine Mahlzeit, gerechnet wird mit der Tageszeit`
-      : ' – an diesem Tag steht noch keine Mahlzeit, gerechnet wird mit der Uhrzeit')
+      : ' – um diese Zeit steht an diesem Tag noch keine Mahlzeit, gerechnet wird mit der Uhrzeit')
       + '. Trägst du sie nach, rückt die Zeit mit'
     : '';
   const hinweis = e.ungefaehr
@@ -18449,7 +18986,8 @@ function zeitKnoepfe(art, e) {
 
 /**
  * Die Uhrzeit für einen Bezug zum Essen, ausgehend von einer Grundzeit – an
- * der Mahlzeit dieser Tageszeit, und ohne eine solche von der Grundzeit aus.
+ * der Mahlzeit dieser Tageszeit (ohne gewählte: der der Grundzeit, siehe
+ * bezugsMahlzeit), und ohne eine solche von der Grundzeit aus.
  */
 function zeitMitBezug(s, am, basis, bezugId, tageszeit = null) {
   const bezug = ESSENSBEZUG.find((x) => x.id === bezugId);
@@ -18465,6 +19003,9 @@ function zeitMitBezug(s, am, basis, bezugId, tageszeit = null) {
 function zeitAusVorlage(s, am, um, tageszeit, bezug) {
   const t = TAGESZEITEN.find((x) => x.id === tageszeit);
   if (!t && !bezug) return {};
+  // Nur ein Bezug und keine Uhrzeit, von der aus er gälte: nichts rechnen.
+  // Aus einem leeren Feld würde sonst 00:00, und daraus „00:30 nach dem Essen".
+  if (!t && !istUhr(um)) return {};
   const basis = t ? t.um : um;
   const patch = {
     ungefaehr: true,
@@ -18491,7 +19032,10 @@ function zeitAusVorlage(s, am, um, tageszeit, bezug) {
  * Wird eine Mahlzeit angelegt, verschoben oder gelöscht, rasten deshalb die
  * ungefähren Einträge desselben Tages mit Bezug zum Essen neu ein: die, deren
  * Tageszeit zur Mahlzeit passt, die an genau dieser Mahlzeit hingen, und die,
- * die noch an keiner hängen. Eine von Hand gesetzte Uhrzeit bleibt, wie sie
+ * die noch an keiner hängen. Ein Eintrag ohne gewählte Tageszeit rastet dabei
+ * nur an einer Mahlzeit der Tageszeit seiner Grundzeit ein (siehe
+ * bezugsMahlzeit) – so hängt das Ergebnis nicht davon ab, welche Mahlzeit
+ * zuerst nachgetragen wird. Eine von Hand gesetzte Uhrzeit bleibt, wie sie
  * ist – die hat jemand gewusst.
  *
  * Zurück kommt der Satz für die Meldung, oder ''. Ein Eintrag, der still
@@ -18525,7 +19069,10 @@ function zeitNeu(s, e) {
   const t = TAGESZEITEN.find((x) => x.id === e.tageszeit);
   if (t) return zeitMitBezug(s, e.am, t.um, e.bezug, t.id);
   // Ohne Tageszeit: an der bisherigen Mahlzeit, solange es sie an diesem Tag
-  // gibt, sonst an der, die ihrer Zeit am nächsten liegt.
+  // gibt, sonst an der, die ihrer Zeit am nächsten liegt – innerhalb der
+  // Tageszeit dieser Zeit. Hing der Eintrag an einer Mahlzeit, die gelöscht
+  // wurde, ist das deren Uhrzeit; er bleibt also in ihrer Tageszeit, statt
+  // ans Mittagessen zu springen, und kommt zurück, wenn sie wieder dasteht.
   const bisher = s.eintraege.find((x) => x.id === e.bezugMahlzeit && x.art === 'essen' && x.am === e.am);
   if (bisher) return { um: uhrVon(minutenVon(bisher.um) + bezug.minuten), bezugMahlzeit: bisher.id };
   return zeitMitBezug(s, e.am, uhrVon(minutenVon(e.um) - bezug.minuten), e.bezug);
@@ -18603,13 +19150,25 @@ function schonEingetragen(m, liste) {
     && gleichText(x.dosis, m.dosis) && (!m.tageszeit || tageszeitVon(x) === m.tageszeit));
 }
 
+/**
+ * Öffnet der Tipp auf dem Tag-Reiter den Bogen, statt einzutragen? An einem
+ * vergangenen Tag ohne übliche Tageszeit – siehe 'standard-eintragen'. Eine
+ * Stelle für Knopf und Handler, damit die Ansage nie etwas anderes sagt, als
+ * der Tipp tut.
+ */
+const mittelImBogen = (m, iso) => iso !== heuteISO() && !TAGESZEITEN.some((x) => x.id === m.tageszeit);
+
 /** Ein Knopf in der Reihe „Meine Mittel" auf dem Tag-Reiter. */
 function standardKnopf(m, liste, iso, alle) {
   const zeit = knopfZeit(m, alle);
   const da = schonEingetragen(m, liste);
   const tag = fmtTag(iso);
   const wann = ['heute', 'gestern'].includes(tag) ? tag : `am ${tag}`;
-  const sagt = `${vorlageVoll(m)} – ${wann} ${da ? 'schon eingetragen' : 'eintragen'}`;
+  // Ein Tipp auf ein Mittel mit Häkchen trägt eine zweite Einnahme ein – das
+  // muss auch die Ansage sagen, wie bei den Aktivitäten.
+  const sagt = mittelImBogen(m, iso)
+    ? `${vorlageVoll(m)} – ${wann}${da ? ' schon eingetragen' : ''}, die Zeit wählst du im Bogen`
+    : `${vorlageVoll(m)} – ${wann} ${da ? 'schon eingetragen, noch einmal eintragen' : 'eintragen'}`;
   // Gekürzt wird der Name, nie die Dosis: „Metoclopramid-ra… 10 mg" ist noch
   // zu erkennen, „Metoclopramid-ratiopharm 1…" nicht mehr zu gebrauchen.
   return `<button type="button" class="marke marke-schnell" data-act="standard-eintragen"
@@ -18633,6 +19192,24 @@ function mittelVorlageVon(s, b) {
 }
 
 /**
+ * Das eigene Mittel, das genau dem Entwurf entspricht – oder null.
+ *
+ * Mit einer von Hand gesetzten Uhrzeit zählen nur Name und Dosis: Eine
+ * genaue Zeit sagt, wann es heute war, nicht, dass das Mittel keine übliche
+ * Zeit mehr hat. Sonst hieß „07:10, dann Pantoprazol · morgens gewählt"
+ * „anders als bei deinen Mitteln", und „Dort so ändern" löschte die übliche
+ * Zeit. Das gewählte zuerst.
+ */
+function gemerktGenau(s, b) {
+  const e = b.entwurf;
+  if (!String(e.mittel || '').trim()) return null;
+  if (e.ungefaehr) return store.standardVon({ mittel: e.mittel, dosis: e.dosis, ...entwurfZeit(e) });
+  const gleich = (x) => gleichText(x.mittel, e.mittel) && gleichText(x.dosis, e.dosis);
+  return s.standardMittel.find((x) => x.id === b.vorlage && gleich(x))
+    || s.standardMittel.find(gleich) || null;
+}
+
+/**
  * Unter der Dosis: merken, oder sagen, dass und wie es schon gemerkt ist.
  *
  * Drei Lagen. Steht es genau so bei den eigenen Mitteln, sagt der Bogen das.
@@ -18646,11 +19223,12 @@ function merkenTeil(s, b) {
   const voll = s.standardMittel.length >= store.STANDARD_HOECHSTENS;
   const schalter = (act, an, text) => `<button type="button" class="btn btn-ghost" data-act="${act}"
       aria-pressed="${an}">${an ? '✓ ' : ''}${text}</button>`;
-  const genau = String(e.mittel || '').trim()
-    ? store.standardVon({ mittel: e.mittel, dosis: e.dosis, ...entwurfZeit(e) }) : null;
+  const genau = gemerktGenau(s, b);
   if (genau) {
     return `<p class="klein">Steht bei deinen Mitteln.
-      ${knopf('standard-entfernen', 'Dort entfernen', 'btn-ghost', `data-id="${esc(genau.id)}"`)}</p>`;
+      ${loeschKnopf('standard-entfernen', genau.id, {
+    normal: 'Dort entfernen', frage: 'Wirklich entfernen?', sagt: `${mittelName(genau)} aus deinen Mitteln nehmen`, klasse: 'btn btn-ghost',
+  })}</p>`;
   }
   const ref = mittelVorlageVon(s, b);
   if (ref) {
@@ -19027,7 +19605,7 @@ function bogenHTML(s) {
           || (z.tageszeit === (m.tageszeit || null) && z.bezug === (m.bezug || null)));
         return `<button type="button" class="marke${an ? ' an' : ''}" data-act="standard-waehlen"
                 data-id="${esc(m.id)}" aria-pressed="${an}">${esc(mittelName(m))}${vorlageText(m)
-  ? `<span class="marke-zahl">${esc(vorlageText(m))}</span>` : ''}</button>`;
+  ? ` <span class="marke-zahl">${esc(vorlageText(m))}</span>` : ''}</button>`;
       }).join('')}</div>` : '';
     // Immer da, nicht erst mit einem Namen im Feld – und beim Tippen von
     // merkenAuffrischen() nachgeführt, ohne den Bogen neu zu zeichnen.
@@ -19059,9 +19637,12 @@ function bogenHTML(s) {
      * Was dieser Eintrag trägt, aber nicht mehr zur Auswahl steht – eine
      * unter „Mehr" entfernte eigene –, bleibt sichtbar und lässt sich
      * abwählen. Sonst verschwände es beim Ändern still aus dem Eintrag.
+     *
+     * „Dazu" trägt eine Kennung: Daran hält das Neuzeichnen den Fokus, der
+     * sonst an den Anfang der Seite fiele.
      */
     const zaehler = aktivitaetHaeufigkeit(s.eintraege);
-    const eigene = (s.eigeneAktivitaeten || []).map((a) => ({ ...a, icon: '•' }));
+    const eigene = sichtbareEigene(s.eigeneAktivitaeten).map((a) => ({ ...a, icon: '•' }));
     const auswahl = [...AKTIVITAETEN, ...eigene]
       .map((m, i) => ({ m, i, n: zaehler.get(m.id) || 0 }))
       .sort((x, y) => (y.n - x.n) || (x.i - y.i))
@@ -19069,7 +19650,7 @@ function bogenHTML(s) {
     const gewaehlt = e.aktivitaeten || [];
     const fremd = gewaehlt.filter((id) => !auswahl.some((m) => m.id === id))
       .map((id) => aktivitaetVon(id, s.eigeneAktivitaeten));
-    const voll = (s.eigeneAktivitaeten || []).length >= store.AKTIV_HOECHSTENS;
+    const voll = sichtbareEigene(s.eigeneAktivitaeten).length >= store.AKTIV_HOECHSTENS;
     mitte = `
       <p class="feld-name">Was hast du gemacht, wo warst du?</p>
       ${marken([...auswahl, ...fremd], gewaehlt, 'aktiv-wahl')}
@@ -19078,7 +19659,7 @@ function bogenHTML(s) {
         <input type="text" class="feld" id="bogenAktivNeu" data-act="aktiv-name"
                maxlength="${store.AKTIV_NAME_MAX}" value="${esc(b.aktivName || '')}"
                placeholder="Eigene, z. B. Klettern" autocomplete="off" aria-label="Eigene Aktivität">
-        ${knopf('aktiv-eigen', 'Dazu')}
+        ${knopf('aktiv-eigen', 'Dazu', '', 'id="bogenAktivDazu"')}
       </div>`}
       ${b.id ? '' : `<p class="klein">Auswärts gegessen?
         <button type="button" class="link-knopf" data-act="aktiv-auswaerts">Als Mahlzeit eintragen</button>
@@ -19453,8 +20034,12 @@ function bogenSpeichern() {
    */
   let gemerkt = '';
   if (b.art === 'medikament' && (b.alsStandard || b.vorlageAendern)) {
-    const vorlage = { mittel: e.mittel, dosis: e.dosis, ...entwurfZeit(e) };
     const ref = b.vorlageAendern ? mittelVorlageVon(store.zustandLesen(), b) : null;
+    // Mit genauer Uhrzeit behält das geänderte Mittel seine übliche Zeit –
+    // siehe gemerktGenau(). „Als mein Mittel merken" merkt dann ohne Zeit.
+    const zeit = ref && !e.ungefaehr
+      ? { tageszeit: ref.tageszeit || null, bezug: ref.bezug || null } : entwurfZeit(e);
+    const vorlage = { mittel: e.mittel, dosis: e.dosis, ...zeit };
     const r = ref ? store.standardAendern(ref.id, vorlage) : store.standardMerken(vorlage);
     if (r.fehler === 'voll') gemerkt = 'voll';
     else if (r.schon || r.fehler === 'doppelt') gemerkt = 'schon';
@@ -19580,11 +20165,15 @@ function aktivEigenDazu() {
     return 'leer';
   }
   const s = store.zustandLesen();
-  const da = [...AKTIVITAETEN, ...(s.eigeneAktivitaeten || [])]
-    .find((a) => a.name.toLowerCase() === name.toLowerCase());
+  const gleich = (a) => a.name.toLowerCase() === name.toLowerCase();
+  const da = [...AKTIVITAETEN, ...sichtbareEigene(s.eigeneAktivitaeten)].find(gleich);
   let id = da ? da.id : null;
   if (!id) {
-    const r = store.aktivitaetAnlegen(eigeneAktivitaetId(name), name);
+    // Eine früher entfernte mit diesem Namen kommt mit ihrer Kennung zurück –
+    // ihre alten Einträge gehören dann wieder zu ihr. Sonst eine Kennung, die
+    // noch keinem anderen Namen gehört (siehe freieAktivitaetId).
+    const weg = (s.eigeneAktivitaeten || []).find((a) => a.ausgeblendet && gleich(a));
+    const r = store.aktivitaetAnlegen(weg ? weg.id : freieAktivitaetId(name, s.eigeneAktivitaeten), name);
     if (r.fehler === 'voll') {
       melden(`Mehr als ${store.AKTIV_HOECHSTENS} eigene Aktivitäten passen nicht. Unter „Mehr“ kannst du eine entfernen.`);
       return 'voll';
@@ -19595,7 +20184,8 @@ function aktivEigenDazu() {
   b.aktivName = '';
   const liste = b.entwurf.aktivitaeten || [];
   entwurf({ aktivitaeten: liste.includes(id) ? liste : [...liste, id] });
-  melden(da ? `„${da.name}“ gibt es schon – ausgewählt.` : `„${name}“ steht jetzt in deiner Auswahl.`);
+  const hiess = aktivitaetName(id, store.zustandLesen().eigeneAktivitaeten);
+  melden(da ? `„${da.name}“ gibt es schon – ausgewählt.` : `„${hiess}“ steht jetzt in deiner Auswahl.`);
   return id;
 }
 
@@ -19736,12 +20326,17 @@ const AKTION = {
   // Mahlzeit nimmt nichts mit: Was an ihr hing, rastet an einer anderen
   // Mahlzeit dieser Tageszeit ein oder rechnet mit der Tageszeit selbst.
   loeschen: (el) => {
-    if (zweiterTipp(el)) eintragWeg(el.dataset.id);
+    if (!zweiterTipp(el)) return;
+    const fokus = document.activeElement === el;
+    eintragWeg(el.dataset.id);
+    fokusNachEntfernen(fokus);
   },
   'bogen-loeschen': (el) => {
     if (!zweiterTipp(el)) return;
+    const fokus = document.activeElement === el;
     ui.bogen = null;
     eintragWeg(el.dataset.id);
+    fokusNachEntfernen(fokus);
   },
   // Den gelöschten Eintrag zurück, und was beim Löschen mitgerückt ist, wenn
   // es seitdem noch so dasteht. Der Tag springt dorthin, wo er wieder steht.
@@ -19758,6 +20353,11 @@ const AKTION = {
     ui.tag = eintrag.am;
     melden('Zurückgeholt.');
     zeichne();
+    // Der Fokus auf die zurückgeholte Zeile – dort ist man gerade.
+    setTimeout(() => {
+      const z = viewEl.querySelector(`[data-act="bearbeiten"][data-id="${CSS.escape(eintrag.id)}"]`);
+      if (z) z.focus({ preventScroll: true });
+    }, 0);
   },
   'bogen-zu': () => { ui.bogen = null; frageEnde(); zeichne(); },
   /*
@@ -19795,29 +20395,34 @@ const AKTION = {
     zeichne();
   },
   'standard-entfernen': (el) => {
-    store.standardEntfernen(el.dataset.id);
-    melden('Aus deinen Mitteln genommen. Die Einträge bleiben.');
+    if (!zweiterTipp(el)) return;
+    const weg = store.standardEntfernen(el.dataset.id);
+    ui.entfernt = weg ? { art: 'mittel', weg } : null;
+    melden('Aus deinen Mitteln genommen. Die Einträge bleiben.',
+      weg ? { act: 'entfernt-zurueck', text: 'Rückgängig' } : null);
     zeichne();
   },
   /*
    * Ein Tipp auf dem Tag-Reiter: das Mittel mit Dosis und üblicher Zeit an
-   * diesem Tag eintragen. Fehlt eine übliche Zeit und ist der Tag nicht
+   * diesem Tag eintragen. Fehlt eine übliche Tageszeit und ist der Tag nicht
    * heute, öffnet sich stattdessen der Bogen – eine erfundene Mittagszeit
-   * für gestern wäre schlechter als ein Tipp auf „morgens".
+   * für gestern wäre schlechter als ein Tipp auf „morgens". Die Uhrzeit
+   * bleibt dort leer: Eine vorbelegte 12:00 wäre die bequemste Antwort, mit
+   * einem Tipp gespeichert, und zwar als genaue Zeit (siehe zeitFehler).
    */
   'standard-eintragen': (el) => {
     const s = store.zustandLesen();
     const m = s.standardMittel.find((x) => x.id === el.dataset.id);
     if (!m) return;
     const am = ui.tag;
-    const zeit = zeitAusVorlage(s, am, am === heuteISO() ? jetztUhr() : '12:00', m.tageszeit, m.bezug);
-    if (!zeit.um && am !== heuteISO()) {
+    if (mittelImBogen(m, am)) {
       bogenOeffnen('medikament');
       ui.bogen.vorlage = m.id;
-      entwurf({ mittel: m.mittel, dosis: m.dosis });
+      entwurf({ mittel: m.mittel, dosis: m.dosis, um: '', bezug: m.bezug || null });
       melden('An welchem Teil des Tages? Unter der Uhrzeit antippen.');
       return;
     }
+    const zeit = zeitAusVorlage(s, am, am === heuteISO() ? jetztUhr() : '', m.tageszeit, m.bezug);
     delete zeit.bezugBasis;
     store.eintragen({
       art: 'medikament', am, um: zeit.um || jetztUhr(), mittel: m.mittel, dosis: m.dosis, ...zeit,
@@ -19826,8 +20431,16 @@ const AKTION = {
     melden(`${mittelName(m)} eingetragen${zeit.ungefaehr ? ` (≈${zeit.um})` : ''}.`);
     zeichne();
   },
-  // Vom Hinweis auf dem Tag-Reiter direkt zur Karte unter „Mehr", das
-  // Formular für ein neues Mittel gleich offen.
+  /*
+   * Vom Hinweis auf dem Tag-Reiter direkt zur Karte unter „Mehr", das
+   * Formular für ein neues Mittel gleich offen.
+   *
+   * Unter die feststehende Kopfleiste gerechnet, nicht bloß an den oberen
+   * Rand: Dort läge die Überschrift „Meine Mittel" unter ihr, und man sähe
+   * ein Formular mitten in einem Text. Gemessen statt geschätzt, denn mit
+   * größerer Schrift bricht die Kopfleiste um. Der Fokus geht danach ins
+   * Namensfeld, ohne die Seite noch einmal zu verschieben.
+   */
   'meine-mittel-zeigen': () => {
     store.einstellen('tab', 'mehr');
     Object.assign(ui, { bericht: null, sicherung: null, mittel: false, anleitung: false });
@@ -19835,12 +20448,17 @@ const AKTION = {
     zeichne();
     setTimeout(() => {
       const karte = document.getElementById('meineMittel');
-      if (karte) karte.scrollIntoView({ block: 'start' });
+      if (!karte) return;
+      const leiste = document.querySelector('.topbar');
+      const oben = leiste ? leiste.getBoundingClientRect().bottom : 0;
+      window.scrollTo(0, Math.max(0, karte.getBoundingClientRect().top + window.scrollY - oben - 8));
+      mittelFeldFokus();
     }, 0);
   },
   'meinmittel-neu': () => {
     ui.mittelForm = { id: null, mittel: '', dosis: '', tageszeit: null, bezug: null };
     zeichne();
+    mittelFeldFokus();
   },
   'meinmittel-aendern': (el) => {
     const m = store.zustandLesen().standardMittel.find((x) => x.id === el.dataset.id);
@@ -19849,12 +20467,19 @@ const AKTION = {
       id: m.id, mittel: m.mittel, dosis: m.dosis || '', tageszeit: m.tageszeit || null, bezug: m.bezug || null,
     };
     zeichne();
+    mittelFeldFokus();
   },
+  // Zwei Tipps und „Rückgängig", wie bei den eigenen Aktivitäten.
   'meinmittel-weg': (el) => {
-    store.standardEntfernen(el.dataset.id);
+    if (!zweiterTipp(el)) return;
+    const fokus = document.activeElement === el;
+    const weg = store.standardEntfernen(el.dataset.id);
     if (ui.mittelForm && ui.mittelForm.id === el.dataset.id) ui.mittelForm = null;
-    melden('Aus deinen Mitteln genommen. Die Einträge bleiben.');
+    ui.entfernt = weg ? { art: 'mittel', weg } : null;
+    melden('Aus deinen Mitteln genommen. Die Einträge bleiben.',
+      weg ? { act: 'entfernt-zurueck', text: 'Rückgängig' } : null);
     zeichne();
+    fokusNachEntfernen(fokus);
   },
   // Ein zweiter Tipp nimmt die Wahl zurück – „ohne feste Zeit" ist eine
   // zulässige Antwort.
@@ -19912,9 +20537,16 @@ const AKTION = {
     }
     // Gerechnet wird von der Zeit vor dem ersten Bezug aus. Sonst wanderte die
     // Uhrzeit bei „vor" und dann „nach" jedes Mal eine halbe Stunde weiter.
-    // Mit gewählter Tageszeit nur an einer Mahlzeit dieser Tageszeit.
+    // Mit gewählter Tageszeit nur an einer Mahlzeit dieser Tageszeit, sonst
+    // an einer der Tageszeit der Uhrzeit (siehe bezugsMahlzeit).
     const t = TAGESZEITEN.find((x) => x.id === e.tageszeit);
     const basis = e.bezugBasis || (t ? t.um : e.um);
+    // Ohne Tageszeit und ohne Uhrzeit gibt es nichts, wovon aus „vor dem
+    // Essen" gälte – aus dem leeren Feld würde sonst 00:30.
+    if (!t && !istUhr(basis)) {
+      melden('Erst „morgens“, „mittags“ oder „abends“ antippen oder eine Uhrzeit wählen – dann vor, beim oder nach dem Essen.');
+      return;
+    }
     entwurf({
       bezug: el.dataset.id,
       ungefaehr: true,
@@ -19967,10 +20599,11 @@ const AKTION = {
       ...(v.auswaerts ? { auswaerts: true } : {}),
     };
     // Für einen vergangenen Tag kein „jetzt": der Bogen, vorgefüllt, und die
-    // Zeit mit einem Knopf.
+    // Zeit mit einem Knopf. Leer, nicht 12:00 – sonst stünde nach einem
+    // eiligen „Eintragen" ein Frühstück genau um zwölf da.
     if (ui.tag !== heuteISO()) {
       bogenOeffnen('essen');
-      entwurf(mahlzeit);
+      entwurf({ ...mahlzeit, um: '' });
       melden('Wann war das? Unter der Uhrzeit antippen.');
       return;
     }
@@ -20018,16 +20651,32 @@ const AKTION = {
   /*
    * Auswärts gegessen gehört zur Mahlzeit (siehe js/aktivitaet.js, warum).
    * Der Weg dorthin nimmt Tag und Zeit mit, damit niemand sie zweimal wählt.
+   *
+   * Was im Aktivitätsbogen schon gewählt oder getippt ist – „Feier/Ausgehen"
+   * und auswärts essen fallen oft zusammen –, wird vorher eingetragen, auf
+   * demselben Weg wie mit „Eintragen", und die Meldung sagt das. Früher
+   * verschwand es still mit dem Bogen. Scheitert das Eintragen (keine Zeit,
+   * Liste voll), bleibt der Bogen mit seiner Meldung stehen.
    */
   'aktiv-auswaerts': () => {
     const b = ui.bogen;
     if (!b) return;
     const { am, um, ungefaehr, tageszeit } = b.entwurf;
     const zeitGesetzt = b.zeitGesetzt;
+    let namen = [];
+    if ((b.entwurf.aktivitaeten || []).length || String(b.aktivName || '').trim()) {
+      bogenSpeichern();
+      if (ui.bogen) return;
+      // Der Entwurf trägt danach auch den getippten Namen (aktivEigenDazu).
+      const eigene = store.zustandLesen().eigeneAktivitaeten;
+      namen = (b.entwurf.aktivitaeten || []).map((id) => aktivitaetName(id, eigene));
+    }
     bogenOeffnen('essen');
     entwurf({ am, um, auswaerts: true, ...(ungefaehr ? { ungefaehr: true, tageszeit: tageszeit || null } : {}) });
     ui.bogen.zeitGesetzt = !!zeitGesetzt;
-    melden('Als Mahlzeit, mit „Auswärts gegessen“ – so zählt es bei den Auslösern.');
+    melden(namen.length
+      ? `${namen.join(' · ')} eingetragen – jetzt die Mahlzeit, mit „Auswärts gegessen“.`
+      : 'Als Mahlzeit, mit „Auswärts gegessen“ – so zählt es bei den Auslösern.');
   },
   /*
    * Ein Tipp in der Reihe „Zuletzt gemacht": heute mit der jetzigen Uhrzeit
@@ -20042,7 +20691,8 @@ const AKTION = {
     const a = aktivitaetVon(id, s.eigeneAktivitaeten);
     if (ui.tag !== heuteISO()) {
       bogenOeffnen('aktivitaet');
-      entwurf({ aktivitaeten: [id] });
+      // Ohne Uhrzeit, wie bei „Noch mal wie immer" – siehe dort.
+      entwurf({ aktivitaeten: [id], um: '' });
       melden('Wann war das? Unter der Uhrzeit antippen.');
       return;
     }
@@ -20053,23 +20703,44 @@ const AKTION = {
   },
   'aktiv-neu': () => {
     const feld = document.getElementById('neueAktivitaet');
-    const name = String((feld && feld.value) || '').trim();
+    const name = String((feld && feld.value) || '').trim().slice(0, store.AKTIV_NAME_MAX);
     if (!name) { melden('Kein Name eingegeben.'); return; }
-    const da = AKTIVITAETEN.find((a) => a.name.toLowerCase() === name.toLowerCase());
+    const s = store.zustandLesen();
+    const gleich = (a) => a.name.toLowerCase() === name.toLowerCase();
+    const da = [...AKTIVITAETEN, ...sichtbareEigene(s.eigeneAktivitaeten)].find(gleich);
     if (da) { melden(`„${da.name}“ steht schon in der Auswahl.`); return; }
-    const r = store.aktivitaetAnlegen(eigeneAktivitaetId(name), name);
+    const weg = (s.eigeneAktivitaeten || []).find((a) => a.ausgeblendet && gleich(a));
+    const r = store.aktivitaetAnlegen(weg ? weg.id : freieAktivitaetId(name, s.eigeneAktivitaeten), name);
     if (r.fehler === 'voll') {
       melden(`Mehr als ${store.AKTIV_HOECHSTENS} eigene Aktivitäten passen nicht. Entferne erst eine.`);
       return;
     }
     if (r.fehler) { melden('Kein Name eingegeben.'); return; }
     if (feld) feld.value = '';
-    melden(r.schon ? 'Die gibt es schon.' : `„${name.slice(0, store.AKTIV_NAME_MAX)}“ steht jetzt zur Auswahl.`);
+    melden(`„${aktivitaetName(r.id, store.zustandLesen().eigeneAktivitaeten)}“ steht jetzt zur Auswahl.`);
     zeichne();
   },
+  /*
+   * Entfernen wie Löschen im Strang: Der erste Tipp fragt, der zweite nimmt
+   * aus der Auswahl – und „Rückgängig" holt zurück. Das × steht gleich neben
+   * anderen Knöpfen, ein Tipp daneben hätte sonst still etwas entfernt.
+   */
   'aktiv-weg': (el) => {
-    store.aktivitaetEntfernen(el.dataset.id);
-    melden('Aus der Auswahl genommen. Die Einträge damit bleiben.');
+    if (!zweiterTipp(el)) return;
+    const id = el.dataset.id;
+    const fokus = document.activeElement === el;
+    store.aktivitaetEntfernen(id);
+    ui.entfernt = { art: 'aktiv', id };
+    melden('Aus der Auswahl genommen. Die Einträge damit bleiben.', { act: 'entfernt-zurueck', text: 'Rückgängig' });
+    zeichne();
+    fokusNachEntfernen(fokus);
+  },
+  'entfernt-zurueck': () => {
+    const w = ui.entfernt;
+    if (!w) return;
+    ui.entfernt = null;
+    const ok = w.art === 'aktiv' ? store.aktivitaetZurueck(w.id) : store.standardZurueck(w.weg);
+    melden(ok ? 'Zurückgeholt.' : 'Ging nicht – die Liste ist inzwischen voll oder es steht schon da.');
     zeichne();
   },
 
@@ -20792,6 +21463,9 @@ function eingabe(ev) {
       }, false);
       if (ui.bogen) ui.bogen.zeitGesetzt = true;
       feldFehler(el, false);
+      // Was unter der Dosis steht, hängt an der Zeit (siehe gemerktGenau) –
+      // es soll nicht erst beim nächsten Neuzeichnen stimmen.
+      if (ev.type === 'input') merkenAuffrischen();
       break;
     case 'bogen-datum':
       entwurf({ am: wert }, false);

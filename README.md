@@ -57,9 +57,14 @@ Stunde davor, „beim Essen" zehn Minuten nach Beginn. Ist eine Tageszeit
 gewählt, kommen nur Mahlzeiten dieser Tageszeit in Frage – morgens bis 11 Uhr,
 mittags bis 15 Uhr, abends danach –, damit „abends, nach dem Essen" nicht am
 Frühstück einrastet. Steht dort noch keine, rechnet der Bogen mit der
-Tageszeit und sagt das. Ohne gewählte Tageszeit gilt die nächste Mahlzeit des
-Tages. Solche Einträge stehen in der Liste als „≈ 19:40 · abends, nach dem
-Essen", und eine von Hand gesetzte Uhrzeit macht sie wieder genau.
+Tageszeit und sagt das. Ohne gewählte Tageszeit gilt still die Tageszeit der
+Uhrzeit: „nach dem Essen" um 20:30 rastet am Abendessen ein, nicht am
+Frühstück; steht um diese Zeit noch keine Mahlzeit, rechnet der Bogen mit der
+Uhrzeit (nachts nur mit einer Mahlzeit höchstens drei Stunden entfernt). Ohne
+Uhrzeit und ohne Tageszeit rechnet „nach dem Essen" nichts aus, sondern bittet
+um eine Tageszeit – aus dem leeren Feld würde sonst 00:30. Solche Einträge
+stehen in der Liste als „≈ 19:40 · abends, nach dem Essen", und eine von Hand
+gesetzte Uhrzeit macht sie wieder genau.
 
 **In beliebiger Reihenfolge nachtragen.** Wer abends den Tag nachträgt, trägt
 die Tablette „morgens, vor dem Essen" vielleicht vor dem Frühstück ein. Wird
@@ -68,8 +73,13 @@ ungefähren Einträge desselben Tages mit Bezug zum Essen neu ein – die der
 passenden Tageszeit, die an genau dieser Mahlzeit hingen und die, die noch an
 keiner hingen –, und die App meldet es („1 Eintrag an die Mahlzeit
 angepasst."). Ist die Mahlzeit gelöscht, geht es an eine andere Mahlzeit
-dieser Tageszeit oder zurück an die Tageszeit. Genau gesetzte Uhrzeiten
-bleiben, wie sie sind. Wird im Bogen nach einem Zeitknopf das Datum geändert,
+dieser Tageszeit oder zurück an die Tageszeit. Ein Eintrag ohne gewählte
+Tageszeit rastet dabei nur an einer Mahlzeit der Tageszeit seiner Uhrzeit ein:
+Die Morgentablette springt nicht ans Abendessen, wenn das zuerst nachgetragen
+wird, und nicht ans Mittagessen, wenn das Frühstück gelöscht wird – mit dem
+neuen Frühstück kommt sie zurück. So hängt das Ergebnis nicht davon ab, in
+welcher Reihenfolge nachgetragen wird. Genau gesetzte Uhrzeiten bleiben, wie
+sie sind. Wird im Bogen nach einem Zeitknopf das Datum geändert,
 rechnet er die Zeit für den neuen Tag neu.
 
 **Ändern und löschen.** Jeder Eintrag lässt sich nachträglich ändern, auch
@@ -79,7 +89,12 @@ um ihn zu ändern."), und unter „Mehr" › „Anleitung" steht es auch. Der Bo
 heißt dann „Kopfschmerz ändern", der Knopf unten „Ändern"; für VoiceOver heißt
 jede Zeile „Kopfschmerz, Stärke 6, um 10:15 ändern" und ihr × „… löschen".
 Gelöscht wird mit zwei Tipps: Das × fragt erst „Löschen?" und fällt nach vier
-Sekunden zurück, erst der zweite Tipp löscht. Im geöffneten Eintrag geht
+Sekunden zurück, erst der zweite Tipp löscht. „Löschen?" legt sich dabei nach
+links über die Zeile, statt Platz zu nehmen: So bricht der Text daneben nicht
+neu um, die Zeile bleibt gleich hoch, und der zweite Tipp an derselben Stelle
+trifft auch auf einem schmalen iPhone. Hatte das × den Fokus (Tastatur,
+VoiceOver), steht er danach auf „Rückgängig" und nach dem Zurückholen auf der
+Zeile – nicht am Anfang der Seite. Im geöffneten Eintrag geht
 dasselbe über „Eintrag löschen". Danach steht acht Sekunden lang „Gelöscht."
 mit **Rückgängig**. Das holt den Eintrag mit derselben Kennung zurück und, war
 es eine Mahlzeit, auch die ungefähren Einträge, die beim Löschen an die
@@ -100,7 +115,8 @@ Anlegen – nicht von der schon verschobenen Uhrzeit.
 **Meine Mittel.** Die Mittel, die man regelmäßig nimmt, mit Dosis und
 üblicher Zeit („morgens, vor dem Essen"). Angelegt werden sie unter „Mehr" ›
 „Meine Mittel" – dort auch geändert und entfernt, ohne dass dabei eine
-Einnahme entsteht – oder im Medikamenten-Bogen mit „Als mein Mittel merken";
+Einnahme entsteht; Entfernen geht wie Löschen mit zwei Tipps und lässt sich
+rückgängig machen – oder im Medikamenten-Bogen mit „Als mein Mittel merken";
 dann meldet die App „Eingetragen und bei deinen Mitteln gemerkt." Solange
 keins angelegt ist, sagt der Tag-Reiter in einem Satz, wo das geht. Name,
 Dosis und übliche Zeit gehören zusammen: Dasselbe Mittel morgens und abends
@@ -110,15 +126,22 @@ Mittel an diesem Tag ein, mit Dosis, und die übliche Zeit rastet an der
 Mahlzeit dieses Tages ein. Bei langen Namen wird der Name gekürzt, nie die
 Dosis. Ein Häkchen zeigt, was an diesem Tag schon steht – nach Name, Dosis
 und, wenn es eine hat, Tageszeit; ein zweiter Tipp legt trotzdem einen
-zweiten Eintrag an. Ohne übliche Zeit trägt ein Tipp heute mit der jetzigen
-Uhrzeit ein; für einen anderen Tag öffnet sich stattdessen der Bogen, statt
-eine Mittagszeit zu erfinden.
+zweiten Eintrag an; VoiceOver sagt dann „schon eingetragen, noch einmal
+eintragen". Ohne übliche Tageszeit trägt ein Tipp heute mit der jetzigen
+Uhrzeit ein; für einen anderen Tag öffnet sich stattdessen der Bogen, mit
+leerer Uhrzeit statt einer erfundenen Mittagszeit – ohne Zeitwahl wird nichts
+gespeichert –, und die Ansage sagt das.
 
 Im Bogen füllt ein Tipp auf ein eigenes Mittel Name und Dosis, die übliche
 Zeit aber nur, wenn noch keine gewählt ist – wer schon „abends" getippt hat,
 hat es abends genommen. Weicht die Eingabe vom gemerkten Mittel ab, sagt der
 Bogen das und bietet „Dort so ändern" (etwa nach einer neuen Dosis) oder
-„Zusätzlich merken" an. „Dazu genommen?" beim Kopfschmerz nimmt die Dosis aus
+„Zusätzlich merken" an. Eine von Hand gesetzte Uhrzeit gilt dabei nicht als
+Abweichung – sie sagt, wann es heute war, nicht, dass das Mittel keine übliche
+Zeit mehr hat; „Dort so ändern" behält dann die übliche Zeit. Liest man eine
+ältere Sicherung ein, in der dasselbe Mittel (dieselbe Kennung) noch mit der
+alten Zeit steht, gilt, was hier steht; schon doppelt gespeicherte Kennungen
+heilen beim Laden. „Dazu genommen?" beim Kopfschmerz nimmt die Dosis aus
 den eigenen Mitteln mit, bei mehreren Dosen die zuletzt eingetragene. Mehr als
 zwölf eigene Mittel passen nicht; das sagt die App, statt eins still nicht zu
 merken. Eine Sicherung bringt sie mit, und ein Tagebuch, in dem bisher nur
@@ -179,21 +202,29 @@ einen Bogen mit diesen Marken, nach Häufigkeit sortiert, mehrere zugleich
 wählbar („Unterwegs" und „Feier" am selben Abend sind ein Eintrag). Was fehlt,
 legt man im Bogen mit „Dazu" an oder unter „Mehr" › „Eigene Aktivitäten";
 ein getippter, aber nicht übernommener Name wird beim Eintragen trotzdem
-angelegt, ein Name, den es schon gibt, nur ausgewählt. Dazu die Zeitknöpfe
+angelegt, ein Name, den es schon gibt, nur ausgewählt. Namen in jeder Schrift
+werden eigene Aktivitäten („Йога" und „Бег" sind zwei, „Café" und „Caf"
+auch); ein Name ganz ohne Buchstaben bekommt eine freie Kennung, statt still
+unter einem anderen zu landen. Dazu die Zeitknöpfe
 „morgens · mittags · abends" (ohne Bezug zum Essen), freiwillig „Wie
 anstrengend?" in drei Stufen und eine Notiz. Ändern und Löschen wie bei jeder
 anderen Art. Auf „Tag" stehen die zuletzt benutzten Aktivitäten als Reihe
 „Zuletzt gemacht" – heute trägt ein Tipp mit der jetzigen Uhrzeit ein, an
-einem vergangenen Tag öffnet er den Bogen vorgefüllt; ein Häkchen zeigt, was
-an diesem Tag schon steht. Die Reihe wird aus den Einträgen gelesen und
-nirgends gespeichert; eine unter „Mehr" entfernte eigene Aktivität fehlt
-darin, ihre Einträge behalten den Namen.
+einem vergangenen Tag öffnet er den Bogen vorgefüllt, mit leerer Uhrzeit (ohne
+Zeitwahl wird nichts gespeichert); ein Häkchen zeigt, was an diesem Tag schon
+steht. Die Reihe wird aus den Einträgen gelesen und nirgends gespeichert; eine
+unter „Mehr" entfernte eigene Aktivität fehlt darin. Entfernen geht mit zwei
+Tipps und lässt sich rückgängig machen; die Aktivität bleibt dabei als
+ausgeblendet im Speicher, damit ihre Einträge ihren Namen behalten – samt
+Umlaut. Wer sie neu anlegt, holt sie zurück. Die Sicherung trägt das mit.
 
 „Auswärts gegessen" ist keine Aktivität, sondern ein Umstand der Mahlzeit,
 wie die große Portion und die späte Stunde: Es geht als Merkmal in die
 Auslöserbilanz ein, mit dem Fenster nach dem Essen und gegen die Mahlzeiten zu
 Hause. Der Aktivitätsbogen hat dafür den Weg „Als Mahlzeit eintragen", der
-Tag und Zeit mitnimmt. Umstände werden nie als „Heute eher ohne …" geraten,
+Tag und Zeit mitnimmt. Was dort schon gewählt oder getippt ist – „Feier" und
+auswärts essen fallen oft zusammen –, wird vorher eingetragen, und die Meldung
+sagt das („Feier/Ausgehen eingetragen – jetzt die Mahlzeit …"). Umstände werden nie als „Heute eher ohne …" geraten,
 nie als Auslassversuch vorgeschlagen und bekommen kein „Wie viel davon?".
 
 Eine Aktivität ist ein Eintrag mit Uhrzeit, aber über den Körper sagt sie
@@ -216,13 +247,22 @@ wird nicht mit anderen Aktivitäten, sondern mit **denselben Stunden an Tagen
 ohne sie**, ab der mittleren Uhrzeit der Aktivität: Wer abends trainiert, wird
 mit seinen Abenden ohne Training verglichen. Nicht gezählt werden Tage ohne
 Angabe zum Bauch (beim Kopf: ohne jede Angabe, auch am Tag danach), Fenster,
-die noch laufen, Aktivitäten mit ungeklärter Reihenfolge zur Beschwerde,
-Kopffenster mit einem Kopfschmerz schon vorher, Vergleichsfenster mit der
-Aktivität darin oder kurz davor – und Vergleichstage vor dem ersten Eintrag
-dieser Aktivität oder nach dem letzten Tag mit irgendeiner Aktivität, weil dort
-unbekannt ist, ob sie stattfand. Die Mindestzahl ist die der Auslöser (Vorgabe
-fünf je Seite), beim Kopf zwölf; dazu der Zufallsspielraum mit der Zahl der
-Vergleiche. Darunter steht die Aktivität unter „Zählt noch". Kein Rat, nur
+die noch laufen, Kopffenster mit einem Kopfschmerz schon vorher,
+Vergleichsfenster mit der Aktivität darin oder kurz davor – und Vergleichstage
+vor dem ersten Eintrag dieser Aktivität oder nach dem letzten Tag mit
+irgendeiner Aktivität, weil dort unbekannt ist, ob sie stattfand. Ist offen,
+ob eine Beschwerde vor oder nach der Aktivität kam (eins von beiden nur mit
+„abends"), zählt sie als danach – auf beiden Seiten gleich: Die Vergleichszeit
+gilt dann als genauso ungefähr, und der Satz sagt, bei wie vielen Fällen nur
+die Tageszeit feststeht. Früher fiel ein solcher Abend nur auf der Seite mit
+der Aktivität heraus, und jede Knopf-Aktivität sah danach schützend aus. Beim
+Kopf zählt jeder Tag mit der Aktivität einmal, auch wenn sie zweimal
+eingetragen ist; beim Bauch ist ein Vorkommen im Fenster des vorigen kein
+eigener Fall. Die Mindestzahl ist die der Auslöser (Vorgabe fünf je Seite),
+beim Kopf zwölf Tage; dazu der Zufallsspielraum mit der Zahl der Vergleiche.
+Darunter steht die Aktivität unter „Zählt noch" – mit der Seite, die fehlt:
+Bei einer fast täglichen Aktivität sind das die Tage ohne sie („0 von 5 Tagen
+ohne"), nicht „40 von 5". Kein Rat, nur
 Zahlen mit Fallzahl und der Satz, dass es eine Häufigkeit ist, keine Ursache.
 Der Bericht hat in der Übersicht die Zahl der Aktivitäten und einen Abschnitt
 „NACH AKTIVITÄTEN" mit je einer Zeile für Bauch und Kopf, nur mit genug
@@ -538,6 +578,13 @@ der Zählung der Akutmittel-Tage. Ein Mittel zur selben Zeit übernimmt die neue
 Zeit, eins mit eigener Uhrzeit wechselt nur den Tag. Wird der Kopfschmerz
 gelöscht, bleiben seine Mittel, und die Meldung sagt das: Genommen ist
 genommen.
+
+Für den Bauch sagt ein solches Mittel so wenig wie der Kopfschmerz selbst: Ein
+Tag mit Kopfschmerz und „Dazu genommen: Ibuprofen" bleibt für den Bauch eine
+Lücke und wird kein „Bauch beschwerdefrei" – in Verlauf, Serie, Kriterien,
+Stuhlgang, Zeitprofil und Provokationstest gleich (`zaehltFuerBauch()` in
+`js/wasser.js`). Für den Kopf und bei den Akutmittel-Tagen zählt es weiter. Ein
+frei eingetragenes Mittel macht einen Tag wie bisher zu einem notierten.
 
 Die **Warnzeichen des Kopfes** stehen in derselben Liste wie die des Bauches,
 damit Warnkarte und Bericht sie finden – aber der Bauchbogen bietet sie nicht
@@ -1081,7 +1128,13 @@ Mittel reagiert wurde und in wie *vielen* Durchgängen überhaupt. Dreimal
 mittelmäßig ist ein anderer Befund als einmal heftig und zweimal gar nichts,
 auch wenn der Mittelwert derselbe ist — und der zweite Fall ist der häufigere.
 Er heißt hier „mal so, mal so", und die Folgerung daraus ist nicht Weglassen,
-sondern ein zweiter Satz Durchgänge mit einer kleineren Menge.
+sondern ein zweiter Satz Durchgänge mit einer kleineren Menge. Reagiert dagegen
+mehr als die Hälfte der Durchgänge, ohne dass der Unterschied schon über den
+Zufallsspielraum hinausgeht, heißt es „deutet sich an": kein „bestätigt sich",
+und erst recht kein „kein Unterschied". Dann bleibt der Test offen, und die
+App schlägt abwechselnd einen weiteren Durchgang und einen weiteren
+Leerdurchgang vor. Wird ein Durchgang verworfen, nennt der Satz den Grund, der
+wirklich dahintersteht – gegessen oder zu dicht am vorigen.
 
 **Ein geplanter Test darf einen kleineren Unterschied ernst nehmen als ein Fund
 im Tagebuch.** Das ist kein Nachlassen, sondern der eigentliche Gewinn des
@@ -1295,12 +1348,29 @@ Mittagessen davor und zählte als nüchtern; neun solche Abende ergäben
 selben Tag in derselben Tageszeit und ist eine der beiden Zeiten nur ungefähr
 (die Beschwerde ohne Bezug zum Essen oder die Mahlzeit selbst), ist die
 Reihenfolge offen. Dann zählt die Beschwerde weder als nüchtern noch als nach
-dem Essen, sondern als unklar, und die Mahlzeit fehlt in der Auslöserbilanz,
-statt als beschwerdefrei oder als Auslöser darin zu stehen. „Vor dem Essen"
-und „nach dem Essen" sagen die Reihenfolge dagegen ausdrücklich – damit
-eingetragen, rechnet alles wie gewohnt. Ebenso der Provokationstest: Ein
-Frühstück „morgens" am Testmorgen macht den Durchgang unsauber, statt auf
-derselben Minute unsichtbar zu bleiben.
+dem Essen, sondern als unklar – auch im Bild „wann kommen die Beschwerden",
+das dann keinen Abstand zur Mahlzeit davor erfindet. In der Auslöserbilanz
+dagegen zählt sie zur Mahlzeit dieser Tageszeit, als danach, und die Bilanz
+nennt, bei wie vielen Fällen das so ist. Ob eine Mahlzeit in die Bilanz
+kommt, darf nie davon abhängen, ob danach etwas kam: Früher fiel eine solche
+Mahlzeit heraus – aber eben nur die mit Beschwerde, die beschwerdefreien
+blieben mit null drin, und ein Auslöser im Knopf-Abendessen sah harmlos aus.
+Liegt die Annahme einmal falsch, trifft sie alle Mahlzeiten dieser Tageszeit
+gleich, mit welcher Zutat auch immer. Dasselbe gilt für Mengen, Klassen und
+Rollen. „Vor dem Essen" und „nach dem Essen" sagen die Reihenfolge dagegen
+ausdrücklich – damit eingetragen, rechnet alles wie gewohnt. Steht die
+Mahlzeit zu „nach dem Essen" oder „beim Essen" nicht im Tagebuch (weder die,
+an der der Eintrag hängt, noch eine derselben Tageszeit davor), ist der
+Abstand unbekannt: Mit der letzten Mahlzeit davor zählte ausdrücklich nach
+dem Essen Eingetragenes als nüchtern.
+
+Ebenso der Provokationstest: Ein Frühstück „morgens" am Testmorgen macht den
+Durchgang unsauber, statt auf derselben Minute unsichtbar zu bleiben. Eine
+Beschwerde „morgens" ohne Bezug zum Essen dagegen zählt als Wert des
+Durchgangs – bei Durchgängen mit der Sache wie bei Leerdurchgängen, im
+Alltagsvergleich ebenso. Sie zu verwerfen, verwürfe genau die Durchgänge mit
+Reaktion, und übrig bliebe „bestätigt sich nicht". War sie schon vorher da,
+fängt das der Leerdurchgang auf, der dieselbe Regel hat.
 
 ### Zyklus mal Auslöser
 
@@ -1563,7 +1633,9 @@ ausgenommen. Umziehen lohnt sich also, und zwar richtig:
    mehr eingetragen werden sollte – Links aus Nachrichten öffnen auf dem
    iPhone immer Safari, nie die App. Kommt dort doch noch etwas dazu, steht
    „Nochmal mitnehmen" da, und in der App liegt dafür unter „Mehr" dauerhaft
-   **„Aus Safari holen"**. Was schon da ist, kommt nicht doppelt.
+   **„Aus Safari holen"**. Was schon da ist, kommt nicht doppelt. „Etwas dazu"
+   heißt dabei auch, was nicht im Strang steht: ein in Safari gezähltes Glas
+   Wasser, ein neues eigenes Mittel, eine neue eigene Aktivität.
 
 Was zu diesem einen Gerät gehört – der Vermerk über den Umzug, „Nicht mehr
 zeigen", die Erinnerung ans Sichern –, wandert dabei nicht mit. Sonst stünde
@@ -1782,7 +1854,7 @@ den Rückgabewert.
 | `test-ablaeufe.mjs` | jeder Shell-Schritt der GitHub-Abläufe geht durch `bash -n` – ein falsches Anführungszeichen fällt hier auf, nicht erst, wenn der Schritt gebraucht wird |
 | `test-zeitknoepfe.mjs` | „morgens" und „vor dem Essen" ergeben eine Uhrzeit, die als ungefähr gilt – und eine ungefähre Zeit zählt bei „wie lange nach dem Essen" nicht mit |
 | `test-standardmittel.mjs` | ein Mittel mit Dosis einmal anlegen, dann mit einem Tipp eintragen – ohne Dubletten und höchstens zwölf |
-| `test-zeit-mittel.mjs` | als iPhone mit 320 Pixeln: „abends" rastet nicht am Frühstück ein, eine Mahlzeit zieht ungefähre Einträge nach, gleiche Minute ergibt keinen Nüchternschmerz, dasselbe Mittel morgens und abends, „Meine Mittel" unter „Mehr" ohne Einnahme, die Dosis im Bericht – und alte Stände laden weiter |
+| `test-zeit-mittel.mjs` | als iPhone mit 320 Pixeln: „abends" rastet nicht am Frühstück ein – auch ohne gewählte Tageszeit und in jeder Reihenfolge des Nachtragens –, eine Mahlzeit zieht ungefähre Einträge nach, gleiche Minute ergibt keinen Nüchternschmerz, „nach dem Essen" ohne Mahlzeit auch nicht, ein Auslöser im Knopf-Abendessen fällt auf, dasselbe Mittel morgens und abends, „Meine Mittel" unter „Mehr" ohne Einnahme, die Dosis im Bericht – und alte Stände laden weiter |
 | `test-stand.mjs` | jede Datei des Offline-Vorrats zählt mit ihrem Inhalt, `sw.js` selbst auch – und ein vertippter Aufruf des Bauskripts baut nichts |
 | `test-ideen-einzeln.mjs` | jede Idee genau einmal, die älteste zuerst; was während eines Versands dazukommt, geht mit, was gelöscht wird, nicht – und wer gerade tippt, tippt weiter |
 | `test-anfang.mjs` | die Frühphase ist kürzer, sagt aber genauso genau, was fehlt – und die Warnzeichen überleben die Kürzung |
@@ -1790,6 +1862,8 @@ den Rückgabewert.
 | `test-stufenplan.mjs` | eine Karenz ohne Wirkung muss den Plan beenden, nicht weiterführen – und ein fehlender erster Tag darf kein Urteil über die kleine Menge ergeben |
 | `test-wasser.mjs` | als iPhone mit 320 Pixeln: ein Tipp, ein Glas, auch gestern, nie morgen und nie als Mahlzeit; dasselbe Tagebuch mit und ohne Wasser ergibt in zwanzig Rechnungen und im Bericht dasselbe; beim Zusammenführen gewinnt die größere Zahl – und alte Stände laden mit dem Zählen an |
 | `test-aktivitaet.mjs` | als iPhone mit 320 Pixeln: Bogen mit eigenen Aktivitäten, „Zuletzt gemacht" mit einem Tipp, Ändern, Löschen, „Als Mahlzeit eintragen" mit „Auswärts gegessen"; dasselbe Tagebuch mit und ohne Aktivitäten ergibt in achtundzwanzig Rechnungen und im Bericht dasselbe; Gym an jedem dritten Tag mit Beschwerden danach fällt auf, drei Feiern, Lücken, laufende Fenster und ungeklärte Reihenfolgen nicht, und Zufall auch nicht – und alte Stände laden weiter |
+| `test-umstand-muster.mjs` | als iPhone mit 320 Pixeln: große Portion, spät und auswärts als stärkster Fund – „Muster" zeichnet ohne Fehler, „Was Sache ist" nennt den Umstand ohne Mengensatz; bei einer Zutat steht die Menge weiter da |
+| `test-loeschen-schmal.mjs` | als iPhone mit 320 Pixeln und dem Finger: „Löschen?" verschiebt die Zeile nicht, der zweite Tipp an derselben Stelle löscht – auch im oberen Drittel des ×; danach steht der Fokus auf „Rückgängig" und nach dem Zurückholen auf der Zeile |
 | `test-provokation.mjs` | derselbe Schmerz an den Test- *und* an den Leermorgen darf nicht der Milch angelastet werden – und wer im Fenster frühstückt, hat keinen Durchgang gemacht |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,

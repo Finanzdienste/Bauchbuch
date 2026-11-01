@@ -142,8 +142,15 @@ check(
 );
 await page.screenshot({ path: `${SHOT}/standardmittel-bogen.png` });
 
+// Zwei Tipps: Der erste fragt, der zweite entfernt – wie beim Löschen.
 await page.locator('[data-act="standard-entfernen"]').click();
 await kurz();
+check((await speicher()).standardMittel.length === 1
+    && (await page.locator('[data-act="standard-entfernen"]').textContent()).includes('Wirklich entfernen?'),
+  '„Dort entfernen" fragt beim ersten Tipp nur');
+await page.locator('[data-act="standard-entfernen"]').click();
+await kurz();
+check((await page.locator('#toast').textContent()).includes('Rückgängig'), 'und bietet danach „Rückgängig" an');
 await page.locator('button.bogen-zu').click();
 await kurz();
 s = await speicher();
@@ -194,6 +201,20 @@ check(
     && await page.locator('#bogenDosis').inputValue() === '20 Tropfen',
   'stattdessen öffnet sich der Bogen, mit Name und Dosis',
 );
+// Die Uhrzeit ist leer: Eine vorbelegte 12:00 wäre mit einem Tipp gespeichert.
+check(await page.locator('#bogenUhr').inputValue() === '', 'die Uhrzeit ist leer, nicht 12:00');
+await page.locator('[data-act="bogen-speichern"]').click();
+await kurz();
+check((await speicher()).eintraege.length === vorGestern && (await page.locator('#toast').textContent()).startsWith('Um wie viel Uhr?'),
+  'ohne Zeitwahl wird nichts gespeichert');
+await page.locator('[data-act="zeit-tageszeit"][data-id="morgens"]').click();
+await kurz();
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(250);
+const morgens = (await speicher()).eintraege.find((e) => e.am === gestern && e.mittel === 'Iberogast');
+check(morgens && morgens.ungefaehr === true && morgens.tageszeit === 'morgens', 'nach „morgens" wird ungefähr am Morgen eingetragen');
+await reihe.first().click();
+await page.waitForTimeout(250);
 await page.locator('button.bogen-zu').click();
 await kurz();
 

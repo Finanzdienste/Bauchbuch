@@ -47,8 +47,8 @@ import { vorschlaege } from '../js/versuch.js';
 import { arztBericht } from '../js/bericht.js';
 import { eintragZaehlt } from '../js/wasser.js';
 import {
-  AKTIVITAETEN, INTENSITAETEN, aktivitaetBilanz, aktivitaetenVon, aktivitaetName,
-  aktivitaetVon, aktivUhrzeit, bewegungSatz, eigeneAktivitaetId, zuletztAktivitaeten,
+  AKTIVITAETEN, INTENSITAETEN, aktivBauchSatz, aktivKopfSatz, aktivitaetBilanz, aktivitaetenVon, aktivitaetName,
+  aktivitaetVon, aktivUhrzeit, bewegungSatz, eigeneAktivitaetId, freieAktivitaetId, zuletztAktivitaeten,
 } from '../js/aktivitaet.js';
 
 const { check, ende } = pruefer();
@@ -83,6 +83,16 @@ check(eigeneAktivitaetId('Kletterhalle') === 'a:kletterhalle' && eigeneAktivitae
   `eigene Kennungen mit a: und ohne Umlaute (${eigeneAktivitaetId('Bäcker Süß')})`);
 check(aktivitaetName('a:kletterhalle', [{ id: 'a:kletterhalle', name: 'Kletterhalle' }]) === 'Kletterhalle',
   'eine eigene heißt, wie sie angelegt wurde');
+check(eigeneAktivitaetId('Йога') === 'a:йога' && eigeneAktivitaetId('Бег') === 'a:бег' && eigeneAktivitaetId('Café') === 'a:cafe'
+    && eigeneAktivitaetId('Caf') === 'a:caf',
+  `Namen in anderen Schriften und mit Akzent bekommen eigene Kennungen (${eigeneAktivitaetId('Йога')}, ${eigeneAktivitaetId('Café')})`);
+check(freieAktivitaetId('🏄', [{ id: 'a:eigen', name: '🧗' }]) === 'a:eigen-2' && freieAktivitaetId('🧗', [{ id: 'a:eigen', name: '🧗' }]) === 'a:eigen',
+  'ein Name ganz ohne Buchstaben bekommt eine freie Kennung – derselbe Name dieselbe');
+check(aktivitaetName('a:rueckenschule', [{ id: 'a:rueckenschule', name: 'Rückenschule', ausgeblendet: true }]) === 'Rückenschule'
+    && aktivitaetVon('a:rueckenschule', [{ id: 'a:rueckenschule', name: 'Rückenschule', ausgeblendet: true }]).weg,
+  'eine entfernte eigene behält ihren Namen samt Umlaut');
+check(zuletztAktivitaeten([{ art: 'aktivitaet', am: heute, um: '08:00', aktivitaeten: ['a:x'] }], [{ id: 'a:x', name: 'X', ausgeblendet: true }]).length === 0,
+  'und steht nicht mehr in „Zuletzt gemacht"');
 check(aktivitaetName('a:kletter-halle', []) === 'Kletter halle' && aktivitaetVon('a:x', []).weg,
   'eine entfernte eigene behält einen lesbaren Namen');
 check(
@@ -154,6 +164,10 @@ check(JSON.stringify(FAKTOR_FRAGEN) === '["stress","schlaf","stimmung","bewegung
   check(!/solltest|lieber|besser nicht/i.test(satz), 'und ohne Rat');
   const bild = bildLesen({ eintraege: e, tage: t, bilanz: [], name: (id) => id, istNsar: () => false });
   check(!bild.muster.some((m) => m.id === 'stress'), 'intensive Bewegung ist keine Anspannung – das Bild weiß das');
+  // Ohne deutlichen Unterschied sagt der Satz ebenso, was gemittelt ist.
+  const gleich = bewegungSatz({ genug: true, differenz: 0.1, hoch: { schnitt: 2.2, tage: 33 }, niedrig: { schnitt: 2.1, tage: 39 } });
+  check(gleich.includes('kein deutlicher Unterschied') && gleich.includes('Beschwerdestärke') && gleich.includes('intensiver Bewegung'),
+    `auch ohne Unterschied steht da, was gemittelt wird (${gleich})`);
   const wenig = { ...t };
   Object.keys(wenig).slice(0, 14).forEach((iso) => { delete wenig[iso]; });
   check(bewegungSatz(faktorBilanz(e, wenig, 'bewegung', tagesWert)) === '', 'mit zu wenigen Tagen kein Satz');
@@ -384,12 +398,149 @@ check(!!feier && !feier.bauch.genug && !feier.kopf.genug && feier.bauch.art === 
   check(z.anzahl === 21 && z.bauch.faelle === 20, `das Training von vor einer Stunde ist noch keins ohne Folgen (${z.bauch.faelle} von ${z.anzahl})`);
 }
 {
-  // Ungeklärte Reihenfolge: beides „abends" mit dem Knopf.
-  const e = V.map((x) => (x.art === 'aktivitaet' && x.aktivitaeten[0] === 'gym'
+  /*
+   * Ungeklärte Reihenfolge: beides „abends" mit dem Knopf. Die offene
+   * Beschwerde zählt als danach – auf beiden Seiten gleich, und gesagt. Es
+   * fällt kein Abend heraus: Heraus fielen sonst genau die mit Beschwerde,
+   * und jede Knopf-Aktivität sähe schützend aus.
+   */
+  const knopf = (liste) => liste.map((x) => (x.art === 'aktivitaet' && x.aktivitaeten[0] === 'gym'
     ? { ...x, um: '19:30', ungefaehr: true, tageszeit: 'abends' } : x))
     .map((x) => (x.id.startsWith('b') ? { ...x, um: '19:30', ungefaehr: true, tageszeit: 'abends' } : x));
-  const z = aktivitaetBilanz(sortiere(e), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'gym');
-  check(z.bauch.faelle === 0 && !z.bauch.genug, 'Gym und Beschwerde beide nur „abends": keine erfundene Reihenfolge');
+  const z = aktivitaetBilanz(sortiere(knopf(V)), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'gym');
+  check(z.bauch.faelle === 20 && z.bauch.offen === 20 && z.bauch.art === gym.bauch.art,
+    `Gym und Beschwerde beide nur „abends": kein Abend fällt heraus, die offenen sind gezählt – dasselbe Urteil wie mit Uhrzeit (${z.bauch.faelle}, offen ${z.bauch.offen}, ${z.bauch.art})`);
+  check(aktivBauchSatz(z, 4).includes('Bei 20 davon steht nur die Tageszeit fest'), 'und der Satz sagt, wo nur die Tageszeit feststeht');
+  // An jedem Abend eine Beschwerde „abends", mit und ohne Gym: kein Unterschied.
+  const jedenAbend = knopf(V).filter((x) => !x.id.startsWith('b'));
+  for (let i = 60; i >= 1; i--) {
+    jedenAbend.push({ id: `je${i}`, art: 'beschwerde', am: vorTagen(i), um: '19:30', ungefaehr: true, tageszeit: 'abends', staerke: 5 });
+  }
+  const j = aktivitaetBilanz(sortiere(jedenAbend), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'gym');
+  check(j.bauch.genug && j.bauch.art === 'neutral' && j.bauch.quoteMit === 1 && j.bauch.quoteOhne === 1,
+    `jeden Abend „abends" Beschwerden: Gym ist weder auffällig noch schützend (${j.bauch.art}, ${j.bauch.quoteMit}/${j.bauch.quoteOhne})`);
+}
+{
+  /*
+   * Unabhängig voneinander: Gym an jedem zweiten Tag, Beschwerden an der
+   * Hälfte der Tage, ohne Zusammenhang. Ob Gym mit dem Knopf und die
+   * Beschwerde genau, oder umgekehrt, oder beides genau – herauskommen darf
+   * nie „eher unauffällig". Früher stand hier „0 von 12 gegen 48 %".
+   */
+  const unabhaengig = ({ gymKnopf, beschwerdeKnopf }) => {
+    const e = [];
+    for (let i = 60; i >= 1; i--) {
+      const am = vorTagen(i);
+      e.push({ id: `u${i}`, art: 'essen', am, um: '12:30', was: 'Mittag', zutaten: [], portion: 'normal' });
+      if (i % 2 === 0) {
+        e.push(gymKnopf
+          ? { id: `ug${i}`, art: 'aktivitaet', am, um: '19:30', ungefaehr: true, tageszeit: 'abends', aktivitaeten: ['gym'] }
+          : { id: `ug${i}`, art: 'aktivitaet', am, um: '18:00', aktivitaeten: ['gym'] });
+      }
+      if ([0, 1].includes(i % 4)) {
+        e.push(beschwerdeKnopf
+          ? { id: `ub${i}`, art: 'beschwerde', am, um: '19:30', ungefaehr: true, tageszeit: 'abends', staerke: 5 }
+          : { id: `ub${i}`, art: 'beschwerde', am, um: '20:45', staerke: 5 });
+      }
+    }
+    return aktivitaetBilanz(sortiere(e), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'gym');
+  };
+  for (const [art, text] of [[{ gymKnopf: false, beschwerdeKnopf: true }, 'Gym genau um 18:00, Beschwerde „abends"'],
+    [{ gymKnopf: true, beschwerdeKnopf: false }, 'Gym „abends", Beschwerde genau um 20:45'],
+    [{ gymKnopf: true, beschwerdeKnopf: true }, 'beides „abends"'],
+    [{ gymKnopf: false, beschwerdeKnopf: false }, 'beides genau']]) {
+    const z = unabhaengig(art);
+    check(z.bauch.genug && z.bauch.art === 'neutral' && Math.abs(z.bauch.quoteMit - z.bauch.quoteOhne) < 0.15,
+      `${text}, unabhängig: kein Unterschied (${z.bauch.mitTreffer}/${z.bauch.faelle} gegen ${z.bauch.ohneTreffer}/${z.bauch.gegenFaelle}, ${z.bauch.art})`);
+  }
+}
+{
+  // Der Kopf ebenso: Sauna mit dem Knopf „abends", jedes Mal Kopfschmerz
+  // genau um 22:00 – das ist danach, nicht „schon da".
+  const e = [];
+  for (let i = 90; i >= 1; i--) {
+    const am = vorTagen(i);
+    e.push({ id: `km${i}`, art: 'essen', am, um: '12:30', was: 'Mittag', zutaten: [], portion: 'normal' });
+    if (i % 3 === 0) {
+      e.push({ id: `ks${i}`, art: 'aktivitaet', am, um: '19:30', ungefaehr: true, tageszeit: 'abends', aktivitaeten: ['sauna'] });
+      e.push({ id: `kk${i}`, art: 'kopf', am, um: '22:00', staerke: 6, kopfArten: [] });
+    }
+  }
+  const z = aktivitaetBilanz(sortiere(e), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'sauna');
+  check(z.kopf.genug && z.kopf.art === 'auffaellig' && z.kopf.quoteMit === 1,
+    `Sauna mit dem Knopf, Kopfschmerz genau danach: auswertbar und auffällig (${z.kopf.mitTreffer}/${z.kopf.faelle}, ${z.kopf.art})`);
+  // Und Kopfschmerz „abends" unabhängig von der Aktivität: kein Unterschied.
+  const f = [];
+  for (let i = 90; i >= 1; i--) {
+    const am = vorTagen(i);
+    f.push({ id: `fm${i}`, art: 'essen', am, um: '12:30', was: 'Mittag', zutaten: [], portion: 'normal' });
+    if (i % 3 === 0) f.push({ id: `fg${i}`, art: 'aktivitaet', am, um: '18:00', aktivitaeten: ['gym'] });
+    if (i % 2 === 0) f.push({ id: `fk${i}`, art: 'kopf', am, um: '19:30', ungefaehr: true, tageszeit: 'abends', staerke: 5, kopfArten: [] });
+  }
+  const g = aktivitaetBilanz(sortiere(f), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'gym');
+  check(g.kopf.art !== 'unauffaellig' && g.kopf.art !== 'auffaellig',
+    `Kopfschmerz „abends", unabhängig vom Gym: weder öfter noch seltener (${g.kopf.mitTreffer}/${g.kopf.faelle} gegen ${g.kopf.ohneTreffer}/${g.kopf.gegenFaelle}, ${g.kopf.art})`);
+}
+{
+  /*
+   * Zweimal am selben Tag ist ein Tag, nicht zwei: Derselbe Kopfschmerz am
+   * Abend stünde sonst in beiden 24-Stunden-Fenstern, und die Fallzahl wäre
+   * doppelt so hoch wie die Zahl der Tage.
+   */
+  const tagebuch = (mal) => {
+    const e = [];
+    for (let i = 30; i >= 1; i--) {
+      const am = vorTagen(i);
+      e.push({ id: `dm${i}`, art: 'essen', am, um: '12:30', was: 'Mittag', zutaten: [], portion: 'normal' });
+      mal.forEach((um, j) => e.push({ id: `ds${i}-${j}`, art: 'aktivitaet', am, um, aktivitaeten: ['spazieren'] }));
+      if (i % 2 === 0) e.push({ id: `dk${i}`, art: 'kopf', am, um: '20:00', staerke: 4, kopfArten: [] });
+    }
+    return aktivitaetBilanz(sortiere(e), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'spazieren');
+  };
+  const einmal = tagebuch(['08:00']);
+  const zweimal = tagebuch(['08:00', '18:00']);
+  const doppelt = tagebuch(['08:00', '08:00']);
+  // 29 und nicht 30: Das Fenster des letzten Tages reicht in heute, und dazu
+  // steht noch nichts da.
+  check(zweimal.kopf.faelle === 29 && zweimal.kopf.mitTreffer === 15 && zweimal.anzahl === 60,
+    `zweimal am Tag: 29 Tage, 15 mit Kopfschmerz – nicht 58 (${zweimal.kopf.mitTreffer} von ${zweimal.kopf.faelle}, ${zweimal.anzahl} Mal)`);
+  check(['faelle', 'mitTreffer', 'genug'].every((k) => einmal.kopf[k] === zweimal.kopf[k] && einmal.kopf[k] === doppelt.kopf[k]),
+    'einmal, zweimal oder doppelt getippt: beim Kopf dieselben Zahlen');
+  check(doppelt.bauch.faelle === einmal.bauch.faelle, `ein doppelter Tipp zur selben Minute ist beim Bauch ein Fall (${doppelt.bauch.faelle}/${einmal.bauch.faelle})`);
+  check(aktivKopfSatz(zweimal).includes('an 15 von 29 Tagen Kopfschmerz'), `der Satz zählt Tage (${aktivKopfSatz(zweimal)})`);
+  // Zwei Spaziergänge eine Stunde auseinander, eine Beschwerde danach: ein Fall.
+  const nah = [];
+  for (let i = 3; i >= 1; i--) {
+    const am = vorTagen(i);
+    nah.push({ id: `nm${i}`, art: 'essen', am, um: '12:30', was: 'Mittag', zutaten: [], portion: 'normal' },
+      { id: `na${i}`, art: 'aktivitaet', am, um: '17:00', aktivitaeten: ['spazieren'] },
+      { id: `nb${i}`, art: 'aktivitaet', am, um: '18:00', aktivitaeten: ['spazieren'] },
+      { id: `nc${i}`, art: 'beschwerde', am, um: '19:00', staerke: 5 });
+  }
+  const n = aktivitaetBilanz(sortiere(nah), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'spazieren');
+  check(n.bauch.faelle === 3 && !n.bauch.genug, `17 und 18 Uhr mit einer Beschwerde um 19 Uhr: ein Fall je Tag (${n.bauch.faelle})`);
+  // Acht Tage mit je zwei: zu wenige Tage, auch wenn es sechzehn Male sind.
+  const acht = [];
+  for (let i = 40; i >= 1; i--) {
+    const am = vorTagen(i);
+    acht.push({ id: `am${i}`, art: 'essen', am, um: '12:30', was: 'Mittag', zutaten: [], portion: 'normal' });
+    if (i <= 8) acht.push({ id: `aa${i}`, art: 'aktivitaet', am, um: '08:00', aktivitaeten: ['spazieren'] }, { id: `ab${i}`, art: 'aktivitaet', am, um: '18:00', aktivitaeten: ['spazieren'] });
+    if (i % 2 === 0) acht.push({ id: `ak${i}`, art: 'kopf', am, um: '20:00', staerke: 4, kopfArten: [] });
+  }
+  const a8 = aktivitaetBilanz(sortiere(acht), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'spazieren');
+  check(!a8.kopf.genug && a8.kopf.art === 'zuwenig', `acht Tage mit je zwei Spaziergängen sind zu wenige für den Kopf (${a8.kopf.faelle})`);
+  // Kopfschmerz zwischen den beiden: ein Treffer, der Tag fällt nicht weg.
+  const zwischen = sortiere([
+    ...Array.from({ length: 3 }, (_, k) => vorTagen(k + 2)).flatMap((am, k) => [
+      { id: `zm${k}`, art: 'essen', am, um: '12:30', was: 'Mittag', zutaten: [], portion: 'normal' },
+      { id: `za${k}`, art: 'aktivitaet', am, um: '08:00', aktivitaeten: ['spazieren'] },
+      { id: `zb${k}`, art: 'aktivitaet', am, um: '18:00', aktivitaeten: ['spazieren'] },
+      ...(k === 0 ? [{ id: 'zk', art: 'kopf', am, um: '12:00', staerke: 4, kopfArten: [] }] : []),
+    ]),
+    { id: 'zn', art: 'essen', am: vorTagen(1), um: '12:30', was: 'x', zutaten: [], portion: 'normal' },
+  ]);
+  const zw = aktivitaetBilanz(zwischen, {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'spazieren');
+  check(zw.kopf.faelle === 3 && zw.kopf.mitTreffer === 1, `Kopfschmerz zwischen zwei Spaziergängen: ein Treffer, kein Wegfall (${zw.kopf.mitTreffer} von ${zw.kopf.faelle})`);
 }
 {
   // Ein Kopfschmerz, der schon vor der Sauna da war, kam nicht danach.
@@ -563,12 +714,21 @@ const ALT = {
   'gestern öffnet der Tipp den Bogen, Gym schon gewählt');
   check((await toast(page)).includes('Wann war das?'), 'und fragt nach der Zeit');
   check((await speicher(page)).eintraege.filter((e) => e.am === gestern).length === 1, 'eingetragen ist noch nichts');
+  // Ohne vorbelegte 12:00: ein eiliges „Eintragen" speichert nichts.
+  check(await page.locator('#bogenUhr').inputValue() === '', 'die Uhrzeit ist leer');
+  await page.locator('[data-act="bogen-speichern"]').click();
+  await kurz(page);
+  check((await speicher(page)).eintraege.filter((e) => e.am === gestern).length === 1
+      && (await toast(page)).startsWith('Um wie viel Uhr?'),
+  'ohne Zeitwahl wird nichts gespeichert');
   await page.locator('[data-act="zeit-tageszeit"][data-id="mittags"]').click();
   await page.locator('[data-act="aktiv-auswaerts"]').click();
   await kurz(page);
   check((await page.locator('#bogenTitel').textContent()).includes('Mahlzeit')
     && await page.locator('[data-act="auswaerts"][aria-pressed="true"]').count() === 1,
   '„Als Mahlzeit eintragen" öffnet die Mahlzeit, „Auswärts gegessen" schon an');
+  check((await toast(page)).startsWith('Gym/Krafttraining eingetragen – jetzt die Mahlzeit'),
+    `das schon gewählte Gym ist vorher eingetragen, und die Meldung sagt es (${await toast(page)})`);
   check(await page.locator('#bogenTag').inputValue() === gestern && await page.locator('#bogenUhr').inputValue() === '12:30',
     'Tag und Zeit kommen mit');
   await page.locator('#bogenWas').fill('Ramen');
@@ -577,7 +737,35 @@ const ALT = {
   s = await speicher(page);
   const ramen = s.eintraege.find((e) => e.was === 'Ramen');
   check(!!ramen && ramen.art === 'essen' && ramen.auswaerts === true && ramen.am === gestern, 'gespeichert als Mahlzeit mit auswaerts: true');
-  check(!s.eintraege.some((e) => e.art === 'aktivitaet' && e.am === gestern), 'und keine Aktivität dazu');
+  const gestrigeAktiv = s.eintraege.filter((e) => e.art === 'aktivitaet' && e.am === gestern);
+  check(gestrigeAktiv.length === 1 && JSON.stringify(gestrigeAktiv[0].aktivitaeten) === '["gym"]'
+      && gestrigeAktiv[0].um === '12:30' && gestrigeAktiv[0].tageszeit === 'mittags',
+  `die gewählte Aktivität geht nicht verloren: Gym gestern mittags, genau einmal (${gestrigeAktiv.length})`);
+  check(!s.eintraege.some((e) => (e.aktivitaeten || []).some((id) => /ausw/.test(id))), 'und „auswärts" ist keine Aktivität geworden');
+  // Ohne Auswahl öffnet der Weg nur die Mahlzeit – es entsteht keine Aktivität.
+  await page.locator('[data-act="neu"][data-art="aktivitaet"]').click();
+  await kurz(page);
+  await page.locator('[data-act="zeit-tageszeit"][data-id="abends"]').click();
+  await page.locator('[data-act="aktiv-auswaerts"]').click();
+  await kurz(page);
+  check((await toast(page)).startsWith('Als Mahlzeit'), 'ohne Auswahl die bisherige Meldung');
+  await page.locator('button.bogen-zu').click();
+  await kurz(page);
+  check((await speicher(page)).eintraege.filter((e) => e.art === 'aktivitaet' && e.am === gestern).length === 1,
+    'und keine Aktivität dazu');
+  // Ein getippter Name ohne „Dazu" kommt mit.
+  await page.locator('[data-act="neu"][data-art="aktivitaet"]').click();
+  await kurz(page);
+  await page.locator('[data-act="zeit-tageszeit"][data-id="abends"]').click();
+  await page.locator('#bogenAktivNeu').fill('Weinfest');
+  await page.locator('[data-act="aktiv-auswaerts"]').click();
+  await kurz(page);
+  await page.locator('button.bogen-zu').click();
+  await kurz(page);
+  s = await speicher(page);
+  check(s.eigeneAktivitaeten.some((a) => a.name === 'Weinfest')
+      && s.eintraege.some((e) => e.art === 'aktivitaet' && e.am === gestern && e.aktivitaeten.includes('a:weinfest')),
+  'ein nur getippter Name wird angelegt und eingetragen, auch wenn die Mahlzeit danach nicht gespeichert wird');
   check((await page.locator('.strang-zeile.z-essen').filter({ hasText: 'Ramen' }).textContent()).includes('auswärts'),
     'in der Zeile steht „auswärts"');
   // Wieder abwählen beim Ändern
@@ -623,10 +811,26 @@ const ALT = {
   check(s.eintraege.length === vorher - 1, 'ohne dass etwas eingetragen wird');
   await breit(page, '„Mehr" mit eigenen Aktivitäten');
   await karte.screenshot({ path: `${SHOT}/aktivitaet-mehr.png` });
-  await page.locator('[data-act="aktiv-weg"][data-id="a:kletterhalle"]').click();
+  // Entfernen mit zwei Tipps, wie das Löschen im Strang – und „Rückgängig".
+  const wegKnopf = page.locator('[data-act="aktiv-weg"][data-id="a:kletterhalle"]');
+  await wegKnopf.click();
+  await kurz(page);
+  check((await wegKnopf.textContent()).includes('Entfernen?') && !(await speicher(page)).eigeneAktivitaeten
+    .some((a) => a.ausgeblendet), 'der erste Tipp fragt nur');
+  await breit(page, '„Entfernen?" bei den eigenen Aktivitäten');
+  await wegKnopf.click();
   await kurz(page);
   s = await speicher(page);
-  check(!s.eigeneAktivitaeten.some((a) => a.id === 'a:kletterhalle'), 'entfernt ist sie aus der Auswahl');
+  check(s.eigeneAktivitaeten.some((a) => a.id === 'a:kletterhalle' && a.ausgeblendet)
+      && !(await karte.textContent()).includes('Kletterhalle'), 'entfernt ist sie aus der Auswahl');
+  await page.locator('[data-act="entfernt-zurueck"]').click();
+  await kurz(page);
+  check((await karte.textContent()).includes('Kletterhalle') && !(await speicher(page)).eigeneAktivitaeten.some((a) => a.ausgeblendet),
+    '„Rückgängig" holt sie zurück');
+  await wegKnopf.click();
+  await wegKnopf.click();
+  await kurz(page);
+  s = await speicher(page);
   check(s.eintraege.some((e) => (e.aktivitaeten || []).includes('a:kletterhalle')), 'die Einträge damit bleiben');
   await reiter(page, 'heute');
   check(await page.locator('[data-act="aktiv-schnell"][data-id="a:kletterhalle"]').count() === 0,
@@ -798,7 +1002,136 @@ const ALT = {
   });
   check(grenze.letzte.fehler === 'voll' && grenze.anzahl === grenze.max, `höchstens ${grenze.max} eigene, dann sagt der Speicher „voll"`);
   check(grenze.leer.fehler === 'leer' && grenze.ohneVorsilbe.fehler === 'leer', 'ohne Namen oder ohne a: wird nichts angelegt');
+
+  /* Entfernte und Namen in anderen Schriften kommen durch die Sicherung */
+  const weg = await page.evaluate(async ([g]) => {
+    const st = await import('/js/store.js');
+    st.allesLoeschen();
+    st.aktivitaetAnlegen('a:rueckenschule', 'Rückenschule');
+    st.aktivitaetAnlegen('a:йога', 'Йога');
+    st.eintragen({ art: 'aktivitaet', am: g, um: '10:00', aktivitaeten: ['a:rueckenschule', 'a:йога'] });
+    st.aktivitaetEntfernen('a:rueckenschule');
+    const text = st.alsJSON();
+    st.allesLoeschen();
+    st.einlesen(text);
+    const nachEinlesen = JSON.parse(JSON.stringify(st.zustandLesen().eigeneAktivitaeten));
+    // Zusammenführen: hier wieder sichtbar, dort entfernt – hier gewinnt.
+    st.aktivitaetZurueck('a:rueckenschule');
+    st.einlesen(text);
+    const nachZusammen = JSON.parse(JSON.stringify(st.zustandLesen().eigeneAktivitaeten));
+    // Und wer eine entfernte neu anlegt, bekommt sie zurück, mit ihrer Kennung.
+    st.aktivitaetEntfernen('a:rueckenschule');
+    const wieder = st.aktivitaetAnlegen('a:rueckenschule', 'Rückenschule');
+    return { nachEinlesen, nachZusammen, wieder, danach: JSON.parse(JSON.stringify(st.zustandLesen().eigeneAktivitaeten)) };
+  }, [gestern]);
+  check(JSON.stringify(weg.nachEinlesen) === '[{"id":"a:rueckenschule","name":"Rückenschule","ausgeblendet":true},{"id":"a:йога","name":"Йога"}]',
+    `eine entfernte eigene Aktivität bleibt durch die Sicherung entfernt, mit Namen; „Йога" kommt mit (${JSON.stringify(weg.nachEinlesen)})`);
+  check(!weg.nachZusammen.some((a) => a.ausgeblendet) && weg.nachZusammen.length === 2,
+    'beim Zusammenführen gilt, was hier steht');
+  check(!weg.wieder.fehler && !weg.danach.some((a) => a.ausgeblendet), 'neu angelegt ist eine entfernte wieder in der Auswahl');
   await ctx.close();
+}
+
+/* ---------- 8. Namen, die nicht zusammenfallen dürfen; lange Namen ---------- */
+
+{
+  const { ctx, page } = await iphone({ ...ALT });
+  await page.locator('[data-act="tag-blaettern"][data-d="-1"]').click();
+  await kurz(page);
+  const anlegen = async (name) => {
+    await page.locator('[data-act="neu"][data-art="aktivitaet"]').click();
+    await kurz(page);
+    await page.locator('[data-act="zeit-tageszeit"][data-id="abends"]').click();
+    await page.locator('#bogenAktivNeu').fill(name);
+    await page.locator('[data-act="aktiv-eigen"]').click();
+    await kurz(page);
+    const t = await toast(page);
+    const fokus = await page.evaluate(() => document.activeElement && document.activeElement.id);
+    await page.locator('[data-act="bogen-speichern"]').click();
+    await kurz(page);
+    return { t, fokus };
+  };
+  const yoga = await anlegen('Йога');
+  const lauf = await anlegen('Бег');
+  check(yoga.t.includes('„Йога“ steht jetzt') && lauf.t.includes('„Бег“ steht jetzt'), `beide Meldungen nennen den getippten Namen (${lauf.t})`);
+  check(yoga.fokus === 'bogenAktivDazu', `nach „Dazu" bleibt der Fokus auf dem Knopf, nicht am Anfang der Seite (${yoga.fokus})`);
+  await anlegen('Café');
+  await anlegen('Caf');
+  await anlegen('🧗');
+  await anlegen('🏄');
+  let s = await speicher(page);
+  const ids = s.eigeneAktivitaeten.map((a) => a.id);
+  check(ids.length === 6 && new Set(ids).size === 6, `sechs Namen, sechs Kennungen (${ids.join(', ')})`);
+  const zeilen = (await page.locator('.strang-zeile.z-aktivitaet').allTextContents()).map((t) => t.replace(/\s+/g, ' '));
+  check(['Йога', 'Бег', 'Café', 'Caf', '🧗', '🏄'].every((n) => zeilen.some((z) => z.includes(n))),
+    'und jeder Eintrag heißt, wie er angelegt wurde');
+  await reiter(page, 'mehr');
+  await page.locator('#neueAktivitaet').fill('Бег');
+  await page.locator('[data-act="aktiv-neu"]').click();
+  await kurz(page);
+  check((await toast(page)).includes('„Бег“ steht schon in der Auswahl'), 'unter „Mehr" nennt die Meldung den vorhandenen Namen');
+
+  // Ein erlaubter Name von 40 Zeichen ohne Leerzeichen: kein Querscrollen.
+  const lang = 'Kampfsportvereinstrainingseinheitsgruppe';
+  await page.locator('#neueAktivitaet').fill(lang);
+  await page.locator('[data-act="aktiv-neu"]').click();
+  await kurz(page);
+  await breit(page, '„Mehr" mit einem langen Namen');
+  const feld = await page.evaluate(() => {
+    const f = document.getElementById('neueAktivitaet').getBoundingClientRect();
+    const reihe = document.getElementById('neueAktivitaet').closest('.reihe').getBoundingClientRect();
+    return { f: f.right, reihe: reihe.right };
+  });
+  check(feld.f <= feld.reihe + 0.5, `das Eingabefeld bleibt in seiner Reihe (${Math.round(feld.f)} ≤ ${Math.round(feld.reihe)})`);
+  await reiter(page, 'heute');
+  await page.locator('[data-act="neu"][data-art="aktivitaet"]').click();
+  await kurz(page);
+  const bogen = await page.evaluate(() => {
+    const b = document.querySelector('.bogen-inhalt') || document.querySelector('.bogen');
+    return { breit: b.scrollWidth, sicht: b.clientWidth };
+  });
+  check(bogen.breit <= bogen.sicht, `im Bogen bleibt die lange Marke innerhalb (${bogen.breit}/${bogen.sicht})`);
+  await breit(page, 'Bogen mit langem Namen');
+  await ctx.close();
+}
+
+/* ---------- 9. „Zählt noch" nennt die Seite, die fehlt ---------- */
+
+{
+  // Arbeit an jedem Tag: Die Fälle mit ihr reichen längst, es fehlen die
+  // Tage ohne. „40 von 5" läse sich wie ein Rechenfehler.
+  const e = [];
+  for (let i = 40; i >= 1; i--) {
+    const am = vorTagen(i);
+    e.push({ id: `wm${i}`, art: 'essen', am, um: '12:30', was: 'Mittag', zutaten: [], portion: 'normal' });
+    e.push({ id: `wa${i}`, art: 'aktivitaet', am, um: '09:00', aktivitaeten: ['arbeit'] });
+    if (i % 3 === 0) e.push({ id: `wk${i}`, art: 'kopf', am, um: '20:00', staerke: 4, kopfArten: [] });
+    if (i % 4 === 0) e.push({ id: `wb${i}`, art: 'beschwerde', am, um: '10:00', staerke: 3 });
+  }
+  const { ctx, page } = await iphone({ begruesst: true, tab: 'muster', alterName: null, eintraege: e, tage: {} });
+  await kurz(page);
+  const text = ((await page.locator('#wasDuGemachtHast').textContent()) || '').replace(/\s+/g, ' ');
+  check(text.includes('Zählt noch') && /Arbeit 0 von 5 Tagen ohne/.test(text), `„Zählt noch" nennt die fehlenden Tage ohne (${text.slice(text.indexOf('Zählt noch'), text.indexOf('Zählt noch') + 40)})`);
+  check(!/\b40 von 5\b/.test(text), 'und nicht „40 von 5"');
+  await breit(page, '„Zählt noch" mit Tagen ohne');
+  await ctx.close();
+  // An zwei von drei Tagen: Der Bauch reicht, beim Kopf fehlen Tage ohne.
+  const f = [];
+  for (let i = 60; i >= 1; i--) {
+    const am = vorTagen(i);
+    f.push({ id: `xm${i}`, art: 'essen', am, um: '12:30', was: 'Mittag', zutaten: [], portion: 'normal' });
+    if (i % 3) f.push({ id: `xa${i}`, art: 'aktivitaet', am, um: '09:00', aktivitaeten: ['arbeit'] });
+    if (i % 2) f.push({ id: `xb${i}`, art: 'beschwerde', am, um: '10:00', staerke: 3 });
+  }
+  const z = aktivitaetBilanz(sortiere(f), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'arbeit');
+  check(z.bauch.genug && !z.kopf.genug && z.kopf.fehltGegen > 0 && z.kopf.faelle >= z.kopf.mindest,
+    `die Probe: Bauch genug, beim Kopf fehlen nur die Tage ohne (${z.kopf.faelle}/${z.kopf.gegenFaelle})`);
+  const w = await iphone({ begruesst: true, tab: 'muster', alterName: null, eintraege: f, tage: {} });
+  await kurz(w.page);
+  const fund = ((await w.page.locator('#wasDuGemachtHast .fund').filter({ hasText: 'Arbeit' }).textContent()) || '').replace(/\s+/g, ' ');
+  check(/Kopf: zählt noch – \d+ von 12 Tagen ohne auswertbar/.test(fund), `in der Karte: „Kopf: zählt noch – … von 12 Tagen ohne" (${fund.slice(fund.indexOf('Kopf:'), fund.indexOf('Kopf:') + 50)})`);
+  await breit(w.page, 'Fund mit „Tagen ohne"');
+  await w.ctx.close();
 }
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);

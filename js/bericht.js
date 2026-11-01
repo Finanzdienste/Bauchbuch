@@ -572,7 +572,8 @@ export function arztBericht(zustand, von, bis) {
           + `${wort(x.bauch.art)}`);
       }
       if (x.kopf.genug) {
-        sag(`    Kopf ${x.kopf.mitTreffer} von ${x.kopf.faelle} (${prozent(x.kopf.quoteMit)}), `
+        // Beim Kopf zählen Tage, nicht Male – siehe aktivitaetBilanz.
+        sag(`    Kopf an ${x.kopf.mitTreffer} von ${x.kopf.faelle} Tagen (${prozent(x.kopf.quoteMit)}), `
           + `sonst ${x.kopf.ohneTreffer} von ${x.kopf.gegenFaelle} (${prozent(x.kopf.quoteOhne)})`
           + `${x.kopf.art === 'auffaellig' ? ' – öfter' : ''}`);
       }
@@ -693,8 +694,12 @@ export function arztBericht(zustand, von, bis) {
     prov.slice(0, 6).forEach((p) => {
       const b = provokationsBild(p, eintraege, bis);
       sag(`  ${p.was || p.ziel} nüchtern, Fenster ${p.fenster || 4} h – ${b.wort}`);
+      // Der Grund nur, wo er für alle stimmt – mancher Durchgang lag bloß zu
+      // dicht am vorigen, und dann wäre „dabei gegessen" falsch.
+      const weg = b.laeufe.filter((l) => !l.sauber);
+      const nurEssen = weg.every((l) => l.gegessen && !l.zuNah);
       sag(`     ${b.echte} Durchgänge, ${b.leere} Leerdurchgänge`
-        + (b.verworfen ? `, ${b.verworfen} nicht auswertbar (dabei gegessen)` : '')
+        + (b.verworfen ? `, ${b.verworfen} nicht auswertbar${nurEssen ? ' (dabei gegessen)' : ''}` : '')
         + (Number.isFinite(b.unterschied)
           ? `; ${fmtZahl(b.schnitt)} gegen ${fmtZahl(b.vergleich)} von 10` : ''));
       umbrochen(b.satz).forEach((z) => sag(`     ${z}`));

@@ -43,7 +43,7 @@
  */
 import { zeitpunkt, stundenDazwischen } from './datum.js';
 import { merkmale, reihenfolgeUnklar } from './auswertung.js';
-import { eintragZaehlt } from './wasser.js';
+import { zaehltFuerBauch } from './wasser.js';
 
 /**
  * Die drei Fenster.
@@ -130,9 +130,18 @@ function zuordnen(eintraege) {
     const stunden = stundenDazwischen(letzte.t, t);
     if (stunden > 8) return;
     // `ungefaehr`: Die Stunden sind dann aus einem Knopf gerechnet, nicht
-    // erhoben – auf der Seite der Beschwerde oder auf der der Mahlzeit.
+    // erhoben – auf der Seite der Beschwerde oder auf der der Mahlzeit. Und
+    // wenn bei einer Mahlzeit dieses Tages offen ist, ob sie vor oder nach
+    // der Beschwerde kam (ein Abendessen nur mit „abends", eine genaue
+    // Beschwerde um sieben), ist auch „die letzte Mahlzeit davor" nur geraten
+    // – und mit ihr die Stunden. Es ist dieselbe Prüfung wie in
+    // stundenSeitEssen (js/auswertung.js); ohne sie stünde hier „vier bis acht
+    // Stunden nach dem Mittag, Dickdarm", wo die Nüchternrechnung zu Recht
+    // „unbekannt" sagt.
     zu.get(letzte.e.id).push({
-      stunden, staerke: Number(b.staerke) || 0, ungefaehr: !!b.ungefaehr || !!letzte.e.ungefaehr,
+      stunden,
+      staerke: Number(b.staerke) || 0,
+      ungefaehr: !!b.ungefaehr || !!letzte.e.ungefaehr || essen.some((x) => reihenfolgeUnklar(x.e, b)),
     });
   });
   return zu;
@@ -155,7 +164,7 @@ export function fensterWerte(eintraege) {
   // „Das Tagebuch lief noch" – aber nur für den Bauch: Ein abendlicher
   // Kopfeintrag macht ein Spätfenster nicht beobachtbar, eine abends
   // eingetragene Aktivität ebenso wenig.
-  const letzterEintrag = eintraege.filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).reduce(
+  const letzterEintrag = eintraege.filter(zaehltFuerBauch).reduce(
     (m, e) => Math.max(m, zeitpunkt(e.am, e.um)), 0,
   );
   const beschwerden = eintraege.filter((e) => e.art === 'beschwerde');
@@ -176,6 +185,14 @@ export function fensterWerte(eintraege) {
      * Mahlzeit kam, hängt vielleicht an ihr, vielleicht an der davor. Ohne
      * diese Zeile stünde die Mahlzeit als beschwerdefrei da, weil die
      * Beschwerde zufällig eine Minute früher eingetragen ist.
+     *
+     * Dass damit nur Mahlzeiten mit einer solchen Beschwerde herausfallen,
+     * ist hier – anders als in der Auslöserbilanz (siehe wertNach) – der
+     * kleinere Fehler. Das Zeitprofil fragt nach der Stunde, und eine
+     * Beschwerde ohne Stunde in alle Fenster zu legen, erfände genau die
+     * Stunden, um die es geht. Weglassen kann hier nur verbergen, nicht
+     * erfinden: Das Profil meldet nur einen Schwerpunkt, nie ein
+     * „unauffällig".
      */
     const unklar = !!x.e.ungefaehr || liste.some((b) => b.ungefaehr)
       || beschwerden.some((b) => reihenfolgeUnklar(x.e, b));

@@ -83,6 +83,23 @@ export function eintragZaehlt(e) {
   return !!e && typeof e === 'object' && !SAGT_NICHTS.includes(e.art);
 }
 
+/**
+ * Sagt dieser Eintrag etwas über den Bauch?
+ *
+ * Wie eintragZaehlt(), ohne den Kopf: Ein Tag, an dem nur ein Kopfschmerz
+ * steht, ist für den Bauch eine Lücke. Und ohne das Mittel, das über „Dazu
+ * genommen?" an diesem Kopfschmerz hängt (`zuKopf`) – es gehört zum
+ * Kopfbogen und sagt über den Bauch so wenig wie der Kopfschmerz selbst.
+ * Sonst machte das Ibuprofen gegen die Migräne aus dem Tag einen notierten
+ * Bauchtag, und ohne Beschwerde einen beschwerdefreien.
+ *
+ * Ältere Mittel ohne `zuKopf` zählen weiter: Woher sie kamen, lässt sich
+ * nicht mehr sicher sagen, und rückwirkend umgezählt würde nichts.
+ */
+export function zaehltFuerBauch(e) {
+  return eintragZaehlt(e) && e.art !== 'kopf' && !(e.art === 'medikament' && e.zuKopf);
+}
+
 /** Die Gläser eines Tages als ganze Zahl von 0 bis WASSER_HOECHSTENS. */
 export function wasserVon(tag) {
   const n = Number(tag && typeof tag === 'object' ? tag.wasser : 0);
@@ -101,8 +118,10 @@ export function glasName(ml) {
 }
 
 /**
- * „≈ 0,75 l" – oder '' ohne Glas. Auf eine Nachkommastelle, ab zwei Litern
- * auf halbe: Mehr Genauigkeit gibt eine Zählung in Gläsern nicht her.
+ * „≈ 0,75 l" – oder '' ohne Glas. Unter einem Liter auf Hundertstel, damit
+ * kleine Gläser (0,33 l) nicht verschwimmen; bis zwei Liter auf eine
+ * Nachkommastelle, darüber auf halbe: Mehr Genauigkeit gibt eine Zählung in
+ * Gläsern nicht her.
  */
 export function literText(glaeser, ml) {
   const n = Number(glaeser) || 0;

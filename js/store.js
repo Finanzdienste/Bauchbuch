@@ -12,7 +12,9 @@
  * erinnert die App daran, und deshalb ist der Export eine gewöhnliche
  * JSON-Datei, die man auch ohne diese App noch lesen kann.
  */
-import { heuteISO, istISO, istUhr, jetztUhr, minutenAmTag, zeitpunkt } from './datum.js';
+import {
+  KNOPF_TAGESZEIT, heuteISO, istISO, istUhr, jetztUhr, minutenAmTag, zeitpunkt,
+} from './datum.js';
 import { KUECHEN_ARTEN, JE_LISTE, MAX_NAME } from './kueche.js';
 import { BEFUND_VON, JE_BEFUNDE } from './befunde.js';
 import { WASSER_HOECHSTENS, glasMl, wasserVon } from './wasser.js';
@@ -253,9 +255,13 @@ const VORGABE = {
    * Safari. Wer in Safari angefangen hat, nimmt seine Einträge über die
    * Zwischenablage mit (siehe js/app.js, „Einträge mitnehmen").
    *
-   *   umzug         { am, anzahl, letzter } – in Safari gesetzt, sobald
-   *                 mitgenommen wurde. Danach sagt Safari auf jedem Reiter,
-   *                 dass dort nicht mehr eingetragen werden sollte.
+   *   umzug         { am, anzahl, letzter, ids, wasser, mittel, aktiv } – in
+   *                 Safari gesetzt, sobald mitgenommen wurde. Danach sagt
+   *                 Safari auf jedem Reiter, dass dort nicht mehr eingetragen
+   *                 werden sollte, und bietet „Nochmal mitnehmen" an, sobald
+   *                 seitdem etwas dazukam – ein Eintrag, ein Glas Wasser, ein
+   *                 eigenes Mittel, eine eigene Aktivität. Ältere Vermerke
+   *                 haben nur einen Teil davon.
    *   umzugGeholt   { am, anzahl } – in der App gesetzt, nachdem geholt wurde.
    *   startbildschirmWeg  der Hinweis „auf den Startbildschirm" wurde
    *                 weggetippt.
@@ -331,6 +337,7 @@ function laden() {
     s.eintraege = sortiert((Array.isArray(s.eintraege) ? s.eintraege : []).map(mahlzeitFrisch));
     s.ideen = ideenMitMarke(s.ideen, s.ideenGeschickt);
     if (!Array.isArray(s.eigeneAktivitaeten)) s.eigeneAktivitaeten = [];
+    if (!Array.isArray(s.standardMittel)) s.standardMittel = [];
     return s;
   } catch {
     return klon(VORGABE);
@@ -676,34 +683,82 @@ export function ausloeserLoeschen(id) {
 export const AKTIV_HOECHSTENS = 24;
 export const AKTIV_NAME_MAX = 40;
 
+/** Wie viele eigene Aktivitäten zur Auswahl stehen – ohne die entfernten. */
+const sichtbarAktiv = () => zustand.eigeneAktivitaeten.filter((a) => !a.ausgeblendet).length;
+
 /**
  * Eine eigene Aktivität anlegen. Die Kennung kommt von außen (siehe
- * eigeneAktivitaetId in js/aktivitaet.js), wie bei den eigenen Auslösern.
+ * freieAktivitaetId in js/aktivitaet.js), wie bei den eigenen Auslösern.
  *
  * Zurück kommt { id, schon } – `schon`, wenn es sie genau so gibt; dann bleibt
- * es bei einer –, { fehler: 'leer' } ohne Namen oder { fehler: 'voll' }.
+ * es bei einer –, { fehler: 'leer' } ohne Namen oder { fehler: 'voll' }. Eine
+ * entfernte mit dieser Kennung kommt zurück in die Auswahl, mit ihrem Namen.
  */
 export function aktivitaetAnlegen(id, name) {
   const sauber = String(name || '').trim().slice(0, AKTIV_NAME_MAX);
   if (!sauber || typeof id !== 'string' || !id.startsWith('a:')) return { fehler: 'leer' };
-  if (zustand.eigeneAktivitaeten.some((a) => a.id === id)) return { id, schon: true };
-  if (zustand.eigeneAktivitaeten.length >= AKTIV_HOECHSTENS) return { fehler: 'voll' };
-  zustand.eigeneAktivitaeten = [...zustand.eigeneAktivitaeten, { id, name: sauber }];
+  const da = zustand.eigeneAktivitaeten.find((a) => a.id === id);
+  if (da && !da.ausgeblendet) return { id, schon: true };
+  if (sichtbarAktiv() >= AKTIV_HOECHSTENS) return { fehler: 'voll' };
+  zustand.eigeneAktivitaeten = da
+    ? zustand.eigeneAktivitaeten.map((a) => (a.id === id ? { id, name: a.name } : a))
+    : [...zustand.eigeneAktivitaeten, { id, name: sauber }];
   merke();
   melde();
   return { id, schon: false };
 }
 
-/** Aus der Auswahl nehmen. Die Einträge, in denen sie steht, bleiben. */
+/**
+ * Aus der Auswahl nehmen. Die Einträge, in denen sie steht, bleiben – und
+ * mit ihnen ihr Name: Die Aktivität bleibt im Speicher, nur `ausgeblendet`.
+ * Ganz gelöscht, hieße „Rückenschule" in jedem alten Eintrag danach
+ * „Rueckenschule", gebaut aus der Kennung.
+ */
 export function aktivitaetEntfernen(id) {
-  const vorher = zustand.eigeneAktivitaeten.length;
-  zustand.eigeneAktivitaeten = zustand.eigeneAktivitaeten.filter((a) => a.id !== id);
-  if (zustand.eigeneAktivitaeten.length === vorher) return;
+  if (!zustand.eigeneAktivitaeten.some((a) => a.id === id && !a.ausgeblendet)) return;
+  zustand.eigeneAktivitaeten = zustand.eigeneAktivitaeten
+    .map((a) => (a.id === id ? { ...a, ausgeblendet: true } : a));
   merke();
   melde();
 }
 
+/** „Rückgängig" nach dem Entfernen: wieder in die Auswahl, an ihrer Stelle. */
+export function aktivitaetZurueck(id) {
+  if (!zustand.eigeneAktivitaeten.some((a) => a.id === id && a.ausgeblendet)) return false;
+  if (sichtbarAktiv() >= AKTIV_HOECHSTENS) return false;
+  zustand.eigeneAktivitaeten = zustand.eigeneAktivitaeten
+    .map((a) => (a.id === id ? { id, name: a.name } : a));
+  merke();
+  melde();
+  return true;
+}
+
 /* ---------- Die eigenen Mittel ---------- */
+
+/**
+ * Doppelte Kennungen in den eigenen Mitteln auflösen.
+ *
+ * Seit die übliche Zeit zum Schlüssel gehört (siehe mittelSchluessel), konnte
+ * das Zusammenführen dasselbe Mittel zweimal mit einer Kennung anlegen – hier
+ * mit geänderter Zeit, in der Sicherung mit der alten. Alles, was nach der
+ * Kennung sucht, traf dann das falsche oder beide: Der Tipp auf „· morgens"
+ * trug die Abendzeit ein, und „×" entfernte beide. Ein späteres mit
+ * gleichem Schlüssel fällt weg, sonst bekommt es eine neue Kennung.
+ */
+function mittelEindeutig(liste) {
+  const ids = new Set();
+  const schluessel = new Set();
+  const raus = [];
+  liste.forEach((x) => {
+    if (ids.has(x.id)) {
+      if (schluessel.has(mittelSchluessel(x))) return;
+      raus.push({ ...x, id: neueId() });
+    } else raus.push(x);
+    ids.add(raus[raus.length - 1].id);
+    schluessel.add(mittelSchluessel(x));
+  });
+  return raus;
+}
 
 /*
  * Mehr passen in die Reihe auf dem Tag-Reiter nicht, ohne dass man darin
@@ -712,7 +767,14 @@ export function aktivitaetEntfernen(id) {
  */
 export const STANDARD_HOECHSTENS = 12;
 
-const TAGESZEIT_IDS = ['morgens', 'mittags', 'abends'];
+// Dieselben Kennungen wie die Zeitknöpfe. Eine zweite Liste hier verwürfe
+// eine neue Tageszeit beim Merken und Einlesen still.
+const TAGESZEIT_IDS = Object.keys(KNOPF_TAGESZEIT);
+/*
+ * Der Bezug zum Essen – dieselben Kennungen wie ESSENSBEZUG in js/app.js.
+ * Hier noch einmal, weil der Speicher nichts von der Anzeige wissen soll;
+ * tests/test-zeit-mittel.mjs prüft, dass beide Listen gleich sind.
+ */
 const BEZUG_IDS = ['vor', 'beim', 'nach'];
 
 /** Ein Standardmittel in seine gespeicherte Form bringen. */
@@ -786,12 +848,36 @@ export function standardVon(vorlage) {
   return zustand.standardMittel.find((x) => mittelSchluessel(x) === k) || null;
 }
 
+/**
+ * Entfernen. Zurück kommt, was entfernt wurde, samt seiner Stelle – für
+ * „Rückgängig" (standardZurueck) – oder null.
+ */
 export function standardEntfernen(id) {
-  const vorher = zustand.standardMittel.length;
+  const stelle = zustand.standardMittel.findIndex((x) => x.id === id);
+  if (stelle < 0) return null;
+  const mittel = zustand.standardMittel[stelle];
   zustand.standardMittel = zustand.standardMittel.filter((x) => x.id !== id);
-  if (zustand.standardMittel.length === vorher) return;
   merke();
   melde();
+  return { mittel: klon(mittel), stelle };
+}
+
+/**
+ * „Rückgängig" nach dem Entfernen: mit derselben Kennung an dieselbe Stelle.
+ * Nicht, wenn es inzwischen genau so wieder dasteht oder die Liste voll ist.
+ */
+export function standardZurueck(weg) {
+  if (!weg || !weg.mittel) return false;
+  const m = { ...weg.mittel, ...standardSauber(weg.mittel) };
+  if (!m.mittel || zustand.standardMittel.some((x) => x.id === m.id
+    || mittelSchluessel(x) === mittelSchluessel(m))) return false;
+  if (zustand.standardMittel.length >= STANDARD_HOECHSTENS) return false;
+  const liste = [...zustand.standardMittel];
+  liste.splice(Math.min(Math.max(0, weg.stelle || 0), liste.length), 0, m);
+  zustand.standardMittel = liste;
+  merke();
+  melde();
+  return true;
 }
 
 /** Ein benutztes Mittel als Vorschlag merken – die fünf jüngsten. */
@@ -1368,15 +1454,20 @@ function sicherungLesen(text) {
   )).map((e) => aktivitaetFrisch(mahlzeitFrisch({ ...e, id: e.id || neueId() }))));
   // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
   // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
-  frisch.standardMittel = frisch.standardMittel
+  frisch.standardMittel = mittelEindeutig(frisch.standardMittel
     .filter((x) => x && typeof x === 'object' && typeof x.mittel === 'string' && x.mittel.trim())
-    .map((x) => ({ ...x, ...standardSauber(x), id: x.id || neueId() }));
+    .map((x) => ({ ...x, ...standardSauber(x), id: x.id || neueId() })));
   // Eigene Aktivitäten: eine Kennung mit `a:` und ein Name – sonst stünde im
   // Bogen ein Knopf ohne Beschriftung. Doppelte fallen weg.
   frisch.eigeneAktivitaeten = frisch.eigeneAktivitaeten
     .filter((a) => a && typeof a === 'object' && typeof a.id === 'string' && a.id.startsWith('a:')
       && typeof a.name === 'string' && a.name.trim())
-    .map((a) => ({ id: a.id, name: a.name.trim().slice(0, AKTIV_NAME_MAX) }))
+    .map((a) => ({
+      id: a.id,
+      name: a.name.trim().slice(0, AKTIV_NAME_MAX),
+      // Eine entfernte bleibt entfernt – und behält ihren Namen.
+      ...(a.ausgeblendet === true ? { ausgeblendet: true } : {}),
+    }))
     .filter((a, i, alle) => alle.findIndex((x) => x.id === a.id) === i);
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
@@ -1562,7 +1653,13 @@ function zusammenfuehren(hier, dazu) {
   neu.zuletztMittel = [...new Set([...hier.zuletztMittel, ...dazu.zuletztMittel])].slice(0, 5);
   // Ohne Kürzen auf STANDARD_HOECHSTENS: Was in einer Sicherung steht, geht
   // beim Zusammenführen nicht still verloren. Die Grenze gilt fürs Merken.
-  neu.standardMittel = vereinigt(hier.standardMittel, dazu.standardMittel, mittelSchluessel);
+  // Erst nach der Kennung: Dieselbe Kennung ist dasselbe Mittel, auch wenn
+  // hier inzwischen die Zeit geändert wurde (Ändern behält die Kennung) –
+  // und wie bei den Einträgen gewinnt dann, was hier steht. Danach nach dem
+  // Schlüssel, damit dasselbe Mittel von zwei Geräten nicht doppelt dasteht.
+  const hierIds = new Set(hier.standardMittel.map((x) => x.id));
+  neu.standardMittel = mittelEindeutig(vereinigt(hier.standardMittel,
+    dazu.standardMittel.filter((x) => !hierIds.has(x.id)), mittelSchluessel));
   neu.termine = [...new Set([...hier.termine, ...dazu.termine])].sort().reverse();
   neu.gewicht = vereinigt(hier.gewicht, dazu.gewicht, (g) => g.am)
     .sort((a, b) => String(b.am).localeCompare(String(a.am)));
@@ -1620,6 +1717,18 @@ export function umzugMerken() {
     letzter: letzter ? { am: letzter.am, um: letzter.um || '' } : null,
     // Woran Safari später erkennt, was seitdem dazukam.
     ids: zustand.eintraege.map((e) => e.id),
+    /*
+     * Und was sonst beim Holen mitkommt: das Wasser je Tag (dort kommt die
+     * größere Zahl mit, siehe zusammenfuehren), die eigenen Mittel und
+     * Aktivitäten. Ein Glas, das danach in Safari gezählt wird, ist sonst für
+     * den Hinweis unsichtbar – es steht nicht im Strang.
+     */
+    wasser: Object.fromEntries(Object.entries(zustand.tage || {})
+      .map(([iso, t]) => [iso, wasserVon(t)]).filter(([, n]) => n > 0)),
+    // Nach Kennung: Ein hier nur geändertes Mittel kommt beim Holen nicht
+    // mit (dort gewinnt dieselbe Kennung), ein neu angelegtes schon.
+    mittel: zustand.standardMittel.map((m) => m.id),
+    aktiv: zustand.eigeneAktivitaeten.map((a) => a.id),
   };
   merke();
   melde();
@@ -1652,3 +1761,19 @@ export function allesLoeschen() {
   merke();
   melde();
 }
+
+/*
+ * Schon gespeicherte doppelte Kennungen bei den eigenen Mitteln heilen (siehe
+ * mittelEindeutig), ohne dass jemand neu einlesen muss. Hier am Ende und
+ * nicht in laden(): laden() läuft, wenn das Modul startet – bevor die Listen
+ * und Zähler weiter oben stehen, die es dafür braucht. Ein Fehler dort fiele
+ * in dessen catch und begänne mit einem leeren Tagebuch.
+ */
+try {
+  const geheilt = mittelEindeutig(zustand.standardMittel);
+  if (geheilt.length !== zustand.standardMittel.length
+    || geheilt.some((x, i) => x.id !== zustand.standardMittel[i].id)) {
+    zustand.standardMittel = geheilt;
+    merke();
+  }
+} catch { /* dann bleibt es, wie es war */ }

@@ -15,7 +15,9 @@
  *
  * Geprüft wird deshalb mit vollem Tagebuch und **ohne** offene Idee, über
  * sechs vorgestellte Stunden. Erwartet wird: null Anfragen. Nicht „keine
- * verdächtigen". Null.
+ * verdächtigen". Null. Zum vollen Tagebuch gehören auch Wasser, Aktivitäten,
+ * eigene Mittel und eigene Aktivitäten – und ihre Knöpfe werden angetippt,
+ * nicht nur angesehen.
  *
  * Und danach dasselbe mit Ideen, die schon draußen waren: Auch die gehen kein
  * zweites Mal.
@@ -76,6 +78,13 @@ for (let i = 1; i <= 90; i++) {
   if (i % 10 === 0) {
     eintraege.push({ id: `n${i}`, am, um: '20:00', art: 'notiz', text: 'Streit mit der Chefin' });
   }
+  tage[am].wasser = (i % 6) + 1;
+  if (i % 2 === 0) {
+    eintraege.push({
+      id: `a${i}`, am, um: '18:00', art: 'aktivitaet', aktivitaeten: ['gym', 'a:kletterhalle'],
+      intensitaet: 'mittel', notiz: 'mit dem Verein',
+    });
+  }
 }
 
 const ZUSTAND = {
@@ -87,6 +96,8 @@ const ZUSTAND = {
   termine: [vorTagen(30)],
   ideen: [],
   ideenGeschickt: 0,
+  standardMittel: [{ id: 'sm1', mittel: 'L-Thyroxin', dosis: '50 µg', tageszeit: 'morgens', bezug: 'vor' }],
+  eigeneAktivitaeten: [{ id: 'a:kletterhalle', name: 'Kletterhalle' }],
 };
 
 // Die Uhr in die Hand nehmen, damit sich Stunden vorstellen lassen, ohne sie
@@ -103,6 +114,52 @@ await page.waitForTimeout(400);
 for (const tab of ['heute', 'verlauf', 'muster', 'ruhe', 'ideen', 'mehr']) {
   await page.locator(`[data-act="tab"][data-tab="${tab}"]`).click();
   await page.waitForTimeout(250);
+}
+
+// Die neueren Knöpfe auf „Tag": Wasser, Zuletzt gemacht, Meine Mittel, der
+// Aktivitätsbogen, Löschen mit zwei Tipps samt „Rückgängig", Ändern.
+await page.locator('[data-act="tab"][data-tab="heute"]').click();
+await page.waitForTimeout(200);
+const tippe = async (sel) => { await page.locator(sel).first().click(); await page.waitForTimeout(150); };
+await tippe('#wasserMehr');
+await tippe('#wasserMehr');
+await tippe('#wasserWeniger');
+await tippe('[data-act="aktiv-schnell"]');
+await tippe('[data-act="standard-eintragen"]');
+await tippe('[data-act="neu"][data-art="aktivitaet"]');
+await tippe('[data-act="aktiv-wahl"][data-id="laufen"]');
+await tippe('[data-act="bogen-speichern"]');
+const loesch = page.locator('[data-act="loeschen"]').first();
+await loesch.click();
+await page.waitForTimeout(100);
+await loesch.click();
+await page.waitForTimeout(150);
+await tippe('[data-act="loeschen-zurueck"]');
+await tippe('[data-act="bearbeiten"]');
+await tippe('button.bogen-zu');
+await tippe('[data-act="tag-blaettern"][data-d="-1"]');
+// Und unter „Mehr": ein eigenes Mittel, eine eigene Aktivität, die Glasgröße.
+await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+await page.waitForTimeout(200);
+await tippe('[data-act="meinmittel-neu"]');
+await page.locator('#mmName').fill('Iberogast');
+await tippe('[data-act="mm-speichern"]');
+await page.locator('#neueAktivitaet').fill('Chorprobe');
+await tippe('[data-act="aktiv-neu"]');
+const wegAktiv = page.locator('[data-act="aktiv-weg"][data-id="a:chorprobe"]');
+await wegAktiv.click();
+await page.waitForTimeout(100);
+await wegAktiv.click();
+await page.waitForTimeout(150);
+await tippe('[data-act="entfernt-zurueck"]');
+await tippe('[data-act="wasser-glas"][data-n="330"]');
+{
+  // Gegenprobe: Die Knöpfe gab es wirklich, und sie haben etwas getan.
+  const z = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
+  check(z.eintraege.filter((e) => e.art === 'aktivitaet').length >= 47 && z.standardMittel.length === 2
+      && z.eigeneAktivitaeten.length === 2 && z.wasserGlas === 330
+      && Object.values(z.tage).some((t) => t.wasser >= 1),
+  `die neueren Teile sind angetippt worden (${z.eintraege.filter((e) => e.art === 'aktivitaet').length} Aktivitäten, ${z.standardMittel.length} Mittel)`);
 }
 
 // Verlauf: Zeiträume und Monate durchblättern.

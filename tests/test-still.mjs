@@ -82,6 +82,16 @@ await page.locator('.stufe[data-n="5"]').click();
 await page.locator('[data-act="bogen-speichern"]').click();
 await page.waitForTimeout(200);
 
+// Die neueren Teile: ein Glas Wasser und eine Aktivität mit Notiz.
+await page.locator('#wasserMehr').click();
+await page.waitForTimeout(150);
+await page.locator('[data-act="neu"][data-art="aktivitaet"]').click();
+await page.waitForTimeout(150);
+await page.locator('[data-act="aktiv-wahl"][data-id="gym"]').click();
+await page.locator('#bogenNotiz').fill('Kletterwand am Abend');
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(200);
+
 for (const tab of ['verlauf', 'muster', 'mehr']) {
   await page.locator(`[data-act="tab"][data-tab="${tab}"]`).click();
   await page.waitForTimeout(200);
@@ -166,7 +176,8 @@ check(
 );
 
 const gesendet = JSON.stringify(rumpf);
-for (const geheim of ['Reis mit Möhren', 'staerke', 'eintraege', 'beschwerde', 'notiert']) {
+for (const geheim of ['Reis mit Möhren', 'staerke', 'eintraege', 'beschwerde', 'notiert',
+  'Kletterwand am Abend', 'aktivitaet', 'wasser']) {
   check(!gesendet.includes(geheim), `und nichts aus dem Tagebuch: „${geheim}" fehlt`);
 }
 
@@ -177,8 +188,9 @@ for (const geheim of ['Reis mit Möhren', 'staerke', 'eintraege', 'beschwerde', 
  */
 const daheim = await page.evaluate((k) => localStorage.getItem(k), KEY);
 check(
-  daheim.includes('Reis mit Möhren') && daheim.includes('"staerke"'),
-  'das Tagebuch liegt dabei sehr wohl im Speicher – es geht nur nicht mit',
+  daheim.includes('Reis mit Möhren') && daheim.includes('"staerke"')
+    && daheim.includes('Kletterwand am Abend') && daheim.includes('"wasser":1'),
+  'das Tagebuch liegt dabei sehr wohl im Speicher, samt Wasser und Aktivität – es geht nur nicht mit',
 );
 
 /* ==================== 4. Und sonst nichts ==================== */
@@ -206,7 +218,8 @@ check(fremd.length === 1, `auch Herumblättern löst nichts aus (${fremd.length}
 const quelle = await page.evaluate(async () => {
   const dateien = ['./js/app.js', './js/store.js', './js/auswertung.js', './js/bericht.js',
     './js/daten.js', './js/datum.js', './js/text.js', './js/chart.js', './js/tresor.js',
-    './js/rat.js', './js/bild.js', './js/luecken.js', './sw.js'];
+    './js/rat.js', './js/bild.js', './js/luecken.js', './js/wasser.js', './js/aktivitaet.js',
+    './js/zeitprofil.js', './js/provokation.js', './sw.js'];
   const texte = await Promise.all(dateien.map((d) => fetch(d).then((r) => r.text())));
   return texte.join('\n');
 });

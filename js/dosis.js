@@ -71,12 +71,13 @@ const schnittVon = (l) => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 
  * @param {number} fenster  Stunden nach dem Essen
  */
 export function dosisBild(eintraege, id, fenster = 4) {
-  // Ohne die Mahlzeiten, bei denen offen ist, ob eine Beschwerde vor oder
-  // nach ihnen kam (wertNach gibt dann null) – wie in der Auslöserbilanz.
+  // Jede Mahlzeit, auch eine, bei der offen ist, ob eine Beschwerde vor oder
+  // nach ihr kam – sie zählt dann als danach, wie in der Auslöserbilanz
+  // (siehe wertNach). Sie wegzulassen, ließe nur die beschwerdefreien übrig.
   const mahlzeiten = eintraege.filter((e) => e.art === 'essen').map((m) => ({
     wert: wertNach(eintraege, m, fenster),
     rolle: (zutatenVon(m).find((z) => z.id === id) || {}).rolle || null,
-  })).filter((x) => x.wert !== null);
+  }));
 
   // Die Vergleichsgruppe ist für alle Stufen dieselbe: Mahlzeiten, in denen
   // diese Zutat gar nicht vorkam. Jede Stufe gegen ihre eigene Gruppe zu

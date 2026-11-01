@@ -33,7 +33,7 @@
  */
 import { plusTage, tageDazwischen } from './datum.js';
 import { bezugBilanz, schmerzVergleich, stuhlTyp } from './stuhl.js';
-import { eintragZaehlt, tagZaehlt } from './wasser.js';
+import { tagZaehlt, zaehltFuerBauch } from './wasser.js';
 
 /*
  * Ab welcher Stärke eine Beschwerde als „belastend" gilt.
@@ -64,7 +64,7 @@ function notierteTage(eintraege, tage, von, bis) {
   // Bauchschmerz im Nenner und verwässerte Rom und GerdQ. Ein Tag mit nur
   // gezähltem Wasser ebenso wenig, und einer mit nur einer Aktivität auch nicht.
   (eintraege || []).forEach((e) => {
-    if (e.art !== 'kopf' && eintragZaehlt(e) && inFenster(e.am, von, bis)) isos.add(e.am);
+    if (zaehltFuerBauch(e) && inFenster(e.am, von, bis)) isos.add(e.am);
   });
   Object.keys(tage || {}).forEach((iso) => {
     if (inFenster(iso, von, bis) && tagZaehlt(tage[iso])) isos.add(iso);
