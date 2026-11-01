@@ -12,7 +12,7 @@
  * erinnert die App daran, und deshalb ist der Export eine gewöhnliche
  * JSON-Datei, die man auch ohne diese App noch lesen kann.
  */
-import { heuteISO, jetztUhr, minutenAmTag, zeitpunkt } from './datum.js';
+import { heuteISO, istISO, istUhr, jetztUhr, minutenAmTag, zeitpunkt } from './datum.js';
 import { KUECHEN_ARTEN, JE_LISTE, MAX_NAME } from './kueche.js';
 import { BEFUND_VON, JE_BEFUNDE } from './befunde.js';
 
@@ -24,8 +24,10 @@ const VORGABE = {
   //   essen       { was, zutaten: [{ id, rolle }], portion: 'klein'|'normal'|'gross' }
   //   beschwerde  { staerke: 0..10, arten: [beschwerdeId], notiz, stuhlbezug }
   //   stuhl       { form: 1..7, dringend, unvollstaendig, warnzeichen: [id] }
-  //   medikament  { mittel, dosis }
+  //   medikament  { mittel, dosis, zuKopf }
   //   notiz       { text }
+  // `zuKopf` (optional) ist die Kennung des Kopfschmerzes, mit dem das Mittel
+  // über „Dazu genommen?" angelegt wurde. Ältere Einträge haben es nicht.
   eintraege: [],
   // Was für einen ganzen Tag gilt, nicht für einen Zeitpunkt. Welche Angaben
   // es gibt, steht in TAGESFRAGEN (js/daten.js):
@@ -441,13 +443,18 @@ function neueId() {
 /**
  * Einen Eintrag anlegen. Datum und Uhrzeit sind optional und stehen sonst auf
  * jetzt – der Normalfall ist „ich trage gerade ein, was gerade war".
+ *
+ * Optional heißt auch: Ein leeres Feld zählt als nicht angegeben. Bis
+ * November 2026 überschrieb ein mitgegebenes `am: ''` die Vorgabe, und der
+ * Eintrag stand an keinem Tag. Der Bogen lässt das inzwischen gar nicht erst
+ * durch (siehe zeitFehler() in js/app.js); hier fängt es jeden anderen Weg ab.
  */
 export function eintragen(eintrag) {
   const neu = {
     id: neueId(),
-    am: eintrag.am || heuteISO(),
-    um: eintrag.um || jetztUhr(),
     ...eintrag,
+    am: istISO(eintrag.am) ? eintrag.am : heuteISO(),
+    um: istUhr(eintrag.um) ? eintrag.um : jetztUhr(),
   };
   zustand.eintraege = sortiert([...zustand.eintraege, neu]);
   merke();
@@ -455,13 +462,46 @@ export function eintragen(eintrag) {
   return neu.id;
 }
 
+/**
+ * Einen Eintrag ändern. Ein leeres oder unbrauchbares Datum und eine solche
+ * Uhrzeit überschreiben nichts – aus demselben Grund wie oben: Der Eintrag
+ * verschwände sonst aus jedem Tag.
+ */
 export function eintragAendern(id, patch) {
   const i = zustand.eintraege.findIndex((e) => e.id === id);
   if (i < 0) return;
-  zustand.eintraege[i] = { ...zustand.eintraege[i], ...patch, id };
+  const sauber = { ...patch };
+  if ('am' in sauber && !istISO(sauber.am)) delete sauber.am;
+  if ('um' in sauber && !istUhr(sauber.um)) delete sauber.um;
+  zustand.eintraege[i] = { ...zustand.eintraege[i], ...sauber, id };
   zustand.eintraege = sortiert(zustand.eintraege);
   merke();
   melde();
+}
+
+/**
+ * Einträge genau so zurücklegen, wie sie waren – mit ihren alten Kennungen.
+ *
+ * Für „Rückgängig" nach dem Löschen: Der gelöschte Eintrag kommt wieder, und
+ * was beim Löschen einer Mahlzeit mitgerückt ist, steht wieder wie vorher.
+ * Ersetzt wird ganz, nicht gemischt – ein Feld, das erst das Nachziehen
+ * gesetzt hat, bliebe beim Mischen stehen. Die alte Kennung ist der Punkt:
+ * Ein Medikament, das über `zuKopf` an einem zurückgeholten Kopfschmerz
+ * hängt, hängt danach wieder daran, und eine Sicherung erkennt ihn als
+ * denselben Eintrag statt als neuen.
+ */
+export function eintraegeZurueck(liste) {
+  const zurueck = new Map((Array.isArray(liste) ? liste : [])
+    .filter((e) => e && typeof e === 'object' && e.id && istISO(e.am) && typeof e.art === 'string')
+    .map((e) => [e.id, { ...e }]));
+  if (!zurueck.size) return 0;
+  zustand.eintraege = sortiert([
+    ...zustand.eintraege.filter((e) => !zurueck.has(e.id)),
+    ...zurueck.values(),
+  ]);
+  merke();
+  melde();
+  return zurueck.size;
 }
 
 export function eintragLoeschen(id) {

@@ -71,6 +71,31 @@ dieser Tageszeit oder zurück an die Tageszeit. Genau gesetzte Uhrzeiten
 bleiben, wie sie sind. Wird im Bogen nach einem Zeitknopf das Datum geändert,
 rechnet er die Zeit für den neuen Tag neu.
 
+**Ändern und löschen.** Jeder Eintrag lässt sich nachträglich ändern, auch
+Tage später: Ein Tipp auf die Zeile öffnet ihn im Bogen. Dass das geht, sagt
+ein „›" an jeder Zeile und ein Satz über der Liste („Tipp auf einen Eintrag,
+um ihn zu ändern."), und unter „Mehr" › „Anleitung" steht es auch. Der Bogen
+heißt dann „Kopfschmerz ändern", der Knopf unten „Ändern"; für VoiceOver heißt
+jede Zeile „Kopfschmerz, Stärke 6, um 10:15 ändern" und ihr × „… löschen".
+Gelöscht wird mit zwei Tipps: Das × fragt erst „Löschen?" und fällt nach vier
+Sekunden zurück, erst der zweite Tipp löscht. Im geöffneten Eintrag geht
+dasselbe über „Eintrag löschen". Danach steht acht Sekunden lang „Gelöscht."
+mit **Rückgängig**. Das holt den Eintrag mit derselben Kennung zurück und, war
+es eine Mahlzeit, auch die ungefähren Einträge, die beim Löschen an die
+Tageszeit gerückt sind – nur die, die seitdem niemand selbst geändert hat. Die
+Rückgängig-Mechanik des Einlesens taugt dafür nicht: Sie holt einen ganzen
+Stand zurück, und ein Löschen, das diesen Stand ersetzte, nähme den Weg zurück
+vom Einlesen.
+
+Ein leeres Datum, ein Datum in der Zukunft und eine leere Uhrzeit werden nicht
+gespeichert, beim Anlegen wie beim Ändern: Der Bogen sagt, was fehlt, und
+markiert das Feld. Vorher stand ein Eintrag mit geleertem Datum an keinem Tag,
+und der Tageskopf zeigte „undefined, NaN"; einer mit künftigem Datum stand an
+einem Tag, zu dem man nicht blättern kann. Auch an der Ansicht vorbei nimmt der
+Speicher kein leeres Datum an. Beim Ändern sind die Zeitknöpfe markiert, wie
+sie gewählt waren, und „vor dem Essen" rechnet von derselben Grundzeit wie beim
+Anlegen – nicht von der schon verschobenen Uhrzeit.
+
 **Meine Mittel.** Die Mittel, die man regelmäßig nimmt, mit Dosis und
 üblicher Zeit („morgens, vor dem Essen"). Angelegt werden sie unter „Mehr" ›
 „Meine Mittel" – dort auch geändert und entfernt, ohne dass dabei eine
@@ -376,6 +401,22 @@ dabei eine zulässige Antwort: Sie schließt die Frage, ohne gezählt zu werden.
 zweiter Bogen genau der Schritt, der wegfällt, und die Tage mit Akutmittel sind
 die wichtigste Zahl für die Neurologie. Angeboten werden nur Mittel, die schon
 einmal eingetragen wurden: Die App schlägt kein Schmerzmittel vor.
+
+Das gilt auch beim Ändern – wer erst hinterher weiß, dass er etwas genommen
+hat, öffnet den Kopfschmerz und nicht den Medikamenten-Bogen. Was dort schon
+steht, steht darüber („Schon eingetragen: Ibuprofen 400 mg um 10:15") und wird
+nicht noch einmal angeboten; dazu zählen die Mittel dieses Kopfschmerzes und
+jedes andere Akutmittel desselben Tages, das nicht zu einem zweiten
+Kopfschmerz gehört. Ein so angelegtes Mittel trägt die Kennung seines
+Kopfschmerzes (`zuKopf`). Ältere Einträge ohne sie gelten als dazugehörig, wenn
+sie ein Akutmittel sind und zur selben Minute am selben Tag stehen – so hat
+„Dazu genommen?" sie angelegt. Bekommt der Kopfschmerz einen anderen Tag oder
+eine andere Uhrzeit, **rücken seine Mittel mit**: Sonst stünde nach „war doch
+gestern" der Kopfschmerz gestern und das Ibuprofen heute, zwei falsche Tage in
+der Zählung der Akutmittel-Tage. Ein Mittel zur selben Zeit übernimmt die neue
+Zeit, eins mit eigener Uhrzeit wechselt nur den Tag. Wird der Kopfschmerz
+gelöscht, bleiben seine Mittel, und die Meldung sagt das: Genommen ist
+genommen.
 
 Die **Warnzeichen des Kopfes** stehen in derselben Liste wie die des Bauches,
 damit Warnkarte und Bericht sie finden – aber der Bauchbogen bietet sie nicht
@@ -1359,9 +1400,10 @@ vor dem ersten Eintrag, damit gar nicht erst umgezogen werden muss. Und unter
 „Mehr" › „Anleitung" steht an einem Ort, was sonst über mehrere Karten
 verstreut wäre: der Weg auf den Home-Bildschirm, das Holen aus Safari, das
 Sichern als Datei (Teilen-Blatt › „In Dateien sichern" › „iCloud Drive"), was
-das Tagebuch erhält und was es kosten kann, und was bei einem neuen Gerät zu
-tun ist. Die Seite zeigt den Stand dieses Geräts: ob Body Check schon als App
-läuft, wann zuletzt gesichert wurde und wie viel seitdem dazukam.
+das Tagebuch erhält und was es kosten kann, was bei einem neuen Gerät zu tun
+ist und wie man einen Eintrag ändert oder löscht. Die Seite zeigt den Stand
+dieses Geräts: ob Body Check schon als App läuft, wann zuletzt gesichert wurde
+und wie viel seitdem dazukam.
 
 Was dort steht, ist gegen Quellen geprüft (WebKit-Blog, MDN, web.dev,
 Apple-Support). Was sich nicht belegen ließ, steht bewusst nicht da: dass ein
@@ -1560,7 +1602,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Zweiundvierzig Dateien, über 930 Prüfungen, alle in einem echten Chromium. Kein
+Siebenundfünfzig Dateien, über 2200 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -1568,6 +1610,7 @@ den Rückgabewert.
 | --- | --- |
 | `test-rechnen.mjs` | die Rechenschicht an ausgedachten Verläufen mit bekanntem Ergebnis |
 | `test-eintrag.mjs` | eintragen, ändern, löschen, blättern |
+| `test-aendern.mjs` | als iPhone mit 320 Pixeln: jede Zeile zeigt, dass sie sich öffnen lässt, der Bogen heißt „… ändern", Löschen braucht zwei Tipps und lässt sich rückgängig machen, kein leeres oder künftiges Datum, „Dazu genommen?" beim Ändern ohne Doppelte, die Mittel rücken mit dem Kopfschmerz mit – und alte Stände laden weiter |
 | `test-muster.mjs` | ein gepflanzter Zusammenhang wird gefunden, ein zu dünner nicht |
 | `test-verlauf.mjs` | Kacheln, Balken, Kalender – und die Lücke bleibt eine Lücke |
 | `test-bericht.mjs` | die Zahlen im Arztbericht |

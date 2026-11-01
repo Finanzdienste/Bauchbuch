@@ -12,8 +12,8 @@
  */
 import * as store from './store.js';
 import {
-  fmtDatum, fmtMonat, fmtTag, heuteISO, jetztUhr, KNOPF_TAGESZEIT, monatsRaster, monatsStart,
-  plusMonate, plusTage, tageDazwischen, tageszeitVon, WOCHE_KOPF,
+  fmtDatum, fmtMonat, fmtTag, heuteISO, istISO, istUhr, jetztUhr, KNOPF_TAGESZEIT, monatsRaster,
+  monatsStart, plusMonate, plusTage, tageDazwischen, tageszeitVon, WOCHE_KOPF,
 } from './datum.js';
 import { esc, fmtZahl, kuerze, mehrzahl } from './text.js';
 import {
@@ -166,6 +166,13 @@ const ui = {
   // Das offene Formular in der Karte „Meine Mittel" unter „Mehr":
   // { id, mittel, dosis, tageszeit, bezug }, id null für ein neues.
   mittelForm: null,
+  // Welcher Löschknopf gerade „Löschen?" fragt, als '<act>:<id>' – siehe
+  // zweiterTipp(). Flüchtig: Eine Frage, die einen Neustart überlebt, wäre
+  // eine, auf die man nach Tagen versehentlich antwortet.
+  loeschFrage: null,
+  // Was zuletzt gelöscht wurde, für „Rückgängig":
+  // { eintraege: [wie vorher], nachher: { id: wie direkt nach dem Löschen } }.
+  geloescht: null,
 };
 
 /*
@@ -597,12 +604,34 @@ function lesbarerFehler(fehler, ausDatei = false) {
 }
 
 let toastUhr = null;
-function melden(text) {
+/**
+ * Eine Meldung unten über den Reitern – wahlweise mit einem Knopf daneben,
+ * `knopf` = { act, text }, etwa „Rückgängig" nach dem Löschen.
+ *
+ * Mit Knopf steht sie mindestens acht Sekunden: Wer liest „Gelöscht." und
+ * merkt, dass es der falsche war, braucht einen Moment, bis der Finger
+ * dort ist. Danach verschwindet der Knopf mit der Meldung, damit nichts
+ * Unsichtbares antippbar bleibt.
+ */
+function melden(text, knopf = null) {
   toastEl.textContent = text;
+  toastEl.classList.toggle('mit-knopf', !!knopf);
+  if (knopf) {
+    const k = document.createElement('button');
+    k.type = 'button';
+    k.className = 'toast-knopf';
+    k.dataset.act = knopf.act;
+    k.textContent = knopf.text;
+    toastEl.append(' ', k);
+  }
   toastEl.classList.add('an');
   clearTimeout(toastUhr);
   // Lange Sätze länger stehen lassen: etwa 60 ms je Zeichen, mindestens 2,4 s.
-  toastUhr = setTimeout(() => toastEl.classList.remove('an'), Math.max(2400, String(text).length * 60));
+  toastUhr = setTimeout(() => {
+    toastEl.classList.remove('an', 'mit-knopf');
+    const k = toastEl.querySelector('button');
+    if (k) k.remove();
+  }, Math.max(knopf ? 8000 : 2400, String(text).length * 60));
 }
 
 /* ==================== Bausteine ==================== */
@@ -703,6 +732,112 @@ function zeileText(e, eigene) {
   return `<b>${esc(kuerze(e.text || '', 90))}</b>`;
 }
 
+/**
+ * Eine Zeile in Worten: „Kopfschmerz, Stärke 6, um 14:30".
+ *
+ * Für VoiceOver und die Tastatur. Dort sagen „›" und „×" nichts, und ein
+ * Knopf, der nur „Eintrag löschen" heißt, sagt nicht, welcher – bei sechs
+ * Zeilen untereinander ist das die eine Auskunft, auf die es ankommt.
+ */
+function zeileWorte(e) {
+  const voll = (x) => String(x || '').trim();
+  const was = {
+    essen: () => (voll(e.was) ? `„${kuerze(e.was, 40)}“` : ''),
+    beschwerde: () => `Stärke ${e.staerke}`,
+    kopf: () => `Stärke ${e.staerke}`,
+    stuhl: () => (e.form ? `Typ ${e.form}` : ''),
+    medikament: () => [voll(e.mittel), voll(e.dosis)].filter(Boolean).join(' '),
+    notiz: () => (voll(e.text) ? `„${kuerze(e.text, 40)}“` : ''),
+  }[e.art];
+  const teil = was ? was() : '';
+  return `${ART_NAME[e.art] || 'Eintrag'}${teil ? `, ${teil}` : ''}, um ${e.ungefaehr ? 'etwa ' : ''}${e.um}`;
+}
+
+/*
+ * Löschen mit zwei Tipps.
+ *
+ * Das × saß bis November 2026 direkt neben dem Text, den man zum Ändern
+ * antippt, und löschte beim ersten Tipp – ohne Frage und ohne Weg zurück. Wer
+ * einen Eintrag ändern wollte und ein paar Millimeter danebentraf, hatte ihn
+ * verloren. Jetzt fragt der erste Tipp („Löschen?"), der zweite löscht, und
+ * nach vier Sekunden ohne zweiten Tipp steht wieder das ×.
+ *
+ * Gefragt wird im Knopf selbst und nicht in einem Dialog: Ein Dialog legt
+ * sich über die Zeile, um die es geht, und auf dem iPhone über die halbe
+ * Seite. Der Knopf wird dafür an Ort und Stelle umbeschriftet statt neu
+ * gezeichnet – sonst ginge der Tastatur und VoiceOver die Stelle verloren,
+ * an der sie gerade stehen.
+ *
+ * Die Knöpfe tragen ihre beiden Beschriftungen selbst: data-normal und
+ * data-frage für den Text, data-sagt für das, was VoiceOver ohne Frage liest.
+ */
+const FRAGE_MS = 4000;
+let frageUhr = null;
+
+function loeschKnopf(act, id, { normal, frage, sagt, klasse }) {
+  const fragt = ui.loeschFrage === `${act}:${id}`;
+  return `<button type="button" class="${klasse}${fragt ? ' frage' : ''}" data-act="${act}"
+            data-id="${esc(id)}" data-normal="${esc(normal)}" data-frage="${esc(frage)}"
+            data-sagt="${esc(sagt)}"
+            aria-label="${esc(fragt ? `${frage} Noch einmal tippen.` : sagt)}">${esc(fragt ? frage : normal)}</button>`;
+}
+
+function frageZeigen(k, fragt) {
+  k.classList.toggle('frage', fragt);
+  k.textContent = fragt ? k.dataset.frage : k.dataset.normal;
+  k.setAttribute('aria-label', fragt ? `${k.dataset.frage} Noch einmal tippen.` : k.dataset.sagt);
+}
+
+/** Die offene Frage zurücknehmen – am Knopf selbst, ohne neu zu zeichnen. */
+function frageEnde() {
+  clearTimeout(frageUhr);
+  frageUhr = null;
+  const offen = ui.loeschFrage;
+  ui.loeschFrage = null;
+  if (!offen) return;
+  const trenner = offen.indexOf(':');
+  const act = offen.slice(0, trenner);
+  const id = offen.slice(trenner + 1);
+  document.querySelectorAll(`[data-act="${act}"]`).forEach((k) => {
+    if (k.dataset.id === id) frageZeigen(k, false);
+  });
+}
+
+/**
+ * true beim zweiten Tipp auf denselben Knopf. Beim ersten fragt der Knopf
+ * und fällt nach FRAGE_MS von selbst zurück; eine andere offene Frage fällt
+ * sofort zurück – gefragt wird immer nur an einer Stelle.
+ */
+function zweiterTipp(el) {
+  const schluessel = `${el.dataset.act}:${el.dataset.id}`;
+  if (ui.loeschFrage === schluessel) {
+    frageEnde();
+    return true;
+  }
+  frageEnde();
+  ui.loeschFrage = schluessel;
+  frageZeigen(el, true);
+  frageUhr = setTimeout(frageEnde, FRAGE_MS);
+  return false;
+}
+
+/** Eine Zeile im Tagesstrang: antippen zum Ändern, × zum Löschen. */
+function strangZeile(e, s) {
+  const worte = zeileWorte(e);
+  return `<li class="strang-zeile z-${e.art}">
+      <span class="strang-uhr"${e.ungefaehr ? ' title="ungefähre Zeit"' : ''}>${e.ungefaehr ? '≈' : ''}${esc(e.um)}</span>
+      <span class="strang-punkt" aria-hidden="true">${ART_ICON[e.art]}</span>
+      <button type="button" class="strang-text" data-act="bearbeiten" data-id="${esc(e.id)}"
+              aria-label="${esc(`${worte} ändern`)}">
+        <span class="strang-inhalt">${zeileText(e, s.eigeneAusloeser)}${zeitWorte(e)}</span>
+        <span class="strang-auf" aria-hidden="true">›</span>
+      </button>
+      ${loeschKnopf('loeschen', e.id, {
+    normal: '×', frage: 'Löschen?', sagt: `${worte} löschen`, klasse: 'strang-weg strang-loeschen',
+  })}
+    </li>`;
+}
+
 function tagAnsicht(s) {
   const iso = ui.tag;
   const liste = s.eintraege.filter((e) => e.am === iso);
@@ -773,16 +908,14 @@ function tagAnsicht(s) {
       </button>`).join('')}
   </div>`;
 
-  const zeilen = liste.length ? `<ul class="strang">${liste.map((e) => `
-    <li class="strang-zeile z-${e.art}">
-      <span class="strang-uhr"${e.ungefaehr ? ' title="ungefähre Zeit"' : ''}>${e.ungefaehr ? '≈' : ''}${esc(e.um)}</span>
-      <span class="strang-punkt" aria-hidden="true">${ART_ICON[e.art]}</span>
-      <button type="button" class="strang-text" data-act="bearbeiten" data-id="${e.id}">
-        ${zeileText(e, s.eigeneAusloeser)}${zeitWorte(e)}
-      </button>
-      <button type="button" class="strang-weg" data-act="loeschen" data-id="${e.id}"
-              aria-label="Eintrag löschen">×</button>
-    </li>`).join('')}</ul>`
+  /*
+   * Ändern ging schon immer – nur sah man es keiner Zeile an. Deshalb das „›"
+   * an jeder Zeile und der Satz darüber: Wer nicht weiß, dass ein Eintrag
+   * sich öffnen lässt, löscht ihn und legt ihn neu an, und bei Nachgetragenem
+   * stimmt dann die Uhrzeit nicht mehr.
+   */
+  const zeilen = liste.length ? `<p class="klein strang-tipp">Tipp auf einen Eintrag, um ihn zu ändern.</p>
+    <ul class="strang">${liste.map((e) => strangZeile(e, s)).join('')}</ul>`
     : `<p class="leer">Für ${esc(fmtTag(iso))} ist noch nichts eingetragen.</p>`;
 
   /*
@@ -3460,7 +3593,8 @@ function anleitungKarte() {
   return `<div class="karte">
     <h3>Anleitung</h3>
     <p class="klein">Wie Body Check auf deinen Home-Bildschirm kommt, wie du
-    deine Einträge sicherst und was bei einem neuen ${geraetName(geraet())} zu tun ist.</p>
+    deine Einträge sicherst, was bei einem neuen ${geraetName(geraet())} zu tun ist
+    und wie du einen Eintrag änderst.</p>
     ${knopf('anleitung', 'Anleitung öffnen', 'btn-primary btn-block')}
   </div>`;
 }
@@ -3590,6 +3724,19 @@ function anleitungAnsicht(s) {
     </details>
   </div>`;
 
+  // Ändern ging immer, nur sah man es nicht – siehe tagAnsicht().
+  const aendern = `<div class="karte" id="anleitung-aendern">
+    <h3>Einträge ändern und löschen</h3>
+    <ul class="punkte">
+      <li><b>Tipp auf einen Eintrag</b> auf „Tag“, um ihn zu ändern – auch Tage
+        später. Uhrzeit, Datum und alles andere lassen sich ändern. Dann tippe
+        unten auf <b>Ändern</b>.</li>
+      <li><b>Löschen:</b> Tippe auf das <b>×</b> neben dem Eintrag. Es fragt
+        „Löschen?“ – tippe noch einmal, dann ist er weg. Gleich danach holt ihn
+        <b>Rückgängig</b> zurück.</li>
+    </ul>
+  </div>`;
+
   return `
   <div class="reihe">${knopf('anleitung-zu', '‹ Zurück', 'btn-ghost')}</div>
   <h2>Anleitung</h2>
@@ -3600,6 +3747,7 @@ function anleitungAnsicht(s) {
   ${umzugHolenKarte(s)}
   ${sichern}
   ${erhalten}
+  ${aendern}
   ${knopf('anleitung-zu', '‹ Zurück zu „Mehr“', 'btn-ghost btn-block')}`;
 }
 
@@ -4308,6 +4456,99 @@ function dosisAusMeinenMitteln(s, name) {
   return (zuletzt ? passend(zuletzt.dosis) : meine[0]).dosis;
 }
 
+/* ---------- Kopfschmerz und sein Mittel ---------- */
+
+// Was „Dazu genommen?" anbietet: Mittel gegen den Anfall. Die App schlägt
+// kein Schmerzmittel vor – angeboten wird nur, was schon einmal eingetragen
+// oder bei den eigenen Mitteln gemerkt ist, und davon nur diese Gruppen.
+// Nicht AKUT_KLASSEN wie in js/kopf.js: Dort zählen auch Opioide und
+// Gepante mit, als Tipp angeboten werden sie nicht.
+const DAZU_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar'];
+const istAkutmittel = (name) => {
+  const g = wissenZu(name);
+  return !!g && DAZU_KLASSEN.includes(g.id);
+};
+
+/**
+ * Die Medikamente, die zu einem Kopfschmerz gehören.
+ *
+ * Seit November 2026 trägt ein Mittel, das über „Dazu genommen?" entsteht,
+ * die Kennung seines Kopfschmerzes (`zuKopf`). Ältere tragen keine; für sie
+ * gilt, wie sie damals entstanden sind: ein Akutmittel am selben Tag zur
+ * selben Minute. Der Säureblocker zur selben Minute gehört nicht dazu – der
+ * wurde nicht gegen den Kopf genommen.
+ */
+function mittelZumKopf(s, kopf) {
+  if (!kopf) return [];
+  return s.eintraege.filter((x) => x.art === 'medikament' && (x.zuKopf
+    ? x.zuKopf === kopf.id
+    : x.am === kopf.am && x.um === kopf.um && istAkutmittel(x.mittel)));
+}
+
+/**
+ * Was an diesem Kopfschmerz schon an Mitteln steht: die dazugehörigen und
+ * jedes andere Akutmittel desselben Tages. Gezählt werden in der Auswertung
+ * Tage, nicht Einnahmen – ein zweiter Ibuprofen-Eintrag für denselben Anfall
+ * änderte keine Zahl, stünde aber doppelt in der Liste und im Bericht.
+ */
+function mittelSchonDa(s, kopf, am) {
+  const dazu = mittelZumKopf(s, kopf);
+  // Was zu einem anderen Kopfschmerz dieses Tages gehört, gehört nicht zu
+  // diesem: Zwei Anfälle an einem Tag können zwei Einnahmen haben.
+  const fremd = new Set(s.eintraege
+    .filter((k) => k.art === 'kopf' && k.am === am && k.id !== kopf.id)
+    .flatMap((k) => mittelZumKopf(s, k)));
+  const tag = s.eintraege.filter((x) => x.art === 'medikament' && x.am === am
+    && istAkutmittel(x.mittel) && !dazu.includes(x) && !fremd.has(x));
+  return [...dazu, ...tag];
+}
+
+/**
+ * Ändert sich Tag oder Uhrzeit eines Kopfschmerzes, rücken seine Mittel mit.
+ *
+ * Sonst stünde nach „war doch gestern" der Kopfschmerz gestern und das
+ * Ibuprofen heute – zwei falsche Tage in der Zählung der Akutmittel-Tage,
+ * der wichtigsten Zahl für die Neurologie. Stand das Mittel zur selben Zeit
+ * wie der Kopfschmerz, übernimmt es dessen neue Zeit samt Tageszeit; hatte es
+ * eine eigene, behält es sie und wechselt nur den Tag. Ein Mittel, das schon
+ * an einem anderen Tag steht, hat jemand selbst dorthin gelegt – es bleibt.
+ *
+ * Zurück kommen die Namen der Mittel, die mitgerückt sind.
+ */
+function mittelMitnehmen(alt, neu) {
+  if (!alt || !neu || (alt.am === neu.am && alt.um === neu.um)) return [];
+  const namen = [];
+  mittelZumKopf(store.zustandLesen(), alt).forEach((m) => {
+    if (m.am !== alt.am) return;
+    const gleichzeitig = m.um === alt.um;
+    if (!gleichzeitig && alt.am === neu.am) return;
+    store.eintragAendern(m.id, gleichzeitig
+      ? {
+        am: neu.am,
+        um: neu.um,
+        ungefaehr: !!neu.ungefaehr,
+        tageszeit: neu.ungefaehr ? neu.tageszeit || null : null,
+        bezug: null,
+        bezugMahlzeit: null,
+        zuKopf: alt.id,
+      }
+      : { am: neu.am, zuKopf: alt.id });
+    // Eine eigene Zeit „vor dem Essen" hängt an der Mahlzeit des alten Tages.
+    const jetzt = store.eintragVon(m.id);
+    if (!gleichzeitig && jetzt.ungefaehr && ESSENSBEZUG.some((x) => x.id === jetzt.bezug)) {
+      store.eintragAendern(m.id, zeitNeu(store.zustandLesen(), jetzt));
+    }
+    namen.push(m.mittel);
+  });
+  return namen;
+}
+
+/** „Ibuprofen 400 mg um 14:30" */
+const mittelZeile = (m) => `${mittelName(m)} um ${m.ungefaehr ? '≈' : ''}${m.um}`;
+
+/** „Ibuprofen" – „Ibuprofen und Sumatriptan" */
+const undListe = (namen) => [...new Set(namen)].join(' und ');
+
 /** „abends, nach dem Essen" – in der Liste unter dem Eintrag. */
 function zeitWorte(e) {
   if (!e.ungefaehr) return '';
@@ -4322,8 +4563,12 @@ function bogenHTML(s) {
   const b = ui.bogen;
   if (!b) return '';
   const e = b.entwurf;
+  // Beim Ändern sagt die Überschrift das – „Kopfschmerz ändern", nicht nur
+  // „Kopfschmerz": Derselbe Bogen sieht sonst aus wie ein neuer Eintrag, und
+  // wer unsicher ist, ob er gerade einen zweiten anlegt, bricht ab.
+  const titel = b.id ? `${ART_NAME[b.art]} ändern` : ART_NAME[b.art];
   const kopf = `<div class="bogen-kopf">
-    <h2>${ART_ICON[b.art]} ${ART_NAME[b.art]}</h2>
+    <h2 id="bogenTitel">${ART_ICON[b.art]} ${esc(titel)}</h2>
     <button type="button" class="bogen-zu" data-act="bogen-zu" aria-label="Schließen">×</button>
   </div>`;
 
@@ -4331,7 +4576,7 @@ function bogenHTML(s) {
     <label class="feld-name" for="bogenUhr">Uhrzeit</label>
     <input type="time" class="feld" id="bogenUhr" data-act="uhr" value="${esc(e.um)}">
     <label class="feld-name" for="bogenTag">am</label>
-    <input type="date" class="feld" id="bogenTag" data-act="bogen-datum" value="${e.am}" max="${heuteISO()}">
+    <input type="date" class="feld" id="bogenTag" data-act="bogen-datum" value="${esc(e.am)}" max="${heuteISO()}">
   </div>
   ${zeitKnoepfe(b.art, e)}`;
 
@@ -4421,17 +4666,24 @@ function bogenHTML(s) {
      * Schritt, der wegfällt, und die Akutmittel-Tage sind die wichtigste Zahl
      * für die Neurologie. Angeboten werden nur Mittel, die schon einmal
      * eingetragen wurden: Die App schlägt kein Schmerzmittel vor.
+     *
+     * Auch beim Ändern – wer erst im Nachhinein weiß, dass er etwas genommen
+     * hat, ändert den Kopfschmerz und nicht den Medikamenten-Bogen. Was dort
+     * schon steht, steht dann darüber und wird nicht noch einmal angeboten.
      */
-    const akutKlassen = ['nsar', 'kombi', 'triptan', 'nichtnsar'];
     // Auch die eigenen Mittel: Wer sein Migränemittel dort mit Dosis angelegt
     // hat, soll es hier finden, selbst wenn es unter den fünf zuletzt
     // benutzten Namen gerade nicht steht. Die Dosis kommt von dort mit.
     const dazuNamen = [...(s.zuletztMittel || []), ...s.standardMittel.map((m) => m.mittel)]
       .filter((n, i, alle) => alle.findIndex((x) => gleichText(x, n)) === i);
-    const dazuWahl = b.id ? [] : dazuNamen.filter((n) => {
-      const g = wissenZu(n);
-      return g && akutKlassen.includes(g.id);
-    });
+    const akutNamen = dazuNamen.filter(istAkutmittel);
+    const alt = b.id ? store.eintragVon(b.id) : null;
+    const schon = alt ? mittelSchonDa(s, alt, e.am) : [];
+    const mitDiesem = alt ? mittelZumKopf(s, alt) : [];
+    const dazuWahl = akutNamen.filter((n) => !schon.some((x) => gleichText(x.mittel, n)));
+    const schonTeil = schon.length ? `<p class="klein kopf-schon">Schon eingetragen:
+      ${schon.map((x) => esc(mittelZeile(x))).join(', ')}.${mitDiesem.length
+  ? ` Änderst du hier Tag oder Uhrzeit, ${mitDiesem.length === 1 ? 'rückt es' : 'rücken sie'} mit.` : ''}</p>` : '';
     const wahlReihe = (liste, feld, act, klasse = '') => `<div class="wahl${klasse}">${liste.map((x) => `
         <button type="button" class="wahl-btn${e[feld] === x.id ? ' an' : ''}"
                 data-act="${act}" data-id="${x.id}">${esc(x.name)}</button>`).join('')}</div>`;
@@ -4444,15 +4696,17 @@ function bogenHTML(s) {
       ${uebel ? `<p class="klein">Die Übelkeit des Anfalls gehört hier zum Kopf. Bitte
       nicht noch einmal als Bauchbeschwerde eintragen – sonst wird aus dem
       Kopfschmerz ein Magentag.</p>` : ''}
-      ${b.id ? '' : `<p class="feld-name">Dazu genommen? Ein Tipp legt das Medikament mit an.</p>
+      <p class="feld-name">Dazu genommen? Ein Tipp legt das Medikament mit an.</p>
+      ${schonTeil}
       ${dazuWahl.length ? `<div class="marken">${dazuWahl.map((n) => {
         const dosis = dosisAusMeinenMitteln(s, n);
-        return `<button type="button" class="marke${(e.dazuMittel || []).includes(n) ? ' an' : ''}"
+        const an = (e.dazuMittel || []).includes(n);
+        return `<button type="button" class="marke${an ? ' an' : ''}" aria-pressed="${an}"
                 data-act="kopf-dazu" data-id="${esc(n)}">${esc(n)}${dosis ? ` <span class="marke-zahl">${esc(dosis)}</span>` : ''}</button>`;
       }).join('')}</div>`
-    : `<p class="klein">Dein Schmerz- oder Migränemittel einmal als Medikament
+    : akutNamen.length ? '' : `<p class="klein">Dein Schmerz- oder Migränemittel einmal als Medikament
       eintragen – danach steht es hier als Tipp. Daran hängt die Zählung der
-      Tage mit Akutmittel, die wichtigste Zahl für die Neurologie.</p>`}`}
+      Tage mit Akutmittel, die wichtigste Zahl für die Neurologie.</p>`}
       <p class="feld-name">Wie lange – mit oder ohne Mittel?</p>
       ${wahlReihe(KOPF_DAUER, 'dauer', 'kopfdauer', ' wahl-vier')}
       <p class="klein">Hält er bis morgen an, trag ihn morgen noch einmal ein:
@@ -4555,12 +4809,22 @@ function bogenHTML(s) {
                 placeholder="Was sonst noch war">${esc(e.text || '')}</textarea>`;
   }
 
+  // Löschen auch von hier aus, mit derselben Rückfrage wie in der Zeile.
+  // Unten und schlicht, unter „Ändern" – so wie „Ereignis löschen" im
+  // Kalender des iPhones: der seltenere Weg, aber dort, wo man ihn sucht.
+  const weg = b.id ? loeschKnopf('bogen-loeschen', b.id, {
+    normal: 'Eintrag löschen',
+    frage: 'Wirklich löschen?',
+    sagt: `${zeileWorte(store.eintragVon(b.id) || e)} löschen`,
+    klasse: 'btn btn-ghost btn-block bogen-weg',
+  }) : '';
   return `<div class="bogen-hg" data-act="bogen-zu"></div>
-    <div class="bogen" role="dialog" aria-modal="true" aria-label="${ART_NAME[b.art]} eintragen">
+    <div class="bogen" role="dialog" aria-modal="true" aria-label="${esc(b.id ? titel : `${ART_NAME[b.art]} eintragen`)}">
       ${kopf}
       <div class="bogen-inhalt">${zeit}${mitte}</div>
       <div class="bogen-fuss">
         ${knopf('bogen-speichern', b.id ? 'Ändern' : 'Eintragen', 'btn-primary btn-block')}
+        ${weg}
       </div>
     </div>`;
 }
@@ -4759,19 +5023,74 @@ function bogenOeffnen(art, id) {
     art,
     id: id || null,
     entwurf: alt
-      ? { ...vorlage, ...alt }
+      ? { ...vorlage, ...alt, ...grundzeitVon(alt) }
       : { ...vorlage, art, am: ui.tag, um: ui.tag === heuteISO() ? jetztUhr() : '12:00' },
     // Steht die Zeit schon fest – von Hand gesetzt oder, beim Ändern, die
     // des Eintrags? Dann überschreibt die Wahl eines eigenen Mittels sie nicht.
     zeitGesetzt: !!alt,
   };
+  frageEnde();
   zeichne();
+}
+
+/*
+ * Die Grundzeit eines ungefähren Eintrags mit Bezug zum Essen – für den Bogen
+ * beim Ändern.
+ *
+ * Gespeichert wird sie nicht (bogenSpeichern() wirft sie weg), gerechnet wird
+ * aber von ihr aus: „vor dem Essen" ist eine halbe Stunde vor der Grundzeit,
+ * nicht vor der schon verschobenen Uhrzeit. Ohne sie wanderte ein Eintrag
+ * ohne Mahlzeit beim Ändern von „nach" auf „vor" nur um eine halbe Stunde
+ * statt um eine ganze. Zurückgerechnet wird wie in zeitFuerNeuenTag().
+ */
+function grundzeitVon(e) {
+  const bezug = ESSENSBEZUG.find((x) => x.id === e.bezug);
+  if (!e.ungefaehr || !bezug || !MIT_ESSENSBEZUG.includes(e.art)) return {};
+  const t = TAGESZEITEN.find((x) => x.id === e.tageszeit);
+  return { bezugBasis: t ? t.um : uhrVon(minutenVon(e.um) - bezug.minuten) };
+}
+
+/**
+ * Was an Datum und Uhrzeit im Bogen nicht stimmt – { feld, text } oder null.
+ *
+ * Ein geleertes Datumsfeld liefert '', und über das späteste Datum hinaus
+ * lässt sich trotzdem tippen. Beides ergab einen Eintrag, den man nicht mehr
+ * fand: Mit '' stand er an keinem Tag, und der Tageskopf, der nach dem
+ * Speichern dorthin sprang, zeigte „undefined, NaN"; mit einem künftigen
+ * Datum stand er an einem Tag, zu dem man nicht blättern kann. Eine geleerte
+ * Uhrzeit stand leer in der Liste und wurde wie Mittag einsortiert. Gesagt
+ * wird, was fehlt, und gespeichert wird nichts – beim Anlegen wie beim
+ * Ändern.
+ */
+function zeitFehler(e) {
+  if (!istISO(e.am)) return { feld: 'bogenTag', text: 'Welcher Tag? Bitte ein Datum wählen.' };
+  if (e.am > heuteISO()) {
+    return { feld: 'bogenTag', text: 'Das Datum liegt in der Zukunft. Bitte heute oder einen früheren Tag wählen.' };
+  }
+  if (!istUhr(e.um)) {
+    return { feld: 'bogenUhr', text: 'Um wie viel Uhr? Bitte eine Uhrzeit wählen oder „morgens“, „mittags“ oder „abends“ antippen.' };
+  }
+  return null;
+}
+
+/** Ein Feld als falsch markieren – oder die Markierung wieder abnehmen. */
+function feldFehler(el, falsch) {
+  if (!el) return;
+  el.classList.toggle('feld-fehler', falsch);
+  if (falsch) el.setAttribute('aria-invalid', 'true');
+  else el.removeAttribute('aria-invalid');
 }
 
 function bogenSpeichern() {
   const b = ui.bogen;
   if (!b) return;
   const e = { ...b.entwurf, art: b.art };
+  const falsch = zeitFehler(e);
+  if (falsch) {
+    feldFehler(document.getElementById(falsch.feld), true);
+    melden(falsch.text);
+    return;
+  }
   if (b.art === 'essen' && !String(e.was || '').trim() && !(e.zutaten || []).length) {
     melden('Bitte etwas eintragen oder ankreuzen.');
     return;
@@ -4796,8 +5115,9 @@ function bogenSpeichern() {
       ? 'Wie stark? Eine Stufe antippen.' : 'Wie stark? Bei 0 wäre es kein Kopfschmerz.');
     return;
   }
-  // „Dazu genommen": je Marke ein Medikament-Eintrag zur selben Zeit. Die
-  // Liste selbst bleibt nicht am Kopfeintrag hängen.
+  // „Dazu genommen": je Marke ein Medikament-Eintrag zur selben Zeit, mit
+  // der Kennung des Kopfschmerzes. Die Liste selbst bleibt nicht am
+  // Kopfeintrag hängen.
   const dazu = b.art === 'kopf' ? (e.dazuMittel || []) : [];
   if (b.art === 'kopf') delete e.dazuMittel;
   delete e.bezugBasis;
@@ -4830,14 +5150,31 @@ function bogenSpeichern() {
     else if (!r.fehler) gemerkt = ref ? 'geaendert' : 'gemerkt';
   }
   const vorher = b.id ? store.eintragVon(b.id) : null;
+  if (b.id && !vorher) {
+    ui.bogen = null;
+    melden('Diesen Eintrag gibt es nicht mehr.');
+    zeichne();
+    return;
+  }
   let neueId = b.id;
   if (b.id) store.eintragAendern(b.id, e);
   else neueId = store.eintragen(e);
-  dazu.forEach((name) => {
+  /*
+   * Ein geänderter Kopfschmerz nimmt seine Mittel mit auf den neuen Tag, und
+   * „Dazu genommen?" legt nichts an, was für ihn schon dasteht – auch dann
+   * nicht, wenn der Bogen das wegen eines neuen Datums noch nicht wusste.
+   */
+  const geaendertKopf = b.art === 'kopf' && b.id ? store.eintragVon(b.id) : null;
+  const mitgerueckt = geaendertKopf ? mittelMitnehmen(vorher, geaendertKopf) : [];
+  const schon = geaendertKopf ? mittelSchonDa(store.zustandLesen(), geaendertKopf, e.am) : [];
+  const dazuNeu = dazu.filter((n) => !schon.some((x) => gleichText(x.mittel, n)));
+  const dazuDa = dazu.filter((n) => !dazuNeu.includes(n));
+  dazuNeu.forEach((name) => {
     store.eintragen({
       art: 'medikament', am: e.am, um: e.um, mittel: name,
       dosis: dosisAusMeinenMitteln(store.zustandLesen(), name),
       ...(e.ungefaehr ? { ungefaehr: true, tageszeit: e.tageszeit || null } : {}),
+      zuKopf: neueId,
     });
     store.mittelMerken(name);
   });
@@ -4852,8 +5189,53 @@ function bogenSpeichern() {
     schon: `${getan}. So steht es schon bei deinen Mitteln.`,
     voll: `${getan}. Bei deinen Mitteln ist kein Platz mehr – höchstens ${store.STANDARD_HOECHSTENS}. `
       + 'Unter „Mehr“ kannst du eins entfernen.',
-  }[gemerkt] || (dazu.length ? `${getan}, mit ${dazu.join(' und ')}.` : `${getan}.`);
-  melden(nachgezogen ? `${satz} ${nachgezogen}` : satz);
+  }[gemerkt] || (dazuNeu.length ? `${getan}, mit ${undListe(dazuNeu)}.` : `${getan}.`);
+  const zusatz = [
+    dazuDa.length ? `${undListe(dazuDa)} ${dazuDa.length === 1 ? 'stand' : 'standen'} schon da.` : '',
+    mitgerueckt.length
+      ? `${undListe(mitgerueckt)} ${new Set(mitgerueckt).size === 1 ? 'ist' : 'sind'} mitgerückt.` : '',
+    nachgezogen,
+  ].filter(Boolean).join(' ');
+  melden(zusatz ? `${satz} ${zusatz}` : satz);
+  zeichne();
+}
+
+/**
+ * Einen Eintrag löschen – und merken, wie es vorher war, für „Rückgängig".
+ *
+ * Gemerkt wird nicht nur der Eintrag. Eine gelöschte Mahlzeit zieht die
+ * ungefähren Einträge des Tages an eine andere Mahlzeit oder an die Tageszeit
+ * (siehe nachziehen()); zurückgeholt wird beides, und von den mitgerückten
+ * nur, was seitdem noch genau so dasteht. Was jemand in der Zwischenzeit
+ * selbst geändert hat, überschreibt „Rückgängig" nicht.
+ *
+ * Hängen an einem Kopfschmerz Mittel, bleiben sie, und die Meldung sagt das:
+ * Genommen ist genommen, auch wenn der Kopfschmerz doppelt eingetragen war.
+ *
+ * Die Rückgängig-Mechanik des Einlesens (store.rueckgaengig) passt hier
+ * nicht: Sie holt den ganzen Stand von vor dem letzten Einlesen zurück, und
+ * ein Löschen, das diesen Stand ersetzte, nähme genau diesen Weg zurück.
+ */
+function eintragWeg(id) {
+  const alt = store.eintragVon(id);
+  if (!alt) return;
+  const vorher = JSON.parse(JSON.stringify(alt));
+  const davor = new Map(store.zustandLesen().eintraege
+    .filter((x) => x.am === alt.am && x.id !== id).map((x) => [x.id, JSON.stringify(x)]));
+  const mittel = alt.art === 'kopf' ? mittelZumKopf(store.zustandLesen(), alt).map((m) => m.mittel) : [];
+  store.eintragLoeschen(id);
+  const nachgezogen = alt.art === 'essen' ? nachziehen(alt.id, alt, null) : '';
+  const mitgerueckt = store.zustandLesen().eintraege
+    .filter((x) => davor.has(x.id) && davor.get(x.id) !== JSON.stringify(x));
+  ui.geloescht = {
+    eintraege: [vorher, ...mitgerueckt.map((x) => JSON.parse(davor.get(x.id)))],
+    nachher: Object.fromEntries(mitgerueckt.map((x) => [x.id, JSON.stringify(x)])),
+  };
+  melden([
+    'Gelöscht.',
+    mittel.length ? `${undListe(mittel)} ${new Set(mittel).size === 1 ? 'bleibt' : 'bleiben'} eingetragen.` : '',
+    nachgezogen,
+  ].filter(Boolean).join(' '), { act: 'loeschen-zurueck', text: 'Rückgängig' });
   zeichne();
 }
 
@@ -4991,6 +5373,7 @@ const AKTION = {
     // Ein Tipp auf „Mehr" führt zu „Mehr", auch aus der Anleitung heraus.
     ui.anleitung = false;
     ui.mittelForm = null;
+    frageEnde();
     // Wer auf „Ideen" wechselt, gibt einem gescheiterten Versand einen
     // neuen Anlauf – genau einen, nicht einen je Neuzeichnen.
     if (el.dataset.tab === 'ideen') sendenAnstossen();
@@ -5002,17 +5385,34 @@ const AKTION = {
     const e = store.eintragVon(el.dataset.id);
     if (e) bogenOeffnen(e.art, e.id);
   },
+  // Erster Tipp fragt, zweiter löscht – siehe zweiterTipp(). Eine gelöschte
+  // Mahlzeit nimmt nichts mit: Was an ihr hing, rastet an einer anderen
+  // Mahlzeit dieser Tageszeit ein oder rechnet mit der Tageszeit selbst.
   loeschen: (el) => {
-    const alt = store.eintragVon(el.dataset.id);
-    store.eintragLoeschen(el.dataset.id);
-    // Eine gelöschte Mahlzeit nimmt nichts mit: Was an ihr hing, rastet an
-    // einer anderen Mahlzeit dieser Tageszeit ein oder rechnet mit der
-    // Tageszeit selbst.
-    const nachgezogen = alt && alt.art === 'essen' ? nachziehen(alt.id, alt, null) : '';
-    melden(nachgezogen ? `Gelöscht. ${nachgezogen}` : 'Gelöscht.');
+    if (zweiterTipp(el)) eintragWeg(el.dataset.id);
+  },
+  'bogen-loeschen': (el) => {
+    if (!zweiterTipp(el)) return;
+    ui.bogen = null;
+    eintragWeg(el.dataset.id);
+  },
+  // Den gelöschten Eintrag zurück, und was beim Löschen mitgerückt ist, wenn
+  // es seitdem noch so dasteht. Der Tag springt dorthin, wo er wieder steht.
+  'loeschen-zurueck': () => {
+    const g = ui.geloescht;
+    if (!g) return;
+    ui.geloescht = null;
+    const [eintrag, ...mitgerueckt] = g.eintraege;
+    const unberuehrt = mitgerueckt.filter((x) => {
+      const jetzt = store.eintragVon(x.id);
+      return jetzt && JSON.stringify(jetzt) === g.nachher[x.id];
+    });
+    store.eintraegeZurueck([eintrag, ...unberuehrt]);
+    ui.tag = eintrag.am;
+    melden('Zurückgeholt.');
     zeichne();
   },
-  'bogen-zu': () => { ui.bogen = null; zeichne(); },
+  'bogen-zu': () => { ui.bogen = null; frageEnde(); zeichne(); },
   /*
    * Ein eigenes Mittel im Bogen wählen: Name und Dosis, und die übliche Zeit
    * nur, wenn noch keine gewählt ist. Wer schon „abends" getippt hat und dann
@@ -5934,21 +6334,25 @@ function eingabe(ev) {
     // Von Hand gesetzt ist die Zeit wieder genau – die Knöpfe gelten dann
     // nicht mehr. Ohne Neuzeichnen, sonst verlöre das Feld beim Tippen den
     // Fokus; die Markierung der Knöpfe stimmt beim nächsten Zeichnen.
+    // Wer das Feld anfasst, das beim Speichern als falsch markiert wurde,
+    // bekommt die Markierung abgenommen – geprüft wird beim nächsten Speichern.
     case 'uhr':
       entwurf({
         um: wert, ungefaehr: false, tageszeit: null, bezug: null, bezugMahlzeit: null, bezugBasis: null,
       }, false);
       if (ui.bogen) ui.bogen.zeitGesetzt = true;
+      feldFehler(el, false);
       break;
     case 'bogen-datum':
       entwurf({ am: wert }, false);
-      if (/^\d{4}-\d{2}-\d{2}$/.test(wert)) zeitFuerNeuenTag();
+      if (istISO(wert)) zeitFuerNeuenTag();
+      feldFehler(el, false);
       break;
     // Das Formular unter „Meine Mittel": wie der Bogen ohne Neuzeichnen.
     case 'mm-name': if (ui.mittelForm) ui.mittelForm.mittel = wert; break;
     case 'mm-dosis': if (ui.mittelForm) ui.mittelForm.dosis = wert; break;
     case 'tag-datum':
-      if (/^\d{4}-\d{2}-\d{2}$/.test(wert)) { ui.tag = wert; zeichne(); }
+      if (istISO(wert)) { ui.tag = wert; zeichne(); }
       break;
     // Das Passwort zeichnet *nicht* neu – ein Neuzeichnen bei jedem Zeichen
     // nähme dem Feld den Fokus, und ein Passwortfeld, das nach drei Zeichen
@@ -5992,7 +6396,7 @@ document.addEventListener('input', eingabe);
 document.addEventListener('change', eingabe);
 
 document.addEventListener('keydown', (ev) => {
-  if (ev.key === 'Escape' && ui.bogen) { ui.bogen = null; zeichne(); }
+  if (ev.key === 'Escape' && ui.bogen) { ui.bogen = null; frageEnde(); zeichne(); }
 });
 
 /*
@@ -6114,7 +6518,7 @@ try {
     const z = JSON.parse(roh);
     if (z && Date.now() - Number(z.zeit) < 120000) {
       nachNeuladen = z;
-      if (z.tag) ui.tag = z.tag;
+      if (istISO(z.tag)) ui.tag = z.tag;
       if (z.monat) ui.monat = z.monat;
       if (z.zeitraum) ui.zeitraum = z.zeitraum;
       ui.kuecheOffen = !!z.kuecheOffen;

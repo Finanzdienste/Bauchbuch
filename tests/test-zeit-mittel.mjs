@@ -347,12 +347,16 @@ await setze({
   ],
 });
 await zuTag(gestern);
+// Zwei Tipps: Der erste fragt „Löschen?", der zweite löscht.
+await page.locator('[data-act="loeschen"][data-id="mittag1"]').click();
 await page.locator('[data-act="loeschen"][data-id="mittag1"]').click();
 await kurz(300);
 s = await speicher();
 let mb = s.eintraege.find((e) => e.id === 'mb');
 check(mb.um === '14:30' && mb.bezugMahlzeit === 'mittag2', `die Mahlzeit gelöscht: an die andere Mahlzeit des Mittags (${mb.um})`);
 check((await meldung()).includes('an die Mahlzeit angepasst'), `mit Meldung (${await meldung()})`);
+// Zwei Tipps: Der erste fragt „Löschen?", der zweite löscht.
+await page.locator('[data-act="loeschen"][data-id="mittag2"]').click();
 await page.locator('[data-act="loeschen"][data-id="mittag2"]').click();
 await kurz(300);
 s = await speicher();

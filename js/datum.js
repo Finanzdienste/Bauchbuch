@@ -35,6 +35,28 @@ export function jetztUhr() {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
+/**
+ * Ist das ein Tag, den es gibt, als 'YYYY-MM-DD'?
+ *
+ * Ein geleertes Datumsfeld liefert '', und ein Eintrag mit diesem Datum steht
+ * an keinem Tag: In der Liste fehlt er, und der Tageskopf, der danach auf ihn
+ * springt, zeigt „undefined, NaN". Auch einen 31. Februar gibt es nicht –
+ * Date rechnete ihn still in den März um.
+ */
+export function istISO(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof iso === 'string' ? iso : '');
+  if (!m) return false;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return d.getFullYear() === Number(m[1]) && d.getMonth() === Number(m[2]) - 1
+    && d.getDate() === Number(m[3]);
+}
+
+/** Ist das eine Uhrzeit von 0:00 bis 23:59 – so, wie minutenAmTag() sie liest? */
+export function istUhr(uhr) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(typeof uhr === 'string' ? uhr : '');
+  return !!m && Number(m[1]) < 24 && Number(m[2]) < 60;
+}
+
 export function ausISO(iso) {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(y, m - 1, d);

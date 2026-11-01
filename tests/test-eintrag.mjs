@@ -142,6 +142,11 @@ check(await page.locator('.leer').count() === 1, 'und sagt das auch');
 
 await page.locator('[data-act="tag-blaettern"][data-d="1"]').click();
 await page.waitForTimeout(150);
+// Der erste Tipp fragt nur, erst der zweite löscht (Genaueres in test-aendern.mjs).
+await page.locator('.strang-weg').first().click();
+await page.waitForTimeout(150);
+check(await page.locator('.strang-zeile').count() === 2, 'ein Tipp aufs × löscht noch nicht');
+check((await page.locator('.strang-weg').first().textContent()).trim() === 'Löschen?', 'sondern fragt');
 await page.locator('.strang-weg').first().click();
 await page.waitForTimeout(200);
 check(await page.locator('.strang-zeile').count() === 1, 'gelöscht ist gelöscht');
