@@ -1802,7 +1802,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Neunundfünfzig Dateien, über 2400 Prüfungen, alle in einem echten Chromium. Kein
+Einundsechzig Dateien, über 2600 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
