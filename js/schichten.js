@@ -44,6 +44,7 @@
  * „dafür reichen die Daten nicht". Das ist die einzige ehrliche Antwort und
  * die einzige, die niemanden in die Irre führt.
  */
+import { tagZaehlt } from './wasser.js';
 
 /**
  * Die Schichtmerkmale.
@@ -150,8 +151,14 @@ export function haeltStand(bewertet, id, tage, extra = {}) {
          * die Angaben" – auch bei jemandem, der jeden Abend alle Fragen
          * beantwortet hat. Der Test war grün, weil seine Tage das Feld hatten.
          */
+        /*
+         * Ein Tag mit nur gezähltem Wasser steht auch im Tagesspeicher, sagt
+         * aber zu keiner dieser Fragen etwas. Ohne diese Prüfung landete er
+         * als „außerhalb der Blutung" in der Zyklusschicht – eine Angabe, die
+         * niemand gemacht hat.
+         */
         const tag = (tage || {})[b.am];
-        if (!tag) return false;
+        if (!tagZaehlt(tag)) return false;
         const v = tag[s.id];
         return teil.passt(v === undefined ? null : v);
       });

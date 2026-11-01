@@ -30,7 +30,10 @@ import {
   verlaufReihe, zutatenVon,
 } from './auswertung.js';
 import { entschluesseln, istTresor, tresorMoeglich, verschluesseln } from './tresor.js';
-import { bezugBilanz, stuhlZahlen } from './stuhl.js';
+import { bezugBilanz, stuhlZahlen, wasserSatz, wasserVergleich } from './stuhl.js';
+import {
+  GLAS_GROESSEN, WASSER_HOECHSTENS, glasMl, glasName, literText, wasserVon,
+} from './wasser.js';
 import { genugFuerKriterien, kriterien } from './kriterien.js';
 import {
   DAUER_VORSCHLAEGE, VERSUCH_URTEIL, betrifft, ergebnis, phase, versuchStand,
@@ -908,6 +911,9 @@ function tagAnsicht(s) {
       </button>`).join('')}
   </div>`;
 
+  // Nicht auf künftigen Tagen – dort lässt sich auch sonst nichts eintragen.
+  const wasser = !kuenftig && s.wasserZeigen !== false ? wasserZeile(s, iso) : '';
+
   /*
    * Ändern ging schon immer – nur sah man es keiner Zeile an. Deshalb das „›"
    * an jeder Zeile und der Satz darüber: Wer nicht weiß, dass ein Eintrag
@@ -951,10 +957,37 @@ function tagAnsicht(s) {
   return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
     + provokationZeile(s, iso) + bilanz + zyklusZeile + kopfNachtragKarte(s, iso)
-    + (heute ? ratKarte(s) : '') + schnellReihe + mittelReihe + anlegen + zeilen + umstaende
+    + (heute ? ratKarte(s) : '') + schnellReihe + mittelReihe + anlegen + wasser + zeilen + umstaende
     // Ans Ende und zugeklappt: Die Liste ist zum Nachsehen da, nicht zum
     // täglichen Durchscrollen. Wer sie sucht, findet sie an derselben Stelle.
     + (iso === heuteISO() ? kuecheKarte(s) : '');
+}
+
+/**
+ * Wasser zählen: ein Tipp, ein Glas.
+ *
+ * Eine Reihe statt eines Knopfs im Raster darüber, weil hier nichts angelegt
+ * wird – kein Bogen, keine Uhrzeit, keine Zeile im Strang. Das Plus ist groß,
+ * weil es fast immer das Plus ist; das Minus nimmt einen Fehlgriff zurück und
+ * ist bei null aus. Wie viel ein Glas ist, steht unter „Mehr“; die Literzahl
+ * ist nur eine Umrechnung.
+ *
+ * Warum kein Eintrag und keine Mahlzeit, steht in js/wasser.js. Die Knöpfe
+ * tragen eine id, damit der Fokus beim Neuzeichnen auf ihnen bleibt – wer mit
+ * VoiceOver dreimal tippt, soll nicht dreimal suchen.
+ */
+function wasserZeile(s, iso) {
+  const n = wasserVon((s.tage || {})[iso]);
+  const liter = literText(n, s.wasserGlas);
+  return `<div class="wasser" role="group" aria-label="Wasser ${esc(fmtTag(iso))}">
+    <span class="wasser-name"><span aria-hidden="true">💧</span> Wasser</span>
+    <button type="button" class="btn btn-rund wasser-weg" id="wasserWeniger" data-act="wasser"
+            data-d="-1" aria-label="Ein Glas zurücknehmen"${n ? '' : ' disabled'}>−</button>
+    <span class="wasser-zahl"><b>${n}</b> ${n === 1 ? 'Glas' : 'Gläser'}${liter
+    ? `<span class="wasser-liter">${esc(liter)}</span>` : ''}</span>
+    <button type="button" class="btn wasser-dazu" id="wasserMehr" data-act="wasser"
+            data-d="1" aria-label="Ein Glas Wasser dazu">+</button>
+  </div>`;
 }
 
 /**
@@ -2624,6 +2657,9 @@ function stuhlTeil(s) {
   const z = stuhlZahlen(s.eintraege, s.tage);
   if (!z.gesamt) return '';
   const anteil = (n) => (z.gesamt ? `${Math.round((n / z.gesamt) * 100)} %` : '–');
+  // Nur mit genug Fällen auf beiden Seiten, sonst steht hier gar nichts – ein
+  // „noch nicht" zum Wasser wäre eine Aufforderung, und die gibt es hier nicht.
+  const wasser = wasserSatz(wasserVergleich(s.eintraege, s.tage));
   return `<div class="karte karte-stuhl">
     <h3>Stuhlgang</h3>
     <ul class="wartend">
@@ -2635,6 +2671,8 @@ function stuhlTeil(s) {
       ${z.dringend ? `<li><span>Musste dringend</span><span class="klein">${z.dringend}×</span></li>` : ''}
       ${z.unvollstaendig ? `<li><span>Gefühl, nicht fertig</span><span class="klein">${z.unvollstaendig}×</span></li>` : ''}
     </ul>
+    ${wasser ? `<p class="klein wasser-hinweis"><span aria-hidden="true">💧</span> ${esc(wasser)}
+      Gezählt am selben Tag – das zeigt, was zusammen vorkam, nicht woran es liegt.</p>` : ''}
   </div>`;
 }
 
@@ -3958,6 +3996,8 @@ function mehrAnsicht(s) {
     ${marken(TAGESFRAGEN, s.tagesfragen || [], 'frageAn')}
   </div>
 
+  ${wasserKarte(s)}
+
   <div class="karte">
     <h3>Ton</h3>
     <p class="klein">Nur für die Atemübung unter „Ruhe". Sonst gibt diese App
@@ -3992,6 +4032,33 @@ function mehrAnsicht(s) {
     <p class="klein">Entfernt jede Eintragung aus diesem Browser. Nicht
     rückgängig zu machen.</p>
     ${knopf('alles-weg', 'Tagebuch löschen', 'btn-danger')}
+  </div>`;
+}
+
+/*
+ * Wasser ein- und ausblenden, und wie groß ein Glas ist.
+ *
+ * Ausgeblendet heißt nur: nicht auf „Tag“. Schon Gezähltes bleibt und steht
+ * weiter im Bericht – wie bei den Tagesfragen, die man abschaltet.
+ */
+function wasserKarte(s) {
+  const an = s.wasserZeigen !== false;
+  const glas = glasMl(s.wasserGlas);
+  return `<div class="karte" id="wasserKarte">
+    <h3>Wasser</h3>
+    <p class="klein">Auf „Tag“ zählst du mit einem Tipp, wie viele Gläser du
+    getrunken hast. Das ist kein Eintrag und keine Mahlzeit. Ein Tag, an dem
+    nur Wasser steht, gilt deshalb nicht als Tag ohne Beschwerden.</p>
+    <div class="wahl">
+      <button type="button" class="wahl-btn${an ? ' an' : ''}" data-act="wasser-zeigen"
+              aria-pressed="${an}">${an ? 'Wasser zählen ist an' : 'Wasser zählen ist aus'}</button>
+    </div>
+    <p class="feld-name">Ein Glas sind</p>
+    <div class="wahl">${GLAS_GROESSEN.map((ml) => `
+      <button type="button" class="wahl-btn${glas === ml ? ' an' : ''}" data-act="wasser-glas"
+              data-n="${ml}" aria-pressed="${glas === ml}">${glasName(ml)}</button>`).join('')}</div>
+    <p class="klein">Gezählt werden Gläser – die Liter daneben sind nur
+    umgerechnet. Schon Gezähltes bleibt, auch wenn du das Zählen ausschaltest.</p>
   </div>`;
 }
 
@@ -5855,6 +5922,33 @@ const AKTION = {
     store.tagSetzen(ui.tag, { [id]: jetzt === n ? null : n });
     zeichne();
   },
+  wasser: (el) => {
+    const iso = ui.tag;
+    const dazu = Number(el.dataset.d) > 0;
+    const vorher = wasserVon(store.tagLesen(iso));
+    const n = store.wasserZaehlen(iso, dazu ? 1 : -1);
+    if (n === null) return;
+    const tag = Math.abs(tageDazwischen(iso, heuteISO())) <= 1 ? fmtTag(iso) : fmtDatum(iso);
+    const stand = `${tag.charAt(0).toUpperCase()}${tag.slice(1)}: ${n ? mehrzahl(n, 'Glas', 'Gläser') : 'keins mehr'}.`;
+    if (dazu && n === vorher) {
+      melden(`Mehr als ${WASSER_HOECHSTENS} Gläser an einem Tag zählt Body Check nicht.`);
+    } else {
+      melden(`${dazu ? 'Ein Glas dazu.' : 'Ein Glas zurückgenommen.'} ${stand}`);
+    }
+    zeichne();
+    // Bei null ist das Minus aus und kann den Fokus nicht halten. Dann
+    // wandert er zum Plus, statt an den Anfang der Seite zu fallen.
+    if (!n && document.activeElement === el) {
+      setTimeout(() => { const plus = document.getElementById('wasserMehr'); if (plus) plus.focus(); }, 0);
+    }
+  },
+  'wasser-zeigen': () => {
+    const an = store.zustandLesen().wasserZeigen !== false;
+    store.einstellen('wasserZeigen', !an);
+    melden(an ? 'Wasser steht nicht mehr auf „Tag“. Schon Gezähltes bleibt.' : 'Wasser steht wieder auf „Tag“.');
+    zeichne();
+  },
+  'wasser-glas': (el) => { store.einstellen('wasserGlas', glasMl(el.dataset.n)); zeichne(); },
   'seit-weg': () => { store.einstellen('beschwerdenSeit', null); zeichne(); },
   frageAn: (el) => {
     const gewaehlt = store.zustandLesen().tagesfragen || [];

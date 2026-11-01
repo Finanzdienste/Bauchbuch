@@ -34,6 +34,8 @@
  * nachfragt.
  */
 
+import { tagZaehlt } from './wasser.js';
+
 /** Ab wie vielen Tagen mit einer Angabe ein Merkmal überhaupt zählt. */
 const GENUG_TAGE = 8;
 
@@ -59,8 +61,12 @@ export function unterleibsBild(eintraege, tage, tagesWert) {
    * nirgends, es stand nur in den Testvorlagen. Damit war diese ganze
    * Rechnung in Wirklichkeit leer: kein Tag kam durch, nichts war prüfbar,
    * und der Test blieb grün, weil seine Tage das Feld hatten.
+   *
+   * Ohne die Tage, an denen nur Wasser gezählt ist: Sie stünden sonst unten
+   * unter „übrige Tage" als Tage ohne Beschwerden und drückten den Vergleich
+   * mit den Blutungstagen.
    */
-  const alle = Object.entries(tage || {}).filter(([, t]) => t && typeof t === 'object');
+  const alle = Object.entries(tage || {}).filter(([, t]) => tagZaehlt(t));
 
   /* ---------- 1. Schmerz beim Sex ---------- */
 

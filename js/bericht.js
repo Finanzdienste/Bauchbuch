@@ -34,7 +34,8 @@ import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
 import { wissenZu } from './mittel.js';
 import { kriterien } from './kriterien.js';
-import { stuhlZahlen } from './stuhl.js';
+import { stuhlZahlen, wasserSatz, wasserVergleich } from './stuhl.js';
+import { glasName, literText, wasserZahlen } from './wasser.js';
 import { befund, mittelBilanz } from './ansprechen.js';
 import { ergebnis } from './versuch.js';
 import { provokationsBild } from './provokation.js';
@@ -173,6 +174,21 @@ export function arztBericht(zustand, von, bis) {
   sag(`  Mahlzeiten eingetragen     ${z.mahlzeiten}`);
   sag(`  Medikamenteneinnahmen      ${z.medikamente}`);
   if (kz.anzahl) sag(`  Kopfschmerztage            ${kz.tage} (getrennt gezählt, siehe unten)`);
+  /*
+   * Das Wasser als eine Zeile, ohne Ziel und ohne Bewertung: Wie viel jemand
+   * trinken sollte, hängt an Dingen, die dieses Tagebuch nicht kennt, und
+   * eine App, die das besser weiß als die Praxis, hätte hier nichts verloren.
+   * Gemittelt wird über die Tage, an denen gezählt wurde – ein Tag ohne Zahl
+   * ist kein Tag ohne Trinken.
+   */
+  const wz = wasserZahlen(tageImZeitraum, von, bis);
+  if (wz.tage) {
+    const liter = literText(wz.schnitt, zustand.wasserGlas);
+    sag(`  Wasser                     im Mittel ${fmtZahl(wz.schnitt)} `
+      + `${wz.schnitt === 1 ? 'Glas' : 'Gläser'}${liter ? ` (${liter})` : ''}`);
+    sag(`                             an ${mehrzahl(wz.tage, 'Tag', 'Tagen')} mit Angabe, `
+      + `ein Glas = ${glasName(zustand.wasserGlas)}`);
+  }
   sag();
 
   /*
@@ -373,7 +389,13 @@ export function arztBericht(zustand, von, bis) {
     sag();
   }
 
-  const s = stuhlZahlen(imZeitraum, tage);
+  /*
+   * Mit dem Tagesspeicher des Zeitraums, nicht dem ganzen: Jeder Tag mit
+   * einer Tagesfrage von vor dem Zeitraum stünde sonst im Nenner von „je
+   * notiertem Tag", und der Bericht zählte weniger Stuhlgänge, je länger das
+   * Tagebuch schon läuft.
+   */
+  const s = stuhlZahlen(imZeitraum, tageImZeitraum);
   if (s.gesamt) {
     sag('STUHLGANG (BRISTOL)');
     sag(`  Eingetragen                ${s.gesamt} Mal, ${fmtZahl(s.proTag)} je notiertem Tag`);
@@ -381,6 +403,13 @@ export function arztBericht(zustand, von, bis) {
     sag(`  Typ 3-5 (unauffällig)      ${s.normal} (${prozent(s.anteilNormal)})`);
     sag(`  Typ 6-7 (weich)            ${s.weich} (${prozent(s.anteilWeich)})`);
     if (s.dringend) sag(`  davon dringend             ${s.dringend}`);
+    // Nur mit genug Fällen auf beiden Seiten; sonst gar nicht – siehe
+    // wasserVergleich in js/stuhl.js.
+    const wasser = wasserSatz(wasserVergleich(imZeitraum, tageImZeitraum));
+    if (wasser) {
+      umbrochen(wasser).forEach((zl) => sag(`  ${zl}`));
+      sag('  (Gezählt am selben Tag, keine Ursache.)');
+    }
     sag();
   }
 

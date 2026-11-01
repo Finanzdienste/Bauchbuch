@@ -19,6 +19,12 @@
  * beides steht in der Anzeige dabei.
  */
 import { bristolVon } from './daten.js';
+import { tagZaehlt, wasserVon } from './wasser.js';
+
+/** Die Tage des Tagesspeichers, an denen mehr steht als gezähltes Wasser. */
+function tageMitAngabe(tage) {
+  return Object.keys(tage || {}).filter((iso) => tagZaehlt(tage[iso]));
+}
 
 /** Alle Stuhl-Eintragungen mit gültiger Bristol-Form. */
 export function stuhlgaenge(eintraege) {
@@ -100,9 +106,10 @@ export function anzahlAm(eintraege, iso) {
 export function schmerzVergleich(eintraege, tage, schmerzArten = ['krampf']) {
   const alle = eintraege || [];
   // Ohne die Kopf-Einträge: Ein Tag mit nur einem Kopfschmerz ist für den
-  // Bauch eine Lücke, kein Tag ohne Bauchschmerz (siehe tagesWert).
+  // Bauch eine Lücke, kein Tag ohne Bauchschmerz (siehe tagesWert). Ohne die
+  // Tage mit nur gezähltem Wasser aus demselben Grund.
   const notierte = [...new Set([
-    ...alle.filter((e) => e.art !== 'kopf').map((e) => e.am), ...Object.keys(tage || {}),
+    ...alle.filter((e) => e.art !== 'kopf').map((e) => e.am), ...tageMitAngabe(tage),
   ])].sort();
   const mitSchmerz = new Set(alle
     .filter((e) => e.art === 'beschwerde' && (e.arten || []).some((a) => schmerzArten.includes(a)))
@@ -158,12 +165,98 @@ export function bezugBilanz(eintraege) {
   };
 }
 
+/*
+ * Ab so vielen Tagen und Stuhlgängen je Seite sagt der Vergleich mit dem
+ * Wasser etwas – dieselbe Grenze wie bei schmerzVergleich, aus demselben
+ * Grund: Eine Formverteilung aus zwei Einträgen ist keine Verteilung.
+ */
+const WASSER_GENUG = 5;
+
+/**
+ * Harter Stuhlgang an Tagen mit wenig gegen Tagen mit viel Wasser.
+ *
+ * Wenig und viel misst sich am eigenen Alltag, nicht an einer Empfehlung: Die
+ * Grenze ist die eigene mittlere Zahl (der Median), und Tage genau darauf
+ * bleiben außen vor – wie die mittlere Zone in js/schichten.js, damit die
+ * beiden Seiten wirklich verschieden sind. Gezählt werden nur Tage, an denen
+ * Wasser gezählt *und* ein Stuhlgang eingetragen ist. Ein Tag ohne Zahl ist
+ * einer, an dem nicht gezählt wurde, und ein Tag ohne Stuhlgang sagt über die
+ * Form nichts.
+ *
+ * Verglichen wird derselbe Tag. Was am Vortag getrunken wurde, wie viel
+ * gegessen, ob Bewegung dazukam, steckt alles mit darin – deshalb sagt die
+ * Anzeige nur, was gezählt ist, und nichts darüber, woran es liegt.
+ */
+export function wasserVergleich(eintraege, tage) {
+  const stuhl = stuhlgaenge(eintraege);
+  const stuhlTage = new Set(stuhl.map((e) => e.am));
+  const glaeser = new Map(Object.keys(tage || {})
+    .map((iso) => [iso, wasserVon(tage[iso])])
+    .filter(([iso, n]) => n > 0 && stuhlTage.has(iso)));
+  const zahlen = [...glaeser.values()].sort((a, b) => a - b);
+  const h = Math.floor(zahlen.length / 2);
+  const mitte = !zahlen.length ? 0
+    : (zahlen.length % 2 ? zahlen[h] : (zahlen[h - 1] + zahlen[h]) / 2);
+
+  const seite = (passt) => {
+    const isos = new Set([...glaeser].filter(([, n]) => passt(n)).map(([iso]) => iso));
+    const dort = stuhl.filter((e) => isos.has(e.am));
+    const hart = dort.filter((e) => bristolVon(e.form).gruppe === 'hart').length;
+    const werte = [...isos].map((iso) => glaeser.get(iso));
+    return {
+      tage: isos.size,
+      stuhlgaenge: dort.length,
+      hart,
+      anteil: dort.length ? hart / dort.length : 0,
+      wenigste: werte.length ? Math.min(...werte) : 0,
+      meiste: werte.length ? Math.max(...werte) : 0,
+    };
+  };
+  const wenig = seite((n) => n < mitte);
+  const viel = seite((n) => n > mitte);
+  const genug = wenig.tage >= WASSER_GENUG && viel.tage >= WASSER_GENUG
+    && wenig.stuhlgaenge >= WASSER_GENUG && viel.stuhlgaenge >= WASSER_GENUG;
+  return {
+    genug,
+    mitte,
+    wenig,
+    viel,
+    // Zwanzig Prozentpunkte, wie bei formAnders oben.
+    anders: genug && Math.abs(wenig.anteil - viel.anteil) >= 0.2,
+  };
+}
+
+/**
+ * Der Satz dazu – oder '' bei zu wenigen Fällen. Mit beiden Fallzahlen und
+ * ohne Rat: Die Zählung sagt, was an welchen Tagen war, nicht was man tun
+ * soll, und schon gar nicht, wie viel zu trinken wäre.
+ */
+export function wasserSatz(v) {
+  if (!v || !v.genug) return '';
+  const glas = (n) => `${n} ${n === 1 ? 'Glas' : 'Gläser'}`;
+  const glasAb = (n) => `${n} ${n === 1 ? 'Glas' : 'Gläsern'}`;
+  const mal = (s) => `${s.hart} von ${s.stuhlgaenge} Mal`;
+  const wenig = `an Tagen mit wenig Wasser (bis ${glas(v.wenig.meiste)})`;
+  const viel = `an Tagen mit mehr (ab ${glasAb(v.viel.wenigste)})`;
+  if (!v.anders) {
+    return `Harter Stuhlgang (Typ 1–2) ${wenig}: ${mal(v.wenig)}, ${viel}: ${mal(v.viel)} – `
+      + 'kein deutlicher Unterschied.';
+  }
+  const oefter = v.wenig.anteil > v.viel.anteil ? 'wenig' : 'viel';
+  const erst = oefter === 'wenig' ? wenig : `an Tagen mit mehr Wasser (ab ${glasAb(v.viel.wenigste)})`;
+  const dann = oefter === 'wenig' ? viel : `an Tagen mit weniger (bis ${glas(v.wenig.meiste)})`;
+  const a = oefter === 'wenig' ? v.wenig : v.viel;
+  const b = oefter === 'wenig' ? v.viel : v.wenig;
+  const satz = `${erst} war der Stuhlgang öfter hart: ${mal(a)} Typ 1–2, ${dann} ${mal(b)}.`;
+  return satz.charAt(0).toUpperCase() + satz.slice(1);
+}
+
 /** Die Zahlen für die Übersicht: wie oft, wie oft auffällig, wie oft dringend. */
 export function stuhlZahlen(eintraege, tage) {
   const alle = stuhlgaenge(eintraege);
   const notierte = [...new Set([
     ...(eintraege || []).filter((e) => e.art !== 'kopf').map((e) => e.am),
-    ...Object.keys(tage || {}),
+    ...tageMitAngabe(tage),
   ])];
   const b = formBilanz(eintraege);
   return {

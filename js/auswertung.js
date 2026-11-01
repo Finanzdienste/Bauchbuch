@@ -25,6 +25,7 @@ import {
 } from './datum.js';
 import { ALLE_AUSLOESER, KLASSEN, ROLLEN, ROLLE_VORGABE, klassenVon } from './daten.js';
 import { zufallsSpielraum } from './zufall.js';
+import { tagZaehlt } from './wasser.js';
 
 /** Späte Mahlzeit ab dieser Stunde – siehe UMSTAENDE in js/daten.js. */
 const SPAET_AB = 20;
@@ -562,8 +563,10 @@ export function tagesWert(eintraege, iso, tage = {}) {
    * kein beschwerdefreier Tag. Sonst drückte jede Migräne, bei der jemand nur
    * „Kopf 8" einträgt und sonst nichts, den Bauchwert genau an den schlechten
    * Tagen auf null – gegen die eigene Regel, dass eine Lücke kein guter Tag ist.
+   * Dasselbe gilt für einen Tag, an dem nur Wasser gezählt ist (tagZaehlt in
+   * js/wasser.js): Ein getipptes Glas sagt über den Bauch nichts.
    */
-  const notiert = amTag.some((e) => e.art !== 'kopf') || !!tage[iso];
+  const notiert = amTag.some((e) => e.art !== 'kopf') || tagZaehlt((tage || {})[iso]);
   const max = beschwerden.reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
   const summe = beschwerden.reduce((s, e) => s + (Number(e.staerke) || 0), 0);
   return {

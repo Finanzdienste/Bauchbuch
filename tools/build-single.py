@@ -89,7 +89,7 @@ def stand_schreiben(wurzel):
 
 # Reihenfolge = Abhaengigkeitsreihenfolge. Wer das aendert, merkt es hier
 # zuerst: Im Buendel gibt es keine Importe, die eine Reihenfolge erzwingen.
-MODULES = ['js/datum.js', 'js/text.js', 'js/daten.js', 'js/mittel.js',
+MODULES = ['js/datum.js', 'js/text.js', 'js/wasser.js', 'js/daten.js', 'js/mittel.js',
            'js/kueche.js', 'js/befunde.js',
            'js/klang.js', 'js/atem.js', 'js/zyklus.js', 'js/kopf.js', 'js/chart.js',
            'js/store.js', 'js/zufall.js', 'js/auswertung.js', 'js/stuhl.js', 'js/kriterien.js',

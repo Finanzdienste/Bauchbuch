@@ -15,6 +15,7 @@
 import { heuteISO, istISO, istUhr, jetztUhr, minutenAmTag, zeitpunkt } from './datum.js';
 import { KUECHEN_ARTEN, JE_LISTE, MAX_NAME } from './kueche.js';
 import { BEFUND_VON, JE_BEFUNDE } from './befunde.js';
+import { WASSER_HOECHSTENS, glasMl, wasserVon } from './wasser.js';
 
 const KEY = 'bauchbuch.state.v1';
 
@@ -31,7 +32,10 @@ const VORGABE = {
   eintraege: [],
   // Was für einen ganzen Tag gilt, nicht für einen Zeitpunkt. Welche Angaben
   // es gibt, steht in TAGESFRAGEN (js/daten.js):
-  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, blutung, sex, nachtwach, notiz } }
+  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, blutung, sex, nachtwach, notiz, wasser } }
+  // `wasser` ist die Zahl der Gläser an diesem Tag – keine Tagesfrage, sondern
+  // ein Zähler, und ein Tag, an dem nur sie steht, gilt nirgends als notiert
+  // (siehe js/wasser.js). Ältere Stände haben das Feld nicht.
   tage: {},
   // In wie vielen Stunden nach einer Mahlzeit eine Beschwerde ihr noch
   // zugerechnet wird. Vier Stunden sind der Vorschlag, nicht das Gesetz –
@@ -79,6 +83,20 @@ const VORGABE = {
   // Welche Tagesfragen erscheinen. Im Auslieferungszustand alle – wer eine
   // davon nicht beantworten will, schaltet sie unter Mehr ab.
   tagesfragen: ['stimmung', 'stress', 'schlaf', 'bewegung', 'blutung', 'sex', 'nachtwach'],
+  /*
+   * Ob auf „Tag" die Reihe zum Wasserzählen steht, und wie groß ein Glas ist.
+   *
+   * Ein eigener Schalter und kein Eintrag in `tagesfragen`: Gespeicherte
+   * Stände tragen ihre eigene Liste der Tagesfragen und überschreiben damit
+   * die Vorgabe. Eine neue Frage dort käme bei niemandem an, der die App schon
+   * benutzt. Hier dagegen fehlt der Schlüssel in jedem älteren Stand, und die
+   * Vorgabe greift.
+   *
+   * Die Glasgröße in Millilitern dient nur der Umrechnung „≈ 0,75 l";
+   * gezählt werden Gläser.
+   */
+  wasserZeigen: true,
+  wasserGlas: 250,
   /*
    * Seit wann die Beschwerden bestehen, als 'YYYY-MM'.
    *
@@ -251,6 +269,7 @@ const VORGABE = {
 const EINSTELLUNGEN = [
   'fenster', 'mindestFaelle', 'tagesfragen', 'theme', 'atemUebung', 'atemRunden',
   'ton', 'abnehmenGewollt', 'unterleibGefragt', 'beschwerdenSeit',
+  'wasserZeigen', 'wasserGlas',
 ];
 
 /*
@@ -543,7 +562,10 @@ export function tagLesen(iso) {
 }
 
 export function tagSetzen(iso, patch) {
-  const neu = { ...tagLesen(iso), ...patch };
+  tagAblegen(iso, { ...tagLesen(iso), ...patch });
+}
+
+function tagAblegen(iso, neu) {
   // Einen leeren Tag gar nicht erst anlegen: Sonst wächst `tage` mit jedem
   // angetippten und wieder abgewählten Regler, und die Sicherung füllt sich
   // mit Zeilen, die nichts aussagen. Geprüft wird über alle Felder, nicht über
@@ -554,6 +576,26 @@ export function tagSetzen(iso, patch) {
   else zustand.tage[iso] = neu;
   merke();
   melde();
+}
+
+/**
+ * Ein Glas Wasser dazu (`schritt` > 0) oder eines zurück. Zurück kommt die
+ * neue Zahl – oder null für einen Tag, an dem nicht gezählt werden kann.
+ *
+ * Für heute und vergangene Tage, nie für künftige: Was morgen getrunken wird,
+ * weiß heute niemand, und ein Tipp auf einen Tag, zu dem man nicht blättern
+ * kann, wäre ein Glas, das man nie wieder findet. Bei 0 verschwindet das Feld
+ * ganz, statt als 0 dazustehen – „nicht gezählt" und „nichts getrunken" lassen
+ * sich ohnehin nicht unterscheiden, und ein leerer Tag soll leer bleiben.
+ */
+export function wasserZaehlen(iso, schritt) {
+  if (!istISO(iso) || iso > heuteISO()) return null;
+  const jetzt = wasserVon(tagLesen(iso));
+  const n = Math.max(0, Math.min(WASSER_HOECHSTENS, jetzt + (Number(schritt) > 0 ? 1 : -1)));
+  if (n === jetzt) return n;
+  const { wasser, ...rest } = tagLesen(iso);
+  tagAblegen(iso, n ? { ...rest, wasser: n } : rest);
+  return n;
 }
 
 /* ---------- Einstellungen ---------- */
@@ -1258,6 +1300,8 @@ function sicherungLesen(text) {
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
+  frisch.tage = wasserSauber(frisch.tage);
+  frisch.wasserGlas = glasMl(frisch.wasserGlas);
   // Ein halb gelesener Versuch würde die Tagesansicht mit „Tag NaN von
   // undefined" begrüßen. Was nicht vollständig ist, gilt als keiner.
   const v = frisch.versuch;
@@ -1300,6 +1344,31 @@ function sicherungLesen(text) {
   return frisch;
 }
 
+/**
+ * Die Wasserzahl jedes Tages auf eine ganze Zahl von 1 bis WASSER_HOECHSTENS
+ * bringen – oder weglassen.
+ *
+ * Eine Sicherung ist eine Datei, die jemand öffnen und ändern kann; "3",
+ * 2.5 oder -1 kämen sonst als Zahl der Gläser an, und eine Summe über
+ * Zeichenketten hängte sie aneinander. Ein Tag, an dem danach nichts mehr
+ * steht, fällt weg, wie es auch beim Zählen geschieht. Alle übrigen Tage
+ * bleiben genau so, wie sie in der Datei stehen.
+ */
+function wasserSauber(tage) {
+  const raus = {};
+  Object.entries(tage || {}).forEach(([iso, t]) => {
+    if (!t || typeof t !== 'object' || Array.isArray(t) || !('wasser' in t)) {
+      raus[iso] = t;
+      return;
+    }
+    const { wasser, ...rest } = t;
+    const n = wasserVon(t);
+    const neu = n ? { ...rest, wasser: n } : rest;
+    if (Object.keys(neu).length) raus[iso] = neu;
+  });
+  return raus;
+}
+
 /* ---------- Einlesen, ohne etwas zu verlieren ---------- */
 
 /*
@@ -1317,7 +1386,8 @@ function sicherungLesen(text) {
  *      Schlüssel und lässt sich mit rueckgaengig() zurückholen.
  *   2. Ist schon etwas da, wird zusammengeführt statt ersetzt: Einträge,
  *      Ideen, Listen über ihre Kennung, Tagesfragen je Tag und je Feld.
- *      Bei Gleichstand gewinnt, was schon hier stand.
+ *      Bei Gleichstand gewinnt, was schon hier stand. Nur das Wasser nicht –
+ *      siehe zusammenfuehren().
  */
 
 const VORHER = `${KEY}.vorher`;
@@ -1328,6 +1398,7 @@ const VORHER = `${KEY}.vorher`;
  * Die eigenen Mittel zählen: Wer sie unter „Mehr" angelegt hat, bevor die
  * Sicherung vom alten Gerät da war, hat etwas eingetragen – und verlöre es,
  * wenn das Einlesen den Stand als leer ersetzte statt zusammenzuführen.
+ * Gezähltes Wasser ebenso – es steht in `tage` und zählt damit hier mit.
  */
 export function istLeer(s = zustand) {
   return !s.eintraege.length && !Object.keys(s.tage || {}).length && !s.ideen.length
@@ -1384,6 +1455,20 @@ function zusammenfuehren(hier, dazu) {
   neu.tage = { ...hier.tage };
   Object.keys(dazu.tage || {}).forEach((iso) => {
     neu.tage[iso] = { ...dazu.tage[iso], ...(hier.tage[iso] || {}) };
+    /*
+     * Das Wasser ist ein Zähler, keine Antwort, und bei einem Zähler gewinnt
+     * der größere Wert. Der häufige Fall ist derselbe Tag auf zwei Ständen,
+     * von denen einer weitergezählt hat: eine Sicherung von heute Morgen,
+     * abends eingelesen; der Umzug von Safari, nachdem in der App schon
+     * getippt wurde. Dort steckt die kleinere Zahl in der größeren. Die Summe
+     * zählte die gemeinsamen Gläser doppelt, und „was hier stand, gewinnt"
+     * verlöre die Gläser, die nur dort gezählt wurden. Zu wenig wird es nur,
+     * wenn auf zwei Geräten am selben Tag verschiedene Gläser gezählt wurden –
+     * dem selteneren Fall, und dort ist es eine Angabe zu wenig statt einer
+     * erfundenen.
+     */
+    const w = Math.max(wasserVon(hier.tage[iso]), wasserVon(dazu.tage[iso]));
+    if (w) neu.tage[iso].wasser = w;
   });
   neu.ideen = vereinigt(hier.ideen, dazu.ideen, (x) => x.id);
   neu.eigeneAusloeser = vereinigt(hier.eigeneAusloeser, dazu.eigeneAusloeser, (a) => a.id);

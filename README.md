@@ -126,6 +126,50 @@ wird, nicht ersetzt. Die App selbst nennt weiterhin keine Dosierungen – die
 Dosis in „Meine Mittel" ist die eigene Eintragung, und der Arztbericht nennt
 sie mit („Pantoprazol 40 mg – 3 Mal", jede Dosis für sich).
 
+**Wasser.** Unter den Knöpfen auf „Tag" steht eine Zeile „💧 Wasser − 3 Gläser
++": Ein Tipp aufs große Plus zählt ein Glas, das Minus nimmt einen Fehlgriff
+zurück und ist bei null aus. Ohne Uhrzeit und ohne Bogen, für heute und für
+vergangene Tage, nie für künftige; eine kurze Meldung sagt den neuen Stand
+(„Ein Glas dazu. Heute: 3 Gläser."). Gezählt werden Gläser. Unter „Mehr" ›
+„Wasser" steht, wie groß ein Glas ist – 0,2, 0,25, 0,33 oder 0,5 l, Vorgabe
+0,25 l –, daraus kommt die Umrechnung „≈ 0,75 l" neben der Zahl. Dort lässt
+sich die Zeile auch ausschalten; schon Gezähltes bleibt und steht weiter im
+Bericht. Der Schalter ist ein eigener Schlüssel und keine Tagesfrage: Ein
+gespeicherter Stand trägt seine eigene Liste der Tagesfragen, eine neue Frage
+darin käme bei niemandem an, der die App schon benutzt.
+
+Gespeichert wird die Zahl je Tag im Tagesspeicher (`tage[Datum].wasser`), nicht
+als Eintrag – und das ist der Punkt. Ein Glas als Mahlzeit wäre für die
+Auswertung ein Essen: Es machte aus einem späten Glas „spät gegessen", stünde
+bei jedem Auslöser als Gegenfall auf der Seite „ohne", bräche im
+Provokationstest die Nüchternzeit und machte den Tag zu einem notierten, ohne
+Beschwerde also zu einem beschwerdefreien. Ein Tag, an dem nur Wasser steht,
+gilt deshalb **nirgends als notiert** – nicht für den Bauch und nicht für den
+Kopf, nicht in Verlauf, Serie, Richtung, Kriterien, Rat, Stuhlgang, Zyklus
+und Bericht. Jede Stelle, die bisher fragte, ob ein Tag im Tagesspeicher
+steht, fragt jetzt `tagZaehlt()` in `js/wasser.js`. Geprüft wird das als
+Gegenprobe: Dasselbe Tagebuch mit und ohne Wasser muss in jeder Rechnung
+dasselbe ergeben.
+
+Der Bericht nennt eine nüchterne Zeile – im Mittel so viele Gläser an so
+vielen Tagen mit Angabe –, ohne Ziel und ohne Ermahnung. Gemittelt wird nur
+über Tage mit Zahl: Ein Tag ohne Zahl ist einer, an dem nicht gezählt wurde,
+kein Tag ohne Trinken. Beim Stuhlgang steht unter „Muster" und im Bericht, wie
+oft er an Tagen mit wenig Wasser gegen Tage mit mehr hart war (Typ 1–2).
+Wenig und mehr misst sich an der eigenen mittleren Zahl, Tage genau darauf
+zählen nicht mit; der Satz kommt nur mit mindestens fünf Tagen und fünf
+Stuhlgängen je Seite, sonst gar nicht, und immer mit dem Zusatz, dass er
+zeigt, was zusammen vorkam, nicht woran es liegt.
+
+Eine Sicherung trägt das Wasser mit, eingelesen wird es als ganze Zahl bis 40
+– „3" wird 3, Unsinn fällt weg. Beim Zusammenführen zweier Stände gewinnt je
+Tag die **größere** Zahl: Meist ist es derselbe Tag, auf einem der beiden
+Stände weitergezählt – eine Sicherung vom Morgen, abends eingelesen, oder der
+Umzug aus Safari, nachdem in der App schon getippt wurde. Die Summe zählte die
+gemeinsamen Gläser doppelt, und „was hier stand, gewinnt" verlöre die, die nur
+dort gezählt wurden. Ein Tagebuch, in dem bisher nur Wasser steht, gilt beim
+Einlesen nicht als leer.
+
 **Verlauf.** Ein Balken je Tag über 14, 30 oder 90 Tage, ein Monatskalender
 und vier Zahlen: notierte Tage, Anteil mit Beschwerden, mittlere Stärke,
 beschwerdefreie Tage in Folge. Darüber die **Richtung**: die letzten vierzehn
@@ -189,8 +233,8 @@ verschlüsselt** (siehe unten) –, der Bericht für den Arzttermin, die
 **Arzttermine** selbst, das **Gewicht** (siehe unten), die **tägliche
 Erinnerung** als Kalendereintrag (siehe unten), die Übersicht „Was die
 Mittel bewirken", seit wann die Beschwerden bestehen, die Einstellungen der
-Auswertung, welche Tagesfragen erscheinen sollen, eigene Auslöser, Ton, vier
-Farbvarianten.
+Auswertung, welche Tagesfragen erscheinen sollen, ob Wasser gezählt wird und
+wie groß ein Glas ist, eigene Auslöser, Ton, vier Farbvarianten.
 
 ### Die Sicherung mit Passwort
 
@@ -1533,6 +1577,8 @@ index.html          Gerüst: Kopfleiste, ein <main>, die Reiterleiste
 css/styles.css      ein Blatt, Farben als Variablen auf :root
 js/datum.js         Datum und Uhrzeit, hängt von nichts ab
 js/text.js          Text und Zahlen fürs Auge
+js/wasser.js        Gläser je Tag – und tagZaehlt(): ein Tag nur mit
+                    Wasser ist kein notierter Tag
 js/daten.js         die Kataloge: Auslöser, Beschwerdearten, Skalenworte
 js/chart.js         Balken und Vergleichsbalken als SVG-Zeichenkette
 js/store.js         der Speicher – localStorage, mehr gibt es nicht
@@ -1602,7 +1648,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Siebenundfünfzig Dateien, über 2200 Prüfungen, alle in einem echten Chromium. Kein
+Achtundfünfzig Dateien, über 2300 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -1660,6 +1706,7 @@ den Rückgabewert.
 | `test-anfang.mjs` | die Frühphase ist kürzer, sagt aber genauso genau, was fehlt – und die Warnzeichen überleben die Kürzung |
 | `test-kalender.mjs` | CRLF, 75 Oktette, maskierte Kommas: eine `.ics`, die der Kalender nicht annimmt, sieht im Browser aus wie eine, die er annimmt |
 | `test-stufenplan.mjs` | eine Karenz ohne Wirkung muss den Plan beenden, nicht weiterführen – und ein fehlender erster Tag darf kein Urteil über die kleine Menge ergeben |
+| `test-wasser.mjs` | als iPhone mit 320 Pixeln: ein Tipp, ein Glas, auch gestern, nie morgen und nie als Mahlzeit; dasselbe Tagebuch mit und ohne Wasser ergibt in zwanzig Rechnungen und im Bericht dasselbe; beim Zusammenführen gewinnt die größere Zahl – und alte Stände laden mit dem Zählen an |
 | `test-provokation.mjs` | derselbe Schmerz an den Test- *und* an den Leermorgen darf nicht der Milch angelastet werden – und wer im Fenster frühstückt, hat keinen Durchgang gemacht |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,

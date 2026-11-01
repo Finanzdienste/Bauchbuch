@@ -218,6 +218,29 @@ p { margin: 0 0 8px; }
 .a-stuhl { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
 .a-kopf { border-color: color-mix(in srgb, var(--leicht) 50%, var(--line)); }
 
+/* ---------- Wasser ---------- */
+/* Eine Zeile, auch bei 320 Pixeln: Name, Minus, Zahl, Plus. Die Zahl hat eine
+ * feste Mindestbreite, damit die Knöpfe beim Weiterzählen nicht wandern –
+ * sonst trifft der dritte Tipp neben das Plus. */
+.wasser {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg-elev); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 6px 8px 6px 12px; margin: -4px 0 14px;
+}
+.wasser-name { flex: 1; min-width: 0; font-size: 14px; }
+.wasser-zahl {
+  min-width: 66px; text-align: center; line-height: 1.15;
+  font-size: 13px; font-variant-numeric: tabular-nums;
+}
+.wasser-zahl b { font-size: 18px; }
+.wasser-liter { display: block; font-size: 11px; color: var(--muted); }
+.wasser-weg { font-size: 22px; }
+.wasser-dazu {
+  min-width: 60px; padding: 0 14px; font-size: 26px; line-height: 1;
+  background: var(--accent-weich); border-color: var(--accent);
+}
+.wasser-dazu:active { background: var(--accent); color: #1a1014; }
+
 /* ---------- Bristol-Skala ---------- */
 /* Sieben Zeilen mit Zahl, Zeichnung und Namen. Untereinander statt als Raster:
  * Die Skala ist eine Reihenfolge von hart nach flüssig, und die soll man
@@ -1296,6 +1319,112 @@ function kuerze(s, max = 60) {
   const schnitt = t.slice(0, max);
   const luecke = schnitt.lastIndexOf(' ');
   return `${(luecke > max * 0.6 ? schnitt.slice(0, luecke) : schnitt).trimEnd()} …`;
+}
+
+/* ===== js/wasser.js ===== */
+/*
+ * Wasser: wie viele Gläser an einem Tag getrunken wurden.
+ *
+ * Gezählt wird je Tag und ohne Uhrzeit, in tage[iso].wasser – eine ganze
+ * Zahl, und 0 steht gar nicht erst da. Kein Eintrag im Strang und erst recht
+ * keine Mahlzeit, und das ist der Kern dieser Datei: Ein Glas Wasser als
+ * Mahlzeit eingetragen, wäre für die Auswertung ein Essen. Es machte aus einem
+ * späten Glas „spät gegessen", stünde bei jedem Auslöser auf der Seite „ohne"
+ * als Gegenfall, hielte im Provokationstest die Nüchternzeit für gebrochen
+ * und zählte als notierter Tag – ohne Beschwerde also als beschwerdefreier.
+ *
+ * Bleibt die eine Gefahr, die der Tagesspeicher selbst mitbringt: An vielen
+ * Stellen gilt ein Tag als notiert, sobald er dort überhaupt steht. Ein Tag,
+ * an dem nur Wasser gezählt wurde, wäre damit genau der Tag, den diese App an
+ * jeder anderen Stelle zu vermeiden sucht – eine Lücke, die als guter Tag
+ * mitzählt. Wer ein Glas antippt, hat über seinen Bauch nichts gesagt. Deshalb
+ * fragt jede dieser Stellen tagZaehlt() statt nach dem bloßen Dasein.
+ *
+ * Hängt von nichts ab und darf deshalb überall benutzt werden.
+ */
+
+/** Mehr als vierzig Gläser an einem Tag sind ein Tippfehler, keine Angabe. */
+const WASSER_HOECHSTENS = 40;
+
+/*
+ * Was ein Glas ist, in Millilitern. Die Zahl der Gläser bleibt die Angabe;
+ * die Literzahl daneben ist nur eine Umrechnung, und deshalb genügen die
+ * üblichen Größen. Ein Wechsel rechnet alles neu um, auch schon Gezähltes –
+ * gespeichert werden Gläser, nicht Liter.
+ */
+const GLAS_GROESSEN = [200, 250, 330, 500];
+const GLAS_VORGABE = 250;
+
+/*
+ * Felder des Tagesspeichers, die einen Tag nicht zu einem notierten machen.
+ * Eine Liste und kein einzelner Vergleich, damit die nächste Angabe dieser
+ * Art an genau einer Stelle dazukommt.
+ */
+const ZAEHLT_NICHT = ['wasser'];
+
+const feldLeer = (v) => v === null || v === undefined || v === ''
+  || (typeof v === 'string' && !v.trim());
+
+/**
+ * Ist an diesem Tag zum Tag selbst etwas gesagt – eine Tagesfrage, eine
+ * Notiz – und nicht bloß Wasser gezählt?
+ *
+ * Das ersetzt die Frage „steht der Tag im Speicher?". Bis hierher war sie
+ * richtig, denn leere Tage legt der Speicher nicht an (siehe tagSetzen in
+ * js/store.js). Leer heißt dabei dasselbe wie dort, und ein Rest aus einer
+ * älteren Fassung, in dem nur noch leere Felder stehen, zählt auch hier nicht.
+ */
+function tagZaehlt(tag) {
+  if (!tag || typeof tag !== 'object') return false;
+  return Object.entries(tag).some(([k, v]) => !ZAEHLT_NICHT.includes(k) && !feldLeer(v));
+}
+
+/** Die Gläser eines Tages als ganze Zahl von 0 bis WASSER_HOECHSTENS. */
+function wasserVon(tag) {
+  const n = Number(tag && typeof tag === 'object' ? tag.wasser : 0);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(WASSER_HOECHSTENS, Math.round(n));
+}
+
+/** Eine Glasgröße, die es in der Auswahl gibt – sonst die Vorgabe. */
+function glasMl(ml) {
+  return GLAS_GROESSEN.includes(Number(ml)) ? Number(ml) : GLAS_VORGABE;
+}
+
+/** „0,25 l" – für die Auswahl unter „Mehr". */
+function glasName(ml) {
+  return `${String(glasMl(ml) / 1000).replace('.', ',')} l`;
+}
+
+/**
+ * „≈ 0,75 l" – oder '' ohne Glas. Auf eine Nachkommastelle, ab zwei Litern
+ * auf halbe: Mehr Genauigkeit gibt eine Zählung in Gläsern nicht her.
+ */
+function literText(glaeser, ml) {
+  const n = Number(glaeser) || 0;
+  if (n <= 0) return '';
+  const liter = (n * glasMl(ml)) / 1000;
+  const gerundet = liter < 1 ? Math.round(liter * 100) / 100
+    : (liter < 2 ? Math.round(liter * 10) / 10 : Math.round(liter * 2) / 2);
+  return `≈ ${String(gerundet).replace('.', ',')} l`;
+}
+
+/**
+ * Wie viel an den Tagen eines Zeitraums gezählt wurde.
+ *
+ * Gemittelt wird nur über Tage mit Angabe. Ein Tag ohne Zahl ist einer, an dem
+ * nicht gezählt wurde – kein Tag ohne Trinken –, und ihn als null mitzurechnen
+ * hieße, eine Lücke im Tagebuch als Durst zu lesen.
+ *
+ * @returns {{ tage: number, summe: number, schnitt: number }}
+ */
+function wasserZahlen(tage, von, bis) {
+  const werte = Object.keys(tage || {})
+    .filter((iso) => (!von || iso >= von) && (!bis || iso <= bis))
+    .map((iso) => wasserVon(tage[iso]))
+    .filter((n) => n > 0);
+  const summe = werte.reduce((s, n) => s + n, 0);
+  return { tage: werte.length, summe, schnitt: werte.length ? summe / werte.length : 0 };
 }
 
 /* ===== js/daten.js ===== */
@@ -2896,6 +3025,7 @@ function heutigerStand(tage, iso) {
  */
 
 
+
 /*
  * Wie er sich anfühlt. Keine Diagnose-Schublade, sondern die Fragen, die in
  * der Sprechstunde gestellt werden: pochend oder drückend, eine Seite oder
@@ -3001,11 +3131,14 @@ function kopfTageVon(eintraege, heute) {
  * Für den Kopf ist ein Tag mit nur einem Kopfeintrag ein notierter Tag; für
  * den Bauch ist er eine Lücke (siehe tagesWert in auswertung.js). Beides ist
  * richtig, und deshalb hat der Kopf hier seine eigene Zählung.
+ *
+ * Gleich ist nur der Tag, an dem bloß Wasser gezählt wurde: Er ist für beide
+ * eine Lücke. Wer ein Glas antippt, hat nicht gesagt, dass der Kopf frei war.
  */
 function alleNotiertenTage(eintraege, tage) {
   return new Set([
     ...(eintraege || []).map((e) => e.am),
-    ...Object.keys(tage || {}),
+    ...Object.keys(tage || {}).filter((iso) => tagZaehlt(tage[iso])),
   ]);
 }
 
@@ -3387,7 +3520,7 @@ function kopfTagesWert(eintraege, iso, tage = {}) {
   const amTag = (eintraege || []).filter((e) => e.am === iso);
   return {
     am: iso,
-    notiert: amTag.length > 0 || !!tage[iso],
+    notiert: amTag.length > 0 || tagZaehlt((tage || {})[iso]),
     wert: amTag.some((e) => e.art === 'kopf' && Number(e.staerke) >= 1) ? 1 : 0,
   };
 }
@@ -3850,6 +3983,7 @@ function vergleichBalken(mit, ohne, worte = {}) {
 
 
 
+
 const KEY = 'bauchbuch.state.v1';
 
 const VORGABE = {
@@ -3865,7 +3999,10 @@ const VORGABE = {
   eintraege: [],
   // Was für einen ganzen Tag gilt, nicht für einen Zeitpunkt. Welche Angaben
   // es gibt, steht in TAGESFRAGEN (js/daten.js):
-  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, blutung, sex, nachtwach, notiz } }
+  // { 'YYYY-MM-DD': { stimmung, stress, schlaf, bewegung, blutung, sex, nachtwach, notiz, wasser } }
+  // `wasser` ist die Zahl der Gläser an diesem Tag – keine Tagesfrage, sondern
+  // ein Zähler, und ein Tag, an dem nur sie steht, gilt nirgends als notiert
+  // (siehe js/wasser.js). Ältere Stände haben das Feld nicht.
   tage: {},
   // In wie vielen Stunden nach einer Mahlzeit eine Beschwerde ihr noch
   // zugerechnet wird. Vier Stunden sind der Vorschlag, nicht das Gesetz –
@@ -3913,6 +4050,20 @@ const VORGABE = {
   // Welche Tagesfragen erscheinen. Im Auslieferungszustand alle – wer eine
   // davon nicht beantworten will, schaltet sie unter Mehr ab.
   tagesfragen: ['stimmung', 'stress', 'schlaf', 'bewegung', 'blutung', 'sex', 'nachtwach'],
+  /*
+   * Ob auf „Tag" die Reihe zum Wasserzählen steht, und wie groß ein Glas ist.
+   *
+   * Ein eigener Schalter und kein Eintrag in `tagesfragen`: Gespeicherte
+   * Stände tragen ihre eigene Liste der Tagesfragen und überschreiben damit
+   * die Vorgabe. Eine neue Frage dort käme bei niemandem an, der die App schon
+   * benutzt. Hier dagegen fehlt der Schlüssel in jedem älteren Stand, und die
+   * Vorgabe greift.
+   *
+   * Die Glasgröße in Millilitern dient nur der Umrechnung „≈ 0,75 l";
+   * gezählt werden Gläser.
+   */
+  wasserZeigen: true,
+  wasserGlas: 250,
   /*
    * Seit wann die Beschwerden bestehen, als 'YYYY-MM'.
    *
@@ -4085,6 +4236,7 @@ const VORGABE = {
 const EINSTELLUNGEN = [
   'fenster', 'mindestFaelle', 'tagesfragen', 'theme', 'atemUebung', 'atemRunden',
   'ton', 'abnehmenGewollt', 'unterleibGefragt', 'beschwerdenSeit',
+  'wasserZeigen', 'wasserGlas',
 ];
 
 /*
@@ -4377,7 +4529,10 @@ function tagLesen(iso) {
 }
 
 function tagSetzen(iso, patch) {
-  const neu = { ...tagLesen(iso), ...patch };
+  tagAblegen(iso, { ...tagLesen(iso), ...patch });
+}
+
+function tagAblegen(iso, neu) {
   // Einen leeren Tag gar nicht erst anlegen: Sonst wächst `tage` mit jedem
   // angetippten und wieder abgewählten Regler, und die Sicherung füllt sich
   // mit Zeilen, die nichts aussagen. Geprüft wird über alle Felder, nicht über
@@ -4388,6 +4543,26 @@ function tagSetzen(iso, patch) {
   else zustand.tage[iso] = neu;
   merke();
   melde();
+}
+
+/**
+ * Ein Glas Wasser dazu (`schritt` > 0) oder eines zurück. Zurück kommt die
+ * neue Zahl – oder null für einen Tag, an dem nicht gezählt werden kann.
+ *
+ * Für heute und vergangene Tage, nie für künftige: Was morgen getrunken wird,
+ * weiß heute niemand, und ein Tipp auf einen Tag, zu dem man nicht blättern
+ * kann, wäre ein Glas, das man nie wieder findet. Bei 0 verschwindet das Feld
+ * ganz, statt als 0 dazustehen – „nicht gezählt" und „nichts getrunken" lassen
+ * sich ohnehin nicht unterscheiden, und ein leerer Tag soll leer bleiben.
+ */
+function wasserZaehlen(iso, schritt) {
+  if (!istISO(iso) || iso > heuteISO()) return null;
+  const jetzt = wasserVon(tagLesen(iso));
+  const n = Math.max(0, Math.min(WASSER_HOECHSTENS, jetzt + (Number(schritt) > 0 ? 1 : -1)));
+  if (n === jetzt) return n;
+  const { wasser, ...rest } = tagLesen(iso);
+  tagAblegen(iso, n ? { ...rest, wasser: n } : rest);
+  return n;
 }
 
 /* ---------- Einstellungen ---------- */
@@ -5092,6 +5267,8 @@ function sicherungLesen(text) {
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
+  frisch.tage = wasserSauber(frisch.tage);
+  frisch.wasserGlas = glasMl(frisch.wasserGlas);
   // Ein halb gelesener Versuch würde die Tagesansicht mit „Tag NaN von
   // undefined" begrüßen. Was nicht vollständig ist, gilt als keiner.
   const v = frisch.versuch;
@@ -5134,6 +5311,31 @@ function sicherungLesen(text) {
   return frisch;
 }
 
+/**
+ * Die Wasserzahl jedes Tages auf eine ganze Zahl von 1 bis WASSER_HOECHSTENS
+ * bringen – oder weglassen.
+ *
+ * Eine Sicherung ist eine Datei, die jemand öffnen und ändern kann; "3",
+ * 2.5 oder -1 kämen sonst als Zahl der Gläser an, und eine Summe über
+ * Zeichenketten hängte sie aneinander. Ein Tag, an dem danach nichts mehr
+ * steht, fällt weg, wie es auch beim Zählen geschieht. Alle übrigen Tage
+ * bleiben genau so, wie sie in der Datei stehen.
+ */
+function wasserSauber(tage) {
+  const raus = {};
+  Object.entries(tage || {}).forEach(([iso, t]) => {
+    if (!t || typeof t !== 'object' || Array.isArray(t) || !('wasser' in t)) {
+      raus[iso] = t;
+      return;
+    }
+    const { wasser, ...rest } = t;
+    const n = wasserVon(t);
+    const neu = n ? { ...rest, wasser: n } : rest;
+    if (Object.keys(neu).length) raus[iso] = neu;
+  });
+  return raus;
+}
+
 /* ---------- Einlesen, ohne etwas zu verlieren ---------- */
 
 /*
@@ -5151,7 +5353,8 @@ function sicherungLesen(text) {
  *      Schlüssel und lässt sich mit rueckgaengig() zurückholen.
  *   2. Ist schon etwas da, wird zusammengeführt statt ersetzt: Einträge,
  *      Ideen, Listen über ihre Kennung, Tagesfragen je Tag und je Feld.
- *      Bei Gleichstand gewinnt, was schon hier stand.
+ *      Bei Gleichstand gewinnt, was schon hier stand. Nur das Wasser nicht –
+ *      siehe zusammenfuehren().
  */
 
 const VORHER = `${KEY}.vorher`;
@@ -5162,6 +5365,7 @@ const VORHER = `${KEY}.vorher`;
  * Die eigenen Mittel zählen: Wer sie unter „Mehr" angelegt hat, bevor die
  * Sicherung vom alten Gerät da war, hat etwas eingetragen – und verlöre es,
  * wenn das Einlesen den Stand als leer ersetzte statt zusammenzuführen.
+ * Gezähltes Wasser ebenso – es steht in `tage` und zählt damit hier mit.
  */
 function istLeer(s = zustand) {
   return !s.eintraege.length && !Object.keys(s.tage || {}).length && !s.ideen.length
@@ -5218,6 +5422,20 @@ function zusammenfuehren(hier, dazu) {
   neu.tage = { ...hier.tage };
   Object.keys(dazu.tage || {}).forEach((iso) => {
     neu.tage[iso] = { ...dazu.tage[iso], ...(hier.tage[iso] || {}) };
+    /*
+     * Das Wasser ist ein Zähler, keine Antwort, und bei einem Zähler gewinnt
+     * der größere Wert. Der häufige Fall ist derselbe Tag auf zwei Ständen,
+     * von denen einer weitergezählt hat: eine Sicherung von heute Morgen,
+     * abends eingelesen; der Umzug von Safari, nachdem in der App schon
+     * getippt wurde. Dort steckt die kleinere Zahl in der größeren. Die Summe
+     * zählte die gemeinsamen Gläser doppelt, und „was hier stand, gewinnt"
+     * verlöre die Gläser, die nur dort gezählt wurden. Zu wenig wird es nur,
+     * wenn auf zwei Geräten am selben Tag verschiedene Gläser gezählt wurden –
+     * dem selteneren Fall, und dort ist es eine Angabe zu wenig statt einer
+     * erfundenen.
+     */
+    const w = Math.max(wasserVon(hier.tage[iso]), wasserVon(dazu.tage[iso]));
+    if (w) neu.tage[iso].wasser = w;
   });
   neu.ideen = vereinigt(hier.ideen, dazu.ideen, (x) => x.id);
   neu.eigeneAusloeser = vereinigt(hier.eigeneAusloeser, dazu.eigeneAusloeser, (a) => a.id);
@@ -5317,7 +5535,7 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { STANDARD_HOECHSTENS, allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, befundLoeschen, befundNotieren, einlesen, einstellen, eintraegeAm, eintraegeZurueck, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeGeschicktMerken, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, ideenUnterwegs, istLeer, kannSpeichern, kuecheLoeschen, kuecheNotieren, kuecheUmschalten, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, rueckgaengig, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, standardAendern, standardEntfernen, standardMerken, standardVon, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, umzugGeholtMerken, umzugMerken, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, vorherDa, zustandLesen };
+const store = { STANDARD_HOECHSTENS, allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, befundLoeschen, befundNotieren, einlesen, einstellen, eintraegeAm, eintraegeZurueck, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeGeschicktMerken, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, ideenUnterwegs, istLeer, kannSpeichern, kuecheLoeschen, kuecheNotieren, kuecheUmschalten, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, rueckgaengig, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, standardAendern, standardEntfernen, standardMerken, standardVon, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, umzugGeholtMerken, umzugMerken, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, vorherDa, wasserZaehlen, zustandLesen };
 
 /* ===== js/zufall.js ===== */
 /*
@@ -5475,6 +5693,7 @@ function spielraumSatz(spielraum, vergleiche) {
  *   3. Es heißt „auffällig", nicht „verursacht". Was hier herauskommt, ist
  *      ein Anhaltspunkt fürs Gespräch beim Arzt, keine Diagnose.
  */
+
 
 
 
@@ -6014,8 +6233,10 @@ function tagesWert(eintraege, iso, tage = {}) {
    * kein beschwerdefreier Tag. Sonst drückte jede Migräne, bei der jemand nur
    * „Kopf 8" einträgt und sonst nichts, den Bauchwert genau an den schlechten
    * Tagen auf null – gegen die eigene Regel, dass eine Lücke kein guter Tag ist.
+   * Dasselbe gilt für einen Tag, an dem nur Wasser gezählt ist (tagZaehlt in
+   * js/wasser.js): Ein getipptes Glas sagt über den Bauch nichts.
    */
-  const notiert = amTag.some((e) => e.art !== 'kopf') || !!tage[iso];
+  const notiert = amTag.some((e) => e.art !== 'kopf') || tagZaehlt((tage || {})[iso]);
   const max = beschwerden.reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
   const summe = beschwerden.reduce((s, e) => s + (Number(e.staerke) || 0), 0);
   return {
@@ -6209,6 +6430,12 @@ function gesamtZahlen(eintraege, tage, von, bis) {
  * beides steht in der Anzeige dabei.
  */
 
+
+/** Die Tage des Tagesspeichers, an denen mehr steht als gezähltes Wasser. */
+function tageMitAngabe(tage) {
+  return Object.keys(tage || {}).filter((iso) => tagZaehlt(tage[iso]));
+}
+
 /** Alle Stuhl-Eintragungen mit gültiger Bristol-Form. */
 function stuhlgaenge(eintraege) {
   return (eintraege || []).filter((e) => e.art === 'stuhl' && bristolVon(e.form));
@@ -6289,9 +6516,10 @@ function anzahlAm(eintraege, iso) {
 function schmerzVergleich(eintraege, tage, schmerzArten = ['krampf']) {
   const alle = eintraege || [];
   // Ohne die Kopf-Einträge: Ein Tag mit nur einem Kopfschmerz ist für den
-  // Bauch eine Lücke, kein Tag ohne Bauchschmerz (siehe tagesWert).
+  // Bauch eine Lücke, kein Tag ohne Bauchschmerz (siehe tagesWert). Ohne die
+  // Tage mit nur gezähltem Wasser aus demselben Grund.
   const notierte = [...new Set([
-    ...alle.filter((e) => e.art !== 'kopf').map((e) => e.am), ...Object.keys(tage || {}),
+    ...alle.filter((e) => e.art !== 'kopf').map((e) => e.am), ...tageMitAngabe(tage),
   ])].sort();
   const mitSchmerz = new Set(alle
     .filter((e) => e.art === 'beschwerde' && (e.arten || []).some((a) => schmerzArten.includes(a)))
@@ -6347,12 +6575,98 @@ function bezugBilanz(eintraege) {
   };
 }
 
+/*
+ * Ab so vielen Tagen und Stuhlgängen je Seite sagt der Vergleich mit dem
+ * Wasser etwas – dieselbe Grenze wie bei schmerzVergleich, aus demselben
+ * Grund: Eine Formverteilung aus zwei Einträgen ist keine Verteilung.
+ */
+const WASSER_GENUG = 5;
+
+/**
+ * Harter Stuhlgang an Tagen mit wenig gegen Tagen mit viel Wasser.
+ *
+ * Wenig und viel misst sich am eigenen Alltag, nicht an einer Empfehlung: Die
+ * Grenze ist die eigene mittlere Zahl (der Median), und Tage genau darauf
+ * bleiben außen vor – wie die mittlere Zone in js/schichten.js, damit die
+ * beiden Seiten wirklich verschieden sind. Gezählt werden nur Tage, an denen
+ * Wasser gezählt *und* ein Stuhlgang eingetragen ist. Ein Tag ohne Zahl ist
+ * einer, an dem nicht gezählt wurde, und ein Tag ohne Stuhlgang sagt über die
+ * Form nichts.
+ *
+ * Verglichen wird derselbe Tag. Was am Vortag getrunken wurde, wie viel
+ * gegessen, ob Bewegung dazukam, steckt alles mit darin – deshalb sagt die
+ * Anzeige nur, was gezählt ist, und nichts darüber, woran es liegt.
+ */
+function wasserVergleich(eintraege, tage) {
+  const stuhl = stuhlgaenge(eintraege);
+  const stuhlTage = new Set(stuhl.map((e) => e.am));
+  const glaeser = new Map(Object.keys(tage || {})
+    .map((iso) => [iso, wasserVon(tage[iso])])
+    .filter(([iso, n]) => n > 0 && stuhlTage.has(iso)));
+  const zahlen = [...glaeser.values()].sort((a, b) => a - b);
+  const h = Math.floor(zahlen.length / 2);
+  const mitte = !zahlen.length ? 0
+    : (zahlen.length % 2 ? zahlen[h] : (zahlen[h - 1] + zahlen[h]) / 2);
+
+  const seite = (passt) => {
+    const isos = new Set([...glaeser].filter(([, n]) => passt(n)).map(([iso]) => iso));
+    const dort = stuhl.filter((e) => isos.has(e.am));
+    const hart = dort.filter((e) => bristolVon(e.form).gruppe === 'hart').length;
+    const werte = [...isos].map((iso) => glaeser.get(iso));
+    return {
+      tage: isos.size,
+      stuhlgaenge: dort.length,
+      hart,
+      anteil: dort.length ? hart / dort.length : 0,
+      wenigste: werte.length ? Math.min(...werte) : 0,
+      meiste: werte.length ? Math.max(...werte) : 0,
+    };
+  };
+  const wenig = seite((n) => n < mitte);
+  const viel = seite((n) => n > mitte);
+  const genug = wenig.tage >= WASSER_GENUG && viel.tage >= WASSER_GENUG
+    && wenig.stuhlgaenge >= WASSER_GENUG && viel.stuhlgaenge >= WASSER_GENUG;
+  return {
+    genug,
+    mitte,
+    wenig,
+    viel,
+    // Zwanzig Prozentpunkte, wie bei formAnders oben.
+    anders: genug && Math.abs(wenig.anteil - viel.anteil) >= 0.2,
+  };
+}
+
+/**
+ * Der Satz dazu – oder '' bei zu wenigen Fällen. Mit beiden Fallzahlen und
+ * ohne Rat: Die Zählung sagt, was an welchen Tagen war, nicht was man tun
+ * soll, und schon gar nicht, wie viel zu trinken wäre.
+ */
+function wasserSatz(v) {
+  if (!v || !v.genug) return '';
+  const glas = (n) => `${n} ${n === 1 ? 'Glas' : 'Gläser'}`;
+  const glasAb = (n) => `${n} ${n === 1 ? 'Glas' : 'Gläsern'}`;
+  const mal = (s) => `${s.hart} von ${s.stuhlgaenge} Mal`;
+  const wenig = `an Tagen mit wenig Wasser (bis ${glas(v.wenig.meiste)})`;
+  const viel = `an Tagen mit mehr (ab ${glasAb(v.viel.wenigste)})`;
+  if (!v.anders) {
+    return `Harter Stuhlgang (Typ 1–2) ${wenig}: ${mal(v.wenig)}, ${viel}: ${mal(v.viel)} – `
+      + 'kein deutlicher Unterschied.';
+  }
+  const oefter = v.wenig.anteil > v.viel.anteil ? 'wenig' : 'viel';
+  const erst = oefter === 'wenig' ? wenig : `an Tagen mit mehr Wasser (ab ${glasAb(v.viel.wenigste)})`;
+  const dann = oefter === 'wenig' ? viel : `an Tagen mit weniger (bis ${glas(v.wenig.meiste)})`;
+  const a = oefter === 'wenig' ? v.wenig : v.viel;
+  const b = oefter === 'wenig' ? v.viel : v.wenig;
+  const satz = `${erst} war der Stuhlgang öfter hart: ${mal(a)} Typ 1–2, ${dann} ${mal(b)}.`;
+  return satz.charAt(0).toUpperCase() + satz.slice(1);
+}
+
 /** Die Zahlen für die Übersicht: wie oft, wie oft auffällig, wie oft dringend. */
 function stuhlZahlen(eintraege, tage) {
   const alle = stuhlgaenge(eintraege);
   const notierte = [...new Set([
     ...(eintraege || []).filter((e) => e.art !== 'kopf').map((e) => e.am),
-    ...Object.keys(tage || {}),
+    ...tageMitAngabe(tage),
   ])];
   const b = formBilanz(eintraege);
   return {
@@ -6400,6 +6714,7 @@ function stuhlZahlen(eintraege, tage) {
  */
 
 
+
 /*
  * Ab welcher Stärke eine Beschwerde als „belastend" gilt.
  *
@@ -6426,11 +6741,14 @@ function notierteTage(eintraege, tage, von, bis) {
   const isos = new Set();
   // Ein Tag mit nur einem Kopfschmerz ist für den Bauch kein notierter Tag
   // (siehe tagesWert in auswertung.js) – sonst stünde er hier als Tag ohne
-  // Bauchschmerz im Nenner und verwässerte Rom und GerdQ.
+  // Bauchschmerz im Nenner und verwässerte Rom und GerdQ. Ein Tag mit nur
+  // gezähltem Wasser ebenso wenig.
   (eintraege || []).forEach((e) => {
     if (e.art !== 'kopf' && inFenster(e.am, von, bis)) isos.add(e.am);
   });
-  Object.keys(tage || {}).forEach((iso) => { if (inFenster(iso, von, bis)) isos.add(iso); });
+  Object.keys(tage || {}).forEach((iso) => {
+    if (inFenster(iso, von, bis) && tagZaehlt(tage[iso])) isos.add(iso);
+  });
   return [...isos].sort();
 }
 
@@ -7845,8 +8163,14 @@ function haeltStand(bewertet, id, tage, extra = {}) {
          * die Angaben" – auch bei jemandem, der jeden Abend alle Fragen
          * beantwortet hat. Der Test war grün, weil seine Tage das Feld hatten.
          */
+        /*
+         * Ein Tag mit nur gezähltem Wasser steht auch im Tagesspeicher, sagt
+         * aber zu keiner dieser Fragen etwas. Ohne diese Prüfung landete er
+         * als „außerhalb der Blutung" in der Zyklusschicht – eine Angabe, die
+         * niemand gemacht hat.
+         */
         const tag = (tage || {})[b.am];
-        if (!tag) return false;
+        if (!tagZaehlt(tag)) return false;
         const v = tag[s.id];
         return teil.passt(v === undefined ? null : v);
       });
@@ -10809,8 +11133,12 @@ function unterleibsBild(eintraege, tage, tagesWert) {
    * nirgends, es stand nur in den Testvorlagen. Damit war diese ganze
    * Rechnung in Wirklichkeit leer: kein Tag kam durch, nichts war prüfbar,
    * und der Test blieb grün, weil seine Tage das Feld hatten.
+   *
+   * Ohne die Tage, an denen nur Wasser gezählt ist: Sie stünden sonst unten
+   * unter „übrige Tage" als Tage ohne Beschwerden und drückten den Vergleich
+   * mit den Blutungstagen.
    */
-  const alle = Object.entries(tage || {}).filter(([, t]) => t && typeof t === 'object');
+  const alle = Object.entries(tage || {}).filter(([, t]) => tagZaehlt(t));
 
   /* ---------- 1. Schmerz beim Sex ---------- */
 
@@ -12249,6 +12577,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -12376,6 +12705,21 @@ function arztBericht(zustand, von, bis) {
   sag(`  Mahlzeiten eingetragen     ${z.mahlzeiten}`);
   sag(`  Medikamenteneinnahmen      ${z.medikamente}`);
   if (kz.anzahl) sag(`  Kopfschmerztage            ${kz.tage} (getrennt gezählt, siehe unten)`);
+  /*
+   * Das Wasser als eine Zeile, ohne Ziel und ohne Bewertung: Wie viel jemand
+   * trinken sollte, hängt an Dingen, die dieses Tagebuch nicht kennt, und
+   * eine App, die das besser weiß als die Praxis, hätte hier nichts verloren.
+   * Gemittelt wird über die Tage, an denen gezählt wurde – ein Tag ohne Zahl
+   * ist kein Tag ohne Trinken.
+   */
+  const wz = wasserZahlen(tageImZeitraum, von, bis);
+  if (wz.tage) {
+    const liter = literText(wz.schnitt, zustand.wasserGlas);
+    sag(`  Wasser                     im Mittel ${fmtZahl(wz.schnitt)} `
+      + `${wz.schnitt === 1 ? 'Glas' : 'Gläser'}${liter ? ` (${liter})` : ''}`);
+    sag(`                             an ${mehrzahl(wz.tage, 'Tag', 'Tagen')} mit Angabe, `
+      + `ein Glas = ${glasName(zustand.wasserGlas)}`);
+  }
   sag();
 
   /*
@@ -12576,7 +12920,13 @@ function arztBericht(zustand, von, bis) {
     sag();
   }
 
-  const s = stuhlZahlen(imZeitraum, tage);
+  /*
+   * Mit dem Tagesspeicher des Zeitraums, nicht dem ganzen: Jeder Tag mit
+   * einer Tagesfrage von vor dem Zeitraum stünde sonst im Nenner von „je
+   * notiertem Tag", und der Bericht zählte weniger Stuhlgänge, je länger das
+   * Tagebuch schon läuft.
+   */
+  const s = stuhlZahlen(imZeitraum, tageImZeitraum);
   if (s.gesamt) {
     sag('STUHLGANG (BRISTOL)');
     sag(`  Eingetragen                ${s.gesamt} Mal, ${fmtZahl(s.proTag)} je notiertem Tag`);
@@ -12584,6 +12934,13 @@ function arztBericht(zustand, von, bis) {
     sag(`  Typ 3-5 (unauffällig)      ${s.normal} (${prozent(s.anteilNormal)})`);
     sag(`  Typ 6-7 (weich)            ${s.weich} (${prozent(s.anteilWeich)})`);
     if (s.dringend) sag(`  davon dringend             ${s.dringend}`);
+    // Nur mit genug Fällen auf beiden Seiten; sonst gar nicht – siehe
+    // wasserVergleich in js/stuhl.js.
+    const wasser = wasserSatz(wasserVergleich(imZeitraum, tageImZeitraum));
+    if (wasser) {
+      umbrochen(wasser).forEach((zl) => sag(`  ${zl}`));
+      sag('  (Gezählt am selben Tag, keine Ursache.)');
+    }
     sag();
   }
 
@@ -13874,6 +14231,9 @@ function tagAnsicht(s) {
       </button>`).join('')}
   </div>`;
 
+  // Nicht auf künftigen Tagen – dort lässt sich auch sonst nichts eintragen.
+  const wasser = !kuenftig && s.wasserZeigen !== false ? wasserZeile(s, iso) : '';
+
   /*
    * Ändern ging schon immer – nur sah man es keiner Zeile an. Deshalb das „›"
    * an jeder Zeile und der Satz darüber: Wer nicht weiß, dass ein Eintrag
@@ -13917,10 +14277,37 @@ function tagAnsicht(s) {
   return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
     + provokationZeile(s, iso) + bilanz + zyklusZeile + kopfNachtragKarte(s, iso)
-    + (heute ? ratKarte(s) : '') + schnellReihe + mittelReihe + anlegen + zeilen + umstaende
+    + (heute ? ratKarte(s) : '') + schnellReihe + mittelReihe + anlegen + wasser + zeilen + umstaende
     // Ans Ende und zugeklappt: Die Liste ist zum Nachsehen da, nicht zum
     // täglichen Durchscrollen. Wer sie sucht, findet sie an derselben Stelle.
     + (iso === heuteISO() ? kuecheKarte(s) : '');
+}
+
+/**
+ * Wasser zählen: ein Tipp, ein Glas.
+ *
+ * Eine Reihe statt eines Knopfs im Raster darüber, weil hier nichts angelegt
+ * wird – kein Bogen, keine Uhrzeit, keine Zeile im Strang. Das Plus ist groß,
+ * weil es fast immer das Plus ist; das Minus nimmt einen Fehlgriff zurück und
+ * ist bei null aus. Wie viel ein Glas ist, steht unter „Mehr“; die Literzahl
+ * ist nur eine Umrechnung.
+ *
+ * Warum kein Eintrag und keine Mahlzeit, steht in js/wasser.js. Die Knöpfe
+ * tragen eine id, damit der Fokus beim Neuzeichnen auf ihnen bleibt – wer mit
+ * VoiceOver dreimal tippt, soll nicht dreimal suchen.
+ */
+function wasserZeile(s, iso) {
+  const n = wasserVon((s.tage || {})[iso]);
+  const liter = literText(n, s.wasserGlas);
+  return `<div class="wasser" role="group" aria-label="Wasser ${esc(fmtTag(iso))}">
+    <span class="wasser-name"><span aria-hidden="true">💧</span> Wasser</span>
+    <button type="button" class="btn btn-rund wasser-weg" id="wasserWeniger" data-act="wasser"
+            data-d="-1" aria-label="Ein Glas zurücknehmen"${n ? '' : ' disabled'}>−</button>
+    <span class="wasser-zahl"><b>${n}</b> ${n === 1 ? 'Glas' : 'Gläser'}${liter
+    ? `<span class="wasser-liter">${esc(liter)}</span>` : ''}</span>
+    <button type="button" class="btn wasser-dazu" id="wasserMehr" data-act="wasser"
+            data-d="1" aria-label="Ein Glas Wasser dazu">+</button>
+  </div>`;
 }
 
 /**
@@ -15590,6 +15977,9 @@ function stuhlTeil(s) {
   const z = stuhlZahlen(s.eintraege, s.tage);
   if (!z.gesamt) return '';
   const anteil = (n) => (z.gesamt ? `${Math.round((n / z.gesamt) * 100)} %` : '–');
+  // Nur mit genug Fällen auf beiden Seiten, sonst steht hier gar nichts – ein
+  // „noch nicht" zum Wasser wäre eine Aufforderung, und die gibt es hier nicht.
+  const wasser = wasserSatz(wasserVergleich(s.eintraege, s.tage));
   return `<div class="karte karte-stuhl">
     <h3>Stuhlgang</h3>
     <ul class="wartend">
@@ -15601,6 +15991,8 @@ function stuhlTeil(s) {
       ${z.dringend ? `<li><span>Musste dringend</span><span class="klein">${z.dringend}×</span></li>` : ''}
       ${z.unvollstaendig ? `<li><span>Gefühl, nicht fertig</span><span class="klein">${z.unvollstaendig}×</span></li>` : ''}
     </ul>
+    ${wasser ? `<p class="klein wasser-hinweis"><span aria-hidden="true">💧</span> ${esc(wasser)}
+      Gezählt am selben Tag – das zeigt, was zusammen vorkam, nicht woran es liegt.</p>` : ''}
   </div>`;
 }
 
@@ -16924,6 +17316,8 @@ function mehrAnsicht(s) {
     ${marken(TAGESFRAGEN, s.tagesfragen || [], 'frageAn')}
   </div>
 
+  ${wasserKarte(s)}
+
   <div class="karte">
     <h3>Ton</h3>
     <p class="klein">Nur für die Atemübung unter „Ruhe". Sonst gibt diese App
@@ -16958,6 +17352,33 @@ function mehrAnsicht(s) {
     <p class="klein">Entfernt jede Eintragung aus diesem Browser. Nicht
     rückgängig zu machen.</p>
     ${knopf('alles-weg', 'Tagebuch löschen', 'btn-danger')}
+  </div>`;
+}
+
+/*
+ * Wasser ein- und ausblenden, und wie groß ein Glas ist.
+ *
+ * Ausgeblendet heißt nur: nicht auf „Tag“. Schon Gezähltes bleibt und steht
+ * weiter im Bericht – wie bei den Tagesfragen, die man abschaltet.
+ */
+function wasserKarte(s) {
+  const an = s.wasserZeigen !== false;
+  const glas = glasMl(s.wasserGlas);
+  return `<div class="karte" id="wasserKarte">
+    <h3>Wasser</h3>
+    <p class="klein">Auf „Tag“ zählst du mit einem Tipp, wie viele Gläser du
+    getrunken hast. Das ist kein Eintrag und keine Mahlzeit. Ein Tag, an dem
+    nur Wasser steht, gilt deshalb nicht als Tag ohne Beschwerden.</p>
+    <div class="wahl">
+      <button type="button" class="wahl-btn${an ? ' an' : ''}" data-act="wasser-zeigen"
+              aria-pressed="${an}">${an ? 'Wasser zählen ist an' : 'Wasser zählen ist aus'}</button>
+    </div>
+    <p class="feld-name">Ein Glas sind</p>
+    <div class="wahl">${GLAS_GROESSEN.map((ml) => `
+      <button type="button" class="wahl-btn${glas === ml ? ' an' : ''}" data-act="wasser-glas"
+              data-n="${ml}" aria-pressed="${glas === ml}">${glasName(ml)}</button>`).join('')}</div>
+    <p class="klein">Gezählt werden Gläser – die Liter daneben sind nur
+    umgerechnet. Schon Gezähltes bleibt, auch wenn du das Zählen ausschaltest.</p>
   </div>`;
 }
 
@@ -18821,6 +19242,33 @@ const AKTION = {
     store.tagSetzen(ui.tag, { [id]: jetzt === n ? null : n });
     zeichne();
   },
+  wasser: (el) => {
+    const iso = ui.tag;
+    const dazu = Number(el.dataset.d) > 0;
+    const vorher = wasserVon(store.tagLesen(iso));
+    const n = store.wasserZaehlen(iso, dazu ? 1 : -1);
+    if (n === null) return;
+    const tag = Math.abs(tageDazwischen(iso, heuteISO())) <= 1 ? fmtTag(iso) : fmtDatum(iso);
+    const stand = `${tag.charAt(0).toUpperCase()}${tag.slice(1)}: ${n ? mehrzahl(n, 'Glas', 'Gläser') : 'keins mehr'}.`;
+    if (dazu && n === vorher) {
+      melden(`Mehr als ${WASSER_HOECHSTENS} Gläser an einem Tag zählt Body Check nicht.`);
+    } else {
+      melden(`${dazu ? 'Ein Glas dazu.' : 'Ein Glas zurückgenommen.'} ${stand}`);
+    }
+    zeichne();
+    // Bei null ist das Minus aus und kann den Fokus nicht halten. Dann
+    // wandert er zum Plus, statt an den Anfang der Seite zu fallen.
+    if (!n && document.activeElement === el) {
+      setTimeout(() => { const plus = document.getElementById('wasserMehr'); if (plus) plus.focus(); }, 0);
+    }
+  },
+  'wasser-zeigen': () => {
+    const an = store.zustandLesen().wasserZeigen !== false;
+    store.einstellen('wasserZeigen', !an);
+    melden(an ? 'Wasser steht nicht mehr auf „Tag“. Schon Gezähltes bleibt.' : 'Wasser steht wieder auf „Tag“.');
+    zeichne();
+  },
+  'wasser-glas': (el) => { store.einstellen('wasserGlas', glasMl(el.dataset.n)); zeichne(); },
   'seit-weg': () => { store.einstellen('beschwerdenSeit', null); zeichne(); },
   frageAn: (el) => {
     const gewaehlt = store.zustandLesen().tagesfragen || [];
