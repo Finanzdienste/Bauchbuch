@@ -50,7 +50,7 @@ const bericht = async (zustand, n = 30) => {
 /* ---------- 1. Der Bogen ---------- */
 
 await setze({ begruesst: true, tab: 'heute', eintraege: [], tage: {} });
-check(await page.locator('.anlegen-btn').count() === 6, 'sechs Knöpfe – Kopfschmerz ist dazugekommen');
+check(await page.locator('.anlegen-btn').count() === 7, 'sieben Knöpfe – Kopfschmerz ist dazugekommen, später die Aktivität');
 check(await page.locator('[data-act="neu"][data-art="kopf"]').count() === 1, 'einer davon für den Kopf');
 await page.locator('[data-act="neu"][data-art="kopf"]').click();
 await page.waitForTimeout(150);

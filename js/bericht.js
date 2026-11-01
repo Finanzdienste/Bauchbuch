@@ -36,6 +36,9 @@ import { wissenZu } from './mittel.js';
 import { kriterien } from './kriterien.js';
 import { stuhlZahlen, wasserSatz, wasserVergleich } from './stuhl.js';
 import { glasName, literText, wasserZahlen } from './wasser.js';
+import {
+  AKTIV_KOPF_STUNDEN, aktivitaetBilanz, aktivitaetName, aktivitaetenVon, bewegungSatz,
+} from './aktivitaet.js';
 import { befund, mittelBilanz } from './ansprechen.js';
 import { ergebnis } from './versuch.js';
 import { provokationsBild } from './provokation.js';
@@ -174,6 +177,25 @@ export function arztBericht(zustand, von, bis) {
   sag(`  Mahlzeiten eingetragen     ${z.mahlzeiten}`);
   sag(`  Medikamenteneinnahmen      ${z.medikamente}`);
   if (kz.anzahl) sag(`  Kopfschmerztage            ${kz.tage} (getrennt gezählt, siehe unten)`);
+  // Die Aktivitäten als Zahl, die drei häufigsten dabei. Sie zählen in keine
+  // Zeile darüber: Ein Tag mit nur „Arbeit" ist kein Tag mit Eintragung.
+  const aktivZaehler = new Map();
+  imZeitraum.forEach((e) => aktivitaetenVon(e)
+    .forEach((id) => aktivZaehler.set(id, (aktivZaehler.get(id) || 0) + 1)));
+  const aktivAnzahl = imZeitraum.filter((e) => aktivitaetenVon(e).length).length;
+  if (aktivAnzahl) {
+    // Umbrochen wird zwischen den Aktivitäten, nie in einer: „Feier/Ausgehen"
+    // und seine Zahl gehören auf dieselbe Zeile.
+    const meist = [...aktivZaehler.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([id, n]) => `${aktivitaetName(id, zustand.eigeneAktivitaeten)} ${n}×`);
+    sag(`  Aktivitäten eingetragen    ${aktivAnzahl}`);
+    const reihen = meist.reduce((r, x) => {
+      if (r.length && `${r[r.length - 1]} · ${x}`.length <= 50) r[r.length - 1] += ` · ${x}`;
+      else r.push(x);
+      return r;
+    }, []);
+    reihen.forEach((zl) => sag(`                             ${zl}`));
+  }
   /*
    * Das Wasser als eine Zeile, ohne Ziel und ohne Bewertung: Wie viel jemand
    * trinken sollte, hängt an Dingen, die dieses Tagebuch nicht kennt, und
@@ -516,6 +538,46 @@ export function arztBericht(zustand, von, bis) {
       kp.forEach((p) => sag(`    ${p.name.padEnd(24)} an ${p.mit} von ${p.tage} Tagen`));
     }
     sag('  Getrennt vom Bauch gezählt: Kein Kopfschmerz zählt in die Werte oben.');
+    sag();
+  }
+
+  /*
+   * Was nach den Aktivitäten kam – nur mit genug Fällen, und nur Zahlen.
+   *
+   * Eine Zeile je Aktivität für den Bauch, eine für den Kopf, und dazu die
+   * Tagesfrage „Bewegung". Verglichen wird mit denselben Stunden an Tagen
+   * ohne die Aktivität (siehe js/aktivitaet.js); was dafür zu selten ist,
+   * steht hier gar nicht – ein „noch nicht" hat auf dem Zettel nichts zu tun.
+   */
+  // Mit dem eingegrenzten Tagesspeicher: Das Kopffenster reicht in den Tag
+  // nach dem Berichtsende, und eine Tagesfrage dort machte ihn zu einem
+  // notierten Tag, dessen Einträge hier fehlen.
+  const aktiv = aktivitaetBilanz(imZeitraum, tageImZeitraum, {
+    fenster: zustand.fenster, mindestFaelle: zustand.mindestFaelle,
+  }).filter((x) => x.bauch.genug || x.kopf.genug);
+  const bewegung = bewegungSatz(faktorBilanz(imZeitraum, tageImZeitraum, 'bewegung', tagesWert));
+  if (aktiv.length || bewegung) {
+    sag('NACH AKTIVITÄTEN');
+    if (aktiv.length) {
+      umbrochen(`(Beschwerden in den ${zustand.fenster || 4} Stunden danach, Kopfschmerz in den `
+        + `${AKTIV_KOPF_STUNDEN} Stunden danach – gegen dieselben Stunden an Tagen ohne. `
+        + 'Eine Häufigkeit, keine Ursache.)', 66).forEach((zl) => sag(`  ${zl}`));
+    }
+    const wort = (art) => ({ auffaellig: ' – auffällig', moeglich: ' – möglicherweise auffällig' }[art] || '');
+    aktiv.slice(0, 8).forEach((x) => {
+      sag(`  ${aktivitaetName(x.id, zustand.eigeneAktivitaeten)}`);
+      if (x.bauch.genug) {
+        sag(`    Bauch ${x.bauch.mitTreffer} von ${x.bauch.faelle} (${prozent(x.bauch.quoteMit)}), `
+          + `sonst ${x.bauch.ohneTreffer} von ${x.bauch.gegenFaelle} (${prozent(x.bauch.quoteOhne)})`
+          + `${wort(x.bauch.art)}`);
+      }
+      if (x.kopf.genug) {
+        sag(`    Kopf ${x.kopf.mitTreffer} von ${x.kopf.faelle} (${prozent(x.kopf.quoteMit)}), `
+          + `sonst ${x.kopf.ohneTreffer} von ${x.kopf.gegenFaelle} (${prozent(x.kopf.quoteOhne)})`
+          + `${x.kopf.art === 'auffaellig' ? ' – öfter' : ''}`);
+      }
+    });
+    if (bewegung) umbrochen(bewegung, 66).forEach((zl) => sag(`  ${zl}`));
     sag();
   }
 

@@ -21,7 +21,7 @@
  * tun, als wüsste sie es dann. Was stattdessen kommt: was sie selbst
  * eingenommen hat, wann zuletzt, und die Frage dazu für den nächsten Termin.
  */
-import { ausloeserName } from './daten.js';
+import { UMSTAND_IDS, ausloeserName } from './daten.js';
 import { einstufung, tagesWert } from './auswertung.js';
 import { phaseVon, phasenName } from './zyklus.js';
 
@@ -45,7 +45,7 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
 /**
  * @param {object} d
  *   eintraege, tage, heute (ISO), bilanz (aus ausloeserBilanz),
- *   faktoren ({stress, schlaf, stimmung} aus faktorBilanz),
+ *   faktoren ({stress, schlaf, stimmung, bewegung} aus faktorenBilanz),
  *   phasen (aus phasenBilanz), eigene (eigene Auslöser),
  *   letzteMahlzeitStunden (Zahl oder null), mittel (zuletzt eingenommene)
  */
@@ -62,16 +62,22 @@ export function raete(d) {
    * eingetragen ist, wie es ihm heute geht.
    */
   const heuteNotiert = heute.notiert;
+  // Steht heute schon etwas, das über den Bauch nichts sagt – ein
+  // Kopfschmerz, eine Aktivität –, wäre „noch nichts im Tagebuch" falsch.
+  // Gesagt wird dann, wozu nichts dasteht.
+  const heuteAnderes = !heuteNotiert && (d.eintraege || []).some((e) => e.am === d.heute);
   const heuteTag = d.tage[d.heute] || {};
   const akut = heuteWert >= 6;
   const leicht = heuteWert > 0 && heuteWert < 6;
 
   /* ---------- Essen ---------- */
 
-  // Was ihr eigener Verlauf hergibt, steht vor allem Allgemeinen.
+  // Was ihr eigener Verlauf hergibt, steht vor allem Allgemeinen. Ohne die
+  // Umstände: „Heute eher ohne Auswärts gegessen" ist kein Satz, und für
+  // Portion und Uhrzeit gibt es unten eigene Vorschläge.
   const auffaellig = (d.bilanz || [])
     .filter((b) => b.genug && ['auffaellig', 'moeglich'].includes(einstufung(b)))
-    .filter((b) => !['gross', 'spaet'].includes(b.id))
+    .filter((b) => !UMSTAND_IDS.includes(b.id))
     .slice(0, 3);
 
   if (auffaellig.length) {
@@ -159,7 +165,7 @@ export function raete(d) {
   /* ---------- Sport ---------- */
 
   raus.push(sportRat(d, {
-    heuteWert, heuteNotiert, akut, leicht, heuteTag, heuteAngespannt,
+    heuteWert, heuteNotiert, heuteAnderes, akut, leicht, heuteTag, heuteAngespannt,
   }));
 
   /* ---------- Medikamente: kein Rat, sondern der Stand ---------- */
@@ -246,12 +252,13 @@ function sportRat(d, k) {
    * nichts da, sagt er nichts über den Tag, sondern stellt eine Bedingung.
    */
   if (!k.heuteNotiert) {
+    const wozu = k.heuteAnderes ? ' zum Bauch' : '';
     return rat('sport', 'sport', 'Wenn es dir heute gut geht, geht auch intensiv',
-      'Für heute steht noch nichts im Tagebuch, deshalb keine Aussage über den '
+      `Für heute steht${wozu} noch nichts im Tagebuch, deshalb keine Aussage über den `
       + 'Tag – nur die Regel: An beschwerdefreien Tagen spricht nichts gegen '
       + 'intensives Training, und danach mindestens eine Stunde, bevor du dich '
       + 'hinlegst.',
-      'Für heute ist noch nichts eingetragen – das heißt nicht, dass nichts war.',
+      `Für heute ist${wozu} noch nichts eingetragen – das heißt nicht, dass nichts war.`,
       'allgemein');
   }
 

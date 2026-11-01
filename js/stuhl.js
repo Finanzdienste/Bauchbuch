@@ -19,7 +19,7 @@
  * beides steht in der Anzeige dabei.
  */
 import { bristolVon } from './daten.js';
-import { tagZaehlt, wasserVon } from './wasser.js';
+import { eintragZaehlt, tagZaehlt, wasserVon } from './wasser.js';
 
 /** Die Tage des Tagesspeichers, an denen mehr steht als gezähltes Wasser. */
 function tageMitAngabe(tage) {
@@ -107,9 +107,9 @@ export function schmerzVergleich(eintraege, tage, schmerzArten = ['krampf']) {
   const alle = eintraege || [];
   // Ohne die Kopf-Einträge: Ein Tag mit nur einem Kopfschmerz ist für den
   // Bauch eine Lücke, kein Tag ohne Bauchschmerz (siehe tagesWert). Ohne die
-  // Tage mit nur gezähltem Wasser aus demselben Grund.
+  // Tage mit nur gezähltem Wasser oder nur einer Aktivität aus demselben Grund.
   const notierte = [...new Set([
-    ...alle.filter((e) => e.art !== 'kopf').map((e) => e.am), ...tageMitAngabe(tage),
+    ...alle.filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).map((e) => e.am), ...tageMitAngabe(tage),
   ])].sort();
   const mitSchmerz = new Set(alle
     .filter((e) => e.art === 'beschwerde' && (e.arten || []).some((a) => schmerzArten.includes(a)))
@@ -255,7 +255,7 @@ export function wasserSatz(v) {
 export function stuhlZahlen(eintraege, tage) {
   const alle = stuhlgaenge(eintraege);
   const notierte = [...new Set([
-    ...(eintraege || []).filter((e) => e.art !== 'kopf').map((e) => e.am),
+    ...(eintraege || []).filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).map((e) => e.am),
     ...tageMitAngabe(tage),
   ])];
   const b = formBilanz(eintraege);

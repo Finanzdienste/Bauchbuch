@@ -200,8 +200,10 @@ p { margin: 0 0 8px; }
 
 /* ---------- Anlegen ---------- */
 /* Fünf Knöpfe nebeneinander wären auf einem schmalen Handy je 68 Pixel breit
- * und die Beschriftung dreizeilig. Zwei Reihen zu drei und zwei sind ruhiger,
- * und die beiden, die täglich gebraucht werden, stehen oben links. */
+ * und die Beschriftung dreizeilig. Zwei Reihen zu drei sind ruhiger, und die
+ * beiden, die täglich gebraucht werden, stehen oben links. Die Notiz als
+ * siebter Knopf liegt als flache Zeile über die ganze Breite darunter – ein
+ * einzelner Knopf in einer dritten Reihe sähe aus wie vergessen. */
 .anlegen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
 .anlegen-btn {
   background: var(--bg-elev);
@@ -217,6 +219,12 @@ p { margin: 0 0 8px; }
 .a-beschwerde { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
 .a-stuhl { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
 .a-kopf { border-color: color-mix(in srgb, var(--leicht) 50%, var(--line)); }
+.a-aktivitaet { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.anlegen-btn.a-notiz {
+  grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 8px 4px; font-size: 13px;
+}
+.a-notiz .anlegen-i { font-size: 17px; }
 
 /* ---------- Wasser ---------- */
 /* Eine Zeile, auch bei 320 Pixeln: Name, Minus, Zahl, Plus. Die Zahl hat eine
@@ -276,6 +284,7 @@ p { margin: 0 0 8px; }
 .z-medikament { border-left-color: var(--warn); }
 .z-kopf { border-left-color: var(--leicht); }
 .z-notiz { border-left-color: var(--muted); }
+.z-aktivitaet { border-left-color: var(--ok); }
 .strang-uhr { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); min-width: 40px; }
 .strang-punkt { font-size: 15px; }
 /* Der Text ist der Knopf zum Ändern, das „›" daneben sagt, dass er einer
@@ -354,6 +363,13 @@ p { margin: 0 0 8px; }
   border-radius: 999px; padding: 8px 14px; cursor: pointer; font-size: 14px; min-height: 40px;
 }
 .wahl-btn.an { background: var(--accent-weich); border-color: var(--accent); }
+/* „Auswärts gegessen" unter der Portion: ein Schalter, keine dritte Portion. */
+.wahl-auswaerts { margin-top: 8px; }
+/* Das Feld für eine eigene Aktivität nimmt den Platz, den der Knopf übrig
+   lässt – auch bei 320 Pixeln in einer Zeile. */
+.aktiv-eigen { flex-wrap: nowrap; margin: 4px 0 6px; }
+.aktiv-eigen .feld { flex: 1; min-width: 0; }
+.aktiv-bewegung { border-top: 1px solid var(--line); padding-top: 8px; }
 
 /* ---------- Zutaten mit ihrer Rolle ---------- */
 .marken-eng { margin-top: 6px; }
@@ -1340,6 +1356,11 @@ function kuerze(s, max = 60) {
  * mitzählt. Wer ein Glas antippt, hat über seinen Bauch nichts gesagt. Deshalb
  * fragt jede dieser Stellen tagZaehlt() statt nach dem bloßen Dasein.
  *
+ * Dieselbe Gefahr hat seit den Aktivitäten (js/aktivitaet.js) auch der Strang
+ * selbst: „Gym um 18 Uhr" ist ein Eintrag, sagt aber über Bauch und Kopf so
+ * wenig wie ein Glas Wasser. Für ihn gibt es eintragZaehlt(), die Schwester
+ * von tagZaehlt() – beide stehen hier, damit es die Regel nur einmal gibt.
+ *
  * Hängt von nichts ab und darf deshalb überall benutzt werden.
  */
 
@@ -1377,6 +1398,29 @@ const feldLeer = (v) => v === null || v === undefined || v === ''
 function tagZaehlt(tag) {
   if (!tag || typeof tag !== 'object') return false;
   return Object.entries(tag).some(([k, v]) => !ZAEHLT_NICHT.includes(k) && !feldLeer(v));
+}
+
+/*
+ * Arten im Strang, die einen Tag nicht zu einem notierten machen – weder für
+ * den Bauch noch für den Kopf. Wie oben eine Liste, damit die nächste Art
+ * dieser Sorte an genau einer Stelle dazukommt.
+ *
+ * Eine Notiz steht mit Absicht nicht hier: Wer abends „alles ruhig" schreibt,
+ * hat etwas über den Tag gesagt. Wer „Sauna" antippt, nicht.
+ */
+const SAGT_NICHTS = ['aktivitaet'];
+
+/**
+ * Sagt dieser Eintrag etwas über den Tag – oder hält er nur fest, was jemand
+ * gemacht hat?
+ *
+ * Jede Stelle, die einen Tag schon wegen irgendeines Eintrags für notiert
+ * hielt, fragt jetzt das. Ohne diese Frage wäre der Tag, an dem nur „Laufen"
+ * steht, ein beschwerdefreier Tag – und das Laufen sähe in jeder Rechnung
+ * besser aus, als es war.
+ */
+function eintragZaehlt(e) {
+  return !!e && typeof e === 'object' && !SAGT_NICHTS.includes(e.art);
 }
 
 /** Die Gläser eines Tages als ganze Zahl von 0 bis WASSER_HOECHSTENS. */
@@ -1575,16 +1619,33 @@ const AUSLOESER = [
 ];
 
 /**
- * Zwei Merkmale, die keine Zutat sind, sondern die Umstände: die Portion und
- * die späte Stunde. Beide gelten als Magenreiz und werden in der Auswertung
- * genauso behandelt wie eine Zutat – deshalb stehen sie hier mit derselben
- * Struktur, aber getrennt: Beim Eintragen kreuzt man sie nicht an, sie ergeben
- * sich aus der Portionsangabe und der Uhrzeit.
+ * Merkmale, die keine Zutat sind, sondern die Umstände: die Portion, die späte
+ * Stunde und ob auswärts gegessen wurde. Sie gelten als Magenreiz und werden
+ * in der Auswertung genauso behandelt wie eine Zutat – deshalb stehen sie hier
+ * mit derselben Struktur, aber getrennt: Beim Eintragen kreuzt man sie nicht
+ * in der Zutatenliste an, sie ergeben sich aus der Portionsangabe, der Uhrzeit
+ * und dem Schalter „Auswärts gegessen" im Bogen.
+ *
+ * „Auswärts" ist ein Umstand und keine Zutat, weil es für alles steht, was man
+ * dort nicht sieht: mehr Fett, mehr Salz, unbekannte Würze, eine größere
+ * Portion, ein später Tisch. Was davon es ist, sagt keine Liste – aber ob es
+ * nach solchen Mahlzeiten öfter zwickt, sagt die Auslöserbilanz, wenn sie es
+ * als Merkmal kennt.
  */
 const UMSTAENDE = [
   { id: 'gross', name: 'Große Portion', icon: '🍽️' },
   { id: 'spaet', name: 'Spät gegessen (nach 20 Uhr)', icon: '🌙' },
+  { id: 'auswaerts', name: 'Auswärts gegessen', icon: '🍴' },
 ];
+
+/*
+ * Die Kennungen der Umstände – für die Stellen, die mit einem Umstand etwas
+ * anderes tun als mit einer Zutat: „Heute eher ohne große Portion" ist kein
+ * Satz, und zwei Wochen „ohne spät gegessen" kein Auslassversuch, den die App
+ * vorschlagen sollte. Eine Liste statt einer Abschrift an jeder Stelle, damit
+ * ein neuer Umstand nicht an einer davon fehlt.
+ */
+const UMSTAND_IDS = UMSTAENDE.map((u) => u.id);
 
 /** Alles, was die Auswertung als möglichen Auslöser kennt. */
 const ALLE_AUSLOESER = [...AUSLOESER, ...UMSTAENDE];
@@ -3134,10 +3195,12 @@ function kopfTageVon(eintraege, heute) {
  *
  * Gleich ist nur der Tag, an dem bloß Wasser gezählt wurde: Er ist für beide
  * eine Lücke. Wer ein Glas antippt, hat nicht gesagt, dass der Kopf frei war.
+ * Ebenso der Tag, an dem nur eine Aktivität steht – wer „Sauna" einträgt,
+ * sagt damit nichts über den Kopf.
  */
 function alleNotiertenTage(eintraege, tage) {
   return new Set([
-    ...(eintraege || []).map((e) => e.am),
+    ...(eintraege || []).filter(eintragZaehlt).map((e) => e.am),
     ...Object.keys(tage || {}).filter((iso) => tagZaehlt(tage[iso])),
   ]);
 }
@@ -3520,7 +3583,7 @@ function kopfTagesWert(eintraege, iso, tage = {}) {
   const amTag = (eintraege || []).filter((e) => e.am === iso);
   return {
     am: iso,
-    notiert: amTag.length > 0 || tagZaehlt((tage || {})[iso]),
+    notiert: amTag.some(eintragZaehlt) || tagZaehlt((tage || {})[iso]),
     wert: amTag.some((e) => e.art === 'kopf' && Number(e.staerke) >= 1) ? 1 : 0,
   };
 }
@@ -3994,6 +4057,11 @@ const VORGABE = {
   //   stuhl       { form: 1..7, dringend, unvollstaendig, warnzeichen: [id] }
   //   medikament  { mittel, dosis, zuKopf }
   //   notiz       { text }
+  //   aktivitaet  { aktivitaeten: [id], intensitaet: 'leicht'|'mittel'|'hart'|null, notiz }
+  // Eine Aktivität ist ein Eintrag mit Uhrzeit, aber über den Körper sagt sie
+  // nichts – ein Tag, an dem nur sie steht, gilt nirgends als notiert (siehe
+  // js/aktivitaet.js). Ältere Stände haben keine.
+  // Eine Mahlzeit trägt seit November 2026 optional `auswaerts: true`.
   // `zuKopf` (optional) ist die Kennung des Kopfschmerzes, mit dem das Mittel
   // über „Dazu genommen?" angelegt wurde. Ältere Einträge haben es nicht.
   eintraege: [],
@@ -4017,6 +4085,13 @@ const VORGABE = {
   // Tagebucheintrag und hat in keiner Auswertung etwas zu suchen.
   ideen: [],
   eigeneAusloeser: [],   // [{ id: 'x:...', name }]
+  /*
+   * Eigene Aktivitäten, die in der Auswahl des Bogens fehlen: [{ id: 'a:...', name }].
+   *
+   * Wie die eigenen Auslöser nur die Auswahl, nicht das Tagebuch: Wer eine
+   * entfernt, nimmt sie aus dem Bogen, und die Einträge damit bleiben.
+   */
+  eigeneAktivitaeten: [],
   /*
    * Was geht und was nicht – selbst notiert, nicht gerechnet.
    *
@@ -4285,6 +4360,7 @@ function laden() {
     if (!('alterName' in gelesen)) s.alterName = 'offen';
     s.eintraege = sortiert((Array.isArray(s.eintraege) ? s.eintraege : []).map(mahlzeitFrisch));
     s.ideen = ideenMitMarke(s.ideen, s.ideenGeschickt);
+    if (!Array.isArray(s.eigeneAktivitaeten)) s.eigeneAktivitaeten = [];
     return s;
   } catch {
     return klon(VORGABE);
@@ -4315,6 +4391,31 @@ function mahlzeitFrisch(e) {
     zutaten: (Array.isArray(tags) ? tags : [])
       .filter((id) => typeof id === 'string')
       .map((id) => ({ id, rolle: 'haupt' })),
+  };
+}
+
+/*
+ * Die Stufen von „Wie anstrengend?" – dieselben wie INTENSITAETEN in
+ * js/aktivitaet.js. Hier noch einmal, weil der Speicher vor der Rechenschicht
+ * geladen wird und nichts von ihr wissen soll; tests/test-aktivitaet.mjs
+ * prüft, dass beide Listen gleich sind.
+ */
+const INTENSITAET_IDS = ['leicht', 'mittel', 'hart'];
+
+/**
+ * Eine Aktivität so einlesen, dass jede Rechnung sie versteht: die Kennungen
+ * als Liste von Zeichenketten, jede einmal; „wie anstrengend" nur mit einer
+ * Stufe, die es gibt, sonst ohne Angabe. Eine Aktivität ohne jede Kennung
+ * bleibt stehen – vielleicht trägt sie eine Notiz –, zählt aber nirgends.
+ */
+function aktivitaetFrisch(e) {
+  if (!e || e.art !== 'aktivitaet') return e;
+  const ids = (Array.isArray(e.aktivitaeten) ? e.aktivitaeten : [])
+    .filter((id) => typeof id === 'string' && id.trim()).map((id) => id.trim());
+  return {
+    ...e,
+    aktivitaeten: [...new Set(ids)],
+    intensitaet: INTENSITAET_IDS.includes(e.intensitaet) ? e.intensitaet : null,
   };
 }
 
@@ -4592,6 +4693,42 @@ function ausloeserAnlegen(id, name) {
  */
 function ausloeserLoeschen(id) {
   zustand.eigeneAusloeser = zustand.eigeneAusloeser.filter((a) => a.id !== id);
+  merke();
+  melde();
+}
+
+/* ---------- Eigene Aktivitäten ---------- */
+
+/*
+ * Mehr passen in den Bogen nicht, ohne dass man darin sucht. Wie bei den
+ * eigenen Mitteln sagt die App das, statt still eine nicht zu merken.
+ */
+const AKTIV_HOECHSTENS = 24;
+const AKTIV_NAME_MAX = 40;
+
+/**
+ * Eine eigene Aktivität anlegen. Die Kennung kommt von außen (siehe
+ * eigeneAktivitaetId in js/aktivitaet.js), wie bei den eigenen Auslösern.
+ *
+ * Zurück kommt { id, schon } – `schon`, wenn es sie genau so gibt; dann bleibt
+ * es bei einer –, { fehler: 'leer' } ohne Namen oder { fehler: 'voll' }.
+ */
+function aktivitaetAnlegen(id, name) {
+  const sauber = String(name || '').trim().slice(0, AKTIV_NAME_MAX);
+  if (!sauber || typeof id !== 'string' || !id.startsWith('a:')) return { fehler: 'leer' };
+  if (zustand.eigeneAktivitaeten.some((a) => a.id === id)) return { id, schon: true };
+  if (zustand.eigeneAktivitaeten.length >= AKTIV_HOECHSTENS) return { fehler: 'voll' };
+  zustand.eigeneAktivitaeten = [...zustand.eigeneAktivitaeten, { id, name: sauber }];
+  merke();
+  melde();
+  return { id, schon: false };
+}
+
+/** Aus der Auswahl nehmen. Die Einträge, in denen sie steht, bleiben. */
+function aktivitaetEntfernen(id) {
+  const vorher = zustand.eigeneAktivitaeten.length;
+  zustand.eigeneAktivitaeten = zustand.eigeneAktivitaeten.filter((a) => a.id !== id);
+  if (zustand.eigeneAktivitaeten.length === vorher) return;
   merke();
   melde();
 }
@@ -5258,12 +5395,19 @@ function sicherungLesen(text) {
   });
   frisch.eintraege = sortiert(gelesen.eintraege.filter((e) => (
     e && typeof e === 'object' && typeof e.am === 'string' && typeof e.art === 'string'
-  )).map((e) => mahlzeitFrisch({ ...e, id: e.id || neueId() })));
+  )).map((e) => aktivitaetFrisch(mahlzeitFrisch({ ...e, id: e.id || neueId() }))));
   // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
   // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
   frisch.standardMittel = frisch.standardMittel
     .filter((x) => x && typeof x === 'object' && typeof x.mittel === 'string' && x.mittel.trim())
     .map((x) => ({ ...x, ...standardSauber(x), id: x.id || neueId() }));
+  // Eigene Aktivitäten: eine Kennung mit `a:` und ein Name – sonst stünde im
+  // Bogen ein Knopf ohne Beschriftung. Doppelte fallen weg.
+  frisch.eigeneAktivitaeten = frisch.eigeneAktivitaeten
+    .filter((a) => a && typeof a === 'object' && typeof a.id === 'string' && a.id.startsWith('a:')
+      && typeof a.name === 'string' && a.name.trim())
+    .map((a) => ({ id: a.id, name: a.name.trim().slice(0, AKTIV_NAME_MAX) }))
+    .filter((a, i, alle) => alle.findIndex((x) => x.id === a.id) === i);
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
@@ -5365,14 +5509,15 @@ const VORHER = `${KEY}.vorher`;
  * Die eigenen Mittel zählen: Wer sie unter „Mehr" angelegt hat, bevor die
  * Sicherung vom alten Gerät da war, hat etwas eingetragen – und verlöre es,
  * wenn das Einlesen den Stand als leer ersetzte statt zusammenzuführen.
- * Gezähltes Wasser ebenso – es steht in `tage` und zählt damit hier mit.
+ * Gezähltes Wasser ebenso – es steht in `tage` und zählt damit hier mit. Und
+ * die eigenen Aktivitäten, wie die eigenen Auslöser.
  */
 function istLeer(s = zustand) {
   return !s.eintraege.length && !Object.keys(s.tage || {}).length && !s.ideen.length
     && !s.kueche.length && !s.befunde.length && !s.termine.length && !s.gewicht.length
     && !s.eigeneAusloeser.length && !s.versuche.length && !s.provokationen.length
     && !s.stufenplaene.length && !s.versuch && !s.provokation && !s.stufenplan
-    && !(s.standardMittel || []).length;
+    && !(s.standardMittel || []).length && !(s.eigeneAktivitaeten || []).length;
 }
 
 function vorherAblegen() {
@@ -5439,6 +5584,9 @@ function zusammenfuehren(hier, dazu) {
   });
   neu.ideen = vereinigt(hier.ideen, dazu.ideen, (x) => x.id);
   neu.eigeneAusloeser = vereinigt(hier.eigeneAusloeser, dazu.eigeneAusloeser, (a) => a.id);
+  // Ohne Kürzen auf AKTIV_HOECHSTENS, aus demselben Grund wie bei den Mitteln.
+  neu.eigeneAktivitaeten = vereinigt(hier.eigeneAktivitaeten || [], dazu.eigeneAktivitaeten || [],
+    (a) => a.id);
   neu.kueche = vereinigt(hier.kueche, dazu.kueche, (k) => String(k.name || '').toLowerCase());
   neu.befunde = vereinigt(hier.befunde, dazu.befunde, (b) => b.id);
   neu.zuletztMittel = [...new Set([...hier.zuletztMittel, ...dazu.zuletztMittel])].slice(0, 5);
@@ -5535,7 +5683,7 @@ function allesLoeschen() {
   melde();
 }
 
-const store = { STANDARD_HOECHSTENS, allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, befundLoeschen, befundNotieren, einlesen, einstellen, eintraegeAm, eintraegeZurueck, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeGeschicktMerken, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, ideenUnterwegs, istLeer, kannSpeichern, kuecheLoeschen, kuecheNotieren, kuecheUmschalten, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, rueckgaengig, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, standardAendern, standardEntfernen, standardMerken, standardVon, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, umzugGeholtMerken, umzugMerken, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, vorherDa, wasserZaehlen, zustandLesen };
+const store = { AKTIV_HOECHSTENS, AKTIV_NAME_MAX, STANDARD_HOECHSTENS, aktivitaetAnlegen, aktivitaetEntfernen, allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, befundLoeschen, befundNotieren, einlesen, einstellen, eintraegeAm, eintraegeZurueck, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeGeschicktMerken, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, ideenUnterwegs, istLeer, kannSpeichern, kuecheLoeschen, kuecheNotieren, kuecheUmschalten, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, rueckgaengig, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, standardAendern, standardEntfernen, standardMerken, standardVon, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, umzugGeholtMerken, umzugMerken, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, vorherDa, wasserZaehlen, zustandLesen };
 
 /* ===== js/zufall.js ===== */
 /*
@@ -5723,8 +5871,8 @@ function zutatenVon(eintrag) {
 }
 
 /**
- * Alle Merkmale einer Mahlzeit: die Zutaten plus die beiden Umstände, die
- * sich aus Portion und Uhrzeit von selbst ergeben.
+ * Alle Merkmale einer Mahlzeit: die Zutaten plus die Umstände, die sich aus
+ * Portion, Uhrzeit und dem Schalter „Auswärts gegessen" ergeben.
  *
  * Die Rolle spielt hier bewusst *keine* Rolle: Für die Frage „war es drin?"
  * zählt jede Zutat gleich. Was die Rolle unterscheidet, steht getrennt in
@@ -5737,6 +5885,9 @@ function merkmale(eintrag) {
   if (eintrag.portion === 'gross') raus.push('gross');
   const std = Number(String(eintrag.um || '').split(':')[0]);
   if (Number.isFinite(std) && std >= SPAET_AB) raus.push('spaet');
+  // Nur ein ausdrückliches true. Ältere Mahlzeiten haben das Feld nicht und
+  // gelten damit als zu Hause gegessen – so wie sie eingetragen wurden.
+  if (eintrag.auswaerts === true) raus.push('auswaerts');
   return [...new Set(raus)];
 }
 
@@ -6148,6 +6299,27 @@ function faktorBilanz(eintraege, tage, frageId, tagesWertFn) {
   };
 }
 
+/*
+ * Die Tagesfragen, für die es eine Umstände-Bilanz gibt.
+ *
+ * Bis November 2026 stand diese Liste zweimal von Hand da – in der Tageskarte
+ * und im Bild –, beide Male ohne die Bewegung. Die wurde jeden Tag gefragt
+ * und nirgends gerechnet. Jetzt steht sie hier, einmal.
+ *
+ * Die Bewegung ist eine Menge und keine Note (siehe TAGESFRAGEN): „hoch"
+ * heißt bei ihr intensiv, nicht schlecht. Wer die Bilanz liest, muss das
+ * wissen – deshalb stehen die Sätze dazu bei den Aktivitäten
+ * (js/aktivitaet.js), und die Muster über Anspannung und Schlaf in js/bild.js
+ * fragen weiter nur nach ihren drei.
+ */
+const FAKTOR_FRAGEN = ['stress', 'schlaf', 'stimmung', 'bewegung'];
+
+/** faktorBilanz() für jede dieser Fragen, als { stress, schlaf, stimmung, bewegung }. */
+function faktorenBilanz(eintraege, tage, tagesWertFn = tagesWert) {
+  return Object.fromEntries(FAKTOR_FRAGEN
+    .map((id) => [id, faktorBilanz(eintraege, tage, id, tagesWertFn)]));
+}
+
 /** Wie oft eine Beschwerdeart unter allen Beschwerden vorkommt, als Anteil. */
 function artAnteil(eintraege, arten) {
   const alle = eintraege.filter((e) => e.art === 'beschwerde');
@@ -6203,6 +6375,9 @@ function haeufigeMahlzeiten(eintraege, anzahl = 6) {
     v.text = roh;
     v.zutaten = zutatenVon(e);
     v.portion = e.portion || 'normal';
+    // Auch das kommt vom jüngsten Vorkommen: Die Pizza vom Italiener war
+    // vermutlich wieder beim Italiener, der Haferbrei wieder zu Hause.
+    v.auswaerts = e.auswaerts === true;
     v.zuletzt = e.am;
     v.anzahl += 1;
     zaehler.set(schluessel, v);
@@ -6234,9 +6409,12 @@ function tagesWert(eintraege, iso, tage = {}) {
    * „Kopf 8" einträgt und sonst nichts, den Bauchwert genau an den schlechten
    * Tagen auf null – gegen die eigene Regel, dass eine Lücke kein guter Tag ist.
    * Dasselbe gilt für einen Tag, an dem nur Wasser gezählt ist (tagZaehlt in
-   * js/wasser.js): Ein getipptes Glas sagt über den Bauch nichts.
+   * js/wasser.js): Ein getipptes Glas sagt über den Bauch nichts. Und für
+   * einen, an dem nur eine Aktivität steht (eintragZaehlt, ebendort): „Gym"
+   * sagt, was jemand gemacht hat, nicht wie es dem Bauch ging.
    */
-  const notiert = amTag.some((e) => e.art !== 'kopf') || tagZaehlt((tage || {})[iso]);
+  const notiert = amTag.some((e) => e.art !== 'kopf' && eintragZaehlt(e))
+    || tagZaehlt((tage || {})[iso]);
   const max = beschwerden.reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
   const summe = beschwerden.reduce((s, e) => s + (Number(e.staerke) || 0), 0);
   return {
@@ -6408,6 +6586,449 @@ function gesamtZahlen(eintraege, tage, von, bis) {
   };
 }
 
+/* ===== js/aktivitaet.js ===== */
+/*
+ * Aktivitäten: was jemand gemacht hat oder wo er war.
+ *
+ * Gym, Laufen, Arbeit, unterwegs, eine Feier, die Sauna – alles Dinge, die
+ * Bauch oder Kopf aus dem Gleichgewicht bringen können und in keiner
+ * Mahlzeit stehen. Bis hierher gab es dafür nur die Tagesfrage „Bewegung",
+ * eine Zahl für den ganzen Tag, und die stand in keiner Rechnung. Ein
+ * Zeitpunkt sagt mehr: Kam es in den Stunden nach dem Training, oder war es
+ * ohnehin ein schlechter Tag?
+ *
+ * Eine Aktivität ist deshalb ein Eintrag mit Uhrzeit, wie eine Mahlzeit –
+ * aber keine Mahlzeit, und das ist der Kern dieser Datei. Sie wird nie
+ * gegessen, also nie ein Auslöser, nie ein Gegenfall bei den Auslösern, nie
+ * ein Bruch der Nüchternzeit. Und sie macht einen Tag nicht zu einem
+ * notierten: Wer „Laufen" antippt und sonst nichts, hat über seinen Bauch
+ * nichts gesagt, und ein Tag ohne Beschwerde, an dem nur das Laufen steht,
+ * wäre genau die Lücke, die diese App an keiner Stelle als guten Tag zählt
+ * (siehe eintragZaehlt in js/wasser.js).
+ *
+ * Gerechnet wird wie bei den Auslösern und mit denselben Vorbehalten: gegen
+ * den eigenen Alltag statt gegen null, erst ab einer Mindestzahl von Fällen
+ * auf beiden Seiten, mit dem Spielraum des Zufalls, und als Häufigkeit, nie
+ * als Ursache. Einen Rat gibt es hier nicht – nur Zahlen mit Fallzahl.
+ *
+ * „Auswärts gegessen" steht nicht in dieser Liste, obwohl es danach klingt:
+ * Es ist ein Umstand einer Mahlzeit (siehe UMSTAENDE in js/daten.js) und geht
+ * dort in die Auslöserbilanz ein, mit dem Fenster nach dem Essen und gegen
+ * die Mahlzeiten zu Hause. Als Aktivität stünde es neben der Mahlzeit, die
+ * es meint, und hätte nichts, womit es sich vergleichen ließe.
+ */
+
+
+
+
+
+/*
+ * Die Auswahl im Bogen. Kurz, aus demselben Grund wie die Zutaten: Eine Liste,
+ * in der man sucht, wird nicht ausgefüllt. Was fehlt, legt man selbst an.
+ *
+ * `id` ist der Schlüssel im Speicher und darf sich nie ändern – daran hängen
+ * alle gemachten Eintragungen. Namen dürfen sich ändern. Sie tragen kein
+ * Komma: Mehrere Aktivitäten eines Eintrags stehen hintereinander in einer
+ * Zeile, und „Gym, Krafttraining, Sauna" wären drei.
+ */
+const AKTIVITAETEN = [
+  { id: 'gym', name: 'Gym/Krafttraining', icon: '🏋️' },
+  { id: 'laufen', name: 'Laufen', icon: '👟' },
+  { id: 'rad', name: 'Radfahren', icon: '🚴' },
+  { id: 'schwimmen', name: 'Schwimmen', icon: '🏊' },
+  { id: 'spazieren', name: 'Spazieren', icon: '🚶' },
+  { id: 'yoga', name: 'Yoga/Dehnen', icon: '🧘' },
+  { id: 'arbeit', name: 'Arbeit', icon: '💼' },
+  { id: 'unterwegs', name: 'Unterwegs/Reise', icon: '🧳' },
+  { id: 'feier', name: 'Feier/Ausgehen', icon: '🎉' },
+  { id: 'sauna', name: 'Sauna', icon: '🧖' },
+];
+
+const AKTIV_MAP = Object.fromEntries(AKTIVITAETEN.map((a) => [a.id, a]));
+
+/*
+ * Wie anstrengend – freiwillig, drei Stufen. Mehr nicht: Wer nach dem
+ * Training eine Skala von eins bis zehn ausfüllen soll, trägt das Training
+ * nicht ein. Ohne Angabe heißt ohne Angabe, nicht „leicht".
+ */
+const INTENSITAETEN = [
+  { id: 'leicht', name: 'leicht' },
+  { id: 'mittel', name: 'mittel' },
+  { id: 'hart', name: 'anstrengend' },
+];
+
+function intensitaetName(id) {
+  const x = INTENSITAETEN.find((i) => i.id === id);
+  return x ? x.name : '';
+}
+
+/**
+ * Aus einem freien Namen eine eigene Kennung machen.
+ *
+ * Mit der Vorsilbe `a:`, wie die eigenen Auslöser `x:` tragen: Keine spätere
+ * Erweiterung der Liste oben kann so eine schon vergebene eigene Kennung
+ * überschreiben. Derselbe Name ergibt dieselbe Kennung – zweimal „Klettern"
+ * angelegt ist einmal Klettern.
+ */
+function eigeneAktivitaetId(name) {
+  const rumpf = String(name).toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return `a:${rumpf || 'eigen'}`;
+}
+
+/**
+ * Eine Aktivität zu ihrer Kennung – auch eine eigene, und auch eine, die es in
+ * der Auswahl nicht mehr gibt.
+ *
+ * Wer eine eigene Aktivität unter „Mehr" entfernt, nimmt sie aus der Auswahl,
+ * nicht aus dem Tagebuch. Die Einträge damit bleiben und brauchen weiter einen
+ * Namen; der kommt dann aus der Kennung selbst („a:kletterhalle" →
+ * „Kletterhalle"). Umlaute sind dabei verloren – besser als eine Kennung im
+ * Klartext.
+ */
+function aktivitaetVon(id, eigene = []) {
+  if (AKTIV_MAP[id]) return AKTIV_MAP[id];
+  const selbst = (eigene || []).find((a) => a && a.id === id);
+  if (selbst) return { id, name: selbst.name, icon: '•', eigen: true };
+  const rumpf = String(id || '').replace(/^a:/, '').replace(/-/g, ' ').trim();
+  return {
+    id,
+    name: rumpf ? rumpf.charAt(0).toUpperCase() + rumpf.slice(1) : 'Aktivität',
+    icon: '•',
+    eigen: true,
+    weg: true,
+  };
+}
+
+function aktivitaetName(id, eigene = []) {
+  return aktivitaetVon(id, eigene).name;
+}
+
+/** Gibt es diese Aktivität in der Auswahl – im Katalog oder als eigene? */
+function aktivitaetBekannt(id, eigene = []) {
+  return !!AKTIV_MAP[id] || (eigene || []).some((a) => a && a.id === id);
+}
+
+/**
+ * Die Kennungen eines Eintrags: jede höchstens einmal, nur Zeichenketten.
+ *
+ * Der zweite Riegel nach dem Einlesen (siehe aktivitaetFrisch in
+ * js/store.js) – für alles, was daran vorbeikommt.
+ */
+function aktivitaetenVon(e) {
+  if (!e || e.art !== 'aktivitaet' || !Array.isArray(e.aktivitaeten)) return [];
+  return [...new Set(e.aktivitaeten.filter((id) => typeof id === 'string' && id.trim()))];
+}
+
+/** „Gym/Krafttraining · Sauna" – die Namen eines Eintrags. */
+function aktivitaetText(e, eigene = []) {
+  return aktivitaetenVon(e).map((id) => aktivitaetName(id, eigene)).join(' · ');
+}
+
+/** Wie oft jede Aktivität eingetragen ist – für die Reihenfolge im Bogen. */
+function aktivitaetHaeufigkeit(eintraege) {
+  const zaehler = new Map();
+  (eintraege || []).forEach((e) => aktivitaetenVon(e)
+    .forEach((id) => zaehler.set(id, (zaehler.get(id) || 0) + 1)));
+  return zaehler;
+}
+
+/**
+ * Die zuletzt benutzten Aktivitäten, die jüngste zuerst – für die Reihe auf
+ * dem Tag-Reiter.
+ *
+ * Aus den Einträgen gelesen und nirgends gespeichert: So stimmt die Reihe
+ * auch nach dem Löschen eines Eintrags und nach dem Einlesen einer Sicherung,
+ * ohne dass eine zweite Liste nachgeführt werden müsste. Eine eigene
+ * Aktivität, die unter „Mehr" entfernt wurde, fehlt – wer sie entfernt, will
+ * sie nicht mehr angeboten bekommen.
+ */
+function zuletztAktivitaeten(eintraege, eigene = [], anzahl = 5) {
+  const raus = [];
+  const liste = eintraege || [];
+  for (let i = liste.length - 1; i >= 0 && raus.length < anzahl; i--) {
+    aktivitaetenVon(liste[i]).forEach((id) => {
+      if (raus.length < anzahl && !raus.includes(id) && aktivitaetBekannt(id, eigene)) raus.push(id);
+    });
+  }
+  return raus;
+}
+
+/* ---------- Was danach kam ---------- */
+
+/*
+ * Kopfschmerz zählt in den 24 Stunden nach einer Aktivität.
+ *
+ * Kürzer wäre sauberer und ginge am Kopf vorbei: Die Anstrengung macht ihren
+ * Kopfschmerz noch am selben Abend, die Feier ihren erst am nächsten Morgen.
+ * Ein Fenster bis zum selben Zeitpunkt am nächsten Tag fängt beides, und weil
+ * die Vergleichstage dasselbe Fenster bekommen, wird es dadurch nicht
+ * ungerecht – nur verdünnter.
+ *
+ * Und zwölf Fälle je Seite, wie bei den Umständen des Kopfes (js/kopf.js):
+ * Verglichen werden Anteile, und Anteile aus wenigen Fenstern springen in
+ * großen Schritten.
+ */
+const AKTIV_KOPF_STUNDEN = 24;
+const AKTIV_KOPF_MINDEST = 12;
+
+const STUNDE_MS = 3600000;
+
+/**
+ * Die mittlere Uhrzeit einer Aktivität, als „18:30" – der Median, damit ein
+ * einzelnes Training am frühen Morgen die Vergleichszeit nicht verschiebt.
+ */
+function aktivUhrzeit(liste) {
+  const minuten = (liste || []).map((e) => minutenAmTag(e.um)).sort((a, b) => a - b);
+  if (!minuten.length) return '12:00';
+  const mitte = minuten[Math.floor((minuten.length - 1) / 2)];
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(Math.floor(mitte / 60))}:${p(mitte % 60)}`;
+}
+
+function aktivVergleich(mit, ohne, mindest) {
+  const schnitt = (l) => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0);
+  const mitBeschwerden = mit.filter((w) => w > 0).length;
+  const ohneBeschwerden = ohne.filter((w) => w > 0).length;
+  return {
+    faelle: mit.length,
+    gegenFaelle: ohne.length,
+    mitTreffer: mitBeschwerden,
+    ohneTreffer: ohneBeschwerden,
+    quoteMit: mit.length ? mitBeschwerden / mit.length : 0,
+    quoteOhne: ohne.length ? ohneBeschwerden / ohne.length : 0,
+    schnittMit: schnitt(mit),
+    schnittOhne: schnitt(ohne),
+    differenz: schnitt(mit) - schnitt(ohne),
+    genug: mit.length >= mindest && ohne.length >= mindest,
+    mindest,
+    fehlt: Math.max(0, mindest - mit.length),
+    fehltGegen: Math.max(0, mindest - ohne.length),
+    werte: { mit, ohne },
+  };
+}
+
+/**
+ * Je Aktivität: was danach kam, gegen dieselben Stunden an Tagen ohne sie.
+ *
+ * Für den Bauch die stärkste Beschwerde in den `fenster` Stunden danach – dem
+ * Fenster der Auslöser, damit „danach" hier dasselbe heißt wie bei einer
+ * Mahlzeit. Für den Kopf, ob in den 24 Stunden danach ein Kopfschmerz
+ * eingetragen wurde.
+ *
+ * Verglichen wird nicht mit anderen Aktivitäten – wer nur sein Training
+ * einträgt, hätte sonst keinen Vergleich –, sondern mit denselben Stunden an
+ * Tagen ohne diese Aktivität: Wer abends zum Training geht, wird mit seinen
+ * Abenden ohne Training verglichen, nicht mit seinen Vormittagen. Abends geht
+ * es vielen ohnehin schlechter, und das soll nicht dem Training angelastet
+ * werden. Die Vergleichszeit ist die mittlere Uhrzeit der Aktivität.
+ *
+ * Was nicht zählt, auf keiner der beiden Seiten:
+ *
+ *   * Tage, an denen zum Bauch (beim Kopf: überhaupt) nichts notiert ist –
+ *     eine Lücke ist kein Abend ohne Beschwerden. Beim Kopf auch der Tag
+ *     danach, denn das Fenster reicht hinein.
+ *   * Fenster, die noch laufen. Das Training von vor einer Stunde ist noch
+ *     kein Training ohne Folgen.
+ *   * Beim Bauch eine Aktivität, bei der offen ist, ob die Beschwerde des
+ *     Tages davor oder danach kam (beide mit dem Knopf „abends" eingetragen,
+ *     siehe reihenfolgeUnklar in js/auswertung.js).
+ *   * Beim Kopf ein Fenster, vor dem am selben Tag schon ein Kopfschmerz
+ *     stand: Was schon da war, kam nicht danach.
+ *   * Vergleichsfenster, in denen oder kurz vor denen die Aktivität doch
+ *     vorkam – etwa das Training am frühen Morgen des nächsten Tages.
+ *   * Vergleichstage vor dem ersten Eintrag dieser Aktivität und nach dem
+ *     letzten Tag, an dem überhaupt eine eingetragen wurde. Davor ist
+ *     unbekannt, ob jemand ins Training ging – er hat es nur noch nicht
+ *     aufgeschrieben.
+ *
+ * @param {object[]} eintraege
+ * @param {object} tage   der Tagesspeicher
+ * @param {{fenster?: number, mindestFaelle?: number, jetzt?: number}} opt
+ */
+function aktivitaetBilanz(eintraege, tage, opt = {}) {
+  const alle = eintraege || [];
+  const fenster = Number(opt.fenster) > 0 ? Number(opt.fenster) : 4;
+  const mindest = Number(opt.mindestFaelle) > 0 ? Number(opt.mindestFaelle) : 5;
+  const kopfMindest = Math.max(mindest, AKTIV_KOPF_MINDEST);
+  const jetzt = Number.isFinite(opt.jetzt) ? opt.jetzt : Date.now();
+  const aktiv = alle.filter((e) => aktivitaetenVon(e).length && typeof e.am === 'string');
+  if (!aktiv.length) return [];
+
+  // Nach Tag – jede Frage unten gilt einem Tag und dem danach.
+  const nachTag = new Map();
+  alle.forEach((e) => {
+    if (!nachTag.has(e.am)) nachTag.set(e.am, []);
+    nachTag.get(e.am).push(e);
+  });
+  const am = (iso) => nachTag.get(iso) || [];
+  const gemerkt = (fn) => {
+    const m = new Map();
+    return (iso) => {
+      if (!m.has(iso)) m.set(iso, fn(iso));
+      return m.get(iso);
+    };
+  };
+  const bauchNotiert = gemerkt((iso) => tagesWert(am(iso), iso, tage).notiert);
+  const kopfNotiert = gemerkt((iso) => kopfTagesWert(am(iso), iso, tage).notiert);
+  const zweiTage = (iso) => [...am(iso), ...am(plusTage(iso, 1))];
+  const abstand = (t0, e) => (zeitpunkt(e.am, e.um) - t0) / STUNDE_MS;
+  const letzterTag = aktiv.reduce((m, e) => (e.am > m ? e.am : m), aktiv[0].am);
+
+  const vorkommen = new Map();
+  aktiv.forEach((e) => aktivitaetenVon(e).forEach((id) => {
+    if (!vorkommen.has(id)) vorkommen.set(id, []);
+    vorkommen.get(id).push(e);
+  }));
+
+  /** Die stärkste Beschwerde in (t0, t0 + fenster]. */
+  const bauchWert = (t0, iso) => zweiTage(iso)
+    .filter((b) => b.art === 'beschwerde')
+    .filter((b) => abstand(t0, b) > 0 && abstand(t0, b) <= fenster)
+    .reduce((m, b) => Math.max(m, Number(b.staerke) || 0), 0);
+
+  /** 1 oder 0 – oder null, wenn sich das Fenster nicht beurteilen lässt. */
+  const kopfWert = (t0, iso, aktivitaet) => {
+    if (t0 + AKTIV_KOPF_STUNDEN * STUNDE_MS > jetzt) return null;
+    if (!kopfNotiert(iso) || !kopfNotiert(plusTage(iso, 1))) return null;
+    const koepfe = zweiTage(iso).filter((k) => k.art === 'kopf' && Number(k.staerke) >= 1);
+    const schonDa = koepfe.some((k) => k.am === iso
+      && (abstand(t0, k) <= 0 || (aktivitaet && reihenfolgeUnklar(aktivitaet, k))));
+    if (schonDa) return null;
+    return koepfe.some((k) => abstand(t0, k) > 0 && abstand(t0, k) <= AKTIV_KOPF_STUNDEN) ? 1 : 0;
+  };
+
+  const zeilen = [];
+  vorkommen.forEach((liste, id) => {
+    const zeiten = liste.map((e) => zeitpunkt(e.am, e.um));
+    const tageMit = new Set(liste.map((e) => e.am));
+    const erster = liste.reduce((m, e) => (e.am < m ? e.am : m), liste[0].am);
+    const uhr = aktivUhrzeit(liste);
+    // Kein Vorkommen dieser Aktivität im Fenster und in den Stunden davor.
+    const frei = (t0, stunden) => !zeiten.some((t) => t > t0 - stunden * STUNDE_MS
+      && t <= t0 + stunden * STUNDE_MS);
+
+    const bauchMit = [];
+    const kopfMit = [];
+    liste.forEach((a) => {
+      const t0 = zeitpunkt(a.am, a.um);
+      const bauchOffen = t0 + fenster * STUNDE_MS > jetzt || !bauchNotiert(a.am)
+        || am(a.am).some((b) => b.art === 'beschwerde' && reihenfolgeUnklar(a, b));
+      if (!bauchOffen) bauchMit.push(bauchWert(t0, a.am));
+      const k = kopfWert(t0, a.am, a);
+      if (k !== null) kopfMit.push(k);
+    });
+
+    const bauchOhne = [];
+    const kopfOhne = [];
+    const n = tageDazwischen(erster, letzterTag);
+    for (let i = 0; i <= n; i++) {
+      const iso = plusTage(erster, i);
+      if (tageMit.has(iso)) continue;
+      const t0 = zeitpunkt(iso, uhr);
+      if (t0 + fenster * STUNDE_MS <= jetzt && bauchNotiert(iso) && frei(t0, fenster)) {
+        bauchOhne.push(bauchWert(t0, iso));
+      }
+      if (frei(t0, AKTIV_KOPF_STUNDEN)) {
+        const k = kopfWert(t0, iso, null);
+        if (k !== null) kopfOhne.push(k);
+      }
+    }
+
+    zeilen.push({
+      id,
+      anzahl: liste.length,
+      zuletzt: liste[liste.length - 1].am,
+      uhr,
+      bauch: aktivVergleich(bauchMit, bauchOhne, mindest),
+      kopf: aktivVergleich(kopfMit, kopfOhne, kopfMindest),
+    });
+  });
+
+  /*
+   * Erst jetzt der Zufallsspielraum, wie in der Auslöserbilanz: Erst hier
+   * steht fest, wie viele Vergleiche überhaupt angestellt wurden – und wer
+   * zehn Aktivitäten prüft, findet sonst auch in einem Tagebuch ohne jeden
+   * Zusammenhang eine auffällige.
+   */
+  ['bauch', 'kopf'].forEach((seite) => {
+    const vergleiche = zeilen.filter((z) => z[seite].genug).length;
+    zeilen.forEach((z) => {
+      const v = z[seite];
+      const r = zufallsSpielraum(v.werte.mit, v.werte.ohne, Math.max(1, vergleiche));
+      v.spielraum = r.spielraum;
+      v.vergleiche = vergleiche;
+      delete v.werte;
+    });
+  });
+  zeilen.forEach((z) => {
+    z.bauch.art = einstufung(z.bauch);
+    z.kopf.art = aktivKopfEinstufung(z.kopf);
+  });
+
+  return zeilen.sort((a, b) => (b.bauch.differenz - a.bauch.differenz) || (b.anzahl - a.anzahl));
+}
+
+/**
+ * Wie der Kopfteil zu lesen ist – mit den Wörtern der Auslöser.
+ *
+ * Verglichen werden Anteile: Ab zwanzig Prozentpunkten und über dem
+ * Zufallsspielraum gilt ein Unterschied als deutlich, wie bei den Umständen
+ * des Kopfes in js/kopf.js. Darunter heißt es „kein Unterschied", in beide
+ * Richtungen.
+ */
+function aktivKopfEinstufung(v) {
+  if (!v.genug) return 'zuwenig';
+  const zufall = Number.isFinite(v.spielraum) ? v.spielraum : 0;
+  if (Math.abs(v.differenz) < Math.max(0.2, zufall)) return 'neutral';
+  return v.differenz > 0 ? 'auffaellig' : 'unauffaellig';
+}
+
+/* ---------- Sätze ---------- */
+
+const prozentVon = (x) => `${Math.round(x * 100)} %`;
+
+/**
+ * „In den 4 Stunden danach 7 von 12 Mal Beschwerden (58 %, im Mittel 3,1) –
+ * an 30 Tagen ohne, ab 18:30, 13 % (0,4)."
+ */
+function aktivBauchSatz(z, fenster) {
+  const b = z.bauch;
+  return `In den ${fenster} Stunden danach ${b.mitTreffer} von ${b.faelle} Mal Beschwerden `
+    + `(${prozentVon(b.quoteMit)}, im Mittel ${fmtZahl(b.schnittMit)}) – an ${b.gegenFaelle} Tagen `
+    + `ohne, ab ${z.uhr}, ${prozentVon(b.quoteOhne)} (${fmtZahl(b.schnittOhne)}).`;
+}
+
+/** „In den 24 Stunden danach 5 von 12 Mal Kopfschmerz (42 %) – an Tagen ohne 6 von 40 (15 %)." */
+function aktivKopfSatz(z) {
+  const k = z.kopf;
+  return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach ${k.mitTreffer} von ${k.faelle} Mal `
+    + `Kopfschmerz (${prozentVon(k.quoteMit)}) – an Tagen ohne ${k.ohneTreffer} von `
+    + `${k.gegenFaelle} (${prozentVon(k.quoteOhne)}).`;
+}
+
+/**
+ * Die Tagesfrage „Bewegung" in einem Satz – oder '' ohne genug Tage.
+ *
+ * Gezählt am selben Tag, und deshalb mit dem Vorbehalt in beide Richtungen:
+ * An einem schlechten Tag bewegt man sich weniger, und an einem Tag mit viel
+ * Bewegung isst man anders. Was hier steht, kam zusammen vor.
+ */
+function bewegungSatz(f) {
+  if (!f || !f.genug) return '';
+  const tage = `${f.hoch.tage} gegen ${f.niedrig.tage} Tage`;
+  // Eine ganze Stufe, wie überall bei den Tagesfragen: Darunter ist es
+  // Schwankung, und das wird auch so gesagt.
+  if (Math.abs(f.differenz) < 1) {
+    return `Bewegung am Tag: kein deutlicher Unterschied – mit intensiver im Mittel `
+      + `${fmtZahl(f.hoch.schnitt)}, mit wenig oder keiner ${fmtZahl(f.niedrig.schnitt)} (${tage}).`;
+  }
+  return `An Tagen mit intensiver Bewegung lag die Beschwerdestärke im Mittel bei `
+    + `${fmtZahl(f.hoch.schnitt)}, an Tagen mit wenig oder keiner bei `
+    + `${fmtZahl(f.niedrig.schnitt)} (${tage}).`;
+}
+
 /* ===== js/stuhl.js ===== */
 /*
  * Der Stuhlgang: die Angabe, ohne die der halbe Bauch unsichtbar bleibt.
@@ -6517,9 +7138,9 @@ function schmerzVergleich(eintraege, tage, schmerzArten = ['krampf']) {
   const alle = eintraege || [];
   // Ohne die Kopf-Einträge: Ein Tag mit nur einem Kopfschmerz ist für den
   // Bauch eine Lücke, kein Tag ohne Bauchschmerz (siehe tagesWert). Ohne die
-  // Tage mit nur gezähltem Wasser aus demselben Grund.
+  // Tage mit nur gezähltem Wasser oder nur einer Aktivität aus demselben Grund.
   const notierte = [...new Set([
-    ...alle.filter((e) => e.art !== 'kopf').map((e) => e.am), ...tageMitAngabe(tage),
+    ...alle.filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).map((e) => e.am), ...tageMitAngabe(tage),
   ])].sort();
   const mitSchmerz = new Set(alle
     .filter((e) => e.art === 'beschwerde' && (e.arten || []).some((a) => schmerzArten.includes(a)))
@@ -6665,7 +7286,7 @@ function wasserSatz(v) {
 function stuhlZahlen(eintraege, tage) {
   const alle = stuhlgaenge(eintraege);
   const notierte = [...new Set([
-    ...(eintraege || []).filter((e) => e.art !== 'kopf').map((e) => e.am),
+    ...(eintraege || []).filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).map((e) => e.am),
     ...tageMitAngabe(tage),
   ])];
   const b = formBilanz(eintraege);
@@ -6742,9 +7363,9 @@ function notierteTage(eintraege, tage, von, bis) {
   // Ein Tag mit nur einem Kopfschmerz ist für den Bauch kein notierter Tag
   // (siehe tagesWert in auswertung.js) – sonst stünde er hier als Tag ohne
   // Bauchschmerz im Nenner und verwässerte Rom und GerdQ. Ein Tag mit nur
-  // gezähltem Wasser ebenso wenig.
+  // gezähltem Wasser ebenso wenig, und einer mit nur einer Aktivität auch nicht.
   (eintraege || []).forEach((e) => {
-    if (e.art !== 'kopf' && inFenster(e.am, von, bis)) isos.add(e.am);
+    if (e.art !== 'kopf' && eintragZaehlt(e) && inFenster(e.am, von, bis)) isos.add(e.am);
   });
   Object.keys(tage || {}).forEach((iso) => {
     if (inFenster(iso, von, bis) && tagZaehlt(tage[iso])) isos.add(iso);
@@ -7281,8 +7902,9 @@ function vorschlaege(nachKlassen, nachAusloesern, anzahl = 4) {
   const raus = [];
   (nachKlassen || []).filter((b) => b.genug && b.differenz >= 0.8)
     .slice(0, 2).forEach((b) => raus.push({ art: 'klasse', ziel: b.id, differenz: b.differenz, faelle: b.faelle }));
+  // Keine Umstände: Weggelassen wird eine Zutat, nicht „spät" oder „auswärts".
   (nachAusloesern || []).filter((b) => b.genug && b.differenz >= 1
-    && !['gross', 'spaet'].includes(b.id))
+    && !UMSTAND_IDS.includes(b.id))
     .slice(0, 3).forEach((b) => raus.push({ art: 'ausloeser', ziel: b.id, differenz: b.differenz, faelle: b.faelle }));
   return raus.sort((a, b) => b.differenz - a.differenz).slice(0, anzahl);
 }
@@ -8338,6 +8960,7 @@ const SCHICHT_WORT = {
  */
 
 
+
 /**
  * Die drei Fenster.
  *
@@ -8446,8 +9069,9 @@ function fensterWerte(eintraege) {
     .sort((a, b) => a.t - b.t);
   const zu = zuordnen(eintraege);
   // „Das Tagebuch lief noch" – aber nur für den Bauch: Ein abendlicher
-  // Kopfeintrag macht ein Spätfenster nicht beobachtbar.
-  const letzterEintrag = eintraege.filter((e) => e.art !== 'kopf').reduce(
+  // Kopfeintrag macht ein Spätfenster nicht beobachtbar, eine abends
+  // eingetragene Aktivität ebenso wenig.
+  const letzterEintrag = eintraege.filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).reduce(
     (m, e) => Math.max(m, zeitpunkt(e.am, e.um)), 0,
   );
   const beschwerden = eintraege.filter((e) => e.art === 'beschwerde');
@@ -9402,6 +10026,7 @@ const GEWICHT_WORT = {
 
 
 
+
 /** So viele Durchgänge mit der Sache, bevor überhaupt ein Urteil fällt. */
 const MINDEST_LAEUFE = 3;
 
@@ -9580,8 +10205,9 @@ function alltagsWerte(eintraege, p, laufTage, heute) {
     const amTag = (eintraege || []).filter((e) => e.am === iso);
     // Ein Tag ohne jede Eintragung ist kein ruhiger Tag, sondern ein
     // unbekannter. Er darf den Vergleichswert nicht nach unten ziehen. Ein
-    // Tag mit nur einem Kopfschmerz ebenso wenig – zum Bauch steht da nichts.
-    if (!amTag.some((e) => e.art !== 'kopf')) continue;
+    // Tag mit nur einem Kopfschmerz ebenso wenig – zum Bauch steht da nichts –,
+    // und einer mit nur einer Aktivität auch nicht.
+    if (!amTag.some((e) => e.art !== 'kopf' && eintragZaehlt(e))) continue;
     const t0 = zeitpunkt(iso, uhr);
     werte.push(amTag
       .filter((e) => e.art === 'beschwerde')
@@ -11934,8 +12560,9 @@ function bildLesen(d) {
     name: d.name || ((id) => id),
     zeiten: nachTageszeit(eintraege),
     essen: essensbezug(eintraege),
-    faktoren: Object.fromEntries(['stress', 'schlaf', 'stimmung']
-      .map((id) => [id, faktorBilanz(eintraege, tage, id, tagesWert)])),
+    // Mit der Bewegung (siehe FAKTOR_FRAGEN). musterStress liest davon nur
+    // Anspannung, Schlaf und Stimmung – intensive Bewegung ist keine Anspannung.
+    faktoren: faktorenBilanz(eintraege, tage, tagesWert),
     phasen: phasenBilanz(eintraege, tage, tagesWert),
     zyklusBelastbar: belastbar(tage),
     nsarTage: nsarTageListe.length,
@@ -12019,7 +12646,7 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
 /**
  * @param {object} d
  *   eintraege, tage, heute (ISO), bilanz (aus ausloeserBilanz),
- *   faktoren ({stress, schlaf, stimmung} aus faktorBilanz),
+ *   faktoren ({stress, schlaf, stimmung, bewegung} aus faktorenBilanz),
  *   phasen (aus phasenBilanz), eigene (eigene Auslöser),
  *   letzteMahlzeitStunden (Zahl oder null), mittel (zuletzt eingenommene)
  */
@@ -12036,16 +12663,22 @@ function raete(d) {
    * eingetragen ist, wie es ihm heute geht.
    */
   const heuteNotiert = heute.notiert;
+  // Steht heute schon etwas, das über den Bauch nichts sagt – ein
+  // Kopfschmerz, eine Aktivität –, wäre „noch nichts im Tagebuch" falsch.
+  // Gesagt wird dann, wozu nichts dasteht.
+  const heuteAnderes = !heuteNotiert && (d.eintraege || []).some((e) => e.am === d.heute);
   const heuteTag = d.tage[d.heute] || {};
   const akut = heuteWert >= 6;
   const leicht = heuteWert > 0 && heuteWert < 6;
 
   /* ---------- Essen ---------- */
 
-  // Was ihr eigener Verlauf hergibt, steht vor allem Allgemeinen.
+  // Was ihr eigener Verlauf hergibt, steht vor allem Allgemeinen. Ohne die
+  // Umstände: „Heute eher ohne Auswärts gegessen" ist kein Satz, und für
+  // Portion und Uhrzeit gibt es unten eigene Vorschläge.
   const auffaellig = (d.bilanz || [])
     .filter((b) => b.genug && ['auffaellig', 'moeglich'].includes(einstufung(b)))
-    .filter((b) => !['gross', 'spaet'].includes(b.id))
+    .filter((b) => !UMSTAND_IDS.includes(b.id))
     .slice(0, 3);
 
   if (auffaellig.length) {
@@ -12133,7 +12766,7 @@ function raete(d) {
   /* ---------- Sport ---------- */
 
   raus.push(sportRat(d, {
-    heuteWert, heuteNotiert, akut, leicht, heuteTag, heuteAngespannt,
+    heuteWert, heuteNotiert, heuteAnderes, akut, leicht, heuteTag, heuteAngespannt,
   }));
 
   /* ---------- Medikamente: kein Rat, sondern der Stand ---------- */
@@ -12220,12 +12853,13 @@ function sportRat(d, k) {
    * nichts da, sagt er nichts über den Tag, sondern stellt eine Bedingung.
    */
   if (!k.heuteNotiert) {
+    const wozu = k.heuteAnderes ? ' zum Bauch' : '';
     return rat('sport', 'sport', 'Wenn es dir heute gut geht, geht auch intensiv',
-      'Für heute steht noch nichts im Tagebuch, deshalb keine Aussage über den '
+      `Für heute steht${wozu} noch nichts im Tagebuch, deshalb keine Aussage über den `
       + 'Tag – nur die Regel: An beschwerdefreien Tagen spricht nichts gegen '
       + 'intensives Training, und danach mindestens eine Stunde, bevor du dich '
       + 'hinlegst.',
-      'Für heute ist noch nichts eingetragen – das heißt nicht, dass nichts war.',
+      `Für heute ist${wozu} noch nichts eingetragen – das heißt nicht, dass nichts war.`,
       'allgemein');
   }
 
@@ -12578,6 +13212,7 @@ export async function schicken(text) {
 
 
 
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
 
 /**
@@ -12705,6 +13340,25 @@ function arztBericht(zustand, von, bis) {
   sag(`  Mahlzeiten eingetragen     ${z.mahlzeiten}`);
   sag(`  Medikamenteneinnahmen      ${z.medikamente}`);
   if (kz.anzahl) sag(`  Kopfschmerztage            ${kz.tage} (getrennt gezählt, siehe unten)`);
+  // Die Aktivitäten als Zahl, die drei häufigsten dabei. Sie zählen in keine
+  // Zeile darüber: Ein Tag mit nur „Arbeit" ist kein Tag mit Eintragung.
+  const aktivZaehler = new Map();
+  imZeitraum.forEach((e) => aktivitaetenVon(e)
+    .forEach((id) => aktivZaehler.set(id, (aktivZaehler.get(id) || 0) + 1)));
+  const aktivAnzahl = imZeitraum.filter((e) => aktivitaetenVon(e).length).length;
+  if (aktivAnzahl) {
+    // Umbrochen wird zwischen den Aktivitäten, nie in einer: „Feier/Ausgehen"
+    // und seine Zahl gehören auf dieselbe Zeile.
+    const meist = [...aktivZaehler.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([id, n]) => `${aktivitaetName(id, zustand.eigeneAktivitaeten)} ${n}×`);
+    sag(`  Aktivitäten eingetragen    ${aktivAnzahl}`);
+    const reihen = meist.reduce((r, x) => {
+      if (r.length && `${r[r.length - 1]} · ${x}`.length <= 50) r[r.length - 1] += ` · ${x}`;
+      else r.push(x);
+      return r;
+    }, []);
+    reihen.forEach((zl) => sag(`                             ${zl}`));
+  }
   /*
    * Das Wasser als eine Zeile, ohne Ziel und ohne Bewertung: Wie viel jemand
    * trinken sollte, hängt an Dingen, die dieses Tagebuch nicht kennt, und
@@ -13047,6 +13701,46 @@ function arztBericht(zustand, von, bis) {
       kp.forEach((p) => sag(`    ${p.name.padEnd(24)} an ${p.mit} von ${p.tage} Tagen`));
     }
     sag('  Getrennt vom Bauch gezählt: Kein Kopfschmerz zählt in die Werte oben.');
+    sag();
+  }
+
+  /*
+   * Was nach den Aktivitäten kam – nur mit genug Fällen, und nur Zahlen.
+   *
+   * Eine Zeile je Aktivität für den Bauch, eine für den Kopf, und dazu die
+   * Tagesfrage „Bewegung". Verglichen wird mit denselben Stunden an Tagen
+   * ohne die Aktivität (siehe js/aktivitaet.js); was dafür zu selten ist,
+   * steht hier gar nicht – ein „noch nicht" hat auf dem Zettel nichts zu tun.
+   */
+  // Mit dem eingegrenzten Tagesspeicher: Das Kopffenster reicht in den Tag
+  // nach dem Berichtsende, und eine Tagesfrage dort machte ihn zu einem
+  // notierten Tag, dessen Einträge hier fehlen.
+  const aktiv = aktivitaetBilanz(imZeitraum, tageImZeitraum, {
+    fenster: zustand.fenster, mindestFaelle: zustand.mindestFaelle,
+  }).filter((x) => x.bauch.genug || x.kopf.genug);
+  const bewegung = bewegungSatz(faktorBilanz(imZeitraum, tageImZeitraum, 'bewegung', tagesWert));
+  if (aktiv.length || bewegung) {
+    sag('NACH AKTIVITÄTEN');
+    if (aktiv.length) {
+      umbrochen(`(Beschwerden in den ${zustand.fenster || 4} Stunden danach, Kopfschmerz in den `
+        + `${AKTIV_KOPF_STUNDEN} Stunden danach – gegen dieselben Stunden an Tagen ohne. `
+        + 'Eine Häufigkeit, keine Ursache.)', 66).forEach((zl) => sag(`  ${zl}`));
+    }
+    const wort = (art) => ({ auffaellig: ' – auffällig', moeglich: ' – möglicherweise auffällig' }[art] || '');
+    aktiv.slice(0, 8).forEach((x) => {
+      sag(`  ${aktivitaetName(x.id, zustand.eigeneAktivitaeten)}`);
+      if (x.bauch.genug) {
+        sag(`    Bauch ${x.bauch.mitTreffer} von ${x.bauch.faelle} (${prozent(x.bauch.quoteMit)}), `
+          + `sonst ${x.bauch.ohneTreffer} von ${x.bauch.gegenFaelle} (${prozent(x.bauch.quoteOhne)})`
+          + `${wort(x.bauch.art)}`);
+      }
+      if (x.kopf.genug) {
+        sag(`    Kopf ${x.kopf.mitTreffer} von ${x.kopf.faelle} (${prozent(x.kopf.quoteMit)}), `
+          + `sonst ${x.kopf.ohneTreffer} von ${x.kopf.gegenFaelle} (${prozent(x.kopf.quoteOhne)})`
+          + `${x.kopf.art === 'auffaellig' ? ' – öfter' : ''}`);
+      }
+    });
+    if (bewegung) umbrochen(bewegung, 66).forEach((zl) => sag(`  ${zl}`));
     sag();
   }
 
@@ -14003,23 +14697,33 @@ function tagesFrage(frage, wert) {
 
 // „Kopfschmerz" ist eine eigene Art und keine Beschwerdeart – siehe js/kopf.js,
 // warum das kein Geschmack ist, sondern die Bedingung dafür, dass die
-// Bauchauswertung stimmt.
+// Bauchauswertung stimmt. Die Aktivität ebenso, aus einem verwandten Grund:
+// siehe js/aktivitaet.js.
 const ART_NAME = {
   essen: 'Mahlzeit', beschwerde: 'Beschwerden', kopf: 'Kopfschmerz', stuhl: 'Stuhlgang',
-  medikament: 'Medikament', notiz: 'Notiz',
+  medikament: 'Medikament', notiz: 'Notiz', aktivitaet: 'Aktivität',
 };
 const ART_ICON = {
   essen: '🍽️', beschwerde: '🔥', kopf: '🤕', stuhl: '🚽', medikament: '💊', notiz: '✏️',
+  aktivitaet: '🏃',
 };
 
-function zeileText(e, eigene) {
+/*
+ * „Gym/Krafttraining" ist für den Browser ein einziges Wort. In der schmalen
+ * Zeile auf 320 Pixeln bräche er es irgendwo – „Krafttrainin g". Nach dem
+ * Schrägstrich darf er stattdessen.
+ */
+const mitUmbruch = (text) => esc(text).replace(/\//g, '/<wbr>');
+
+function zeileText(e, eigene, eigeneAktiv = []) {
   if (e.art === 'essen') {
     // Die Rolle steht nur dabei, wenn sie nicht die Vorgabe ist – „Kaffee
     // (Haupt)" bei jedem Kaffee wäre Lärm, „Zwiebel (Würze)" ist die Auskunft.
     const zutaten = zutatenVon(e).map((z) => ausloeserName(z.id, eigene)
       + (z.rolle === ROLLE_VORGABE ? '' : ` (${rolleName(z.rolle, true)})`)).join(', ');
     const portion = e.portion && e.portion !== 'normal' ? ` · ${e.portion === 'gross' ? 'große' : 'kleine'} Portion` : '';
-    return `<b>${esc(kuerze(e.was || 'Mahlzeit'))}</b>${portion}`
+    const wo = e.auswaerts === true ? ' · auswärts' : '';
+    return `<b>${esc(kuerze(e.was || 'Mahlzeit'))}</b>${portion}${wo}`
       + (zutaten ? `<span class="zeile-tags">${esc(zutaten)}</span>` : '');
   }
   if (e.art === 'beschwerde') {
@@ -14052,6 +14756,12 @@ function zeileText(e, eigene) {
       + (dazu ? `<span class="zeile-tags">${esc(dazu)}</span>` : '')
       + (e.notiz ? `<span class="zeile-tags">${esc(kuerze(e.notiz))}</span>` : '');
   }
+  if (e.art === 'aktivitaet') {
+    const anstrengend = intensitaetName(e.intensitaet);
+    return `<b>${mitUmbruch(kuerze(aktivitaetText(e, eigeneAktiv) || 'Aktivität', 70))}</b>`
+      + (anstrengend ? `<span class="zeile-tags">${esc(anstrengend)}</span>` : '')
+      + (e.notiz ? `<span class="zeile-tags">${esc(kuerze(e.notiz))}</span>` : '');
+  }
   return `<b>${esc(kuerze(e.text || '', 90))}</b>`;
 }
 
@@ -14062,7 +14772,7 @@ function zeileText(e, eigene) {
  * Knopf, der nur „Eintrag löschen" heißt, sagt nicht, welcher – bei sechs
  * Zeilen untereinander ist das die eine Auskunft, auf die es ankommt.
  */
-function zeileWorte(e) {
+function zeileWorte(e, eigeneAktiv = []) {
   const voll = (x) => String(x || '').trim();
   const was = {
     essen: () => (voll(e.was) ? `„${kuerze(e.was, 40)}“` : ''),
@@ -14071,6 +14781,7 @@ function zeileWorte(e) {
     stuhl: () => (e.form ? `Typ ${e.form}` : ''),
     medikament: () => [voll(e.mittel), voll(e.dosis)].filter(Boolean).join(' '),
     notiz: () => (voll(e.text) ? `„${kuerze(e.text, 40)}“` : ''),
+    aktivitaet: () => kuerze(aktivitaetText(e, eigeneAktiv), 40),
   }[e.art];
   const teil = was ? was() : '';
   return `${ART_NAME[e.art] || 'Eintrag'}${teil ? `, ${teil}` : ''}, um ${e.ungefaehr ? 'etwa ' : ''}${e.um}`;
@@ -14146,13 +14857,13 @@ function zweiterTipp(el) {
 
 /** Eine Zeile im Tagesstrang: antippen zum Ändern, × zum Löschen. */
 function strangZeile(e, s) {
-  const worte = zeileWorte(e);
+  const worte = zeileWorte(e, s.eigeneAktivitaeten);
   return `<li class="strang-zeile z-${e.art}">
       <span class="strang-uhr"${e.ungefaehr ? ' title="ungefähre Zeit"' : ''}>${e.ungefaehr ? '≈' : ''}${esc(e.um)}</span>
       <span class="strang-punkt" aria-hidden="true">${ART_ICON[e.art]}</span>
       <button type="button" class="strang-text" data-act="bearbeiten" data-id="${esc(e.id)}"
               aria-label="${esc(`${worte} ändern`)}">
-        <span class="strang-inhalt">${zeileText(e, s.eigeneAusloeser)}${zeitWorte(e)}</span>
+        <span class="strang-inhalt">${zeileText(e, s.eigeneAusloeser, s.eigeneAktivitaeten)}${zeitWorte(e)}</span>
         <span class="strang-auf" aria-hidden="true">›</span>
       </button>
       ${loeschKnopf('loeschen', e.id, {
@@ -14216,6 +14927,14 @@ function tagAnsicht(s) {
     <button type="button" class="link-knopf" data-act="meine-mittel-zeigen">„Mehr“ › „Meine Mittel“</button>
     anlegen – dann trägt sie hier ein Tipp ein.</p>`;
 
+  /*
+   * Die zuletzt benutzten Aktivitäten, wie „Meine Mittel": ein Tipp trägt
+   * heute mit der jetzigen Uhrzeit ein. An einem vergangenen Tag öffnet er den
+   * Bogen, vorgefüllt – „jetzt" wäre für gestern gelogen. Ein Häkchen zeigt,
+   * was an diesem Tag schon steht.
+   */
+  const aktivReihe = kuenftig ? '' : aktivSchnellReihe(s, liste, iso);
+
   const schnellReihe = schnell.length ? `<div class="schnell">
     <p class="feld-name">Noch mal wie immer${heute ? '' : ' – die Zeit wählst du im Bogen'}</p>
     <div class="marken marken-eng">${schnell.map((v, i) => `
@@ -14224,8 +14943,11 @@ function tagAnsicht(s) {
       </button>`).join('')}</div>
   </div>` : '';
 
+  // Die Notiz steht als breite Zeile darunter (siehe .a-notiz): Mit der
+  // Aktivität sind es sieben Knöpfe, und zwei Reihen zu drei plus einem
+  // einzelnen sähen nach einem vergessenen aus.
   const anlegen = `<div class="anlegen">
-    ${['essen', 'beschwerde', 'kopf', 'stuhl', 'medikament', 'notiz'].map((a) => `
+    ${['essen', 'beschwerde', 'kopf', 'stuhl', 'medikament', 'aktivitaet', 'notiz'].map((a) => `
       <button type="button" class="anlegen-btn a-${a}" data-act="neu" data-art="${a}">
         <span class="anlegen-i">${ART_ICON[a]}</span>${ART_NAME[a]}
       </button>`).join('')}
@@ -14277,10 +14999,34 @@ function tagAnsicht(s) {
   return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
     + provokationZeile(s, iso) + bilanz + zyklusZeile + kopfNachtragKarte(s, iso)
-    + (heute ? ratKarte(s) : '') + schnellReihe + mittelReihe + anlegen + wasser + zeilen + umstaende
+    + (heute ? ratKarte(s) : '') + schnellReihe + mittelReihe + aktivReihe + anlegen + wasser
+    + zeilen + umstaende
     // Ans Ende und zugeklappt: Die Liste ist zum Nachsehen da, nicht zum
     // täglichen Durchscrollen. Wer sie sucht, findet sie an derselben Stelle.
     + (iso === heuteISO() ? kuecheKarte(s) : '');
+}
+
+/**
+ * Die Reihe „Zuletzt gemacht" – oder nichts, solange keine Aktivität
+ * eingetragen ist. Dann genügt der Knopf im Raster darunter.
+ */
+function aktivSchnellReihe(s, liste, iso) {
+  const ids = zuletztAktivitaeten(s.eintraege, s.eigeneAktivitaeten, 5);
+  if (!ids.length) return '';
+  const heute = iso === heuteISO();
+  const tag = fmtTag(iso);
+  const wann = ['heute', 'gestern'].includes(tag) ? tag : `am ${tag}`;
+  return `<div class="schnell">
+    <p class="feld-name">Zuletzt gemacht – ${heute ? 'ein Tipp trägt ein' : 'die Zeit wählst du im Bogen'}</p>
+    <div class="marken marken-eng">${ids.map((id) => {
+    const a = aktivitaetVon(id, s.eigeneAktivitaeten);
+    const da = liste.some((e) => e.art === 'aktivitaet' && (e.aktivitaeten || []).includes(id));
+    return `<button type="button" class="marke marke-schnell" data-act="aktiv-schnell" data-id="${esc(id)}"
+              aria-label="${esc(`${a.name} – ${wann} ${da ? 'schon eingetragen, noch einmal eintragen' : 'eintragen'}`)}">
+        <span class="marke-i" aria-hidden="true">${a.icon}</span>${esc(kuerze(a.name, 22))}${da ? ' <span class="marke-zahl">✓</span>' : ''}
+      </button>`;
+  }).join('')}</div>
+  </div>`;
 }
 
 /**
@@ -14561,8 +15307,7 @@ function ratKarte(s) {
     bilanz: ausloeserBilanz(s.eintraege, {
       fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
     }),
-    faktoren: Object.fromEntries(['stress', 'schlaf', 'stimmung']
-      .map((id) => [id, faktorBilanz(s.eintraege, s.tage, id, tagesWert)])),
+    faktoren: faktorenBilanz(s.eintraege, s.tage, tagesWert),
     phasen: phasenBilanz(s.eintraege, s.tage, tagesWert),
     letzteMahlzeitStunden: letzteMahlzeit
       ? stundenSeitEssen(s.eintraege, { am: heuteISO(), um: jetztUhr() }) : null,
@@ -14920,7 +15665,9 @@ function musterDaten(s) {
       // auch an Tagen ohne Migräne hält – siehe js/schichten.js.
       stand: haeltStand(bewertet, b.id, s.tage, { kopfTage: kopfTageVon(s.eintraege) }),
       profil: zeitProfil(fenster, b.id),
-      dosis: dosisBild(s.eintraege, b.id, s.fenster),
+      // „Wie viel davon?" fragt nach der Rolle einer Zutat. Eine große Portion
+      // oder ein Essen auswärts hat keine – die Frage stünde dort ohne Antwort.
+      dosis: UMSTAND_IDS.includes(b.id) ? null : dosisBild(s.eintraege, b.id, s.fenster),
     }));
 
   return {
@@ -15871,13 +16618,13 @@ function musterAnsicht(s) {
   if (frueh) {
     return `${lageTeil(s, d)}${warnTeil(d)}${fortschrittTeil(s, d)}`
       + `${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}`
-      + `${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
+      + `${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${aktivTeil(s, true)}${zyklusTeil(s)}${erklaerung}`;
   }
 
   if (!mahlzeiten) {
     return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}<p class="leer">Noch keine Mahlzeit
       eingetragen. Sobald ein paar Tage beisammen sind, steht hier, was
-      auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
+      auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${aktivTeil(s)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
   }
 
   const fertig = bilanz.filter((b) => b.genug);
@@ -15968,8 +16715,72 @@ function musterAnsicht(s) {
     + kriterienTeil(s, d) + versuchTeil(s, d) + planTeil(s, d) + provokationTeil(s, d)
     + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wechselTeil(s, d)
     + wartet + ansprechenTeil(s, d)
-    + zeitTeil(d) + wann + wie + stuhlTeil(s) + kopfTeil(s, d) + brauchtTeil(s, d)
+    + zeitTeil(d) + wann + wie + stuhlTeil(s) + kopfTeil(s, d) + aktivTeil(s) + brauchtTeil(s, d)
     + zyklusTeil(s) + erklaerung;
+}
+
+/**
+ * Was du gemacht hast – die Aktivitäten und die Tagesfrage „Bewegung".
+ *
+ * Steht bei Stuhlgang und Kopf und nicht bei den Auslösern: Es ist dieselbe
+ * Art Vergleich, aber nicht dieselbe Frage, und wer eine Aktivität für eine
+ * Zutat hält, sucht im Essen. Der Vorbehalt steht in der Karte selbst und
+ * nicht hinter einem Tipp – er gehört neben jede dieser Zahlen.
+ *
+ * Mit `nurFertig` (die Frühphase des Reiters) nur, was schon etwas zu sagen
+ * hat; die Liste „Zählt noch" wäre dort eine Absage mehr.
+ */
+const AKTIV_BAUCH_WORT = { ...EINSTUFUNG_WORT, moeglich: 'möglicherweise auffällig' };
+const AKTIV_KOPF_WORT = {
+  auffaellig: 'öfter Kopfschmerz',
+  unauffaellig: 'seltener Kopfschmerz',
+  neutral: 'kein Unterschied',
+  zuwenig: 'zu wenige Fälle',
+};
+
+function aktivTeil(s, nurFertig = false) {
+  const fenster = s.fenster || 4;
+  const zeilen = aktivitaetBilanz(s.eintraege, s.tage, { fenster, mindestFaelle: s.mindestFaelle });
+  const fertig = zeilen.filter((z) => z.bauch.genug || z.kopf.genug);
+  const offen = zeilen.filter((z) => !z.bauch.genug && !z.kopf.genug);
+  const bewegung = bewegungSatz(faktorBilanz(s.eintraege, s.tage, 'bewegung', tagesWert));
+  if (!fertig.length && !bewegung && (nurFertig || !offen.length)) return '';
+  const rang = ['auffaellig', 'moeglich', 'unauffaellig', 'neutral', 'zuwenig'];
+  const fund = (z) => {
+    const a = aktivitaetVon(z.id, s.eigeneAktivitaeten);
+    const art = [z.bauch.art, z.kopf.art].sort((x, y) => rang.indexOf(x) - rang.indexOf(y))[0];
+    const bauch = z.bauch.genug
+      ? `<b>Bauch, ${esc(AKTIV_BAUCH_WORT[z.bauch.art])}:</b> ${esc(aktivBauchSatz(z, fenster))}`
+      : `<b>Bauch:</b> zählt noch – ${z.bauch.faelle} von ${z.bauch.mindest} Mal auswertbar.`;
+    const kopf = z.kopf.genug
+      ? `<b>Kopf, ${esc(AKTIV_KOPF_WORT[z.kopf.art])}:</b> ${esc(aktivKopfSatz(z))}`
+      : `<b>Kopf:</b> zählt noch – ${z.kopf.faelle} von ${z.kopf.mindest} Mal auswertbar.`;
+    return `<li class="fund f-${art}">
+      <div class="fund-kopf">
+        <b><span aria-hidden="true">${a.icon}</span> ${mitUmbruch(a.name)}</b>
+        <span class="fund-urteil">${mehrzahl(z.anzahl, 'Mal', 'Mal')}</span>
+      </div>
+      <p class="klein">${bauch}</p>
+      <p class="klein">${kopf}</p>
+    </li>`;
+  };
+  return `<div class="karte karte-aktiv" id="wasDuGemachtHast">
+    <h3>Was du gemacht hast</h3>
+    <p class="klein">Wie oft in den ${fenster} Stunden nach einer Aktivität Beschwerden
+    kamen und in den ${AKTIV_KOPF_STUNDEN} Stunden danach Kopfschmerz – verglichen mit
+    denselben Stunden an Tagen ohne sie. Erst ab ${s.mindestFaelle || 5} Fällen auf
+    beiden Seiten, beim Kopf ab ${Math.max(s.mindestFaelle || 5, AKTIV_KOPF_MINDEST)}.</p>
+    ${fertig.length ? `<ul class="funde funde-aktiv">${fertig.map(fund).join('')}</ul>` : ''}
+    ${!nurFertig && offen.length ? `<p class="feld-name">Zählt noch</p>
+      <ul class="wartend">${offen.slice(0, 8).map((z) => `<li>
+        <span>${esc(aktivitaetVon(z.id, s.eigeneAktivitaeten).name)}</span>
+        <span class="klein">${z.bauch.faelle} von ${z.bauch.mindest}</span>
+      </li>`).join('')}</ul>` : ''}
+    ${bewegung ? `<p class="klein aktiv-bewegung">${esc(bewegung)} Gezählt am selben Tag –
+      an schlechten Tagen bewegt man sich oft weniger.</p>` : ''}
+    <p class="klein">Das ist eine Häufigkeit, keine Ursache. Wer an schlechten Tagen
+    anders lebt, findet sich hier wieder, ohne dass die Aktivität schuld wäre.</p>
+  </div>`;
 }
 
 /** Der Stuhlgang in Zahlen, sobald überhaupt etwas eingetragen ist. */
@@ -17095,6 +17906,21 @@ function anleitungAnsicht(s) {
     </ul>
   </div>`;
 
+  // Kurz: wo es steht, was ein Tipp tut, und die eine Regel, die man sonst
+  // nicht errät – eine Aktivität allein ist kein guter Tag.
+  const aktiv = `<div class="karte" id="anleitung-aktivitaet">
+    <h3>Was du gemacht hast</h3>
+    <ul class="punkte">
+      <li>Mit <b>Aktivität</b> auf „Tag“ hältst du fest, was du gemacht hast oder wo
+        du warst – Gym, Arbeit, unterwegs. Was fehlt, legst du im Bogen selbst an.</li>
+      <li>Danach steht es auf „Tag“ unter <b>Zuletzt gemacht</b>: Ein Tipp trägt es
+        mit der jetzigen Uhrzeit ein.</li>
+      <li>Nach ein paar Wochen steht unter „Muster“, ob danach öfter Beschwerden
+        oder Kopfschmerzen kamen. Eine Aktivität allein macht keinen Tag ohne
+        Beschwerden.</li>
+    </ul>
+  </div>`;
+
   return `
   <div class="reihe">${knopf('anleitung-zu', '‹ Zurück', 'btn-ghost')}</div>
   <h2>Anleitung</h2>
@@ -17106,6 +17932,7 @@ function anleitungAnsicht(s) {
   ${sichern}
   ${erhalten}
   ${aendern}
+  ${aktiv}
   ${knopf('anleitung-zu', '‹ Zurück zu „Mehr“', 'btn-ghost btn-block')}`;
 }
 
@@ -17293,6 +18120,8 @@ function mehrAnsicht(s) {
     </div>
   </div>
 
+  ${eigeneAktivKarte(s)}
+
   <div class="karte">
     <h3>Seit wann hast du das?</h3>
     <p class="klein">Die eine Angabe, die aus dem Tagebuch nicht hervorgeht – es
@@ -17352,6 +18181,33 @@ function mehrAnsicht(s) {
     <p class="klein">Entfernt jede Eintragung aus diesem Browser. Nicht
     rückgängig zu machen.</p>
     ${knopf('alles-weg', 'Tagebuch löschen', 'btn-danger')}
+  </div>`;
+}
+
+/*
+ * Eigene Aktivitäten anlegen und entfernen – ohne dabei etwas einzutragen.
+ *
+ * Wie die eigenen Auslöser darüber. Entfernen nimmt nur aus der Auswahl; die
+ * Einträge damit bleiben, wie sie sind, und behalten ihren Namen.
+ */
+function eigeneAktivKarte(s) {
+  const liste = s.eigeneAktivitaeten || [];
+  const voll = liste.length >= store.AKTIV_HOECHSTENS;
+  return `<div class="karte" id="eigeneAktivitaeten">
+    <h3>Eigene Aktivitäten</h3>
+    <p class="klein">Was unter „Aktivität“ in der Auswahl fehlt – ein Sport, ein Ort,
+    eine Gewohnheit. Entfernst du eine, bleiben die Einträge damit.</p>
+    ${liste.length ? `<ul class="wartend">${liste.map((a) => `<li>
+      <span>${esc(a.name)}</span>
+      <button type="button" class="strang-weg" data-act="aktiv-weg" data-id="${esc(a.id)}"
+              aria-label="${esc(`${a.name} aus der Auswahl nehmen`)}">×</button>
+    </li>`).join('')}</ul>` : '<p class="klein">Noch keine.</p>'}
+    ${voll ? `<p class="klein">Mehr als ${store.AKTIV_HOECHSTENS} passen nicht. Entferne erst eine,
+      die du nicht mehr brauchst.</p>` : `<div class="reihe">
+      <input type="text" class="feld" id="neueAktivitaet" maxlength="${store.AKTIV_NAME_MAX}"
+             placeholder="z. B. Klettern" aria-label="Name der eigenen Aktivität">
+      ${knopf('aktiv-neu', 'Hinzufügen')}
+    </div>`}
   </div>`;
 }
 
@@ -18009,6 +18865,10 @@ function bogenHTML(s) {
       <div class="wahl">${PORTIONEN.map((p) => `
         <button type="button" class="wahl-btn${e.portion === p.id ? ' an' : ''}"
                 data-act="portion" data-id="${p.id}">${p.name}</button>`).join('')}</div>
+      <div class="wahl wahl-auswaerts">
+        <button type="button" class="wahl-btn${e.auswaerts === true ? ' an' : ''}" data-act="auswaerts"
+                aria-pressed="${e.auswaerts === true}"><span aria-hidden="true">🍴</span> Auswärts gegessen</button>
+      </div>
 
       <p class="feld-name">Was war drin?</p>
       ${marken(nachHaeufigkeit, gewaehlt, 'zutat')}
@@ -18189,6 +19049,50 @@ function bogenHTML(s) {
       <input type="text" class="feld feld-breit" id="bogenDosis" data-act="dosis"
              value="${esc(e.dosis || '')}" placeholder="z. B. 20 mg" autocomplete="off">
       ${merken}`;
+  } else if (b.art === 'aktivitaet') {
+    /*
+     * Wie die Zutaten: nach Häufigkeit, das Meistbenutzte oben, bei gleicher
+     * Zahl in der Reihenfolge des Katalogs – sonst spränge die Auswahl bei
+     * jedem Eintrag, und die Hand griffe ins Leere. Mehrere dürfen an sein:
+     * „Unterwegs" und „Feier" am selben Abend sind ein Eintrag, nicht zwei.
+     *
+     * Was dieser Eintrag trägt, aber nicht mehr zur Auswahl steht – eine
+     * unter „Mehr" entfernte eigene –, bleibt sichtbar und lässt sich
+     * abwählen. Sonst verschwände es beim Ändern still aus dem Eintrag.
+     */
+    const zaehler = aktivitaetHaeufigkeit(s.eintraege);
+    const eigene = (s.eigeneAktivitaeten || []).map((a) => ({ ...a, icon: '•' }));
+    const auswahl = [...AKTIVITAETEN, ...eigene]
+      .map((m, i) => ({ m, i, n: zaehler.get(m.id) || 0 }))
+      .sort((x, y) => (y.n - x.n) || (x.i - y.i))
+      .map((x) => x.m);
+    const gewaehlt = e.aktivitaeten || [];
+    const fremd = gewaehlt.filter((id) => !auswahl.some((m) => m.id === id))
+      .map((id) => aktivitaetVon(id, s.eigeneAktivitaeten));
+    const voll = (s.eigeneAktivitaeten || []).length >= store.AKTIV_HOECHSTENS;
+    mitte = `
+      <p class="feld-name">Was hast du gemacht, wo warst du?</p>
+      ${marken([...auswahl, ...fremd], gewaehlt, 'aktiv-wahl')}
+      ${voll ? `<p class="klein">Mehr als ${store.AKTIV_HOECHSTENS} eigene passen nicht. Unter
+        „Mehr“ kannst du eine entfernen.</p>` : `<div class="reihe aktiv-eigen">
+        <input type="text" class="feld" id="bogenAktivNeu" data-act="aktiv-name"
+               maxlength="${store.AKTIV_NAME_MAX}" value="${esc(b.aktivName || '')}"
+               placeholder="Eigene, z. B. Klettern" autocomplete="off" aria-label="Eigene Aktivität">
+        ${knopf('aktiv-eigen', 'Dazu')}
+      </div>`}
+      ${b.id ? '' : `<p class="klein">Auswärts gegessen?
+        <button type="button" class="link-knopf" data-act="aktiv-auswaerts">Als Mahlzeit eintragen</button>
+        – dort zählt es bei den Auslösern.</p>`}
+      <p class="feld-name">Wie anstrengend? Wenn du magst.</p>
+      <div class="wahl">${INTENSITAETEN.map((x) => `
+        <button type="button" class="wahl-btn${e.intensitaet === x.id ? ' an' : ''}"
+                data-act="aktiv-intensitaet" data-id="${x.id}"
+                aria-pressed="${e.intensitaet === x.id}">${esc(x.name)}</button>`).join('')}</div>
+      <label class="feld-name" for="bogenNotiz">Notiz</label>
+      <input type="text" class="feld feld-breit" id="bogenNotiz" data-act="notiz"
+             value="${esc(e.notiz || '')}" placeholder="optional" autocomplete="off">
+      <p class="klein">Eine Aktivität allein macht keinen Tag ohne Beschwerden. Was
+      danach kam, steht nach ein paar Wochen unter „Muster“.</p>`;
   } else {
     mitte = `
       <label class="feld-name" for="bogenText">Notiz</label>
@@ -18202,7 +19106,7 @@ function bogenHTML(s) {
   const weg = b.id ? loeschKnopf('bogen-loeschen', b.id, {
     normal: 'Eintrag löschen',
     frage: 'Wirklich löschen?',
-    sagt: `${zeileWorte(store.eintragVon(b.id) || e)} löschen`,
+    sagt: `${zeileWorte(store.eintragVon(b.id) || e, s.eigeneAktivitaeten)} löschen`,
     klasse: 'btn btn-ghost btn-block bogen-weg',
   }) : '';
   return `<div class="bogen-hg" data-act="bogen-zu"></div>
@@ -18387,7 +19291,7 @@ function zeichne() {
 
 function bogenOeffnen(art, id) {
   const vorlage = {
-    essen: { was: '', zutaten: [], portion: 'normal' },
+    essen: { was: '', zutaten: [], portion: 'normal', auswaerts: false },
     beschwerde: { staerke: 4, arten: [], notiz: '', stuhlbezug: null },
     // Keine Vorgabe für die Form: Eine vorausgewählte 4 wäre die bequemste
     // Antwort und würde als eingetragen zählen. Ein Stuhlgang ohne Form ist
@@ -18404,6 +19308,9 @@ function bogenOeffnen(art, id) {
     },
     medikament: { mittel: '', dosis: '' },
     notiz: { text: '' },
+    // Nichts vorgewählt: Eine vorbelegte Aktivität wäre die bequemste und
+    // stünde dann in jedem eilig gespeicherten Eintrag.
+    aktivitaet: { aktivitaeten: [], intensitaet: null, notiz: '' },
   }[art];
   const alt = id ? store.eintragVon(id) : null;
   ui.bogen = {
@@ -18493,6 +19400,23 @@ function bogenSpeichern() {
   if (b.art === 'notiz' && !String(e.text || '').trim()) {
     melden('Die Notiz ist leer.');
     return;
+  }
+  if (b.art === 'aktivitaet') {
+    // Ein eigener Name, der getippt, aber nicht mit „Dazu" übernommen wurde,
+    // ist trotzdem gemeint. Ihn still zu verwerfen, hieße einen Eintrag ohne
+    // das, weswegen er angelegt wurde.
+    if (String(b.aktivName || '').trim() && aktivEigenDazu() === 'voll') return;
+    e.aktivitaeten = [...(b.entwurf.aktivitaeten || [])];
+    if (!e.aktivitaeten.length) {
+      melden('Was hast du gemacht? Bitte etwas antippen.');
+      return;
+    }
+  }
+  // Nur ein ausdrückliches „auswärts" wird gespeichert. Beim Ändern muss das
+  // Abwählen ausdrücklich zurück, sonst bliebe es im alten Eintrag stehen.
+  if (b.art === 'essen' && e.auswaerts !== true) {
+    if (b.id) e.auswaerts = false;
+    else delete e.auswaerts;
   }
   // Ein Kopfschmerz mit Stärke 0 ist keiner – und ein Tag ohne Kopfeintrag
   // zählt ohnehin als kopfschmerzfrei. Gespeichert würde nur ein Eintrag, der
@@ -18637,6 +19561,42 @@ function umschalten(feld, id) {
   if (!ui.bogen) return;
   const liste = ui.bogen.entwurf[feld] || [];
   entwurf({ [feld]: liste.includes(id) ? liste.filter((x) => x !== id) : [...liste, id] });
+}
+
+/**
+ * Den im Bogen getippten Namen als eigene Aktivität anlegen und auswählen.
+ *
+ * Heißt er wie eine, die es schon gibt – im Katalog oder bei den eigenen,
+ * gleich wie geschrieben –, wird die ausgewählt statt einer zweiten „Laufen".
+ * Zurück kommt die Kennung, 'leer' oder 'voll'.
+ */
+function aktivEigenDazu() {
+  const b = ui.bogen;
+  if (!b) return 'leer';
+  const feld = document.getElementById('bogenAktivNeu');
+  const name = String(b.aktivName || (feld && feld.value) || '').trim().slice(0, store.AKTIV_NAME_MAX);
+  if (!name) {
+    melden('Wie heißt die Aktivität?');
+    return 'leer';
+  }
+  const s = store.zustandLesen();
+  const da = [...AKTIVITAETEN, ...(s.eigeneAktivitaeten || [])]
+    .find((a) => a.name.toLowerCase() === name.toLowerCase());
+  let id = da ? da.id : null;
+  if (!id) {
+    const r = store.aktivitaetAnlegen(eigeneAktivitaetId(name), name);
+    if (r.fehler === 'voll') {
+      melden(`Mehr als ${store.AKTIV_HOECHSTENS} eigene Aktivitäten passen nicht. Unter „Mehr“ kannst du eine entfernen.`);
+      return 'voll';
+    }
+    if (r.fehler) return 'leer';
+    id = r.id;
+  }
+  b.aktivName = '';
+  const liste = b.entwurf.aktivitaeten || [];
+  entwurf({ aktivitaeten: liste.includes(id) ? liste : [...liste, id] });
+  melden(da ? `„${da.name}“ gibt es schon – ausgewählt.` : `„${name}“ steht jetzt in deiner Auswahl.`);
+  return id;
 }
 
 /* ---------- Sicherung ---------- */
@@ -18985,7 +19945,9 @@ const AKTION = {
     const liste = haeufigeMahlzeiten(store.zustandLesen().eintraege, 6);
     const v = liste[Number(el.dataset.i)];
     if (!v) return;
-    entwurf({ was: v.text, zutaten: v.zutaten.map((z) => ({ ...z })), portion: v.portion });
+    entwurf({
+      was: v.text, zutaten: v.zutaten.map((z) => ({ ...z })), portion: v.portion, auswaerts: !!v.auswaerts,
+    });
   },
   /*
    * Dasselbe, aber ohne Bogen: eintragen und fertig.
@@ -19000,7 +19962,10 @@ const AKTION = {
     const liste = haeufigeMahlzeiten(s.eintraege, 12).filter((v) => v.anzahl >= 2);
     const v = liste[Number(el.dataset.i)];
     if (!v) return;
-    const mahlzeit = { was: v.text, zutaten: v.zutaten.map((z) => ({ ...z })), portion: v.portion };
+    const mahlzeit = {
+      was: v.text, zutaten: v.zutaten.map((z) => ({ ...z })), portion: v.portion,
+      ...(v.auswaerts ? { auswaerts: true } : {}),
+    };
     // Für einen vergangenen Tag kein „jetzt": der Bogen, vorgefüllt, und die
     // Zeit mit einem Knopf.
     if (ui.tag !== heuteISO()) {
@@ -19039,6 +20004,74 @@ const AKTION = {
   },
   warnzeichen: (el) => umschalten('warnzeichen', el.dataset.id),
   'mittel-vorschlag': (el) => entwurf({ mittel: el.dataset.id }),
+  auswaerts: () => { if (ui.bogen) entwurf({ auswaerts: ui.bogen.entwurf.auswaerts !== true }); },
+
+  /* ---------- Aktivitäten ---------- */
+
+  'aktiv-wahl': (el) => umschalten('aktivitaeten', el.dataset.id),
+  // Ein zweiter Tipp nimmt die Stufe zurück – „ohne Angabe" ist zulässig.
+  'aktiv-intensitaet': (el) => {
+    if (!ui.bogen) return;
+    entwurf({ intensitaet: ui.bogen.entwurf.intensitaet === el.dataset.id ? null : el.dataset.id });
+  },
+  'aktiv-eigen': () => { aktivEigenDazu(); },
+  /*
+   * Auswärts gegessen gehört zur Mahlzeit (siehe js/aktivitaet.js, warum).
+   * Der Weg dorthin nimmt Tag und Zeit mit, damit niemand sie zweimal wählt.
+   */
+  'aktiv-auswaerts': () => {
+    const b = ui.bogen;
+    if (!b) return;
+    const { am, um, ungefaehr, tageszeit } = b.entwurf;
+    const zeitGesetzt = b.zeitGesetzt;
+    bogenOeffnen('essen');
+    entwurf({ am, um, auswaerts: true, ...(ungefaehr ? { ungefaehr: true, tageszeit: tageszeit || null } : {}) });
+    ui.bogen.zeitGesetzt = !!zeitGesetzt;
+    melden('Als Mahlzeit, mit „Auswärts gegessen“ – so zählt es bei den Auslösern.');
+  },
+  /*
+   * Ein Tipp in der Reihe „Zuletzt gemacht": heute mit der jetzigen Uhrzeit
+   * eingetragen, an einem anderen Tag der Bogen, vorgefüllt. Die Meldung
+   * nennt, was eingetragen wurde, samt Uhrzeit – ein Tipp, der still etwas
+   * anlegt, ist einer, dem man nicht traut.
+   */
+  'aktiv-schnell': (el) => {
+    const s = store.zustandLesen();
+    const id = el.dataset.id;
+    if (!id) return;
+    const a = aktivitaetVon(id, s.eigeneAktivitaeten);
+    if (ui.tag !== heuteISO()) {
+      bogenOeffnen('aktivitaet');
+      entwurf({ aktivitaeten: [id] });
+      melden('Wann war das? Unter der Uhrzeit antippen.');
+      return;
+    }
+    const um = jetztUhr();
+    store.eintragen({ art: 'aktivitaet', am: heuteISO(), um, aktivitaeten: [id] });
+    melden(`${a.name} eingetragen (${um}).`);
+    zeichne();
+  },
+  'aktiv-neu': () => {
+    const feld = document.getElementById('neueAktivitaet');
+    const name = String((feld && feld.value) || '').trim();
+    if (!name) { melden('Kein Name eingegeben.'); return; }
+    const da = AKTIVITAETEN.find((a) => a.name.toLowerCase() === name.toLowerCase());
+    if (da) { melden(`„${da.name}“ steht schon in der Auswahl.`); return; }
+    const r = store.aktivitaetAnlegen(eigeneAktivitaetId(name), name);
+    if (r.fehler === 'voll') {
+      melden(`Mehr als ${store.AKTIV_HOECHSTENS} eigene Aktivitäten passen nicht. Entferne erst eine.`);
+      return;
+    }
+    if (r.fehler) { melden('Kein Name eingegeben.'); return; }
+    if (feld) feld.value = '';
+    melden(r.schon ? 'Die gibt es schon.' : `„${name.slice(0, store.AKTIV_NAME_MAX)}“ steht jetzt zur Auswahl.`);
+    zeichne();
+  },
+  'aktiv-weg': (el) => {
+    store.aktivitaetEntfernen(el.dataset.id);
+    melden('Aus der Auswahl genommen. Die Einträge damit bleiben.');
+    zeichne();
+  },
 
   bristol: (el) => entwurf({ form: Number(el.dataset.n) }),
   'stuhl-dringend': () => entwurf({ dringend: !ui.bogen.entwurf.dringend }),
@@ -19734,6 +20767,9 @@ function eingabe(ev) {
     }
     case 'was': entwurf({ was: wert }, false); break;
     case 'notiz': entwurf({ notiz: wert }, false); break;
+    // Der Name einer neuen eigenen Aktivität, solange sie nicht übernommen ist:
+    // Ein Tipp auf eine Marke zeichnet den Bogen neu, und das Feld verlöre ihn.
+    case 'aktiv-name': if (ui.bogen) ui.bogen.aktivName = wert; break;
     // Name und Dosis: der Teil „Steht bei deinen Mitteln" zieht beim Tippen
     // mit – nur bei 'input', siehe merkenAuffrischen().
     case 'mittel':

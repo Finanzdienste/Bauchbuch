@@ -25,7 +25,7 @@ check(await page.locator('.tabbar').isHidden(), 'die Reiterleiste ist dabei noch
 await page.locator('[data-act="los"]').click();
 await page.waitForTimeout(150);
 check(await page.locator('.willkommen').count() === 0, 'nach „Anfangen" ist sie weg');
-check(await page.locator('.anlegen-btn').count() === 6, 'sechs Knöpfe zum Eintragen – Stuhlgang und Kopfschmerz sind dazugekommen');
+check(await page.locator('.anlegen-btn').count() === 7, 'sieben Knöpfe zum Eintragen – Stuhlgang, Kopfschmerz und Aktivität sind dazugekommen');
 
 /* ---------- Eine Mahlzeit ---------- */
 

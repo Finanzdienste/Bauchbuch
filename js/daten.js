@@ -145,16 +145,33 @@ export const AUSLOESER = [
 ];
 
 /**
- * Zwei Merkmale, die keine Zutat sind, sondern die Umstände: die Portion und
- * die späte Stunde. Beide gelten als Magenreiz und werden in der Auswertung
- * genauso behandelt wie eine Zutat – deshalb stehen sie hier mit derselben
- * Struktur, aber getrennt: Beim Eintragen kreuzt man sie nicht an, sie ergeben
- * sich aus der Portionsangabe und der Uhrzeit.
+ * Merkmale, die keine Zutat sind, sondern die Umstände: die Portion, die späte
+ * Stunde und ob auswärts gegessen wurde. Sie gelten als Magenreiz und werden
+ * in der Auswertung genauso behandelt wie eine Zutat – deshalb stehen sie hier
+ * mit derselben Struktur, aber getrennt: Beim Eintragen kreuzt man sie nicht
+ * in der Zutatenliste an, sie ergeben sich aus der Portionsangabe, der Uhrzeit
+ * und dem Schalter „Auswärts gegessen" im Bogen.
+ *
+ * „Auswärts" ist ein Umstand und keine Zutat, weil es für alles steht, was man
+ * dort nicht sieht: mehr Fett, mehr Salz, unbekannte Würze, eine größere
+ * Portion, ein später Tisch. Was davon es ist, sagt keine Liste – aber ob es
+ * nach solchen Mahlzeiten öfter zwickt, sagt die Auslöserbilanz, wenn sie es
+ * als Merkmal kennt.
  */
 export const UMSTAENDE = [
   { id: 'gross', name: 'Große Portion', icon: '🍽️' },
   { id: 'spaet', name: 'Spät gegessen (nach 20 Uhr)', icon: '🌙' },
+  { id: 'auswaerts', name: 'Auswärts gegessen', icon: '🍴' },
 ];
+
+/*
+ * Die Kennungen der Umstände – für die Stellen, die mit einem Umstand etwas
+ * anderes tun als mit einer Zutat: „Heute eher ohne große Portion" ist kein
+ * Satz, und zwei Wochen „ohne spät gegessen" kein Auslassversuch, den die App
+ * vorschlagen sollte. Eine Liste statt einer Abschrift an jeder Stelle, damit
+ * ein neuer Umstand nicht an einer davon fehlt.
+ */
+export const UMSTAND_IDS = UMSTAENDE.map((u) => u.id);
 
 /** Alles, was die Auswertung als möglichen Auslöser kennt. */
 export const ALLE_AUSLOESER = [...AUSLOESER, ...UMSTAENDE];

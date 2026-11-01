@@ -36,7 +36,7 @@
  */
 import { fmtMonat, monatsStart, plusMonate, plusTage } from './datum.js';
 import { PHASEN, phaseVon, zyklen } from './zyklus.js';
-import { tagZaehlt } from './wasser.js';
+import { eintragZaehlt, tagZaehlt } from './wasser.js';
 
 /*
  * Wie er sich anfühlt. Keine Diagnose-Schublade, sondern die Fragen, die in
@@ -146,10 +146,12 @@ export function kopfTageVon(eintraege, heute) {
  *
  * Gleich ist nur der Tag, an dem bloß Wasser gezählt wurde: Er ist für beide
  * eine Lücke. Wer ein Glas antippt, hat nicht gesagt, dass der Kopf frei war.
+ * Ebenso der Tag, an dem nur eine Aktivität steht – wer „Sauna" einträgt,
+ * sagt damit nichts über den Kopf.
  */
 function alleNotiertenTage(eintraege, tage) {
   return new Set([
-    ...(eintraege || []).map((e) => e.am),
+    ...(eintraege || []).filter(eintragZaehlt).map((e) => e.am),
     ...Object.keys(tage || {}).filter((iso) => tagZaehlt(tage[iso])),
   ]);
 }
@@ -532,7 +534,7 @@ export function kopfTagesWert(eintraege, iso, tage = {}) {
   const amTag = (eintraege || []).filter((e) => e.am === iso);
   return {
     am: iso,
-    notiert: amTag.length > 0 || tagZaehlt((tage || {})[iso]),
+    notiert: amTag.some(eintragZaehlt) || tagZaehlt((tage || {})[iso]),
     wert: amTag.some((e) => e.art === 'kopf' && Number(e.staerke) >= 1) ? 1 : 0,
   };
 }

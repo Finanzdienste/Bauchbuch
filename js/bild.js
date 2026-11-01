@@ -25,7 +25,7 @@
  *      Untersuchung welche Frage beantwortet. Das ist die nützlichste Zeile
  *      des ganzen Programms.
  */
-import { artAnteil, essensbezug, faktorBilanz, nachTageszeit, tagesWert } from './auswertung.js';
+import { artAnteil, essensbezug, faktorenBilanz, nachTageszeit, tagesWert } from './auswertung.js';
 import { phasenBilanz, belastbar } from './zyklus.js';
 import { unterleibsBild } from './unterleib.js';
 
@@ -589,8 +589,9 @@ export function bildLesen(d) {
     name: d.name || ((id) => id),
     zeiten: nachTageszeit(eintraege),
     essen: essensbezug(eintraege),
-    faktoren: Object.fromEntries(['stress', 'schlaf', 'stimmung']
-      .map((id) => [id, faktorBilanz(eintraege, tage, id, tagesWert)])),
+    // Mit der Bewegung (siehe FAKTOR_FRAGEN). musterStress liest davon nur
+    // Anspannung, Schlaf und Stimmung – intensive Bewegung ist keine Anspannung.
+    faktoren: faktorenBilanz(eintraege, tage, tagesWert),
     phasen: phasenBilanz(eintraege, tage, tagesWert),
     zyklusBelastbar: belastbar(tage),
     nsarTage: nsarTageListe.length,

@@ -25,7 +25,7 @@ import {
 } from './datum.js';
 import { ALLE_AUSLOESER, KLASSEN, ROLLEN, ROLLE_VORGABE, klassenVon } from './daten.js';
 import { zufallsSpielraum } from './zufall.js';
-import { tagZaehlt } from './wasser.js';
+import { eintragZaehlt, tagZaehlt } from './wasser.js';
 
 /** Späte Mahlzeit ab dieser Stunde – siehe UMSTAENDE in js/daten.js. */
 const SPAET_AB = 20;
@@ -53,8 +53,8 @@ export function zutatenVon(eintrag) {
 }
 
 /**
- * Alle Merkmale einer Mahlzeit: die Zutaten plus die beiden Umstände, die
- * sich aus Portion und Uhrzeit von selbst ergeben.
+ * Alle Merkmale einer Mahlzeit: die Zutaten plus die Umstände, die sich aus
+ * Portion, Uhrzeit und dem Schalter „Auswärts gegessen" ergeben.
  *
  * Die Rolle spielt hier bewusst *keine* Rolle: Für die Frage „war es drin?"
  * zählt jede Zutat gleich. Was die Rolle unterscheidet, steht getrennt in
@@ -67,6 +67,9 @@ export function merkmale(eintrag) {
   if (eintrag.portion === 'gross') raus.push('gross');
   const std = Number(String(eintrag.um || '').split(':')[0]);
   if (Number.isFinite(std) && std >= SPAET_AB) raus.push('spaet');
+  // Nur ein ausdrückliches true. Ältere Mahlzeiten haben das Feld nicht und
+  // gelten damit als zu Hause gegessen – so wie sie eingetragen wurden.
+  if (eintrag.auswaerts === true) raus.push('auswaerts');
   return [...new Set(raus)];
 }
 
@@ -478,6 +481,27 @@ export function faktorBilanz(eintraege, tage, frageId, tagesWertFn) {
   };
 }
 
+/*
+ * Die Tagesfragen, für die es eine Umstände-Bilanz gibt.
+ *
+ * Bis November 2026 stand diese Liste zweimal von Hand da – in der Tageskarte
+ * und im Bild –, beide Male ohne die Bewegung. Die wurde jeden Tag gefragt
+ * und nirgends gerechnet. Jetzt steht sie hier, einmal.
+ *
+ * Die Bewegung ist eine Menge und keine Note (siehe TAGESFRAGEN): „hoch"
+ * heißt bei ihr intensiv, nicht schlecht. Wer die Bilanz liest, muss das
+ * wissen – deshalb stehen die Sätze dazu bei den Aktivitäten
+ * (js/aktivitaet.js), und die Muster über Anspannung und Schlaf in js/bild.js
+ * fragen weiter nur nach ihren drei.
+ */
+export const FAKTOR_FRAGEN = ['stress', 'schlaf', 'stimmung', 'bewegung'];
+
+/** faktorBilanz() für jede dieser Fragen, als { stress, schlaf, stimmung, bewegung }. */
+export function faktorenBilanz(eintraege, tage, tagesWertFn = tagesWert) {
+  return Object.fromEntries(FAKTOR_FRAGEN
+    .map((id) => [id, faktorBilanz(eintraege, tage, id, tagesWertFn)]));
+}
+
 /** Wie oft eine Beschwerdeart unter allen Beschwerden vorkommt, als Anteil. */
 export function artAnteil(eintraege, arten) {
   const alle = eintraege.filter((e) => e.art === 'beschwerde');
@@ -533,6 +557,9 @@ export function haeufigeMahlzeiten(eintraege, anzahl = 6) {
     v.text = roh;
     v.zutaten = zutatenVon(e);
     v.portion = e.portion || 'normal';
+    // Auch das kommt vom jüngsten Vorkommen: Die Pizza vom Italiener war
+    // vermutlich wieder beim Italiener, der Haferbrei wieder zu Hause.
+    v.auswaerts = e.auswaerts === true;
     v.zuletzt = e.am;
     v.anzahl += 1;
     zaehler.set(schluessel, v);
@@ -564,9 +591,12 @@ export function tagesWert(eintraege, iso, tage = {}) {
    * „Kopf 8" einträgt und sonst nichts, den Bauchwert genau an den schlechten
    * Tagen auf null – gegen die eigene Regel, dass eine Lücke kein guter Tag ist.
    * Dasselbe gilt für einen Tag, an dem nur Wasser gezählt ist (tagZaehlt in
-   * js/wasser.js): Ein getipptes Glas sagt über den Bauch nichts.
+   * js/wasser.js): Ein getipptes Glas sagt über den Bauch nichts. Und für
+   * einen, an dem nur eine Aktivität steht (eintragZaehlt, ebendort): „Gym"
+   * sagt, was jemand gemacht hat, nicht wie es dem Bauch ging.
    */
-  const notiert = amTag.some((e) => e.art !== 'kopf') || tagZaehlt((tage || {})[iso]);
+  const notiert = amTag.some((e) => e.art !== 'kopf' && eintragZaehlt(e))
+    || tagZaehlt((tage || {})[iso]);
   const max = beschwerden.reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
   const summe = beschwerden.reduce((s, e) => s + (Number(e.staerke) || 0), 0);
   return {

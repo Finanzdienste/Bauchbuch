@@ -58,6 +58,7 @@
 import { plusTage, stundenDazwischen, tageDazwischen, tageszeitVon, zeitpunkt } from './datum.js';
 import { reihenfolgeUnklar } from './auswertung.js';
 import { zufallsSpielraum } from './zufall.js';
+import { eintragZaehlt } from './wasser.js';
 
 /** So viele Durchgänge mit der Sache, bevor überhaupt ein Urteil fällt. */
 export const MINDEST_LAEUFE = 3;
@@ -237,8 +238,9 @@ function alltagsWerte(eintraege, p, laufTage, heute) {
     const amTag = (eintraege || []).filter((e) => e.am === iso);
     // Ein Tag ohne jede Eintragung ist kein ruhiger Tag, sondern ein
     // unbekannter. Er darf den Vergleichswert nicht nach unten ziehen. Ein
-    // Tag mit nur einem Kopfschmerz ebenso wenig – zum Bauch steht da nichts.
-    if (!amTag.some((e) => e.art !== 'kopf')) continue;
+    // Tag mit nur einem Kopfschmerz ebenso wenig – zum Bauch steht da nichts –,
+    // und einer mit nur einer Aktivität auch nicht.
+    if (!amTag.some((e) => e.art !== 'kopf' && eintragZaehlt(e))) continue;
     const t0 = zeitpunkt(iso, uhr);
     werte.push(amTag
       .filter((e) => e.art === 'beschwerde')

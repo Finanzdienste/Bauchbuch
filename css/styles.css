@@ -180,8 +180,10 @@ p { margin: 0 0 8px; }
 
 /* ---------- Anlegen ---------- */
 /* Fünf Knöpfe nebeneinander wären auf einem schmalen Handy je 68 Pixel breit
- * und die Beschriftung dreizeilig. Zwei Reihen zu drei und zwei sind ruhiger,
- * und die beiden, die täglich gebraucht werden, stehen oben links. */
+ * und die Beschriftung dreizeilig. Zwei Reihen zu drei sind ruhiger, und die
+ * beiden, die täglich gebraucht werden, stehen oben links. Die Notiz als
+ * siebter Knopf liegt als flache Zeile über die ganze Breite darunter – ein
+ * einzelner Knopf in einer dritten Reihe sähe aus wie vergessen. */
 .anlegen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
 .anlegen-btn {
   background: var(--bg-elev);
@@ -197,6 +199,12 @@ p { margin: 0 0 8px; }
 .a-beschwerde { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
 .a-stuhl { border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
 .a-kopf { border-color: color-mix(in srgb, var(--leicht) 50%, var(--line)); }
+.a-aktivitaet { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.anlegen-btn.a-notiz {
+  grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 8px 4px; font-size: 13px;
+}
+.a-notiz .anlegen-i { font-size: 17px; }
 
 /* ---------- Wasser ---------- */
 /* Eine Zeile, auch bei 320 Pixeln: Name, Minus, Zahl, Plus. Die Zahl hat eine
@@ -256,6 +264,7 @@ p { margin: 0 0 8px; }
 .z-medikament { border-left-color: var(--warn); }
 .z-kopf { border-left-color: var(--leicht); }
 .z-notiz { border-left-color: var(--muted); }
+.z-aktivitaet { border-left-color: var(--ok); }
 .strang-uhr { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); min-width: 40px; }
 .strang-punkt { font-size: 15px; }
 /* Der Text ist der Knopf zum Ändern, das „›" daneben sagt, dass er einer
@@ -334,6 +343,13 @@ p { margin: 0 0 8px; }
   border-radius: 999px; padding: 8px 14px; cursor: pointer; font-size: 14px; min-height: 40px;
 }
 .wahl-btn.an { background: var(--accent-weich); border-color: var(--accent); }
+/* „Auswärts gegessen" unter der Portion: ein Schalter, keine dritte Portion. */
+.wahl-auswaerts { margin-top: 8px; }
+/* Das Feld für eine eigene Aktivität nimmt den Platz, den der Knopf übrig
+   lässt – auch bei 320 Pixeln in einer Zeile. */
+.aktiv-eigen { flex-wrap: nowrap; margin: 4px 0 6px; }
+.aktiv-eigen .feld { flex: 1; min-width: 0; }
+.aktiv-bewegung { border-top: 1px solid var(--line); padding-top: 8px; }
 
 /* ---------- Zutaten mit ihrer Rolle ---------- */
 .marken-eng { margin-top: 6px; }

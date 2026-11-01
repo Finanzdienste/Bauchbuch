@@ -27,6 +27,11 @@ const VORGABE = {
   //   stuhl       { form: 1..7, dringend, unvollstaendig, warnzeichen: [id] }
   //   medikament  { mittel, dosis, zuKopf }
   //   notiz       { text }
+  //   aktivitaet  { aktivitaeten: [id], intensitaet: 'leicht'|'mittel'|'hart'|null, notiz }
+  // Eine Aktivität ist ein Eintrag mit Uhrzeit, aber über den Körper sagt sie
+  // nichts – ein Tag, an dem nur sie steht, gilt nirgends als notiert (siehe
+  // js/aktivitaet.js). Ältere Stände haben keine.
+  // Eine Mahlzeit trägt seit November 2026 optional `auswaerts: true`.
   // `zuKopf` (optional) ist die Kennung des Kopfschmerzes, mit dem das Mittel
   // über „Dazu genommen?" angelegt wurde. Ältere Einträge haben es nicht.
   eintraege: [],
@@ -50,6 +55,13 @@ const VORGABE = {
   // Tagebucheintrag und hat in keiner Auswertung etwas zu suchen.
   ideen: [],
   eigeneAusloeser: [],   // [{ id: 'x:...', name }]
+  /*
+   * Eigene Aktivitäten, die in der Auswahl des Bogens fehlen: [{ id: 'a:...', name }].
+   *
+   * Wie die eigenen Auslöser nur die Auswahl, nicht das Tagebuch: Wer eine
+   * entfernt, nimmt sie aus dem Bogen, und die Einträge damit bleiben.
+   */
+  eigeneAktivitaeten: [],
   /*
    * Was geht und was nicht – selbst notiert, nicht gerechnet.
    *
@@ -318,6 +330,7 @@ function laden() {
     if (!('alterName' in gelesen)) s.alterName = 'offen';
     s.eintraege = sortiert((Array.isArray(s.eintraege) ? s.eintraege : []).map(mahlzeitFrisch));
     s.ideen = ideenMitMarke(s.ideen, s.ideenGeschickt);
+    if (!Array.isArray(s.eigeneAktivitaeten)) s.eigeneAktivitaeten = [];
     return s;
   } catch {
     return klon(VORGABE);
@@ -348,6 +361,31 @@ function mahlzeitFrisch(e) {
     zutaten: (Array.isArray(tags) ? tags : [])
       .filter((id) => typeof id === 'string')
       .map((id) => ({ id, rolle: 'haupt' })),
+  };
+}
+
+/*
+ * Die Stufen von „Wie anstrengend?" – dieselben wie INTENSITAETEN in
+ * js/aktivitaet.js. Hier noch einmal, weil der Speicher vor der Rechenschicht
+ * geladen wird und nichts von ihr wissen soll; tests/test-aktivitaet.mjs
+ * prüft, dass beide Listen gleich sind.
+ */
+const INTENSITAET_IDS = ['leicht', 'mittel', 'hart'];
+
+/**
+ * Eine Aktivität so einlesen, dass jede Rechnung sie versteht: die Kennungen
+ * als Liste von Zeichenketten, jede einmal; „wie anstrengend" nur mit einer
+ * Stufe, die es gibt, sonst ohne Angabe. Eine Aktivität ohne jede Kennung
+ * bleibt stehen – vielleicht trägt sie eine Notiz –, zählt aber nirgends.
+ */
+function aktivitaetFrisch(e) {
+  if (!e || e.art !== 'aktivitaet') return e;
+  const ids = (Array.isArray(e.aktivitaeten) ? e.aktivitaeten : [])
+    .filter((id) => typeof id === 'string' && id.trim()).map((id) => id.trim());
+  return {
+    ...e,
+    aktivitaeten: [...new Set(ids)],
+    intensitaet: INTENSITAET_IDS.includes(e.intensitaet) ? e.intensitaet : null,
   };
 }
 
@@ -625,6 +663,42 @@ export function ausloeserAnlegen(id, name) {
  */
 export function ausloeserLoeschen(id) {
   zustand.eigeneAusloeser = zustand.eigeneAusloeser.filter((a) => a.id !== id);
+  merke();
+  melde();
+}
+
+/* ---------- Eigene Aktivitäten ---------- */
+
+/*
+ * Mehr passen in den Bogen nicht, ohne dass man darin sucht. Wie bei den
+ * eigenen Mitteln sagt die App das, statt still eine nicht zu merken.
+ */
+export const AKTIV_HOECHSTENS = 24;
+export const AKTIV_NAME_MAX = 40;
+
+/**
+ * Eine eigene Aktivität anlegen. Die Kennung kommt von außen (siehe
+ * eigeneAktivitaetId in js/aktivitaet.js), wie bei den eigenen Auslösern.
+ *
+ * Zurück kommt { id, schon } – `schon`, wenn es sie genau so gibt; dann bleibt
+ * es bei einer –, { fehler: 'leer' } ohne Namen oder { fehler: 'voll' }.
+ */
+export function aktivitaetAnlegen(id, name) {
+  const sauber = String(name || '').trim().slice(0, AKTIV_NAME_MAX);
+  if (!sauber || typeof id !== 'string' || !id.startsWith('a:')) return { fehler: 'leer' };
+  if (zustand.eigeneAktivitaeten.some((a) => a.id === id)) return { id, schon: true };
+  if (zustand.eigeneAktivitaeten.length >= AKTIV_HOECHSTENS) return { fehler: 'voll' };
+  zustand.eigeneAktivitaeten = [...zustand.eigeneAktivitaeten, { id, name: sauber }];
+  merke();
+  melde();
+  return { id, schon: false };
+}
+
+/** Aus der Auswahl nehmen. Die Einträge, in denen sie steht, bleiben. */
+export function aktivitaetEntfernen(id) {
+  const vorher = zustand.eigeneAktivitaeten.length;
+  zustand.eigeneAktivitaeten = zustand.eigeneAktivitaeten.filter((a) => a.id !== id);
+  if (zustand.eigeneAktivitaeten.length === vorher) return;
   merke();
   melde();
 }
@@ -1291,12 +1365,19 @@ function sicherungLesen(text) {
   });
   frisch.eintraege = sortiert(gelesen.eintraege.filter((e) => (
     e && typeof e === 'object' && typeof e.am === 'string' && typeof e.art === 'string'
-  )).map((e) => mahlzeitFrisch({ ...e, id: e.id || neueId() })));
+  )).map((e) => aktivitaetFrisch(mahlzeitFrisch({ ...e, id: e.id || neueId() }))));
   // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
   // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
   frisch.standardMittel = frisch.standardMittel
     .filter((x) => x && typeof x === 'object' && typeof x.mittel === 'string' && x.mittel.trim())
     .map((x) => ({ ...x, ...standardSauber(x), id: x.id || neueId() }));
+  // Eigene Aktivitäten: eine Kennung mit `a:` und ein Name – sonst stünde im
+  // Bogen ein Knopf ohne Beschriftung. Doppelte fallen weg.
+  frisch.eigeneAktivitaeten = frisch.eigeneAktivitaeten
+    .filter((a) => a && typeof a === 'object' && typeof a.id === 'string' && a.id.startsWith('a:')
+      && typeof a.name === 'string' && a.name.trim())
+    .map((a) => ({ id: a.id, name: a.name.trim().slice(0, AKTIV_NAME_MAX) }))
+    .filter((a, i, alle) => alle.findIndex((x) => x.id === a.id) === i);
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
@@ -1398,14 +1479,15 @@ const VORHER = `${KEY}.vorher`;
  * Die eigenen Mittel zählen: Wer sie unter „Mehr" angelegt hat, bevor die
  * Sicherung vom alten Gerät da war, hat etwas eingetragen – und verlöre es,
  * wenn das Einlesen den Stand als leer ersetzte statt zusammenzuführen.
- * Gezähltes Wasser ebenso – es steht in `tage` und zählt damit hier mit.
+ * Gezähltes Wasser ebenso – es steht in `tage` und zählt damit hier mit. Und
+ * die eigenen Aktivitäten, wie die eigenen Auslöser.
  */
 export function istLeer(s = zustand) {
   return !s.eintraege.length && !Object.keys(s.tage || {}).length && !s.ideen.length
     && !s.kueche.length && !s.befunde.length && !s.termine.length && !s.gewicht.length
     && !s.eigeneAusloeser.length && !s.versuche.length && !s.provokationen.length
     && !s.stufenplaene.length && !s.versuch && !s.provokation && !s.stufenplan
-    && !(s.standardMittel || []).length;
+    && !(s.standardMittel || []).length && !(s.eigeneAktivitaeten || []).length;
 }
 
 function vorherAblegen() {
@@ -1472,6 +1554,9 @@ function zusammenfuehren(hier, dazu) {
   });
   neu.ideen = vereinigt(hier.ideen, dazu.ideen, (x) => x.id);
   neu.eigeneAusloeser = vereinigt(hier.eigeneAusloeser, dazu.eigeneAusloeser, (a) => a.id);
+  // Ohne Kürzen auf AKTIV_HOECHSTENS, aus demselben Grund wie bei den Mitteln.
+  neu.eigeneAktivitaeten = vereinigt(hier.eigeneAktivitaeten || [], dazu.eigeneAktivitaeten || [],
+    (a) => a.id);
   neu.kueche = vereinigt(hier.kueche, dazu.kueche, (k) => String(k.name || '').toLowerCase());
   neu.befunde = vereinigt(hier.befunde, dazu.befunde, (b) => b.id);
   neu.zuletztMittel = [...new Set([...hier.zuletztMittel, ...dazu.zuletztMittel])].slice(0, 5);

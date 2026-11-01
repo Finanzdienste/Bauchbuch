@@ -31,7 +31,7 @@
  */
 
 const VERSION = 'v26';
-const STAND = 'cfab3971c077';
+const STAND = 'a1f3e68f3b0b';
 const CACHE = `bauchbuch-${VERSION}-${STAND}`;
 
 const SHELL = [
@@ -46,6 +46,7 @@ const SHELL = [
   './js/chart.js',
   './js/store.js',
   './js/auswertung.js',
+  './js/aktivitaet.js',
   './js/bericht.js',
   './js/mittel.js',
   './js/klang.js',

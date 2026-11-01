@@ -2,7 +2,7 @@
 
 Ein Gesundheitstagebuch mit Schwerpunkt Magen und Verdauung. Man trägt ein, was
 man gegessen hat und wie es einem danach ging – dazu Stimmung, Anspannung,
-Schlaf, Bewegung und Zyklus. Nach ein paar Wochen zeigt die App, was
+Schlaf, Bewegung, Zyklus und was man gemacht hat. Nach ein paar Wochen zeigt die App, was
 zusammenfällt, ordnet das Bild ein und macht daraus einen Zettel für den
 nächsten Arzttermin.
 
@@ -33,11 +33,12 @@ bleibt.
 
 ## Was die App kann
 
-**Tag.** Sechs Knöpfe: Mahlzeit, Beschwerden, Kopfschmerz, Stuhlgang,
-Medikament, Notiz.
-Eine Mahlzeit bekommt einen freien Text, eine Portionsgröße und angekreuzte
-Merkmale aus einer kurzen Liste (Kaffee, Fettiges, Scharfes, Zwiebeln,
-Kohlensäure …). Beschwerden bekommen eine Stärke von 0 bis 10, eine oder
+**Tag.** Sieben Knöpfe: Mahlzeit, Beschwerden, Kopfschmerz, Stuhlgang,
+Medikament, Aktivität – und als flache Zeile über die ganze Breite darunter
+die Notiz; ein einzelner Knopf in einer dritten Reihe sähe aus wie vergessen.
+Eine Mahlzeit bekommt einen freien Text, eine Portionsgröße, den Schalter
+„Auswärts gegessen" und angekreuzte Merkmale aus einer kurzen Liste (Kaffee,
+Fettiges, Scharfes, Zwiebeln, Kohlensäure …). Beschwerden bekommen eine Stärke von 0 bis 10, eine oder
 mehrere Arten, die Frage nach dem Stuhlgang („danach besser, schlechter,
 unverändert?") und eine Notiz. Der Stuhlgang wird über die
 **Bristol-Skala** eingetragen – sieben Stufen mit Bild, von harten Klümpchen
@@ -170,6 +171,81 @@ gemeinsamen Gläser doppelt, und „was hier stand, gewinnt" verlöre die, die n
 dort gezählt wurden. Ein Tagebuch, in dem bisher nur Wasser steht, gilt beim
 Einlesen nicht als leer.
 
+**Aktivitäten.** Was man gemacht hat oder wo man war – Gym/Krafttraining,
+Laufen, Radfahren, Schwimmen, Spazieren, Yoga/Dehnen, Arbeit, Unterwegs/Reise,
+Feier/Ausgehen, Sauna –, weil das Bauch und Kopf aus dem Gleichgewicht
+bringen kann und in keiner Mahlzeit steht. Der Knopf „Aktivität" (🏃) öffnet
+einen Bogen mit diesen Marken, nach Häufigkeit sortiert, mehrere zugleich
+wählbar („Unterwegs" und „Feier" am selben Abend sind ein Eintrag). Was fehlt,
+legt man im Bogen mit „Dazu" an oder unter „Mehr" › „Eigene Aktivitäten";
+ein getippter, aber nicht übernommener Name wird beim Eintragen trotzdem
+angelegt, ein Name, den es schon gibt, nur ausgewählt. Dazu die Zeitknöpfe
+„morgens · mittags · abends" (ohne Bezug zum Essen), freiwillig „Wie
+anstrengend?" in drei Stufen und eine Notiz. Ändern und Löschen wie bei jeder
+anderen Art. Auf „Tag" stehen die zuletzt benutzten Aktivitäten als Reihe
+„Zuletzt gemacht" – heute trägt ein Tipp mit der jetzigen Uhrzeit ein, an
+einem vergangenen Tag öffnet er den Bogen vorgefüllt; ein Häkchen zeigt, was
+an diesem Tag schon steht. Die Reihe wird aus den Einträgen gelesen und
+nirgends gespeichert; eine unter „Mehr" entfernte eigene Aktivität fehlt
+darin, ihre Einträge behalten den Namen.
+
+„Auswärts gegessen" ist keine Aktivität, sondern ein Umstand der Mahlzeit,
+wie die große Portion und die späte Stunde: Es geht als Merkmal in die
+Auslöserbilanz ein, mit dem Fenster nach dem Essen und gegen die Mahlzeiten zu
+Hause. Der Aktivitätsbogen hat dafür den Weg „Als Mahlzeit eintragen", der
+Tag und Zeit mitnimmt. Umstände werden nie als „Heute eher ohne …" geraten,
+nie als Auslassversuch vorgeschlagen und bekommen kein „Wie viel davon?".
+
+Eine Aktivität ist ein Eintrag mit Uhrzeit, aber über den Körper sagt sie
+nichts. Ein Tag, an dem nur sie steht, gilt deshalb **nirgends als notiert** –
+nicht für den Bauch und nicht für den Kopf, nicht in Verlauf, Serie, Richtung,
+Kriterien, Stuhlgang, Zeitprofil, Provokationstest, Rat und Bericht. Dafür
+gibt es neben `tagZaehlt()` die Schwester `eintragZaehlt()` in
+`js/wasser.js`; jede Stelle, die einen Tag schon wegen irgendeines Eintrags
+für notiert hielt, fragt jetzt sie. Geprüft wird das wie beim Wasser als
+Gegenprobe: dasselbe Tagebuch mit und ohne Aktivitäten, auch an Tagen, an
+denen sonst nichts steht, ergibt in jeder Rechnung dasselbe. Steht heute
+nur eine Aktivität oder ein Kopfschmerz da, sagt der Rat „Für heute steht zum
+Bauch noch nichts im Tagebuch" statt „noch nichts".
+
+Unter „Muster" steht **„Was du gemacht hast"**: je Aktivität, wie oft in den
+Stunden danach Beschwerden kamen (dasselbe Fenster wie bei den Auslösern) und
+in den 24 Stunden danach Kopfschmerz – die Anstrengung macht ihren
+Kopfschmerz am selben Abend, die Feier ihren am nächsten Morgen. Verglichen
+wird nicht mit anderen Aktivitäten, sondern mit **denselben Stunden an Tagen
+ohne sie**, ab der mittleren Uhrzeit der Aktivität: Wer abends trainiert, wird
+mit seinen Abenden ohne Training verglichen. Nicht gezählt werden Tage ohne
+Angabe zum Bauch (beim Kopf: ohne jede Angabe, auch am Tag danach), Fenster,
+die noch laufen, Aktivitäten mit ungeklärter Reihenfolge zur Beschwerde,
+Kopffenster mit einem Kopfschmerz schon vorher, Vergleichsfenster mit der
+Aktivität darin oder kurz davor – und Vergleichstage vor dem ersten Eintrag
+dieser Aktivität oder nach dem letzten Tag mit irgendeiner Aktivität, weil dort
+unbekannt ist, ob sie stattfand. Die Mindestzahl ist die der Auslöser (Vorgabe
+fünf je Seite), beim Kopf zwölf; dazu der Zufallsspielraum mit der Zahl der
+Vergleiche. Darunter steht die Aktivität unter „Zählt noch". Kein Rat, nur
+Zahlen mit Fallzahl und der Satz, dass es eine Häufigkeit ist, keine Ursache.
+Der Bericht hat in der Übersicht die Zahl der Aktivitäten und einen Abschnitt
+„NACH AKTIVITÄTEN" mit je einer Zeile für Bauch und Kopf, nur mit genug
+Fällen.
+
+Die Tagesfrage **Bewegung** (keine bis sehr intensiv) wurde bisher gefragt
+und nirgends gerechnet. Sie steht jetzt in der Umstände-Bilanz
+(`FAKTOR_FRAGEN` in `js/auswertung.js`, eine Liste statt zweier Abschriften):
+Tage mit intensiver gegen Tage mit wenig oder keiner Bewegung, ab vier Tagen
+je Seite, unter „Muster" und im Bericht als ein Satz, unter einer ganzen Stufe
+Unterschied als „kein deutlicher Unterschied" – und mit dem Vorbehalt, dass
+sich an schlechten Tagen auch weniger bewegt wird. In die Muster über
+Anspannung und Schlaf geht sie nicht ein: Intensive Bewegung ist keine
+Anspannung.
+
+Eine Sicherung trägt Aktivitäten und eigene Aktivitäten mit. Beim Einlesen
+werden die Kennungen einer Aktivität zu einer Liste von Zeichenketten, „wie
+anstrengend" nur mit einer Stufe, die es gibt; eigene Aktivitäten brauchen
+eine Kennung mit `a:` und einen Namen. Beim Zusammenführen kommen beide
+Listen zusammen, über die Kennung. Ein Tagebuch, in dem bisher nur eigene
+Aktivitäten stehen, gilt beim Einlesen nicht als leer. Ältere Stände und
+Sicherungen laden unverändert.
+
 **Verlauf.** Ein Balken je Tag über 14, 30 oder 90 Tage, ein Monatskalender
 und vier Zahlen: notierte Tage, Anteil mit Beschwerden, mittlere Stärke,
 beschwerdefreie Tage in Folge. Darüber die **Richtung**: die letzten vierzehn
@@ -192,7 +268,7 @@ Warnzeichen, die Einordnung des Bildes, die
 **Stufenplan**, der **Provokationstest**, die
 Bilanz **nach Wirkweise**, dann die nach einzelnen Zutaten, das **Ansprechen
 auf die Mittel**, Tageszeit, Beschwerdeart, Stuhlgang, **Kopfschmerzen**,
-**was noch fehlt** und die Zyklusphase. Wer nur die ersten beiden Karten
+**was du gemacht hast**, **was noch fehlt** und die Zyklusphase. Wer nur die ersten beiden Karten
 liest, hat trotzdem das Wichtigste.
 
 **Ruhe.** Vier Atemübungen – 4–7–8, Quadrat, Gleichmaß, Bauchatmung – mit Ton,
@@ -234,7 +310,8 @@ verschlüsselt** (siehe unten) –, der Bericht für den Arzttermin, die
 Erinnerung** als Kalendereintrag (siehe unten), die Übersicht „Was die
 Mittel bewirken", seit wann die Beschwerden bestehen, die Einstellungen der
 Auswertung, welche Tagesfragen erscheinen sollen, ob Wasser gezählt wird und
-wie groß ein Glas ist, eigene Auslöser, Ton, vier Farbvarianten.
+wie groß ein Glas ist, eigene Auslöser, eigene Aktivitäten, Ton, vier
+Farbvarianten.
 
 ### Die Sicherung mit Passwort
 
@@ -1445,7 +1522,9 @@ vor dem ersten Eintrag, damit gar nicht erst umgezogen werden muss. Und unter
 verstreut wäre: der Weg auf den Home-Bildschirm, das Holen aus Safari, das
 Sichern als Datei (Teilen-Blatt › „In Dateien sichern" › „iCloud Drive"), was
 das Tagebuch erhält und was es kosten kann, was bei einem neuen Gerät zu tun
-ist und wie man einen Eintrag ändert oder löscht. Die Seite zeigt den Stand
+ist, wie man einen Eintrag ändert oder löscht und wie man festhält, was man
+gemacht hat – mit der einen Regel, die man sonst nicht errät: Eine Aktivität
+allein macht keinen Tag ohne Beschwerden. Die Seite zeigt den Stand
 dieses Geräts: ob Body Check schon als App läuft, wann zuletzt gesichert wurde
 und wie viel seitdem dazukam.
 
@@ -1578,7 +1657,10 @@ css/styles.css      ein Blatt, Farben als Variablen auf :root
 js/datum.js         Datum und Uhrzeit, hängt von nichts ab
 js/text.js          Text und Zahlen fürs Auge
 js/wasser.js        Gläser je Tag – und tagZaehlt(): ein Tag nur mit
-                    Wasser ist kein notierter Tag
+                    Wasser ist kein notierter Tag; eintragZaehlt(): einer
+                    nur mit einer Aktivität auch nicht
+js/aktivitaet.js    was man gemacht hat: Katalog, „Zuletzt gemacht" und
+                    was danach kam, gegen dieselben Stunden ohne
 js/daten.js         die Kataloge: Auslöser, Beschwerdearten, Skalenworte
 js/chart.js         Balken und Vergleichsbalken als SVG-Zeichenkette
 js/store.js         der Speicher – localStorage, mehr gibt es nicht
@@ -1648,7 +1730,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Achtundfünfzig Dateien, über 2300 Prüfungen, alle in einem echten Chromium. Kein
+Neunundfünfzig Dateien, über 2400 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -1707,6 +1789,7 @@ den Rückgabewert.
 | `test-kalender.mjs` | CRLF, 75 Oktette, maskierte Kommas: eine `.ics`, die der Kalender nicht annimmt, sieht im Browser aus wie eine, die er annimmt |
 | `test-stufenplan.mjs` | eine Karenz ohne Wirkung muss den Plan beenden, nicht weiterführen – und ein fehlender erster Tag darf kein Urteil über die kleine Menge ergeben |
 | `test-wasser.mjs` | als iPhone mit 320 Pixeln: ein Tipp, ein Glas, auch gestern, nie morgen und nie als Mahlzeit; dasselbe Tagebuch mit und ohne Wasser ergibt in zwanzig Rechnungen und im Bericht dasselbe; beim Zusammenführen gewinnt die größere Zahl – und alte Stände laden mit dem Zählen an |
+| `test-aktivitaet.mjs` | als iPhone mit 320 Pixeln: Bogen mit eigenen Aktivitäten, „Zuletzt gemacht" mit einem Tipp, Ändern, Löschen, „Als Mahlzeit eintragen" mit „Auswärts gegessen"; dasselbe Tagebuch mit und ohne Aktivitäten ergibt in achtundzwanzig Rechnungen und im Bericht dasselbe; Gym an jedem dritten Tag mit Beschwerden danach fällt auf, drei Feiern, Lücken, laufende Fenster und ungeklärte Reihenfolgen nicht, und Zufall auch nicht – und alte Stände laden weiter |
 | `test-provokation.mjs` | derselbe Schmerz an den Test- *und* an den Leermorgen darf nicht der Milch angelastet werden – und wer im Fenster frühstückt, hat keinen Durchgang gemacht |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,

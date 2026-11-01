@@ -43,6 +43,7 @@
  */
 import { zeitpunkt, stundenDazwischen } from './datum.js';
 import { merkmale, reihenfolgeUnklar } from './auswertung.js';
+import { eintragZaehlt } from './wasser.js';
 
 /**
  * Die drei Fenster.
@@ -152,8 +153,9 @@ export function fensterWerte(eintraege) {
     .sort((a, b) => a.t - b.t);
   const zu = zuordnen(eintraege);
   // „Das Tagebuch lief noch" – aber nur für den Bauch: Ein abendlicher
-  // Kopfeintrag macht ein Spätfenster nicht beobachtbar.
-  const letzterEintrag = eintraege.filter((e) => e.art !== 'kopf').reduce(
+  // Kopfeintrag macht ein Spätfenster nicht beobachtbar, eine abends
+  // eingetragene Aktivität ebenso wenig.
+  const letzterEintrag = eintraege.filter((e) => e.art !== 'kopf' && eintragZaehlt(e)).reduce(
     (m, e) => Math.max(m, zeitpunkt(e.am, e.um)), 0,
   );
   const beschwerden = eintraege.filter((e) => e.art === 'beschwerde');

@@ -22,7 +22,7 @@
  * Reine Rechnung. Was gestartet und abgebrochen wird, steht in js/store.js.
  */
 import { plusTage, tageDazwischen } from './datum.js';
-import { klassenVon } from './daten.js';
+import { UMSTAND_IDS, klassenVon } from './daten.js';
 import { merkmale, tagesWert, zutatenVon } from './auswertung.js';
 
 /** So lange wird nach der Wiedereinführung noch beobachtet. */
@@ -229,8 +229,9 @@ export function vorschlaege(nachKlassen, nachAusloesern, anzahl = 4) {
   const raus = [];
   (nachKlassen || []).filter((b) => b.genug && b.differenz >= 0.8)
     .slice(0, 2).forEach((b) => raus.push({ art: 'klasse', ziel: b.id, differenz: b.differenz, faelle: b.faelle }));
+  // Keine Umstände: Weggelassen wird eine Zutat, nicht „spät" oder „auswärts".
   (nachAusloesern || []).filter((b) => b.genug && b.differenz >= 1
-    && !['gross', 'spaet'].includes(b.id))
+    && !UMSTAND_IDS.includes(b.id))
     .slice(0, 3).forEach((b) => raus.push({ art: 'ausloeser', ziel: b.id, differenz: b.differenz, faelle: b.faelle }));
   return raus.sort((a, b) => b.differenz - a.differenz).slice(0, anzahl);
 }

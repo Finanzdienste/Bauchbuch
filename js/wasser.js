@@ -16,6 +16,11 @@
  * mitzählt. Wer ein Glas antippt, hat über seinen Bauch nichts gesagt. Deshalb
  * fragt jede dieser Stellen tagZaehlt() statt nach dem bloßen Dasein.
  *
+ * Dieselbe Gefahr hat seit den Aktivitäten (js/aktivitaet.js) auch der Strang
+ * selbst: „Gym um 18 Uhr" ist ein Eintrag, sagt aber über Bauch und Kopf so
+ * wenig wie ein Glas Wasser. Für ihn gibt es eintragZaehlt(), die Schwester
+ * von tagZaehlt() – beide stehen hier, damit es die Regel nur einmal gibt.
+ *
  * Hängt von nichts ab und darf deshalb überall benutzt werden.
  */
 
@@ -53,6 +58,29 @@ const feldLeer = (v) => v === null || v === undefined || v === ''
 export function tagZaehlt(tag) {
   if (!tag || typeof tag !== 'object') return false;
   return Object.entries(tag).some(([k, v]) => !ZAEHLT_NICHT.includes(k) && !feldLeer(v));
+}
+
+/*
+ * Arten im Strang, die einen Tag nicht zu einem notierten machen – weder für
+ * den Bauch noch für den Kopf. Wie oben eine Liste, damit die nächste Art
+ * dieser Sorte an genau einer Stelle dazukommt.
+ *
+ * Eine Notiz steht mit Absicht nicht hier: Wer abends „alles ruhig" schreibt,
+ * hat etwas über den Tag gesagt. Wer „Sauna" antippt, nicht.
+ */
+const SAGT_NICHTS = ['aktivitaet'];
+
+/**
+ * Sagt dieser Eintrag etwas über den Tag – oder hält er nur fest, was jemand
+ * gemacht hat?
+ *
+ * Jede Stelle, die einen Tag schon wegen irgendeines Eintrags für notiert
+ * hielt, fragt jetzt das. Ohne diese Frage wäre der Tag, an dem nur „Laufen"
+ * steht, ein beschwerdefreier Tag – und das Laufen sähe in jeder Rechnung
+ * besser aus, als es war.
+ */
+export function eintragZaehlt(e) {
+  return !!e && typeof e === 'object' && !SAGT_NICHTS.includes(e.art);
 }
 
 /** Die Gläser eines Tages als ganze Zahl von 0 bis WASSER_HOECHSTENS. */
