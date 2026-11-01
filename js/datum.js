@@ -151,3 +151,57 @@ export const TAGESZEIT_NAME = {
   nachmittag: 'nachmittags',
   abend: 'abends',
 };
+
+/*
+ * Die drei Tageszeiten der Zeitknöpfe im Bogen – „morgens, mittags, abends".
+ *
+ * Sie stehen hier und nicht bei den Knöpfen, weil zwei Stellen dieselbe
+ * Einteilung brauchen und sie sich nicht widersprechen dürfen: der Bogen, der
+ * aus „abends" eine Uhrzeit macht, und die Auswertung, die Beschwerden nach
+ * Tageszeit zählt. Stand „abends" auf 18:30 und zählte die Auswertung erst ab
+ * 19 Uhr als Abend, landete jede Beschwerde, die jemand ausdrücklich „abends"
+ * nannte, unter „nachmittags".
+ *
+ *   fach   Das Fach der Auswertung (tageszeit() oben), in das ein Eintrag mit
+ *          dieser gewählten Tageszeit gehört – unabhängig von der Minute, die
+ *          der Knopf dafür eingetragen hat.
+ *   um     Die Uhrzeit, die der Knopf einträgt. Sie liegt mitten im Fach, so
+ *          dass auch eine halbe Stunde davor oder danach noch darin liegt.
+ *   von,   Das Fenster, in dem eine Mahlzeit als Mahlzeit dieser Tageszeit
+ *   bis    gilt, in Minuten seit Mitternacht. Die Grenzen sind die von
+ *          tageszeit(). Weil es keinen Knopf „nachmittags" gibt, gehört der
+ *          Nachmittag zum Abend: Das Abendbrot um sechs muss „abends, nach dem
+ *          Essen" finden, sonst stünde dort „noch keine Mahlzeit", während es
+ *          zwei Zeilen darüber in der Liste steht.
+ */
+export const KNOPF_TAGESZEIT = {
+  morgens: { fach: 'morgen', um: '08:00', von: 5 * 60, bis: 11 * 60 },
+  mittags: { fach: 'mittag', um: '12:30', von: 11 * 60, bis: 15 * 60 },
+  abends: { fach: 'abend', um: '19:30', von: 15 * 60, bis: 24 * 60 },
+};
+
+/** Zu welcher Knopf-Tageszeit eine Uhrzeit gehört – oder null (nachts). */
+export function knopfTageszeit(uhr) {
+  const m = minutenAmTag(uhr);
+  const treffer = Object.entries(KNOPF_TAGESZEIT).find(([, t]) => m >= t.von && m < t.bis);
+  return treffer ? treffer[0] : null;
+}
+
+/**
+ * Die Knopf-Tageszeit eines Eintrags: die gewählte, wenn er mit einem
+ * Zeitknopf eingetragen ist, sonst die seiner Uhrzeit.
+ */
+export function tageszeitVon(e) {
+  if (e && e.ungefaehr && KNOPF_TAGESZEIT[e.tageszeit]) return e.tageszeit;
+  return knopfTageszeit(e && e.um);
+}
+
+/**
+ * Das Fach der Auswertung für einen Eintrag. Wer „abends" gewählt hat, meint
+ * abends – auch wenn der Knopf die Zeit an einer Mahlzeit um sechs
+ * eingerastet hat.
+ */
+export function fachVon(e) {
+  if (e && e.ungefaehr && KNOPF_TAGESZEIT[e.tageszeit]) return KNOPF_TAGESZEIT[e.tageszeit].fach;
+  return tageszeit(e && e.um);
+}

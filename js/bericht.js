@@ -490,15 +490,24 @@ export function arztBericht(zustand, von, bis) {
     sag();
   }
 
+  /*
+   * Mit Dosis, und jede Dosis für sich: „Pantoprazol – 30 Mal" verschweigt,
+   * ob das 20 oder 40 mg waren, und genau danach wird in der Sprechstunde
+   * zuerst gefragt. Groß und klein geschrieben ist derselbe Name.
+   */
   const mittel = new Map();
   imZeitraum.filter((e) => e.art === 'medikament').forEach((e) => {
-    const name = (e.mittel || 'ohne Angabe').trim();
-    mittel.set(name, (mittel.get(name) || 0) + 1);
+    const name = String(e.mittel || '').trim() || 'ohne Angabe';
+    const dosis = String(e.dosis || '').trim();
+    const k = `${name.toLowerCase()}|${dosis.toLowerCase()}`;
+    const v = mittel.get(k) || { text: dosis ? `${name} ${dosis}` : name, n: 0 };
+    v.n += 1;
+    mittel.set(k, v);
   });
   if (mittel.size) {
     sag('EINGENOMMENE MITTEL');
-    [...mittel.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, n]) => {
-      sag(`  ${name.padEnd(24)} ${mehrzahl(n, 'Mal', 'Mal')}`);
+    [...mittel.values()].sort((a, b) => b.n - a.n).forEach((v) => {
+      sag(`  ${v.text} – ${mehrzahl(v.n, 'Mal', 'Mal')}`);
     });
     sag();
   }

@@ -98,7 +98,9 @@ check(await page.locator('[data-act="zeit-tageszeit"]').count() === 3, 'die Besc
 check(await page.locator('[data-act="zeit-bezug"]').count() === 3, 'und „vor, beim, nach dem Essen"');
 
 await tippe('zeit-tageszeit', 'abends');
-check(await uhr() === '18:30', `„abends" setzt eine Abendzeit (${await uhr()})`);
+// 19:30 und nicht 18:30: Die Auswertung zählt erst ab 19 Uhr als Abend
+// (js/datum.js), und die Zeit des Knopfes muss in ihrem eigenen Fach liegen.
+check(await uhr() === '19:30', `„abends" setzt eine Abendzeit, die auch die Auswertung abends nennt (${await uhr()})`);
 check(
   await page.locator('[data-act="zeit-tageszeit"][data-id="abends"]').getAttribute('aria-pressed') === 'true',
   'und der Knopf ist als gewählt markiert',
@@ -178,22 +180,22 @@ await page.locator('[data-act="neu"][data-art="medikament"]').click();
 await page.waitForTimeout(150);
 await tippe('zeit-tageszeit', 'abends');
 await tippe('zeit-bezug', 'nach');
-check(await uhr() === '19:00', `ohne Mahlzeit rechnet „nach dem Essen" von der Tageszeit aus (${await uhr()})`);
+check(await uhr() === '20:00', `ohne Mahlzeit rechnet „nach dem Essen" von der Tageszeit aus (${await uhr()})`);
 check(
   (await page.locator('.zeit-hinweis').textContent()).includes('noch keine Mahlzeit'),
   'und sagt das dazu',
 );
 
 // Ohne Mahlzeit, an der die Zeit einrasten könnte, zeigt sich, ob sie
-// wandert: „vor" nach „nach" muss von 18:30 aus rechnen, nicht von 19:00.
+// wandert: „vor" nach „nach" muss von 19:30 aus rechnen, nicht von 20:00.
 await tippe('zeit-bezug', 'vor');
-check(await uhr() === '18:00', `„vor" nach „nach" wandert nicht weiter (${await uhr()})`);
+check(await uhr() === '19:00', `„vor" nach „nach" wandert nicht weiter (${await uhr()})`);
 await tippe('zeit-bezug', 'nach');
 
 // Noch einmal getippt: der Bezug fällt weg, die Zeit bleibt.
 await tippe('zeit-bezug', 'nach');
 check(
-  await page.locator('[data-act="zeit-bezug"][aria-pressed="true"]').count() === 0 && await uhr() === '19:00',
+  await page.locator('[data-act="zeit-bezug"][aria-pressed="true"]').count() === 0 && await uhr() === '20:00',
   'ein zweiter Tipp nimmt den Bezug zurück und lässt die Zeit stehen',
 );
 await page.locator('button.bogen-zu').click();
@@ -222,7 +224,7 @@ await page.waitForTimeout(250);
 gespeichert = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
 const mittel = gespeichert.eintraege.find((e) => e.art === 'medikament');
 check(
-  mittel && mittel.ungefaehr === true && mittel.tageszeit === 'abends' && mittel.um === '18:30',
+  mittel && mittel.ungefaehr === true && mittel.tageszeit === 'abends' && mittel.um === '19:30',
   `das dazu genommene Mittel ist ebenso ungefähr (${mittel && JSON.stringify({ um: mittel.um, u: mittel.ungefaehr })})`,
 );
 

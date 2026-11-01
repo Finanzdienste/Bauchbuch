@@ -20,7 +20,9 @@
  *   3. Es heißt „auffällig", nicht „verursacht". Was hier herauskommt, ist
  *      ein Anhaltspunkt fürs Gespräch beim Arzt, keine Diagnose.
  */
-import { plusTage, tageDazwischen, tageszeit, TAGESZEIT_NAME, zeitpunkt, stundenDazwischen } from './datum.js';
+import {
+  plusTage, tageDazwischen, fachVon, tageszeitVon, TAGESZEIT_NAME, zeitpunkt, stundenDazwischen,
+} from './datum.js';
 import { ALLE_AUSLOESER, KLASSEN, ROLLEN, ROLLE_VORGABE, klassenVon } from './daten.js';
 import { zufallsSpielraum } from './zufall.js';
 
@@ -68,23 +70,58 @@ export function merkmale(eintrag) {
 }
 
 /**
+ * Lässt sich nicht sagen, ob die Beschwerde vor oder nach dieser Mahlzeit kam?
+ *
+ * Mit den Zeitknöpfen eingetragen, stehen das Abendessen und das Bauchweh,
+ * beide „abends", auf derselben Minute. Die Minute ist ausgedacht; die
+ * Reihenfolge der beiden kennt niemand. Rechnete man trotzdem mit ihr, wäre
+ * die Beschwerde wegen `> 0` (siehe folgende) nie eine nach dem Essen – und
+ * zählte, weil die letzte Mahlzeit davor das Mittagessen ist, als nüchtern.
+ * Neun solche Abende ergäben „Nüchternschmerz, 9 von 9", erzeugt von einem
+ * Knopf.
+ *
+ * Unklar ist die Reihenfolge, wenn beide am selben Tag in derselben Tageszeit
+ * liegen und eine der beiden Zeiten nur ungefähr ist – die Beschwerde ohne
+ * Bezug zum Essen oder die Mahlzeit selbst. Klar ist sie dagegen, wenn die
+ * Beschwerde ausdrücklich an diese Mahlzeit gebunden ist: „vor dem Essen"
+ * und „nach dem Essen" sagen genau das, was hier gefragt ist.
+ */
+export function reihenfolgeUnklar(mahlzeit, beschwerde) {
+  if (!mahlzeit || !beschwerde || mahlzeit.am !== beschwerde.am) return false;
+  if (beschwerde.bezug && beschwerde.bezugMahlzeit && beschwerde.bezugMahlzeit === mahlzeit.id) return false;
+  const beschwerdeOffen = !!beschwerde.ungefaehr && !beschwerde.bezug;
+  if (!beschwerdeOffen && !mahlzeit.ungefaehr) return false;
+  const t = tageszeitVon(beschwerde);
+  return t !== null && t === tageszeitVon(mahlzeit);
+}
+
+/**
  * Die Beschwerden, die einer Mahlzeit im Zeitfenster folgen.
  *
  * `> 0` und nicht `>= 0`: Eine Beschwerde, die zur selben Minute eingetragen
  * ist wie die Mahlzeit, war schon da. Sie der Mahlzeit zuzurechnen hieße, die
- * Ursache nach der Wirkung zu suchen.
+ * Ursache nach der Wirkung zu suchen. Eine, bei der sich die Reihenfolge gar
+ * nicht sagen lässt, folgt ihr ebenso wenig.
  */
 export function folgende(eintraege, mahlzeit, fensterStunden) {
   const t0 = zeitpunkt(mahlzeit.am, mahlzeit.um);
   return eintraege.filter((e) => {
-    if (e.art !== 'beschwerde') return false;
+    if (e.art !== 'beschwerde' || reihenfolgeUnklar(mahlzeit, e)) return false;
     const abstand = stundenDazwischen(t0, zeitpunkt(e.am, e.um));
     return abstand > 0 && abstand <= fensterStunden;
   });
 }
 
-/** Die stärkste Beschwerde im Fenster, oder 0, wenn keine kam. */
+/**
+ * Die stärkste Beschwerde im Fenster, oder 0, wenn keine kam.
+ *
+ * `null`, wenn bei einer Beschwerde dieses Tages offen ist, ob sie vor oder
+ * nach der Mahlzeit kam. Dann ist die Mahlzeit weder gut noch schlecht
+ * gelaufen, sondern nicht bewertbar: Mit 0 stünde sie als beschwerdefrei in
+ * der Bilanz, mit der Beschwerde als Auslöser – beides wäre erfunden.
+ */
 export function wertNach(eintraege, mahlzeit, fensterStunden) {
+  if (eintraege.some((e) => e.art === 'beschwerde' && reihenfolgeUnklar(mahlzeit, e))) return null;
   const nach = folgende(eintraege, mahlzeit, fensterStunden);
   return nach.reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
 }
@@ -109,6 +146,9 @@ export function wertNach(eintraege, mahlzeit, fensterStunden) {
  *
  * `am` liegt bewusst obenauf: Die Schichtung schlägt damit den Tag nach, an
  * dem die Mahlzeit war, ohne den ganzen Eintrag auseinandernehmen zu müssen.
+ *
+ * Mahlzeiten, die sich nicht bewerten lassen (wertNach gibt null), fehlen
+ * hier – und damit in jeder Rechnung, die auf dieser Liste aufbaut.
  */
 export function bewerteteMahlzeiten(eintraege, fenster = 4) {
   return eintraege.filter((e) => e.art === 'essen').map((m) => ({
@@ -116,7 +156,7 @@ export function bewerteteMahlzeiten(eintraege, fenster = 4) {
     am: m.am,
     merkmale: new Set(merkmale(m)),
     wert: wertNach(eintraege, m, fenster),
-  }));
+  })).filter((b) => b.wert !== null);
 }
 
 export function ausloeserBilanz(eintraege, opt = {}) {
@@ -213,7 +253,7 @@ export function klassenBilanz(eintraege, opt = {}) {
   const bewertet = mahlzeiten.map((m) => ({
     klassen: new Set(zutatenVon(m).flatMap((z) => klassenVon(z.id))),
     wert: wertNach(eintraege, m, fenster),
-  }));
+  })).filter((b) => b.wert !== null);
 
   const zeilen = [];
   KLASSEN.forEach((k) => {
@@ -342,11 +382,13 @@ export function rollenBilanz(eintraege, id, fensterStunden) {
     && zutatenVon(e).some((z) => z.id === id));
   const raus = [];
   ROLLEN.forEach((r) => {
-    const mit = treffer.filter((e) => zutatenVon(e)
-      .some((z) => z.id === id && z.rolle === r.id));
-    if (!mit.length) return;
-    const summe = mit.reduce((sum, e) => sum + wertNach(eintraege, e, fensterStunden), 0);
-    raus.push({ rolle: r.id, faelle: mit.length, schnitt: summe / mit.length });
+    const werte = treffer.filter((e) => zutatenVon(e)
+      .some((z) => z.id === id && z.rolle === r.id))
+      .map((e) => wertNach(eintraege, e, fensterStunden))
+      .filter((w) => w !== null);
+    if (!werte.length) return;
+    const summe = werte.reduce((sum, w) => sum + w, 0);
+    raus.push({ rolle: r.id, faelle: werte.length, schnitt: summe / werte.length });
   });
   return raus.sort((a, b) => b.schnitt - a.schnitt);
 }
@@ -358,12 +400,17 @@ export function rollenBilanz(eintraege, id, fensterStunden) {
  *
  * `null`, wenn an dem Tag und dem davor gar nichts eingetragen ist – dann ist
  * die Angabe nicht „lange her", sondern unbekannt, und das sind zwei
- * verschiedene Dinge.
+ * verschiedene Dinge. Ebenso `null`, wenn offen ist, ob eine Mahlzeit dieses
+ * Tages vor oder nach der Beschwerde lag (siehe reihenfolgeUnklar): Dann kann
+ * es zehn Minuten oder sechs Stunden her sein, und weder „nach dem Essen"
+ * noch „nüchtern" wäre ehrlich.
  */
 export function stundenSeitEssen(eintraege, beschwerde) {
   const t = zeitpunkt(beschwerde.am, beschwerde.um);
+  const essen = eintraege.filter((e) => e.art === 'essen');
+  if (essen.some((e) => reihenfolgeUnklar(e, beschwerde))) return null;
   let letzte = null;
-  eintraege.filter((e) => e.art === 'essen').forEach((e) => {
+  essen.forEach((e) => {
     const te = zeitpunkt(e.am, e.um);
     if (te < t && (letzte === null || te > letzte)) letzte = te;
   });
@@ -545,12 +592,17 @@ export function verlaufReihe(eintraege, von, bis, tage = {}) {
 /**
  * Beschwerden nach Tageszeit. Beantwortet die Frage, die im Sprechzimmer
  * immer kommt: nüchtern oder nach dem Essen, tagsüber oder nachts.
+ *
+ * Eine Beschwerde, die mit dem Knopf „abends" eingetragen ist, zählt abends –
+ * auch wenn „nach dem Essen" sie am Abendbrot um sechs eingerastet hat. Die
+ * Tageszeit hat jemand gesagt, die Minute nicht (siehe fachVon in
+ * js/datum.js).
  */
 export function nachTageszeit(eintraege) {
   const faecher = Object.keys(TAGESZEIT_NAME);
   const eimer = Object.fromEntries(faecher.map((k) => [k, { anzahl: 0, summe: 0 }]));
   eintraege.filter((e) => e.art === 'beschwerde').forEach((e) => {
-    const f = eimer[tageszeit(e.um)];
+    const f = eimer[fachVon(e)];
     f.anzahl += 1;
     f.summe += Number(e.staerke) || 0;
   });

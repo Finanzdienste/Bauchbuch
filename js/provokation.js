@@ -55,7 +55,8 @@
  *
  * Reine Rechnung. Was gestartet und eingetragen wird, steht in js/store.js.
  */
-import { plusTage, stundenDazwischen, tageDazwischen, zeitpunkt } from './datum.js';
+import { plusTage, stundenDazwischen, tageDazwischen, tageszeitVon, zeitpunkt } from './datum.js';
+import { reihenfolgeUnklar } from './auswertung.js';
 import { zufallsSpielraum } from './zufall.js';
 
 /** So viele Durchgänge mit der Sache, bevor überhaupt ein Urteil fällt. */
@@ -166,6 +167,19 @@ export function laufBild(eintraege, lauf, p, vorheriger = null) {
     const d = stundenDazwischen(t0, zeitpunkt(e.am, e.um));
     return d > 0 && d <= fenster;
   });
+  /*
+   * Mit den Zeitknöpfen eingetragen, steht ein Frühstück „morgens" auf acht
+   * Uhr – womöglich auf derselben Minute wie der Durchgang. Ob es davor,
+   * danach oder weit weg davon war, weiß dann niemand, und ebenso wenig bei
+   * einer Beschwerde „morgens" ohne Bezug zum Essen. Ein Durchgang, bei dem
+   * das offen ist, zählt nicht: Sonst wäre er sauber oder hätte eine
+   * Reaktion, weil eine Minute ausgedacht ist.
+   */
+  const ort = { am: lauf.am, um: lauf.um };
+  const ungefaehrGegessen = mahlzeiten.filter((e) => e.ungefaehr && e.am === lauf.am
+    && !davor.includes(e) && !waehrend.includes(e) && tageszeitVon(e) === tageszeitVon(ort));
+  const ungefaehrBeschwerde = (eintraege || [])
+    .filter((e) => e.art === 'beschwerde' && reihenfolgeUnklar(ort, e));
 
   const wert = (eintraege || [])
     .filter((e) => e.art === 'beschwerde')
@@ -185,6 +199,10 @@ export function laufBild(eintraege, lauf, p, vorheriger = null) {
   const warum = [];
   if (davor.length) warum.push(`${davor.length}× gegessen in den ${nuechtern} Stunden davor`);
   if (waehrend.length) warum.push(`${waehrend.length}× gegessen im Beobachtungsfenster`);
+  if (ungefaehrGegessen.length) {
+    warum.push(`${ungefaehrGegessen.length}× gegessen zur selben Tageszeit, ohne genaue Uhrzeit`);
+  }
+  if (ungefaehrBeschwerde.length) warum.push('Beschwerde ohne genaue Uhrzeit – ob vor oder nach dem Durchgang, ist offen');
   if (zuNah) warum.push(`weniger als ${ABSTAND_TAGE} Tage nach dem vorigen Durchgang`);
 
   return {

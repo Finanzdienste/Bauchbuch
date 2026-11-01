@@ -45,7 +45,8 @@ check(text.includes('Mahlzeiten eingetragen     20'), 'zwanzig Mahlzeiten');
 check(text.includes('Medikamenteneinnahmen      10'), 'zehn Einnahmen');
 check(/Brennen\s+10 Mal/.test(text), 'die Beschwerdeart mit ihrer Häufigkeit');
 check(/mittags\s+10 Mal/.test(text), 'die Tageszeit, in der es auftrat');
-check(/Pantoprazol\s+10 Mal/.test(text), 'das eingenommene Mittel');
+// Mit Dosis: „Pantoprazol – 10 Mal" verschwiege, ob es 20 oder 40 mg waren.
+check(text.includes('Pantoprazol 20 mg – 10 Mal'), 'das eingenommene Mittel, mit seiner Dosis');
 check(text.includes('Viel Stress im Büro.'), 'die Notiz steht mit dabei');
 check(
   /Kaffee\s+6 gegen 0 \(10 Mahlzeiten damit, 10 ohne\)/.test(text),

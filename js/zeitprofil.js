@@ -42,7 +42,7 @@
  * Zahl zu ersetzen, die so aussieht, als wäre sie erhoben worden.
  */
 import { zeitpunkt, stundenDazwischen } from './datum.js';
-import { merkmale } from './auswertung.js';
+import { merkmale, reihenfolgeUnklar } from './auswertung.js';
 
 /**
  * Die drei Fenster.
@@ -128,7 +128,11 @@ function zuordnen(eintraege) {
     if (!letzte) return;
     const stunden = stundenDazwischen(letzte.t, t);
     if (stunden > 8) return;
-    zu.get(letzte.e.id).push({ stunden, staerke: Number(b.staerke) || 0, ungefaehr: !!b.ungefaehr });
+    // `ungefaehr`: Die Stunden sind dann aus einem Knopf gerechnet, nicht
+    // erhoben – auf der Seite der Beschwerde oder auf der der Mahlzeit.
+    zu.get(letzte.e.id).push({
+      stunden, staerke: Number(b.staerke) || 0, ungefaehr: !!b.ungefaehr || !!letzte.e.ungefaehr,
+    });
   });
   return zu;
 }
@@ -152,6 +156,7 @@ export function fensterWerte(eintraege) {
   const letzterEintrag = eintraege.filter((e) => e.art !== 'kopf').reduce(
     (m, e) => Math.max(m, zeitpunkt(e.am, e.um)), 0,
   );
+  const beschwerden = eintraege.filter((e) => e.art === 'beschwerde');
 
   return essen.map((x, i) => {
     const naechste = essen[i + 1] ? stundenDazwischen(x.t, essen[i + 1].t) : Infinity;
@@ -164,8 +169,14 @@ export function fensterWerte(eintraege) {
      * eingetragen, ist keines ihrer Fenster beobachtet: Sonst landete jede
      * „nach dem Essen"-Beschwerde künstlich nach einer halben Stunde, und das
      * Profil zeigte einen Magen, wo es nur einen Knopf zeigt.
+     *
+     * Und eine Beschwerde, bei der offen ist, ob sie vor oder nach dieser
+     * Mahlzeit kam, hängt vielleicht an ihr, vielleicht an der davor. Ohne
+     * diese Zeile stünde die Mahlzeit als beschwerdefrei da, weil die
+     * Beschwerde zufällig eine Minute früher eingetragen ist.
      */
-    const unklar = !!x.e.ungefaehr || liste.some((b) => b.ungefaehr);
+    const unklar = !!x.e.ungefaehr || liste.some((b) => b.ungefaehr)
+      || beschwerden.some((b) => reihenfolgeUnklar(x.e, b));
     const werte = {};
     FENSTER.forEach((f) => {
       const beobachtbar = !unklar && naechste >= f.bis && tagebuchBis >= f.bis;
@@ -189,8 +200,23 @@ export function fensterWerte(eintraege) {
 export function zeitBild(eintraege) {
   const zu = zuordnen(eintraege);
   const alle = [];
-  zu.forEach((liste) => liste.forEach((b) => alle.push(b)));
+  // Nur, was auf die Stunde erhoben ist. Eine „nach dem Essen" getippte
+  // Beschwerde liegt immer eine halbe Stunde hinter der Mahlzeit – mit ihr
+  // zeigte das Bild „die meisten kommen in den ersten zwei Stunden", und das
+  // hätte der Knopf gesagt, nicht der Bauch.
+  let geschaetzt = 0;
+  zu.forEach((liste) => liste.forEach((b) => {
+    if (b.ungefaehr) geschaetzt += 1;
+    else alle.push(b);
+  }));
   const gesamt = eintraege.filter((e) => e.art === 'beschwerde').length;
+  // Sonst stünde bei jemandem, der alles mit den Zeitknöpfen nachträgt,
+  // „0 Beschwerden zuordenbar" – und das sähe aus wie ein Fehler der App.
+  const ohneStunde = geschaetzt
+    ? ` ${geschaetzt} weitere sind mit ungefährer Zeit eingetragen. Sie sagen, `
+      + 'zu welcher Mahlzeit etwas gehört, aber nicht, nach wie vielen Stunden – '
+      + 'deshalb zählen sie hier nicht.'
+    : '';
 
   const teile = FENSTER.map((f) => {
     const drin = alle.filter((b) => b.stunden > f.von && b.stunden <= f.bis);
@@ -212,7 +238,7 @@ export function zeitBild(eintraege) {
       gesamt,
       satz: `Bisher lassen sich ${alle.length} Beschwerden einer Mahlzeit `
         + 'davor zuordnen. Für ein Zeitprofil sind das zu wenige – das heißt '
-        + 'nicht, dass es keines gibt.',
+        + `nicht, dass es keines gibt.${ohneStunde}`,
     };
   }
 
@@ -238,7 +264,7 @@ export function zeitBild(eintraege) {
         + 'als Ursache.',
     hinweis: 'Zugeordnet wird immer der letzten Mahlzeit davor. Späte Stunden '
       + 'sind deshalb seltener beobachtbar als frühe – wer alle drei Stunden '
-      + 'isst, kann über den Dickdarm wenig erfahren.',
+      + `isst, kann über den Dickdarm wenig erfahren.${ohneStunde}`,
   };
 }
 

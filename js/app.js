@@ -12,8 +12,8 @@
  */
 import * as store from './store.js';
 import {
-  fmtDatum, fmtMonat, fmtTag, heuteISO, jetztUhr, monatsRaster, monatsStart,
-  plusMonate, plusTage, tageDazwischen, WOCHE_KOPF,
+  fmtDatum, fmtMonat, fmtTag, heuteISO, jetztUhr, KNOPF_TAGESZEIT, monatsRaster, monatsStart,
+  plusMonate, plusTage, tageDazwischen, tageszeitVon, WOCHE_KOPF,
 } from './datum.js';
 import { esc, fmtZahl, kuerze, mehrzahl } from './text.js';
 import {
@@ -163,6 +163,9 @@ const ui = {
   // Steht unter „Mehr" gerade die Anleitung (Home-Bildschirm und Sichern)?
   // Flüchtig: Wer „Mehr" antippt, landet wieder auf „Mehr".
   anleitung: false,
+  // Das offene Formular in der Karte „Meine Mittel" unter „Mehr":
+  // { id, mittel, dosis, tageszeit, bezug }, id null für ein neues.
+  mittelForm: null,
 };
 
 /*
@@ -729,28 +732,34 @@ function tagAnsicht(s) {
    * sterben: Nicht ein Fehler in der Auswertung bringt sie um, sondern dass
    * nach drei Wochen niemand mehr etwas einträgt. Erst ab zwei Vorkommen –
    * eine Mahlzeit, die es einmal gab, ist keine Gewohnheit.
+   *
+   * Auch auf vergangenen Tagen, denn wer abends nachträgt, trägt oft gestern
+   * nach. Dort trägt der Tipp aber nicht ein, sondern öffnet den Bogen,
+   * vorgefüllt: „jetzt" wäre für gestern gelogen, und die Zeit ist mit einem
+   * Zeitknopf schnell gewählt.
    */
-  const schnell = iso === heuteISO()
+  const heute = iso === heuteISO();
+  const schnell = !kuenftig
     ? haeufigeMahlzeiten(s.eintraege, 12).filter((v) => v.anzahl >= 2).slice(0, 3) : [];
   /*
    * Die eigenen Mittel als Direkttaste – auf jedem Tag, nicht nur heute: Wer
    * abends den ganzen Tag nachträgt, trägt auch gestern nach. Ein Häkchen
    * zeigt, was an diesem Tag schon steht; ein zweiter Tipp legt trotzdem
    * einen zweiten Eintrag an, denn manches wird zweimal am Tag genommen.
+   *
+   * Ohne gemerktes Mittel steht an dieser Stelle ein Satz, wo das geht – der
+   * Weg über den Medikamenten-Bogen ist sonst nur zu finden, wenn man ihn
+   * schon kennt.
    */
-  const schonDa = (m) => liste.some((x) => x.art === 'medikament'
-    && String(x.mittel || '').trim().toLowerCase() === m.mittel.trim().toLowerCase());
-  const mittelReihe = s.standardMittel.length && !kuenftig ? `<div class="schnell">
+  const mittelReihe = kuenftig ? '' : s.standardMittel.length ? `<div class="schnell">
     <p class="feld-name">Meine Mittel – ein Tipp trägt ein</p>
-    <div class="marken marken-eng">${s.standardMittel.map((m) => `
-      <button type="button" class="marke marke-schnell" data-act="standard-eintragen" data-id="${esc(m.id)}"
-              ${schonDa(m) ? 'aria-label="' + esc(mittelText(m)) + ', heute schon eingetragen"' : ''}>
-        ${esc(kuerze(mittelText(m), 26))}${schonDa(m) ? ' <span class="marke-zahl">✓</span>' : ''}
-      </button>`).join('')}</div>
-  </div>` : '';
+    <div class="marken marken-eng">${s.standardMittel.map((m) => standardKnopf(m, liste, iso, s.standardMittel)).join('')}</div>
+  </div>` : `<p class="klein mittel-tipp">Deine täglichen Mittel kannst du einmal unter
+    <button type="button" class="link-knopf" data-act="meine-mittel-zeigen">„Mehr“ › „Meine Mittel“</button>
+    anlegen – dann trägt sie hier ein Tipp ein.</p>`;
 
   const schnellReihe = schnell.length ? `<div class="schnell">
-    <p class="feld-name">Noch mal wie immer</p>
+    <p class="feld-name">Noch mal wie immer${heute ? '' : ' – die Zeit wählst du im Bogen'}</p>
     <div class="marken marken-eng">${schnell.map((v, i) => `
       <button type="button" class="marke marke-schnell" data-act="schnell" data-i="${i}">
         ${esc(kuerze(v.text, 22))} <span class="marke-zahl">${v.anzahl}×</span>
@@ -809,7 +818,7 @@ function tagAnsicht(s) {
   return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
     + provokationZeile(s, iso) + bilanz + zyklusZeile + kopfNachtragKarte(s, iso)
-    + (iso === heuteISO() ? ratKarte(s) : '') + schnellReihe + mittelReihe + anlegen + zeilen + umstaende
+    + (heute ? ratKarte(s) : '') + schnellReihe + mittelReihe + anlegen + zeilen + umstaende
     // Ans Ende und zugeklappt: Die Liste ist zum Nachsehen da, nicht zum
     // täglichen Durchscrollen. Wer sie sucht, findet sie an derselben Stelle.
     + (iso === heuteISO() ? kuecheKarte(s) : '');
@@ -3707,6 +3716,8 @@ function mehrAnsicht(s) {
       </div>` : ''}
   </div>
 
+  ${meineMittelKarte(s)}
+
   ${mittelKarte(s)}
 
   <div class="karte">
@@ -3838,6 +3849,60 @@ function mehrAnsicht(s) {
 
 /* ---------- Was die Mittel bewirken ---------- */
 
+/*
+ * „Meine Mittel" anlegen, ändern, entfernen – ohne dabei etwas einzutragen.
+ *
+ * Bisher entstand ein eigenes Mittel nur im Medikamenten-Bogen, also nur
+ * zusammen mit einer Einnahme. Wer seine täglichen Tabletten einmal in Ruhe
+ * anlegen will, bevor er die erste davon nimmt, oder die Dosis ändern muss,
+ * weil die Praxis sie geändert hat, braucht dafür einen Ort ohne Bogen.
+ */
+function meineMittelKarte(s) {
+  const f = ui.mittelForm;
+  const voll = s.standardMittel.length >= store.STANDARD_HOECHSTENS;
+  const wahl = (liste, act, aktiv) => `<div class="marken marken-eng">${liste.map((x) => `
+    <button type="button" class="marke${aktiv === x.id ? ' an' : ''}" data-act="${act}"
+            data-id="${x.id}" aria-pressed="${aktiv === x.id}">${x.name}</button>`).join('')}</div>`;
+  const formular = () => `<div class="mittel-formular">
+    <label class="feld-name" for="mmName">Name</label>
+    <input type="text" class="feld feld-breit" id="mmName" data-act="mm-name"
+           value="${esc(f.mittel)}" placeholder="z. B. Pantoprazol" autocomplete="off">
+    <label class="feld-name" for="mmDosis">Dosis</label>
+    <input type="text" class="feld feld-breit" id="mmDosis" data-act="mm-dosis"
+           value="${esc(f.dosis)}" placeholder="z. B. 40 mg" autocomplete="off">
+    <p class="feld-name">Wann du es üblicherweise nimmst</p>
+    ${wahl(TAGESZEITEN, 'mm-tageszeit', f.tageszeit)}
+    ${wahl(ESSENSBEZUG, 'mm-bezug', f.bezug)}
+    <p class="klein">Ohne Zeit trägt ein Tipp heute mit der jetzigen Uhrzeit ein,
+    an einem anderen Tag öffnet sich der Bogen.</p>
+    <div class="reihe">
+      ${knopf('mm-speichern', f.id ? 'Speichern' : 'Hinzufügen', 'btn-primary')}
+      ${knopf('mm-abbrechen', 'Abbrechen', 'btn-ghost')}
+    </div>
+  </div>`;
+  const zeile = (m) => (f && f.id === m.id ? `<li class="mm-offen">${formular()}</li>` : `<li>
+    <span>${esc(mittelName(m))}<span class="zeile-tags">${esc(vorlageText(m) || 'ohne übliche Zeit')}</span></span>
+    <span class="mm-knoepfe">
+      ${knopf('meinmittel-aendern', 'Ändern', 'btn-ghost btn-klein', `data-id="${esc(m.id)}" aria-label="${esc(mittelName(m))} ändern"`)}
+      <button type="button" class="strang-weg" data-act="meinmittel-weg" data-id="${esc(m.id)}"
+              aria-label="${esc(mittelName(m))} entfernen">×</button>
+    </span>
+  </li>`);
+  return `<div class="karte" id="meineMittel">
+    <h3>Meine Mittel</h3>
+    <p class="klein">Was du regelmäßig nimmst, mit Dosis und üblicher Zeit. Es steht
+    dann auf dem Tag-Reiter als Knopf: ein Tipp, und die Einnahme ist eingetragen.
+    Hier anlegen trägt noch nichts ein.</p>
+    ${s.standardMittel.length ? `<ul class="wartend meine-mittel">${s.standardMittel.map(zeile).join('')}</ul>`
+    : '<p class="klein">Noch keins angelegt.</p>'}
+    ${f && !f.id ? formular() : ''}
+    ${f ? '' : (voll
+    ? `<p class="klein">Mehr als ${store.STANDARD_HOECHSTENS} passen nicht. Entferne erst eins,
+       das du nicht mehr nimmst.</p>`
+    : `<div class="reihe">${knopf('meinmittel-neu', 'Mittel hinzufügen')}</div>`)}
+  </div>`;
+}
+
 function mittelKarte(s) {
   // Was tatsächlich eingetragen wurde – das steht oben, alles andere darunter.
   const eigene = new Map();
@@ -3906,18 +3971,19 @@ function mittelKarte(s) {
  *
  * Was ein Knopf einträgt, ist trotzdem eine Uhrzeit, damit alles, was nach
  * Tag, Tageszeit und Mahlzeit fragt, weiter funktioniert: „nach dem Essen"
- * liegt eine halbe Stunde hinter der Mahlzeit, die an diesem Tag am nächsten
- * liegt, und gehört damit zu genau dieser Mahlzeit. Der Eintrag trägt aber
- * `ungefaehr: true`. Das Zeitprofil (js/zeitprofil.js), das auf die Stunde
- * genau fragt, wie lange nach dem Essen etwas kommt, zählt solche Mahlzeiten
- * deshalb als nicht erhoben – sonst landete jede „nach dem Essen"-Beschwerde
- * künstlich im frühen Fenster.
+ * liegt eine halbe Stunde hinter der Mahlzeit dieser Tageszeit und gehört
+ * damit zu genau dieser Mahlzeit. Der Eintrag trägt aber `ungefaehr: true`.
+ * Das Zeitprofil (js/zeitprofil.js), das auf die Stunde genau fragt, wie
+ * lange nach dem Essen etwas kommt, zählt solche Mahlzeiten deshalb als nicht
+ * erhoben – sonst landete jede „nach dem Essen"-Beschwerde künstlich im
+ * frühen Fenster.
+ *
+ * Uhrzeit und Fenster der drei Tageszeiten stehen in js/datum.js, bei der
+ * Einteilung, nach der die Auswertung zählt. Zwei Listen, die sich
+ * widersprechen konnten, gab es schon einmal: „abends" trug 18:30 ein, und die
+ * Auswertung zählte erst ab 19 Uhr als Abend.
  */
-const TAGESZEITEN = [
-  { id: 'morgens', name: 'morgens', um: '08:00' },
-  { id: 'mittags', name: 'mittags', um: '12:30' },
-  { id: 'abends', name: 'abends', um: '18:30' },
-];
+const TAGESZEITEN = Object.entries(KNOPF_TAGESZEIT).map(([id, t]) => ({ id, name: id, um: t.um }));
 /*
  * „beim Essen" liegt zehn Minuten nach dem Beginn der Mahlzeit und nicht auf
  * derselben Minute. Die Auswertung rechnet eine Beschwerde, die zur selben
@@ -3946,11 +4012,20 @@ function uhrVon(minuten) {
   return `${p(Math.floor(x / 60))}:${p(x % 60)}`;
 }
 
-/** Die Mahlzeit dieses Tages, die der Uhrzeit am nächsten liegt – oder null. */
-function bezugsMahlzeit(s, am, um) {
+/**
+ * Die Mahlzeit, an der ein Bezug zum Essen einrastet – oder null.
+ *
+ * Ist eine Tageszeit gewählt, kommen nur die Mahlzeiten dieser Tageszeit in
+ * Frage (Fenster in js/datum.js), und von ihnen die, die der Uhrzeit am
+ * nächsten liegt. Sonst rastete „abends, nach dem Essen" am Frühstück ein,
+ * wenn das Abendessen noch nicht eingetragen ist – mit 08:15 als
+ * „Abendzeit". Ohne gewählte Tageszeit gilt die nächste Mahlzeit des Tages.
+ */
+function bezugsMahlzeit(s, am, um, tageszeit = null) {
   const ziel = minutenVon(um);
   let beste = null;
-  s.eintraege.filter((x) => x.art === 'essen' && x.am === am).forEach((x) => {
+  s.eintraege.filter((x) => x.art === 'essen' && x.am === am
+    && (!tageszeit || tageszeitVon(x) === tageszeit)).forEach((x) => {
     const abstand = Math.abs(minutenVon(x.um) - ziel);
     if (!beste || abstand < beste.abstand) beste = { e: x, abstand };
   });
@@ -3962,22 +4037,32 @@ function zeitKnoepfe(art, e) {
   const reihe = (liste, act, aktiv) => `<div class="marken marken-eng">${liste.map((x) => `
     <button type="button" class="marke${aktiv === x.id ? ' an' : ''}" data-act="${act}"
             data-id="${x.id}" aria-pressed="${aktiv === x.id}">${x.name}</button>`).join('')}</div>`;
+  // Ohne Mahlzeit sagt der Bogen, womit er gerechnet hat – und dass die Zeit
+  // nachrückt, sobald die Mahlzeit eingetragen ist (siehe nachziehen).
+  const ohne = e.bezug && !e.bezugMahlzeit
+    ? (e.tageszeit
+      ? ` – an diesem Tag steht ${esc(e.tageszeit)} noch keine Mahlzeit, gerechnet wird mit der Tageszeit`
+      : ' – an diesem Tag steht noch keine Mahlzeit, gerechnet wird mit der Uhrzeit')
+      + '. Trägst du sie nach, rückt die Zeit mit'
+    : '';
   const hinweis = e.ungefaehr
-    ? `<p class="klein zeit-hinweis">Ungefähr${e.bezug && !e.bezugMahlzeit
-      ? ' – an diesem Tag steht noch keine Mahlzeit, gerechnet wird mit der Tageszeit' : ''}.
+    ? `<p class="klein zeit-hinweis">Ungefähr${ohne}.
       Zählt für den Tag und die Mahlzeit, nicht für die Minute.</p>`
     : '';
-  return `<div class="zeit-knoepfe" role="group" aria-label="Ungefähre Zeit">
+  return `<div class="zeit-knoepfe" id="bogenZeitKnoepfe" role="group" aria-label="Ungefähre Zeit">
     ${reihe(TAGESZEITEN, 'zeit-tageszeit', e.tageszeit)}
     ${MIT_ESSENSBEZUG.includes(art) ? reihe(ESSENSBEZUG, 'zeit-bezug', e.bezug) : ''}
     ${hinweis}
   </div>`;
 }
 
-/** Die Uhrzeit für einen Bezug zum Essen, ausgehend von einer Grundzeit. */
-function zeitMitBezug(s, am, basis, bezugId) {
+/**
+ * Die Uhrzeit für einen Bezug zum Essen, ausgehend von einer Grundzeit – an
+ * der Mahlzeit dieser Tageszeit, und ohne eine solche von der Grundzeit aus.
+ */
+function zeitMitBezug(s, am, basis, bezugId, tageszeit = null) {
   const bezug = ESSENSBEZUG.find((x) => x.id === bezugId);
-  const mahlzeit = bezugsMahlzeit(s, am, basis);
+  const mahlzeit = bezugsMahlzeit(s, am, basis, tageszeit);
   const ab = mahlzeit ? minutenVon(mahlzeit.um) : minutenVon(basis);
   return { um: uhrVon(ab + bezug.minuten), bezugMahlzeit: mahlzeit ? mahlzeit.id : null };
 }
@@ -3999,13 +4084,91 @@ function zeitAusVorlage(s, am, um, tageszeit, bezug) {
     bezugMahlzeit: null,
   };
   if (bezug && ESSENSBEZUG.some((x) => x.id === bezug)) {
-    Object.assign(patch, { bezug }, zeitMitBezug(s, am, basis, bezug));
+    Object.assign(patch, { bezug }, zeitMitBezug(s, am, basis, bezug, t ? t.id : null));
   }
   return patch;
 }
 
-/** „Pantoprazol · 40 mg" */
-const mittelText = (m) => `${m.mittel}${m.dosis ? ` · ${m.dosis}` : ''}`;
+/*
+ * Nachtragen in beliebiger Reihenfolge.
+ *
+ * Wer abends den Tag nachträgt, trägt die Tablette „morgens, vor dem Essen"
+ * vielleicht ein, bevor das Frühstück dasteht. Dann hat der Bogen von der
+ * Tageszeit aus gerechnet – und ohne diese Stelle bliebe die Tablette dort,
+ * auch wenn zwei Minuten später das Frühstück um halb zehn dazukommt.
+ *
+ * Wird eine Mahlzeit angelegt, verschoben oder gelöscht, rasten deshalb die
+ * ungefähren Einträge desselben Tages mit Bezug zum Essen neu ein: die, deren
+ * Tageszeit zur Mahlzeit passt, die an genau dieser Mahlzeit hingen, und die,
+ * die noch an keiner hängen. Eine von Hand gesetzte Uhrzeit bleibt, wie sie
+ * ist – die hat jemand gewusst.
+ *
+ * Zurück kommt der Satz für die Meldung, oder ''. Ein Eintrag, der still
+ * wandert, ist einer, dem man nicht mehr traut.
+ */
+function nachziehen(mahlzeitId, vorher, nachher) {
+  const s = store.zustandLesen();
+  const tage = new Set([vorher && vorher.am, nachher && nachher.am].filter(Boolean));
+  const passt = (e, m) => !!m && !!e.tageszeit && m.am === e.am && tageszeitVon(m) === e.tageszeit;
+  let zuMahlzeit = 0;
+  let zuTageszeit = 0;
+  s.eintraege.filter((e) => tage.has(e.am) && e.ungefaehr && MIT_ESSENSBEZUG.includes(e.art)
+    && ESSENSBEZUG.some((x) => x.id === e.bezug)
+    && (e.bezugMahlzeit === mahlzeitId || !e.bezugMahlzeit || passt(e, vorher) || passt(e, nachher)))
+    .forEach((e) => {
+      const neu = zeitNeu(s, e);
+      if (neu.um === e.um && (neu.bezugMahlzeit || null) === (e.bezugMahlzeit || null)) return;
+      store.eintragAendern(e.id, neu);
+      if (neu.bezugMahlzeit) zuMahlzeit += 1;
+      else zuTageszeit += 1;
+    });
+  return [
+    zuMahlzeit ? `${mehrzahl(zuMahlzeit, 'Eintrag', 'Einträge')} an die Mahlzeit angepasst.` : '',
+    zuTageszeit ? `${mehrzahl(zuTageszeit, 'Eintrag', 'Einträge')} an die Tageszeit angepasst.` : '',
+  ].filter(Boolean).join(' ');
+}
+
+/** Wo ein ungefährer Eintrag mit Bezug zum Essen jetzt hingehört. */
+function zeitNeu(s, e) {
+  const bezug = ESSENSBEZUG.find((x) => x.id === e.bezug);
+  const t = TAGESZEITEN.find((x) => x.id === e.tageszeit);
+  if (t) return zeitMitBezug(s, e.am, t.um, e.bezug, t.id);
+  // Ohne Tageszeit: an der bisherigen Mahlzeit, solange es sie an diesem Tag
+  // gibt, sonst an der, die ihrer Zeit am nächsten liegt.
+  const bisher = s.eintraege.find((x) => x.id === e.bezugMahlzeit && x.art === 'essen' && x.am === e.am);
+  if (bisher) return { um: uhrVon(minutenVon(bisher.um) + bezug.minuten), bezugMahlzeit: bisher.id };
+  return zeitMitBezug(s, e.am, uhrVon(minutenVon(e.um) - bezug.minuten), e.bezug);
+}
+
+/**
+ * Die Zeit im Bogen für einen anderen Tag neu rechnen.
+ *
+ * „Morgens, vor dem Essen" ist an jedem Tag eine andere Uhrzeit, denn es
+ * hängt am Frühstück dieses Tages. Wer nach dem Knopf noch das Datum ändert,
+ * meint den neuen Tag – stehen bliebe sonst die Zeit vom alten. Gezeichnet
+ * wird nur, was sich ändert: Ein neu gezeichnetes Datumsfeld schlösse auf dem
+ * iPhone die Auswahl, in der man gerade blättert.
+ */
+function zeitFuerNeuenTag() {
+  const b = ui.bogen;
+  const e = b && b.entwurf;
+  if (!e || !e.ungefaehr) return;
+  const t = TAGESZEITEN.find((x) => x.id === e.tageszeit);
+  const bezug = MIT_ESSENSBEZUG.includes(b.art) ? ESSENSBEZUG.find((x) => x.id === e.bezug) : null;
+  const basis = t ? t.um : (e.bezugBasis || (bezug ? uhrVon(minutenVon(e.um) - bezug.minuten) : e.um));
+  entwurf(zeitAusVorlage(store.zustandLesen(), e.am, basis, e.tageszeit, bezug ? bezug.id : null), false);
+  const uhr = document.getElementById('bogenUhr');
+  if (uhr) uhr.value = e.um;
+  const knoepfe = document.getElementById('bogenZeitKnoepfe');
+  if (knoepfe) knoepfe.outerHTML = zeitKnoepfe(b.art, e);
+}
+
+/* ---------- Meine Mittel ---------- */
+
+const gleichText = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+
+/** „Pantoprazol 40 mg" */
+const mittelName = (m) => `${m.mittel}${m.dosis ? ` ${m.dosis}` : ''}`;
 
 /** „morgens, vor dem Essen" – die übliche Zeit eines Standardmittels. */
 function vorlageText(m) {
@@ -4013,6 +4176,136 @@ function vorlageText(m) {
     (TAGESZEITEN.find((x) => x.id === m.tageszeit) || {}).name,
     (ESSENSBEZUG.find((x) => x.id === m.bezug) || {}).name,
   ].filter(Boolean).join(', ');
+}
+
+/** „Pantoprazol 40 mg · morgens, vor dem Essen" */
+const vorlageVoll = (m) => `${mittelName(m)}${vorlageText(m) ? ` · ${vorlageText(m)}` : ''}`;
+
+/** Tageszeit und Bezug eines Entwurfs – so, wie sie beim Merken gelten. */
+function entwurfZeit(e) {
+  return e.ungefaehr
+    ? { tageszeit: e.tageszeit || null, bezug: e.bezug || null }
+    : { tageszeit: null, bezug: null };
+}
+
+/**
+ * Die kurze Zeitangabe auf dem Knopf: die Tageszeit, und der Bezug zum Essen
+ * nur dann, wenn es dasselbe Mittel zur selben Tageszeit noch einmal mit
+ * anderem Bezug gibt – sonst stünden zwei gleiche Knöpfe da.
+ */
+function knopfZeit(m, alle) {
+  const t = (TAGESZEITEN.find((x) => x.id === m.tageszeit) || {}).name;
+  const b = (ESSENSBEZUG.find((x) => x.id === m.bezug) || {}).name;
+  if (!t) return b || '';
+  const zwilling = alle.some((x) => x.id !== m.id && x.tageszeit === m.tageszeit
+    && gleichText(x.mittel, m.mittel) && gleichText(x.dosis, m.dosis));
+  return zwilling && b ? `${t}, ${b}` : t;
+}
+
+/**
+ * Steht dieses Mittel an diesem Tag schon? Name und Dosis müssen passen, und
+ * hat es eine übliche Tageszeit, auch die: Sonst trüge die Morgentablette
+ * schon das Häkchen der abendlichen, und die abendliche fehlte unbemerkt.
+ */
+function schonEingetragen(m, liste) {
+  return liste.some((x) => x.art === 'medikament' && gleichText(x.mittel, m.mittel)
+    && gleichText(x.dosis, m.dosis) && (!m.tageszeit || tageszeitVon(x) === m.tageszeit));
+}
+
+/** Ein Knopf in der Reihe „Meine Mittel" auf dem Tag-Reiter. */
+function standardKnopf(m, liste, iso, alle) {
+  const zeit = knopfZeit(m, alle);
+  const da = schonEingetragen(m, liste);
+  const tag = fmtTag(iso);
+  const wann = ['heute', 'gestern'].includes(tag) ? tag : `am ${tag}`;
+  const sagt = `${vorlageVoll(m)} – ${wann} ${da ? 'schon eingetragen' : 'eintragen'}`;
+  // Gekürzt wird der Name, nie die Dosis: „Metoclopramid-ra… 10 mg" ist noch
+  // zu erkennen, „Metoclopramid-ratiopharm 1…" nicht mehr zu gebrauchen.
+  return `<button type="button" class="marke marke-schnell" data-act="standard-eintragen"
+            data-id="${esc(m.id)}" aria-label="${esc(sagt)}">
+      ${esc(kuerze(m.mittel, 18))}${m.dosis ? ` ${esc(m.dosis)}` : ''}${zeit ? ` · ${esc(zeit)}` : ''}${da ? ' <span class="marke-zahl">✓</span>' : ''}
+    </button>`;
+}
+
+/**
+ * Das eigene Mittel, auf das sich der Bogen bezieht: das gewählte, sonst eins
+ * mit diesem Namen – dieselbe Dosis zuerst. Nur bei gleichem Namen; wer einen
+ * anderen Namen tippt, meint ein anderes Mittel.
+ */
+function mittelVorlageVon(s, b) {
+  const e = b.entwurf;
+  if (!String(e.mittel || '').trim()) return null;
+  const gleich = s.standardMittel.filter((x) => gleichText(x.mittel, e.mittel));
+  return gleich.find((x) => x.id === b.vorlage)
+    || gleich.find((x) => gleichText(x.dosis, e.dosis))
+    || gleich[0] || null;
+}
+
+/**
+ * Unter der Dosis: merken, oder sagen, dass und wie es schon gemerkt ist.
+ *
+ * Drei Lagen. Steht es genau so bei den eigenen Mitteln, sagt der Bogen das.
+ * Steht es dort anders – andere Dosis, andere Zeit –, sagt er auch das, und
+ * man kann das eigene Mittel so ändern oder dieses zusätzlich merken: Wer die
+ * Dosis gewechselt hat, will nicht jeden Morgen 20 in 40 umtippen. Sonst der
+ * Schalter „Als mein Mittel merken". Was gewählt ist, gilt beim Eintragen.
+ */
+function merkenTeil(s, b) {
+  const e = b.entwurf;
+  const voll = s.standardMittel.length >= store.STANDARD_HOECHSTENS;
+  const schalter = (act, an, text) => `<button type="button" class="btn btn-ghost" data-act="${act}"
+      aria-pressed="${an}">${an ? '✓ ' : ''}${text}</button>`;
+  const genau = String(e.mittel || '').trim()
+    ? store.standardVon({ mittel: e.mittel, dosis: e.dosis, ...entwurfZeit(e) }) : null;
+  if (genau) {
+    return `<p class="klein">Steht bei deinen Mitteln.
+      ${knopf('standard-entfernen', 'Dort entfernen', 'btn-ghost', `data-id="${esc(genau.id)}"`)}</p>`;
+  }
+  const ref = mittelVorlageVon(s, b);
+  if (ref) {
+    return `<p class="klein">Anders als bei deinen Mitteln – dort steht
+      „${esc(vorlageVoll(ref))}“.</p>
+      <div class="reihe">${schalter('standard-anpassen', !!b.vorlageAendern, 'Dort so ändern')}
+        ${voll ? '' : schalter('standard-umschalten', !!b.alsStandard, 'Zusätzlich merken')}</div>
+      ${b.vorlageAendern ? '<p class="klein">Beim Eintragen steht dein Mittel danach so da wie hier.</p>' : ''}
+      ${b.alsStandard ? '<p class="klein">Beim Eintragen kommt es als weiteres Mittel dazu – etwa für eine zweite Zeit am Tag.</p>' : ''}`;
+  }
+  if (voll) {
+    return `<p class="klein">Bei deinen Mitteln stehen schon ${store.STANDARD_HOECHSTENS} – mehr
+      passen nicht. Unter „Mehr“ kannst du eins entfernen, das du nicht mehr nimmst.</p>`;
+  }
+  return `<div class="reihe">${schalter('standard-umschalten', !!b.alsStandard, 'Als mein Mittel merken')}</div>
+    ${b.alsStandard ? `<p class="klein">Mit Dosis${e.ungefaehr ? ' und Zeit' : ''} – beim nächsten Mal genügt ein Tipp, auch auf dem Tag-Reiter.</p>` : ''}`;
+}
+
+/*
+ * Beim Tippen zeichnet der Bogen nicht neu (das Feld verlöre den Fokus).
+ * Damit „Steht bei deinen Mitteln" trotzdem stimmt, sobald Name oder Dosis
+ * abweichen, wird nur dieser Teil ersetzt – und nur, wenn sich sein Inhalt
+ * ändert. Ein Ersetzen beim Verlassen des Feldes, also genau während des
+ * Tipps auf einen seiner Knöpfe, schluckte sonst diesen Tipp.
+ */
+function merkenAuffrischen() {
+  const el = document.getElementById('bogenMerken');
+  if (!el || !ui.bogen || ui.bogen.art !== 'medikament') return;
+  const html = merkenTeil(store.zustandLesen(), ui.bogen);
+  if (ui.bogen.merkenStand === html) return;
+  el.innerHTML = html;
+  ui.bogen.merkenStand = html;
+}
+
+/**
+ * Die Dosis für „Dazu genommen?" beim Kopfschmerz – aus den eigenen Mitteln.
+ * Steht dasselbe Mittel dort mit mehreren Dosen, die zuletzt eingetragene.
+ * Kein Treffer: keine Dosis. Die App erfindet keine.
+ */
+function dosisAusMeinenMitteln(s, name) {
+  const meine = s.standardMittel.filter((m) => gleichText(m.mittel, name) && String(m.dosis || '').trim());
+  if (!meine.length) return '';
+  const passend = (dosis) => meine.find((m) => gleichText(m.dosis, dosis));
+  const zuletzt = [...s.eintraege].reverse()
+    .find((e) => e.art === 'medikament' && gleichText(e.mittel, name) && passend(e.dosis));
+  return (zuletzt ? passend(zuletzt.dosis) : meine[0]).dosis;
 }
 
 /** „abends, nach dem Essen" – in der Liste unter dem Eintrag. */
@@ -4130,7 +4423,12 @@ function bogenHTML(s) {
      * eingetragen wurden: Die App schlägt kein Schmerzmittel vor.
      */
     const akutKlassen = ['nsar', 'kombi', 'triptan', 'nichtnsar'];
-    const dazuWahl = b.id ? [] : (s.zuletztMittel || []).filter((n) => {
+    // Auch die eigenen Mittel: Wer sein Migränemittel dort mit Dosis angelegt
+    // hat, soll es hier finden, selbst wenn es unter den fünf zuletzt
+    // benutzten Namen gerade nicht steht. Die Dosis kommt von dort mit.
+    const dazuNamen = [...(s.zuletztMittel || []), ...s.standardMittel.map((m) => m.mittel)]
+      .filter((n, i, alle) => alle.findIndex((x) => gleichText(x, n)) === i);
+    const dazuWahl = b.id ? [] : dazuNamen.filter((n) => {
       const g = wissenZu(n);
       return g && akutKlassen.includes(g.id);
     });
@@ -4147,9 +4445,11 @@ function bogenHTML(s) {
       nicht noch einmal als Bauchbeschwerde eintragen – sonst wird aus dem
       Kopfschmerz ein Magentag.</p>` : ''}
       ${b.id ? '' : `<p class="feld-name">Dazu genommen? Ein Tipp legt das Medikament mit an.</p>
-      ${dazuWahl.length ? `<div class="marken">${dazuWahl.map((n) => `
-        <button type="button" class="marke${(e.dazuMittel || []).includes(n) ? ' an' : ''}"
-                data-act="kopf-dazu" data-id="${esc(n)}">${esc(n)}</button>`).join('')}</div>`
+      ${dazuWahl.length ? `<div class="marken">${dazuWahl.map((n) => {
+        const dosis = dosisAusMeinenMitteln(s, n);
+        return `<button type="button" class="marke${(e.dazuMittel || []).includes(n) ? ' an' : ''}"
+                data-act="kopf-dazu" data-id="${esc(n)}">${esc(n)}${dosis ? ` <span class="marke-zahl">${esc(dosis)}</span>` : ''}</button>`;
+      }).join('')}</div>`
     : `<p class="klein">Dein Schmerz- oder Migränemittel einmal als Medikament
       eintragen – danach steht es hier als Tipp. Daran hängt die Zählung der
       Tage mit Akutmittel, die wichtigste Zahl für die Neurologie.</p>`}`}
@@ -4221,22 +4521,17 @@ function bogenHTML(s) {
     const eigene = s.standardMittel.length ? `
       <p class="feld-name">Meine Mittel</p>
       <div class="marken">${s.standardMittel.map((m) => {
-        const an = e.mittel === m.mittel && (e.dosis || '') === (m.dosis || '');
+        const z = entwurfZeit(e);
+        const an = gleichText(e.mittel, m.mittel) && gleichText(e.dosis, m.dosis) && (b.vorlage === m.id
+          || (z.tageszeit === (m.tageszeit || null) && z.bezug === (m.bezug || null)));
         return `<button type="button" class="marke${an ? ' an' : ''}" data-act="standard-waehlen"
-                data-id="${esc(m.id)}" aria-pressed="${an}">${esc(mittelText(m))}${vorlageText(m)
+                data-id="${esc(m.id)}" aria-pressed="${an}">${esc(mittelName(m))}${vorlageText(m)
   ? `<span class="marke-zahl">${esc(vorlageText(m))}</span>` : ''}</button>`;
       }).join('')}</div>` : '';
-    const gemerkt = store.standardVon(e.mittel, e.dosis);
-    // Immer da, nicht erst mit einem Namen im Feld: Beim Tippen zeichnet der
-    // Bogen nicht neu, ein Schalter, der davon abhinge, erschiene nie.
-    const merken = (gemerkt && String(e.mittel || '').trim()
-      ? `<p class="klein standard-zeile">Steht bei deinen Mitteln.
-         ${knopf('standard-entfernen', 'Dort entfernen', 'btn-ghost', `data-id="${esc(gemerkt.id)}"`)}</p>`
-      : `<div class="reihe standard-zeile">
-         <button type="button" class="btn btn-ghost" data-act="standard-umschalten"
-                 aria-pressed="${!!b.alsStandard}">${b.alsStandard ? '✓ ' : ''}Als mein Mittel merken</button>
-         </div>
-         ${b.alsStandard ? `<p class="klein">Mit Dosis${e.ungefaehr ? ' und Zeit' : ''} – beim nächsten Mal genügt ein Tipp, auch auf dem Tag-Reiter.</p>` : ''}`);
+    // Immer da, nicht erst mit einem Namen im Feld – und beim Tippen von
+    // merkenAuffrischen() nachgeführt, ohne den Bogen neu zu zeichnen.
+    b.merkenStand = merkenTeil(s, b);
+    const merken = `<div class="standard-zeile" id="bogenMerken">${b.merkenStand}</div>`;
     mitte = `${eigene}
       <label class="feld-name" for="bogenMittel">Mittel</label>
       <input type="text" class="feld feld-breit" id="bogenMittel" data-act="mittel"
@@ -4466,6 +4761,9 @@ function bogenOeffnen(art, id) {
     entwurf: alt
       ? { ...vorlage, ...alt }
       : { ...vorlage, art, am: ui.tag, um: ui.tag === heuteISO() ? jetztUhr() : '12:00' },
+    // Steht die Zeit schon fest – von Hand gesetzt oder, beim Ändern, die
+    // des Eintrags? Dann überschreibt die Wahl eines eigenen Mittels sie nicht.
+    zeitGesetzt: !!alt,
   };
   zeichne();
 }
@@ -4517,27 +4815,45 @@ function bogenSpeichern() {
     }
   }
   if (b.art === 'medikament') store.mittelMerken(e.mittel);
-  if (b.art === 'medikament' && b.alsStandard) {
-    store.standardMerken({
-      mittel: e.mittel,
-      dosis: e.dosis,
-      tageszeit: e.ungefaehr ? e.tageszeit : null,
-      bezug: e.ungefaehr ? e.bezug : null,
-    });
+  /*
+   * Merken oder das eigene Mittel anpassen – und in der Meldung sagen, was
+   * davon geklappt hat. Ein Mittel, das wegen der Höchstzahl still nicht
+   * gemerkt wird, fehlt sonst erst Tage später auf dem Tag-Reiter.
+   */
+  let gemerkt = '';
+  if (b.art === 'medikament' && (b.alsStandard || b.vorlageAendern)) {
+    const vorlage = { mittel: e.mittel, dosis: e.dosis, ...entwurfZeit(e) };
+    const ref = b.vorlageAendern ? mittelVorlageVon(store.zustandLesen(), b) : null;
+    const r = ref ? store.standardAendern(ref.id, vorlage) : store.standardMerken(vorlage);
+    if (r.fehler === 'voll') gemerkt = 'voll';
+    else if (r.schon || r.fehler === 'doppelt') gemerkt = 'schon';
+    else if (!r.fehler) gemerkt = ref ? 'geaendert' : 'gemerkt';
   }
+  const vorher = b.id ? store.eintragVon(b.id) : null;
+  let neueId = b.id;
   if (b.id) store.eintragAendern(b.id, e);
-  else store.eintragen(e);
+  else neueId = store.eintragen(e);
   dazu.forEach((name) => {
     store.eintragen({
-      art: 'medikament', am: e.am, um: e.um, mittel: name, dosis: '',
+      art: 'medikament', am: e.am, um: e.um, mittel: name,
+      dosis: dosisAusMeinenMitteln(store.zustandLesen(), name),
       ...(e.ungefaehr ? { ungefaehr: true, tageszeit: e.tageszeit || null } : {}),
     });
     store.mittelMerken(name);
   });
+  // Eine Mahlzeit dazu, verschoben oder geändert: was an ihr hängt, rückt mit.
+  const nachgezogen = b.art === 'essen' ? nachziehen(neueId, vorher, store.eintragVon(neueId)) : '';
   ui.tag = e.am;
   ui.bogen = null;
-  if (b.id) melden('Geändert.');
-  else melden(dazu.length ? `Eingetragen, mit ${dazu.join(' und ')}.` : 'Eingetragen.');
+  const getan = b.id ? 'Geändert' : 'Eingetragen';
+  const satz = {
+    gemerkt: `${getan} und bei deinen Mitteln gemerkt.`,
+    geaendert: `${getan} und dein Mittel angepasst.`,
+    schon: `${getan}. So steht es schon bei deinen Mitteln.`,
+    voll: `${getan}. Bei deinen Mitteln ist kein Platz mehr – höchstens ${store.STANDARD_HOECHSTENS}. `
+      + 'Unter „Mehr“ kannst du eins entfernen.',
+  }[gemerkt] || (dazu.length ? `${getan}, mit ${dazu.join(' und ')}.` : `${getan}.`);
+  melden(nachgezogen ? `${satz} ${nachgezogen}` : satz);
   zeichne();
 }
 
@@ -4674,6 +4990,7 @@ const AKTION = {
     ui.mittel = false;
     // Ein Tipp auf „Mehr" führt zu „Mehr", auch aus der Anleitung heraus.
     ui.anleitung = false;
+    ui.mittelForm = null;
     // Wer auf „Ideen" wechselt, gibt einem gescheiterten Versand einen
     // neuen Anlauf – genau einen, nicht einen je Neuzeichnen.
     if (el.dataset.tab === 'ideen') sendenAnstossen();
@@ -4686,21 +5003,48 @@ const AKTION = {
     if (e) bogenOeffnen(e.art, e.id);
   },
   loeschen: (el) => {
+    const alt = store.eintragVon(el.dataset.id);
     store.eintragLoeschen(el.dataset.id);
-    melden('Gelöscht.');
+    // Eine gelöschte Mahlzeit nimmt nichts mit: Was an ihr hing, rastet an
+    // einer anderen Mahlzeit dieser Tageszeit ein oder rechnet mit der
+    // Tageszeit selbst.
+    const nachgezogen = alt && alt.art === 'essen' ? nachziehen(alt.id, alt, null) : '';
+    melden(nachgezogen ? `Gelöscht. ${nachgezogen}` : 'Gelöscht.');
     zeichne();
   },
   'bogen-zu': () => { ui.bogen = null; zeichne(); },
+  /*
+   * Ein eigenes Mittel im Bogen wählen: Name und Dosis, und die übliche Zeit
+   * nur, wenn noch keine gewählt ist. Wer schon „abends" getippt hat und dann
+   * sein Morgenmittel antippt, hat es abends genommen – die Vorlage weiß das
+   * nicht besser. Weicht es dann ab, sagt der Bogen das darunter.
+   */
   'standard-waehlen': (el) => {
     const s = store.zustandLesen();
     const m = s.standardMittel.find((x) => x.id === el.dataset.id);
-    const e = ui.bogen && ui.bogen.entwurf;
+    const b = ui.bogen;
+    const e = b && b.entwurf;
     if (!m || !e) return;
-    entwurf({ mittel: m.mittel, dosis: m.dosis, ...zeitAusVorlage(s, e.am, e.um, m.tageszeit, m.bezug) });
+    Object.assign(b, { vorlage: m.id, alsStandard: false, vorlageAendern: false });
+    const zeitSchon = !!(e.tageszeit || e.bezug || b.zeitGesetzt);
+    entwurf({
+      mittel: m.mittel,
+      dosis: m.dosis,
+      ...(zeitSchon ? {} : zeitAusVorlage(s, e.am, e.um, m.tageszeit, m.bezug)),
+    });
   },
+  // Die beiden Schalter unter der Dosis schließen einander aus: Ein Mittel
+  // wird entweder zusätzlich gemerkt oder ersetzt das alte, nicht beides.
   'standard-umschalten': () => {
     if (!ui.bogen) return;
     ui.bogen.alsStandard = !ui.bogen.alsStandard;
+    if (ui.bogen.alsStandard) ui.bogen.vorlageAendern = false;
+    zeichne();
+  },
+  'standard-anpassen': () => {
+    if (!ui.bogen) return;
+    ui.bogen.vorlageAendern = !ui.bogen.vorlageAendern;
+    if (ui.bogen.vorlageAendern) ui.bogen.alsStandard = false;
     zeichne();
   },
   'standard-entfernen': (el) => {
@@ -4722,6 +5066,7 @@ const AKTION = {
     const zeit = zeitAusVorlage(s, am, am === heuteISO() ? jetztUhr() : '12:00', m.tageszeit, m.bezug);
     if (!zeit.um && am !== heuteISO()) {
       bogenOeffnen('medikament');
+      ui.bogen.vorlage = m.id;
       entwurf({ mittel: m.mittel, dosis: m.dosis });
       melden('An welchem Teil des Tages? Unter der Uhrzeit antippen.');
       return;
@@ -4731,7 +5076,71 @@ const AKTION = {
       art: 'medikament', am, um: zeit.um || jetztUhr(), mittel: m.mittel, dosis: m.dosis, ...zeit,
     });
     store.mittelMerken(m.mittel);
-    melden(`${mittelText(m)} eingetragen${zeit.ungefaehr ? ` (≈${zeit.um})` : ''}.`);
+    melden(`${mittelName(m)} eingetragen${zeit.ungefaehr ? ` (≈${zeit.um})` : ''}.`);
+    zeichne();
+  },
+  // Vom Hinweis auf dem Tag-Reiter direkt zur Karte unter „Mehr", das
+  // Formular für ein neues Mittel gleich offen.
+  'meine-mittel-zeigen': () => {
+    store.einstellen('tab', 'mehr');
+    Object.assign(ui, { bericht: null, sicherung: null, mittel: false, anleitung: false });
+    ui.mittelForm = { id: null, mittel: '', dosis: '', tageszeit: null, bezug: null };
+    zeichne();
+    setTimeout(() => {
+      const karte = document.getElementById('meineMittel');
+      if (karte) karte.scrollIntoView({ block: 'start' });
+    }, 0);
+  },
+  'meinmittel-neu': () => {
+    ui.mittelForm = { id: null, mittel: '', dosis: '', tageszeit: null, bezug: null };
+    zeichne();
+  },
+  'meinmittel-aendern': (el) => {
+    const m = store.zustandLesen().standardMittel.find((x) => x.id === el.dataset.id);
+    if (!m) return;
+    ui.mittelForm = {
+      id: m.id, mittel: m.mittel, dosis: m.dosis || '', tageszeit: m.tageszeit || null, bezug: m.bezug || null,
+    };
+    zeichne();
+  },
+  'meinmittel-weg': (el) => {
+    store.standardEntfernen(el.dataset.id);
+    if (ui.mittelForm && ui.mittelForm.id === el.dataset.id) ui.mittelForm = null;
+    melden('Aus deinen Mitteln genommen. Die Einträge bleiben.');
+    zeichne();
+  },
+  // Ein zweiter Tipp nimmt die Wahl zurück – „ohne feste Zeit" ist eine
+  // zulässige Antwort.
+  'mm-tageszeit': (el) => {
+    if (!ui.mittelForm) return;
+    ui.mittelForm.tageszeit = ui.mittelForm.tageszeit === el.dataset.id ? null : el.dataset.id;
+    zeichne();
+  },
+  'mm-bezug': (el) => {
+    if (!ui.mittelForm) return;
+    ui.mittelForm.bezug = ui.mittelForm.bezug === el.dataset.id ? null : el.dataset.id;
+    zeichne();
+  },
+  'mm-abbrechen': () => { ui.mittelForm = null; zeichne(); },
+  /*
+   * Merken, ohne einzutragen: Wer seine Tabletten einmal anlegt, hat sie
+   * damit noch nicht genommen. Eine Einnahme entsteht erst mit dem Tipp auf
+   * dem Tag-Reiter.
+   */
+  'mm-speichern': () => {
+    const f = ui.mittelForm;
+    if (!f) return;
+    const r = f.id ? store.standardAendern(f.id, f) : store.standardMerken(f);
+    if (r.fehler === 'leer') { melden('Wie heißt das Mittel?'); return; }
+    if (r.fehler === 'voll') {
+      melden(`Mehr als ${store.STANDARD_HOECHSTENS} eigene Mittel passen nicht. Entferne erst eins, das du nicht mehr nimmst.`);
+      return;
+    }
+    if (r.schon || r.fehler === 'doppelt') { melden('Genau so steht es schon bei deinen Mitteln.'); return; }
+    ui.mittelForm = null;
+    melden(f.id
+      ? 'Geändert. Was schon eingetragen ist, bleibt, wie es war.'
+      : 'Bei deinen Mitteln gemerkt. Eingetragen ist damit noch nichts – das macht ein Tipp auf dem Tag-Reiter.');
     zeichne();
   },
   'zeit-tageszeit': (el) => {
@@ -4742,7 +5151,7 @@ const AKTION = {
     // Steht schon ein Bezug zum Essen, gilt er jetzt für die Mahlzeit dieser
     // Tageszeit: „nach dem Essen" und dann „mittags" heißt nach dem Mittagessen.
     if (e.bezug && MIT_ESSENSBEZUG.includes(ui.bogen.art)) {
-      Object.assign(patch, zeitMitBezug(store.zustandLesen(), e.am, t.um, e.bezug));
+      Object.assign(patch, zeitMitBezug(store.zustandLesen(), e.am, t.um, e.bezug, t.id));
     }
     entwurf(patch);
   },
@@ -4756,12 +5165,14 @@ const AKTION = {
     }
     // Gerechnet wird von der Zeit vor dem ersten Bezug aus. Sonst wanderte die
     // Uhrzeit bei „vor" und dann „nach" jedes Mal eine halbe Stunde weiter.
-    const basis = e.bezugBasis || e.um;
+    // Mit gewählter Tageszeit nur an einer Mahlzeit dieser Tageszeit.
+    const t = TAGESZEITEN.find((x) => x.id === e.tageszeit);
+    const basis = e.bezugBasis || (t ? t.um : e.um);
     entwurf({
       bezug: el.dataset.id,
       ungefaehr: true,
       bezugBasis: basis,
-      ...zeitMitBezug(store.zustandLesen(), e.am, basis, el.dataset.id),
+      ...zeitMitBezug(store.zustandLesen(), e.am, basis, el.dataset.id, t ? t.id : null),
     });
   },
   'bogen-speichern': bogenSpeichern,
@@ -4802,16 +5213,19 @@ const AKTION = {
     const liste = haeufigeMahlzeiten(s.eintraege, 12).filter((v) => v.anzahl >= 2);
     const v = liste[Number(el.dataset.i)];
     if (!v) return;
-    store.eintragen({
-      art: 'essen',
-      am: heuteISO(),
-      um: jetztUhr(),
-      was: v.text,
-      zutaten: v.zutaten.map((z) => ({ ...z })),
-      portion: v.portion,
-    });
+    const mahlzeit = { was: v.text, zutaten: v.zutaten.map((z) => ({ ...z })), portion: v.portion };
+    // Für einen vergangenen Tag kein „jetzt": der Bogen, vorgefüllt, und die
+    // Zeit mit einem Knopf.
+    if (ui.tag !== heuteISO()) {
+      bogenOeffnen('essen');
+      entwurf(mahlzeit);
+      melden('Wann war das? Unter der Uhrzeit antippen.');
+      return;
+    }
+    const id = store.eintragen({ art: 'essen', am: heuteISO(), um: jetztUhr(), ...mahlzeit });
+    const nachgezogen = nachziehen(id, null, store.eintragVon(id));
     ui.tag = heuteISO();
-    melden(`${kuerze(v.text, 24)} eingetragen.`);
+    melden(`${kuerze(v.text, 24)} eingetragen.${nachgezogen ? ` ${nachgezogen}` : ''}`);
     zeichne();
   },
   beschwerdeart: (el) => umschalten('arten', el.dataset.id),
@@ -5506,16 +5920,33 @@ function eingabe(ev) {
     }
     case 'was': entwurf({ was: wert }, false); break;
     case 'notiz': entwurf({ notiz: wert }, false); break;
-    case 'mittel': entwurf({ mittel: wert }, false); break;
-    case 'dosis': entwurf({ dosis: wert }, false); break;
+    // Name und Dosis: der Teil „Steht bei deinen Mitteln" zieht beim Tippen
+    // mit – nur bei 'input', siehe merkenAuffrischen().
+    case 'mittel':
+      entwurf({ mittel: wert }, false);
+      if (ev.type === 'input') merkenAuffrischen();
+      break;
+    case 'dosis':
+      entwurf({ dosis: wert }, false);
+      if (ev.type === 'input') merkenAuffrischen();
+      break;
     case 'text': entwurf({ text: wert }, false); break;
     // Von Hand gesetzt ist die Zeit wieder genau – die Knöpfe gelten dann
     // nicht mehr. Ohne Neuzeichnen, sonst verlöre das Feld beim Tippen den
     // Fokus; die Markierung der Knöpfe stimmt beim nächsten Zeichnen.
-    case 'uhr': entwurf({
-      um: wert, ungefaehr: false, tageszeit: null, bezug: null, bezugMahlzeit: null, bezugBasis: null,
-    }, false); break;
-    case 'bogen-datum': entwurf({ am: wert }, false); break;
+    case 'uhr':
+      entwurf({
+        um: wert, ungefaehr: false, tageszeit: null, bezug: null, bezugMahlzeit: null, bezugBasis: null,
+      }, false);
+      if (ui.bogen) ui.bogen.zeitGesetzt = true;
+      break;
+    case 'bogen-datum':
+      entwurf({ am: wert }, false);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(wert)) zeitFuerNeuenTag();
+      break;
+    // Das Formular unter „Meine Mittel": wie der Bogen ohne Neuzeichnen.
+    case 'mm-name': if (ui.mittelForm) ui.mittelForm.mittel = wert; break;
+    case 'mm-dosis': if (ui.mittelForm) ui.mittelForm.dosis = wert; break;
     case 'tag-datum':
       if (/^\d{4}-\d{2}-\d{2}$/.test(wert)) { ui.tag = wert; zeichne(); }
       break;

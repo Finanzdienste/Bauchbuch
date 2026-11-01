@@ -549,44 +549,84 @@ export function ausloeserLoeschen(id) {
 
 /* ---------- Die eigenen Mittel ---------- */
 
-const STANDARD_HOECHSTENS = 12;
+/*
+ * Mehr passen in die Reihe auf dem Tag-Reiter nicht, ohne dass man darin
+ * sucht. Wer an die Grenze kommt, erfährt das (siehe standardMerken) – ein
+ * Mittel, das still nicht gemerkt wird, fehlt erst Tage später auffällig.
+ */
+export const STANDARD_HOECHSTENS = 12;
 
-/** Woran zwei Standardmittel als dasselbe erkannt werden: Name und Dosis. */
+const TAGESZEIT_IDS = ['morgens', 'mittags', 'abends'];
+const BEZUG_IDS = ['vor', 'beim', 'nach'];
+
+/** Ein Standardmittel in seine gespeicherte Form bringen. */
+function standardSauber(x) {
+  return {
+    mittel: String(x.mittel || '').trim().slice(0, 80),
+    dosis: String(x.dosis || '').trim().slice(0, 40),
+    tageszeit: TAGESZEIT_IDS.includes(x.tageszeit) ? x.tageszeit : null,
+    bezug: BEZUG_IDS.includes(x.bezug) ? x.bezug : null,
+  };
+}
+
+/**
+ * Woran zwei Standardmittel als dasselbe erkannt werden: Name, Dosis und
+ * übliche Zeit.
+ *
+ * Die Zeit gehört dazu, seit dasselbe Mittel zweimal am Tag ein eigener Knopf
+ * sein soll – „Pantoprazol 40 mg · morgens" und „· abends". Vorher frischte
+ * das zweite Merken nur die Zeit des ersten auf, und der Morgen war weg.
+ */
 function mittelSchluessel(x) {
-  return `${String(x.mittel || '').trim().toLowerCase()}|${String(x.dosis || '').trim().toLowerCase()}`;
+  const s = standardSauber(x);
+  return [s.mittel, s.dosis, s.tageszeit || '', s.bezug || ''].join('|').toLowerCase();
 }
 
 /**
  * Ein Mittel als eigenes Standardmittel merken.
  *
- * Steht dasselbe Mittel mit derselben Dosis schon da, wird nur die übliche
- * Zeit aufgefrischt – sonst stünde „Pantoprazol 40 mg" nach dem zweiten
- * Merken zweimal in der Reihe. Eine andere Dosis ist dagegen ein eigener
- * Eintrag: Wer morgens 40 und abends 20 nimmt, will beides mit einem Tipp.
+ * Zurück kommt { id, schon }: die Kennung und ob es genau so schon dastand –
+ * dann bleibt es bei einem Eintrag. Oder { fehler: 'leer' } ohne Namen und
+ * { fehler: 'voll' }, wenn schon STANDARD_HOECHSTENS dastehen. Die Anzeige
+ * sagt das; verworfen wird nichts still.
  */
-export function standardMerken({ mittel, dosis, tageszeit, bezug }) {
-  const neu = {
-    id: neueId(),
-    mittel: String(mittel || '').trim().slice(0, 80),
-    dosis: String(dosis || '').trim().slice(0, 40),
-    tageszeit: tageszeit || null,
-    bezug: bezug || null,
-  };
-  if (!neu.mittel) return null;
-  const i = zustand.standardMittel.findIndex((x) => mittelSchluessel(x) === mittelSchluessel(neu));
-  if (i >= 0) {
-    zustand.standardMittel[i] = { ...zustand.standardMittel[i], tageszeit: neu.tageszeit, bezug: neu.bezug };
-  } else {
-    zustand.standardMittel = [...zustand.standardMittel, neu].slice(0, STANDARD_HOECHSTENS);
-  }
+export function standardMerken(vorlage) {
+  const neu = { id: neueId(), ...standardSauber(vorlage) };
+  if (!neu.mittel) return { fehler: 'leer' };
+  const da = zustand.standardMittel.find((x) => mittelSchluessel(x) === mittelSchluessel(neu));
+  if (da) return { id: da.id, schon: true };
+  if (zustand.standardMittel.length >= STANDARD_HOECHSTENS) return { fehler: 'voll' };
+  zustand.standardMittel = [...zustand.standardMittel, neu];
   merke();
   melde();
-  return i >= 0 ? zustand.standardMittel[i].id : neu.id;
+  return { id: neu.id, schon: false };
 }
 
-/** Das Standardmittel mit diesem Namen und dieser Dosis – oder null. */
-export function standardVon(mittel, dosis) {
-  const k = mittelSchluessel({ mittel, dosis });
+/**
+ * Ein Standardmittel ändern – Name, Dosis, übliche Zeit.
+ *
+ * { id } bei Erfolg, { fehler: 'leer' } ohne Namen, { fehler: 'doppelt' },
+ * wenn es genau so schon ein anderes gibt, { fehler: 'weg' }, wenn es dieses
+ * nicht mehr gibt. Die Einträge, die damit schon angelegt wurden, bleiben,
+ * wie sie sind: Sie sagen, was an jenem Tag genommen wurde.
+ */
+export function standardAendern(id, vorlage) {
+  const i = zustand.standardMittel.findIndex((x) => x.id === id);
+  if (i < 0) return { fehler: 'weg' };
+  const neu = { ...zustand.standardMittel[i], ...standardSauber(vorlage), id };
+  if (!neu.mittel) return { fehler: 'leer' };
+  if (zustand.standardMittel.some((x) => x.id !== id && mittelSchluessel(x) === mittelSchluessel(neu))) {
+    return { fehler: 'doppelt' };
+  }
+  zustand.standardMittel = zustand.standardMittel.map((x) => (x.id === id ? neu : x));
+  merke();
+  melde();
+  return { id };
+}
+
+/** Das Standardmittel mit genau diesem Namen, dieser Dosis und Zeit – oder null. */
+export function standardVon(vorlage) {
+  const k = mittelSchluessel(vorlage);
   return zustand.standardMittel.find((x) => mittelSchluessel(x) === k) || null;
 }
 
@@ -1170,9 +1210,11 @@ function sicherungLesen(text) {
   frisch.eintraege = sortiert(gelesen.eintraege.filter((e) => (
     e && typeof e === 'object' && typeof e.am === 'string' && typeof e.art === 'string'
   )).map((e) => mahlzeitFrisch({ ...e, id: e.id || neueId() })));
+  // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
+  // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
   frisch.standardMittel = frisch.standardMittel
     .filter((x) => x && typeof x === 'object' && typeof x.mittel === 'string' && x.mittel.trim())
-    .map((x) => ({ ...x, id: x.id || neueId(), dosis: String(x.dosis || '') }));
+    .map((x) => ({ ...x, ...standardSauber(x), id: x.id || neueId() }));
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
@@ -1240,12 +1282,19 @@ function sicherungLesen(text) {
 
 const VORHER = `${KEY}.vorher`;
 
-/** Steht in diesem Tagebuch noch gar nichts? Einstellungen zählen nicht. */
+/**
+ * Steht in diesem Tagebuch noch gar nichts? Einstellungen zählen nicht.
+ *
+ * Die eigenen Mittel zählen: Wer sie unter „Mehr" angelegt hat, bevor die
+ * Sicherung vom alten Gerät da war, hat etwas eingetragen – und verlöre es,
+ * wenn das Einlesen den Stand als leer ersetzte statt zusammenzuführen.
+ */
 export function istLeer(s = zustand) {
   return !s.eintraege.length && !Object.keys(s.tage || {}).length && !s.ideen.length
     && !s.kueche.length && !s.befunde.length && !s.termine.length && !s.gewicht.length
     && !s.eigeneAusloeser.length && !s.versuche.length && !s.provokationen.length
-    && !s.stufenplaene.length && !s.versuch && !s.provokation && !s.stufenplan;
+    && !s.stufenplaene.length && !s.versuch && !s.provokation && !s.stufenplan
+    && !(s.standardMittel || []).length;
 }
 
 function vorherAblegen() {
@@ -1301,8 +1350,9 @@ function zusammenfuehren(hier, dazu) {
   neu.kueche = vereinigt(hier.kueche, dazu.kueche, (k) => String(k.name || '').toLowerCase());
   neu.befunde = vereinigt(hier.befunde, dazu.befunde, (b) => b.id);
   neu.zuletztMittel = [...new Set([...hier.zuletztMittel, ...dazu.zuletztMittel])].slice(0, 5);
-  neu.standardMittel = vereinigt(hier.standardMittel, dazu.standardMittel, mittelSchluessel)
-    .slice(0, STANDARD_HOECHSTENS);
+  // Ohne Kürzen auf STANDARD_HOECHSTENS: Was in einer Sicherung steht, geht
+  // beim Zusammenführen nicht still verloren. Die Grenze gilt fürs Merken.
+  neu.standardMittel = vereinigt(hier.standardMittel, dazu.standardMittel, mittelSchluessel);
   neu.termine = [...new Set([...hier.termine, ...dazu.termine])].sort().reverse();
   neu.gewicht = vereinigt(hier.gewicht, dazu.gewicht, (g) => g.am)
     .sort((a, b) => String(b.am).localeCompare(String(a.am)));

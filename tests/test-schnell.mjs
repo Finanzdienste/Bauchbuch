@@ -86,13 +86,45 @@ check(
   'und der Eintrag steht sofort im Tag',
 );
 
-/* ---------- Nur für heute ---------- */
+/* ---------- Auf einem vergangenen Tag: der Bogen, vorgefüllt ---------- */
 
+/*
+ * Wer abends nachträgt, trägt oft gestern nach. Dort trägt der Knopf aber
+ * nicht mit der jetzigen Uhrzeit ein – „jetzt" wäre gelogen –, sondern öffnet
+ * den Bogen mit Name, Zutaten und Portion, und die Zeit kommt per Zeitknopf.
+ */
 await page.locator('[data-act="tag-blaettern"][data-d="-1"]').click();
 await page.waitForTimeout(300);
+const vorGestern = (await zustand()).eintraege.length;
 check(
-  await page.locator('.marke-schnell').count() === 0,
-  'auf einem vergangenen Tag gibt es den Schnelleintrag nicht – dort wäre „jetzt" gelogen',
+  await page.locator('[data-act="schnell"]').count() === 1,
+  'auch auf einem vergangenen Tag steht „Noch mal wie immer"',
+);
+await page.locator('[data-act="schnell"]').first().click();
+await page.waitForTimeout(300);
+check((await zustand()).eintraege.length === vorGestern, 'dort legt der Tipp nichts still an');
+check(
+  await page.locator('#bogenWas').inputValue() === 'Müsli mit Joghurt'
+    && await page.locator('#bogenTag').inputValue() === vorTagen(1),
+  'sondern öffnet den Bogen für gestern, mit dem Namen',
+);
+check(
+  await page.locator('[data-act="zeit-tageszeit"]').count() === 3,
+  'und die Zeit lässt sich per Zeitknopf wählen',
+);
+await page.locator('[data-act="zeit-tageszeit"][data-id="morgens"]').click();
+await page.waitForTimeout(150);
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(300);
+const gestrig = (await zustand()).eintraege.filter((e) => e.am === vorTagen(1) && e.was === 'Müsli mit Joghurt');
+const nachgetragen = gestrig.find((e) => e.ungefaehr);
+check(
+  gestrig.length === 2 && nachgetragen && nachgetragen.um === '08:00' && nachgetragen.tageszeit === 'morgens',
+  `eingetragen wird gestern morgens, ungefähr (${nachgetragen && nachgetragen.um})`,
+);
+check(
+  nachgetragen && nachgetragen.zutaten.map((z) => z.id).sort().join() === 'milch,obst',
+  'mit denselben Zutaten wie beim Tipp für heute',
 );
 
 /* ==================== Die Versuchs-Historie ==================== */

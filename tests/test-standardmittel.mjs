@@ -40,8 +40,12 @@ const kurz = () => page.waitForTimeout(150);
 /* ---------- 1. Merken, mit Dosis und Zeit ---------- */
 
 check(
-  !(await page.locator('#view').textContent()).includes('Meine Mittel'),
+  await page.locator('[data-act="standard-eintragen"]').count() === 0,
   'ohne gemerktes Mittel gibt es keine Reihe „Meine Mittel"',
+);
+check(
+  await page.locator('[data-act="meine-mittel-zeigen"]').count() === 1,
+  'stattdessen ein Satz, wo man sie anlegt',
 );
 
 await page.locator('[data-act="neu"][data-art="medikament"]').click();
@@ -79,7 +83,8 @@ check(
 
 const reihe = page.locator('[data-act="standard-eintragen"]');
 check(await reihe.count() === 1, 'auf dem Tag-Reiter steht die Reihe „Meine Mittel"');
-check((await reihe.first().textContent()).includes('Pantoprazol · 40 mg'), 'mit Name und Dosis');
+check((await reihe.first().textContent()).includes('Pantoprazol 40 mg'), 'mit Name und Dosis');
+check((await reihe.first().textContent()).includes('· morgens'), 'und der üblichen Zeit');
 check((await reihe.first().textContent()).includes('✓'), 'und einem Häkchen, weil es heute schon eingetragen ist');
 
 /* ---------- 3. Gestern nachtragen, mit einem Tipp ---------- */
@@ -192,14 +197,19 @@ check(
 await page.locator('button.bogen-zu').click();
 await kurz();
 
-/* ---------- 6. Dasselbe zweimal gemerkt, andere Dosis getrennt ---------- */
+/* ---------- 6. Dasselbe zweimal gemerkt, andere Dosis oder Zeit getrennt ---------- */
 
 /*
  * Der Schalter wird hier *vor* dem Tippen umgelegt. Dann weiß der Bogen beim
- * Zeichnen noch nicht, dass „Iberogast · 20 Tropfen" schon gemerkt ist – und
- * nur so kommt der Fall bis zum Speicher, wo er nicht doppelt landen darf.
+ * Zeichnen noch nicht, dass „Iberogast 20 Tropfen · abends" schon gemerkt ist
+ * – und nur so kommt der Fall bis zum Speicher, wo er nicht doppelt landen
+ * darf.
+ *
+ * Die übliche Zeit gehört zum Mittel: „Iberogast 20 Tropfen" ohne Zeit (aus
+ * Schritt 5) und „· abends" sind zwei Knöpfe, so wie die Tablette morgens und
+ * die abends. Früher frischte das zweite Merken nur die Zeit des ersten auf.
  */
-for (const dosis of ['20 Tropfen', '40 Tropfen']) {
+for (const dosis of ['20 Tropfen', '20 Tropfen', '40 Tropfen']) {
   await page.locator('[data-act="neu"][data-art="medikament"]').click();
   await kurz();
   await page.locator('[data-act="standard-umschalten"]').click();
@@ -213,17 +223,20 @@ for (const dosis of ['20 Tropfen', '40 Tropfen']) {
 }
 s = await speicher();
 const ibero = s.standardMittel.filter((x) => x.mittel === 'Iberogast');
-check(ibero.length === 2, `dieselbe Dosis zweimal gemerkt ergibt einen Eintrag, eine andere Dosis einen zweiten (${ibero.length})`);
 check(
-  (ibero.find((x) => x.dosis === '20 Tropfen') || {}).tageszeit === 'abends',
-  'und beim schon gemerkten wird nur die übliche Zeit aufgefrischt',
+  ibero.filter((x) => x.dosis === '20 Tropfen' && x.tageszeit === 'abends').length === 1,
+  'genau dasselbe zweimal gemerkt ergibt einen Eintrag',
+);
+check(
+  ibero.length === 3 && ibero.some((x) => x.dosis === '20 Tropfen' && x.tageszeit === null),
+  `eine andere Zeit oder Dosis ergibt einen eigenen, der ohne Zeit bleibt (${ibero.map((x) => `${x.dosis} ${x.tageszeit}`).join(', ')})`,
 );
 
 /* ---------- 7. Bleibt, und kommt beim Zusammenführen mit ---------- */
 
 await page.reload({ waitUntil: 'networkidle' });
 s = await speicher();
-check(s.standardMittel.length === 2, 'die eigenen Mittel überstehen das Neuladen');
+check(s.standardMittel.length === 3, 'die eigenen Mittel überstehen das Neuladen');
 
 const fremd = JSON.stringify({
   eintraege: [{ id: 'x1', art: 'notiz', am: gestern, um: '09:00', text: 'von woanders' }],
@@ -241,7 +254,7 @@ await page.locator('[data-act="einfuegen-los"]').click();
 await page.waitForTimeout(300);
 s = await speicher();
 check(
-  s.standardMittel.length === 3 && s.standardMittel.some((x) => x.mittel === 'L-Thyroxin'),
+  s.standardMittel.length === 4 && s.standardMittel.some((x) => x.mittel === 'L-Thyroxin'),
   `beim Zusammenführen kommen fremde Mittel dazu, doppelte nicht (${s.standardMittel.map((x) => x.mittel + ' ' + x.dosis).join(', ')})`,
 );
 

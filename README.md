@@ -46,22 +46,60 @@ Beschwerden nachts geweckt haben.
 
 **Ungefähre Zeiten.** Unter der Uhrzeit stehen „morgens · mittags · abends"
 und, bei Beschwerden und Medikamenten, „vor dem Essen · beim Essen · nach dem
-Essen" – für Einträge im Nachhinein, wenn niemand mehr die Minute weiß. „Nach dem Essen" rastet an der Mahlzeit dieses Tages
-ein, die der gewählten Zeit am nächsten liegt (eine halbe Stunde danach),
-„vor dem Essen" eine halbe Stunde davor, „beim Essen" zehn Minuten nach
-Beginn. Solche Einträge stehen in der Liste als „≈ 19:40 · abends, nach dem
+Essen" – für Einträge im Nachhinein, wenn niemand mehr die Minute weiß.
+„Morgens" trägt 8:00 ein, „mittags" 12:30, „abends" 19:30 – jeweils mitten in
+dem Fach, in dem die Auswertung Beschwerden nach Tageszeit zählt; und was mit
+„abends" eingetragen ist, zählt dort abends, auch wenn die Zeit an einem
+Abendbrot um sechs eingerastet ist. „Nach dem Essen" rastet an einer Mahlzeit
+dieses Tages ein (eine halbe Stunde danach), „vor dem Essen" eine halbe
+Stunde davor, „beim Essen" zehn Minuten nach Beginn. Ist eine Tageszeit
+gewählt, kommen nur Mahlzeiten dieser Tageszeit in Frage – morgens bis 11 Uhr,
+mittags bis 15 Uhr, abends danach –, damit „abends, nach dem Essen" nicht am
+Frühstück einrastet. Steht dort noch keine, rechnet der Bogen mit der
+Tageszeit und sagt das. Ohne gewählte Tageszeit gilt die nächste Mahlzeit des
+Tages. Solche Einträge stehen in der Liste als „≈ 19:40 · abends, nach dem
 Essen", und eine von Hand gesetzte Uhrzeit macht sie wieder genau.
 
-**Meine Mittel.** Im Medikamenten-Bogen merkt „Als mein Mittel merken" Name,
-Dosis und – wenn gewählt – die übliche Zeit („morgens, vor dem Essen"). Danach
-stehen die eigenen Mittel oben im Bogen (ein Tipp füllt alles aus) und als
-Reihe auf dem Tag-Reiter: Ein Tipp trägt das Mittel an diesem Tag ein, mit
-Dosis, und die übliche Zeit rastet an der Mahlzeit dieses Tages ein. Ein
-Häkchen zeigt, was schon eingetragen ist; ein zweiter Tipp legt trotzdem
-einen zweiten Eintrag an. Ohne übliche Zeit trägt ein Tipp heute mit der
-jetzigen Uhrzeit ein; für einen anderen Tag öffnet sich stattdessen der
-Bogen, statt eine Mittagszeit zu erfinden. Die App selbst nennt weiterhin keine Dosierungen – die Dosis in
-„Meine Mittel" ist die eigene Eintragung.
+**In beliebiger Reihenfolge nachtragen.** Wer abends den Tag nachträgt, trägt
+die Tablette „morgens, vor dem Essen" vielleicht vor dem Frühstück ein. Wird
+danach eine Mahlzeit angelegt, verschoben oder gelöscht, rasten die
+ungefähren Einträge desselben Tages mit Bezug zum Essen neu ein – die der
+passenden Tageszeit, die an genau dieser Mahlzeit hingen und die, die noch an
+keiner hingen –, und die App meldet es („1 Eintrag an die Mahlzeit
+angepasst."). Ist die Mahlzeit gelöscht, geht es an eine andere Mahlzeit
+dieser Tageszeit oder zurück an die Tageszeit. Genau gesetzte Uhrzeiten
+bleiben, wie sie sind. Wird im Bogen nach einem Zeitknopf das Datum geändert,
+rechnet er die Zeit für den neuen Tag neu.
+
+**Meine Mittel.** Die Mittel, die man regelmäßig nimmt, mit Dosis und
+üblicher Zeit („morgens, vor dem Essen"). Angelegt werden sie unter „Mehr" ›
+„Meine Mittel" – dort auch geändert und entfernt, ohne dass dabei eine
+Einnahme entsteht – oder im Medikamenten-Bogen mit „Als mein Mittel merken";
+dann meldet die App „Eingetragen und bei deinen Mitteln gemerkt." Solange
+keins angelegt ist, sagt der Tag-Reiter in einem Satz, wo das geht. Name,
+Dosis und übliche Zeit gehören zusammen: Dasselbe Mittel morgens und abends
+sind zwei Knöpfe („Pantoprazol 40 mg · morgens", „… · abends"), genau
+dasselbe zweimal gemerkt bleibt einer. Auf dem Tag-Reiter trägt ein Tipp das
+Mittel an diesem Tag ein, mit Dosis, und die übliche Zeit rastet an der
+Mahlzeit dieses Tages ein. Bei langen Namen wird der Name gekürzt, nie die
+Dosis. Ein Häkchen zeigt, was an diesem Tag schon steht – nach Name, Dosis
+und, wenn es eine hat, Tageszeit; ein zweiter Tipp legt trotzdem einen
+zweiten Eintrag an. Ohne übliche Zeit trägt ein Tipp heute mit der jetzigen
+Uhrzeit ein; für einen anderen Tag öffnet sich stattdessen der Bogen, statt
+eine Mittagszeit zu erfinden.
+
+Im Bogen füllt ein Tipp auf ein eigenes Mittel Name und Dosis, die übliche
+Zeit aber nur, wenn noch keine gewählt ist – wer schon „abends" getippt hat,
+hat es abends genommen. Weicht die Eingabe vom gemerkten Mittel ab, sagt der
+Bogen das und bietet „Dort so ändern" (etwa nach einer neuen Dosis) oder
+„Zusätzlich merken" an. „Dazu genommen?" beim Kopfschmerz nimmt die Dosis aus
+den eigenen Mitteln mit, bei mehreren Dosen die zuletzt eingetragene. Mehr als
+zwölf eigene Mittel passen nicht; das sagt die App, statt eins still nicht zu
+merken. Eine Sicherung bringt sie mit, und ein Tagebuch, in dem bisher nur
+eigene Mittel stehen, gilt beim Einlesen nicht als leer – zusammengeführt
+wird, nicht ersetzt. Die App selbst nennt weiterhin keine Dosierungen – die
+Dosis in „Meine Mittel" ist die eigene Eintragung, und der Arztbericht nennt
+sie mit („Pantoprazol 40 mg – 3 Mal", jede Dosis für sich).
 
 **Verlauf.** Ein Balken je Tag über 14, 30 oder 90 Tage, ein Monatskalender
 und vier Zahlen: notierte Tage, Anteil mit Beschwerden, mittlere Stärke,
@@ -106,8 +144,9 @@ einträgt.
 Mahlzeiten, die es zuletzt am häufigsten gab, als Knopf: ein Tipp, und der
 Eintrag steht – mit demselben Namen, denselben Zutaten, derselben Portion und
 der jetzigen Uhrzeit. Erst ab dem zweiten Vorkommen; eine Mahlzeit, die es
-einmal gab, ist keine Gewohnheit. Und nur für heute: An einem vergangenen Tag
-wäre „jetzt" gelogen.
+einmal gab, ist keine Gewohnheit. An einem vergangenen Tag wäre „jetzt"
+gelogen: Dort öffnet der Tipp den Bogen, vorgefüllt, und die Zeit kommt mit
+einem Zeitknopf.
 
 **Ideen.** Ein Zettel für Verbesserungsvorschläge zur App selbst. Wer die App
 benutzt, sitzt selten neben dem, der sie baut – deshalb gibt es hier gar
@@ -1081,6 +1120,25 @@ Beschwerde, die zu ihr gehört: „Nach dem Essen" sagt, zu welcher Mahlzeit etw
 gehört, aber nicht, ob es nach zwanzig Minuten oder nach drei Stunden kam. Wer also
 wissen will, was der Dickdarm macht, braucht mehr Tage als jemand, der nach dem
 Magen fragt – und die App sagt das, statt die Lücke mit einer Null zu füllen.
+Aus demselben Grund zählt das Bild „wann kommen die Beschwerden" nur, was auf
+die Stunde erhoben ist, und sagt dazu, wie viele mit ungefährer Zeit
+eingetragen sind.
+
+**Wenn die Reihenfolge offen ist.** Mit den Zeitknöpfen eingetragen, stehen
+das Abendessen und das Bauchweh, beide „abends", auf derselben Minute. Welches
+zuerst kam, weiß niemand – und die Rechnung darf es nicht erfinden: Eine
+Beschwerde zur selben Minute gilt nie als nach dem Essen, sie hinge am
+Mittagessen davor und zählte als nüchtern; neun solche Abende ergäben
+„Nüchternschmerz, 9 von 9". Deshalb gilt: Liegen Mahlzeit und Beschwerde am
+selben Tag in derselben Tageszeit und ist eine der beiden Zeiten nur ungefähr
+(die Beschwerde ohne Bezug zum Essen oder die Mahlzeit selbst), ist die
+Reihenfolge offen. Dann zählt die Beschwerde weder als nüchtern noch als nach
+dem Essen, sondern als unklar, und die Mahlzeit fehlt in der Auslöserbilanz,
+statt als beschwerdefrei oder als Auslöser darin zu stehen. „Vor dem Essen"
+und „nach dem Essen" sagen die Reihenfolge dagegen ausdrücklich – damit
+eingetragen, rechnet alles wie gewohnt. Ebenso der Provokationstest: Ein
+Frühstück „morgens" am Testmorgen macht den Durchgang unsauber, statt auf
+derselben Minute unsichtbar zu bleiben.
 
 ### Zyklus mal Auslöser
 
@@ -1553,6 +1611,7 @@ den Rückgabewert.
 | `test-ablaeufe.mjs` | jeder Shell-Schritt der GitHub-Abläufe geht durch `bash -n` – ein falsches Anführungszeichen fällt hier auf, nicht erst, wenn der Schritt gebraucht wird |
 | `test-zeitknoepfe.mjs` | „morgens" und „vor dem Essen" ergeben eine Uhrzeit, die als ungefähr gilt – und eine ungefähre Zeit zählt bei „wie lange nach dem Essen" nicht mit |
 | `test-standardmittel.mjs` | ein Mittel mit Dosis einmal anlegen, dann mit einem Tipp eintragen – ohne Dubletten und höchstens zwölf |
+| `test-zeit-mittel.mjs` | als iPhone mit 320 Pixeln: „abends" rastet nicht am Frühstück ein, eine Mahlzeit zieht ungefähre Einträge nach, gleiche Minute ergibt keinen Nüchternschmerz, dasselbe Mittel morgens und abends, „Meine Mittel" unter „Mehr" ohne Einnahme, die Dosis im Bericht – und alte Stände laden weiter |
 | `test-stand.mjs` | jede Datei des Offline-Vorrats zählt mit ihrem Inhalt, `sw.js` selbst auch – und ein vertippter Aufruf des Bauskripts baut nichts |
 | `test-ideen-einzeln.mjs` | jede Idee genau einmal, die älteste zuerst; was während eines Versands dazukommt, geht mit, was gelöscht wird, nicht – und wer gerade tippt, tippt weiter |
 | `test-anfang.mjs` | die Frühphase ist kürzer, sagt aber genauso genau, was fehlt – und die Warnzeichen überleben die Kürzung |
