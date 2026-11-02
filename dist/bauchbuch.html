@@ -1357,6 +1357,463 @@ function kuerze(s, max = 60) {
   return `${(luecke > max * 0.6 ? schnitt.slice(0, luecke) : schnitt).trimEnd()} …`;
 }
 
+/* ===== js/mittel.js ===== */
+/*
+ * Was die Mittel bewirken – eine Übersicht, kein Rat.
+ *
+ * Wer Magenbeschwerden hat, hat bald mehrere Schachteln im Schrank, und die
+ * Beipackzettel beantworten selten die Frage, die man wirklich hat: Was macht
+ * das eigentlich, und warum soll ich es ausgerechnet vor dem Frühstück nehmen?
+ * Genau dafür steht das hier – in ganzen Sätzen, nicht in Fachsprache.
+ *
+ * Drei Regeln, an die sich dieser Text hält:
+ *
+ *   1. **Keine Dosierungen.** Was jemand nimmt und wie viel, steht auf seiner
+ *      Packung und ist mit einer Ärztin besprochen. Eine App, die hier eine
+ *      Zahl hinschreibt, macht sich zu etwas, das sie nicht ist.
+ *   2. **Keine Empfehlung.** Nirgends steht „nimm", nirgends „hilft gegen".
+ *      Beschrieben wird, wie ein Wirkstoff arbeitet – ob er für einen
+ *      bestimmten Menschen der richtige ist, weiß diese App nicht und kann
+ *      es nicht wissen.
+ *   3. **Was schadet, steht mit dabei.** Eine Übersicht über Magenmittel, in
+ *      der die Schmerzmittel fehlen, die den Magen erst reizen, ist die
+ *      halbe Wahrheit – und die gefährlichere Hälfte. Siehe REIZSTOFFE.
+ *
+ * Reine Daten, keine Abhängigkeiten.
+ */
+
+const MITTEL_WISSEN = [
+  {
+    id: 'ppi',
+    gruppe: 'Protonenpumpenhemmer',
+    kuerzel: 'PPI',
+    beispiele: ['Pantoprazol', 'Omeprazol', 'Esomeprazol', 'Lansoprazol', 'Rabeprazol'],
+    kurz: 'Drosselt die Säurebildung, damit die Schleimhaut zur Ruhe kommt.',
+    wirkung: 'Blockiert die Pumpen in der Magenwand, an denen die Säure entsteht. '
+      + 'Es wird also nicht neutralisiert, was schon da ist – es kommt weniger nach. '
+      + 'Deshalb ist die volle Wirkung erst nach ein bis vier Tagen da, und deshalb '
+      + 'hilft eine einzelne Tablette gegen akutes Brennen kaum.',
+    einnahme: 'Üblicherweise morgens auf nüchternen Magen, eine halbe bis eine Stunde '
+      + 'vor dem Frühstück. Hemmen lassen sich nur Pumpen, die gerade arbeiten – und '
+      + 'das tun sie zur ersten Mahlzeit.',
+    hinweis: 'Nach längerer Einnahme nicht von einem Tag auf den anderen weglassen: '
+      + 'Der Magen antwortet dann vorübergehend mit mehr Säure als vorher, und das '
+      + 'fühlt sich an wie ein Rückfall. Das Ausschleichen gehört besprochen. Bei '
+      + 'monatelanger Einnahme wird gelegentlich auf Magnesium, Vitamin B12 und '
+      + 'Eisen geschaut.',
+  },
+  {
+    id: 'h2',
+    gruppe: 'H2-Blocker',
+    beispiele: ['Famotidin', 'Cimetidin'],
+    kurz: 'Drosselt die Säure auch, schwächer als ein PPI, aber schneller.',
+    wirkung: 'Setzt eine Stufe früher an als der PPI: Er besetzt den Schalter '
+      + '(den Histamin-H2-Rezeptor), über den die Säurebildung angeregt wird. '
+      + 'Wirkt innerhalb einer Stunde, dafür weniger stark.',
+    einnahme: 'Oft abends, weil er die nächtliche Säure gut abfängt.',
+    hinweis: 'Bei täglicher Einnahme lässt die Wirkung nach einigen Tagen nach – '
+      + 'der Körper gewöhnt sich daran. Ranitidin, das früher hierher gehörte, ist '
+      + 'seit 2020 vom Markt.',
+  },
+  {
+    id: 'antazida',
+    gruppe: 'Antazida',
+    beispiele: ['Magaldrat', 'Hydrotalcit', 'Riopan', 'Talcid', 'Rennie', 'Antazidum'],
+    kurz: 'Neutralisiert die Säure, die schon da ist. Wirkt in Minuten.',
+    wirkung: 'Eine Base, die die vorhandene Säure abpuffert. Nichts wird gedrosselt '
+      + 'und nichts geheilt – es wird das gelöscht, was gerade brennt. Nach ein bis '
+      + 'drei Stunden ist es vorbei.',
+    einnahme: 'Bei Bedarf, häufig etwa eine Stunde nach dem Essen und vor dem '
+      + 'Schlafengehen.',
+    hinweis: 'Der wichtigste Punkt steht selten vorn auf der Packung: Antazida binden '
+      + 'andere Wirkstoffe und können sie damit unwirksam machen. Zu anderen '
+      + 'Medikamenten gehören ein bis zwei Stunden Abstand. Magnesiumhaltige wirken '
+      + 'eher abführend, aluminium- und calciumhaltige eher stopfend.',
+  },
+  {
+    id: 'alginat',
+    gruppe: 'Alginate',
+    beispiele: ['Gaviscon', 'Alginat'],
+    kurz: 'Legt einen Deckel auf den Mageninhalt, gegen Aufsteigendes.',
+    wirkung: 'Aus Algen gewonnen: Im Magen bildet sich ein leichtes Gel, das oben '
+      + 'aufschwimmt und die Säure am Übertritt in die Speiseröhre hindert. Zielt '
+      + 'also auf Sodbrennen und Aufstoßen, nicht auf die Säuremenge.',
+    einnahme: 'Nach dem Essen und vor dem Hinlegen – dann ist etwas da, worauf sich '
+      + 'das Gel legen kann.',
+    hinweis: 'Auch hier Abstand zu anderen Medikamenten.',
+  },
+  {
+    id: 'sucralfat',
+    gruppe: 'Sucralfat',
+    beispiele: ['Sucralfat', 'Ulcogant'],
+    kurz: 'Legt sich als Film über die wunden Stellen.',
+    wirkung: 'Haftet an entzündeter oder verletzter Schleimhaut und bildet dort eine '
+      + 'Schutzschicht gegen Säure und Verdauungsenzyme. Greift nicht in die '
+      + 'Säurebildung ein – es deckt ab.',
+    einnahme: 'Auf nüchternen Magen, meist etwa eine Stunde vor den Mahlzeiten.',
+    hinweis: 'Braucht ein saures Milieu, um zu haften – zusammen mit einem Antazidum '
+      + 'im selben Moment wirkt es schlechter. Auch von anderen Medikamenten Abstand '
+      + 'halten.',
+  },
+  {
+    id: 'prokinetika',
+    gruppe: 'Prokinetika',
+    beispiele: ['Domperidon', 'Metoclopramid', 'MCP'],
+    kurz: 'Bringt den Magen dazu, sich schneller zu entleeren.',
+    wirkung: 'Regt die Magenbewegung an. Gedacht für den Fall, dass das Essen zu '
+      + 'lange liegen bleibt – Völlegefühl, Übelkeit, frühes Sattsein. Bei Migräne '
+      + 'wird es auch gegen die Übelkeit des Anfalls verordnet – und damit die '
+      + 'Schmerztablette aus dem Magen weiterkommt, der im Anfall stillsteht.',
+    einnahme: 'Vor den Mahlzeiten – bei Migräne eine Viertelstunde vor dem '
+      + 'Schmerzmittel. Verschreibungspflichtig.',
+    hinweis: 'Nicht für den Dauergebrauch gedacht; die zugelassene Anwendungsdauer '
+      + 'ist begrenzt, wegen möglicher Wirkungen auf Herzrhythmus und Nervensystem. '
+      + 'Gehört in ärztliche Hand.',
+  },
+  {
+    id: 'pflanzlich',
+    gruppe: 'Pflanzliche Mittel',
+    beispiele: ['Iberogast', 'Kamille', 'Kamillentee', 'Süßholz', 'Kümmel', 'Fenchel', 'Anis'],
+    kurz: 'Wirkt eher auf Krampf und Bewegung als auf die Säure.',
+    wirkung: 'Iberogast ist eine Mischung aus neun Pflanzenauszügen und zielt auf '
+      + 'Krämpfe und die Magenbewegung. Kamille wirkt reizlindernd, Kümmel, Fenchel '
+      + 'und Anis entkrampfen und helfen gegen Blähungen. Süßholzwurzel wird bei '
+      + 'gereizter Schleimhaut verwendet.',
+    einnahme: 'Meist zu oder nach den Mahlzeiten; Tee, wann man ihn braucht.',
+    hinweis: '„Pflanzlich" heißt nicht „harmlos". Für Iberogast gibt es wegen des '
+      + 'Schöllkraut-Anteils einen Warnhinweis zu den Leberwerten. Süßholz in größeren '
+      + 'Mengen über längere Zeit kann Blutdruck und Kalium beeinflussen. Beides '
+      + 'gehört in ein Gespräch in der Apotheke.',
+  },
+  {
+    id: 'heilerde',
+    gruppe: 'Heilerde und Bismut',
+    beispiele: ['Heilerde', 'Bismut'],
+    kurz: 'Bindet Säure und legt sich über die Schleimhaut.',
+    wirkung: 'Feiner Löss, der Säure bindet – ähnlich einem Antazidum, nur langsamer '
+      + 'und milder. Bismutsalze legen sich zusätzlich schützend auf und werden vor '
+      + 'allem in Kombinationstherapien gegen Helicobacter eingesetzt.',
+    einnahme: 'Zwischen den Mahlzeiten, mit reichlich Wasser.',
+    hinweis: 'Auch das bindet andere Wirkstoffe: Abstand halten. Bismut färbt Stuhl '
+      + 'und Zunge dunkel – erwartbar, kein Alarmzeichen.',
+  },
+  {
+    id: 'eradikation',
+    gruppe: 'Helicobacter-Behandlung',
+    beispiele: ['Amoxicillin', 'Clarithromycin', 'Metronidazol'],
+    kurz: 'Eine befristete Kombination, die ein bestimmtes Bakterium beseitigt.',
+    wirkung: 'Helicobacter pylori ist eine der häufigsten Ursachen einer chronischen '
+      + 'Gastritis. Behandelt wird nicht mit einem Mittel, sondern mit einer '
+      + 'Kombination aus einem PPI und zwei bis drei Antibiotika über sieben bis '
+      + 'vierzehn Tage.',
+    einnahme: 'Genau nach Schema, meist morgens und abends.',
+    hinweis: 'Das eine Mittel, bei dem „ich fühl mich besser, ich lass den Rest weg" '
+      + 'wirklich schadet: Eine abgebrochene Behandlung kann Keime zurücklassen, die '
+      + 'gegen das Antibiotikum unempfindlich geworden sind. Ob der Keim weg ist, '
+      + 'wird hinterher nachgeprüft.',
+  },
+];
+
+/**
+ * Was den Magen von der anderen Seite belastet.
+ *
+ * Gehört in eine Übersicht über Magenmittel, weil es der häufigste vermeidbare
+ * Grund für eine gereizte Schleimhaut ist – und weil es das Einzige hier ist,
+ * was jemand womöglich gerade selbst einnimmt, ohne den Zusammenhang zu kennen.
+ */
+const REIZSTOFFE = [
+  {
+    id: 'nsar',
+    gruppe: 'Entzündungshemmende Schmerzmittel (NSAR)',
+    // Mit den Handelsnamen, die bei Migräne im Schrank stehen:
+    // Ohne „Dolormin" und „Nurofen" zählte die App die Hälfte der NSAR-Tage
+    // nicht – und jeder Satz zum Magen hängt an dieser Zählung.
+    beispiele: ['Ibuprofen', 'Ibu', 'Dolormin', 'Nurofen', 'Diclofenac', 'Diclo',
+      'Voltaren', 'Naproxen', 'ASS', 'Aspirin'],
+    kurz: 'Häufigster vermeidbarer Grund für eine gereizte Magenschleimhaut.',
+    wirkung: 'Sie hemmen Botenstoffe, die Schmerz und Entzündung machen – dieselben '
+      + 'Botenstoffe sorgen aber auch für die Schleimschicht, die den Magen vor '
+      + 'seiner eigenen Säure schützt. Der Schutz wird also mit abgeschaltet.',
+    einnahme: '–',
+    hinweis: 'Wer regelmäßig zu einem davon greift und Magenbeschwerden hat, sollte '
+      + 'das ansprechen: Es gibt Schmerzmittel, die den Magen nicht angreifen, und '
+      + 'wenn es ohne NSAR nicht geht, einen Magenschutz dazu. Welches davon, '
+      + 'entscheidet sich nicht am Magen allein. Zusammen mit Kortison steigt das '
+      + 'Risiko weiter. Als Gel oder Pflaster auf der Haut zählt es hier nicht – '
+      + 'davon kommt kaum etwas im Magen an.',
+  },
+  {
+    id: 'kombi',
+    gruppe: 'Kombinationsmittel mit ASS und Koffein',
+    beispiele: ['Thomapyrin', 'Neuralgin', 'Koffein'],
+    kurz: 'Für den Magen ein NSAR – für den Kopf ein Mittel mit der niedrigsten Übergebrauchsgrenze.',
+    wirkung: 'ASS, meist zusammen mit Paracetamol, und dazu Koffein, das die Wirkung '
+      + 'verstärkt und beschleunigt. Für die Magenschleimhaut gilt, was für jedes '
+      + 'ASS gilt: Der Schutzfilm wird mit abgeschaltet.',
+    einnahme: '–',
+    hinweis: 'Die meistgekauften rezeptfreien Kopfschmerzmittel – und gerade deshalb '
+      + 'die, die am ehesten zu oft genommen werden. Ab etwa zehn Tagen im Monat '
+      + 'kann ein Kombinationsmittel den Kopfschmerz selbst unterhalten, früher als '
+      + 'ein einzelnes Schmerzmittel. Für den Magen zählt es wie ein NSAR.',
+  },
+  {
+    id: 'kortison',
+    gruppe: 'Kortison',
+    beispiele: ['Prednisolon', 'Kortison'],
+    kurz: 'Allein weniger heikel, zusammen mit NSAR deutlich mehr.',
+    wirkung: 'Für sich genommen ein geringerer Magenreiz als lange angenommen. In '
+      + 'Kombination mit einem entzündungshemmenden Schmerzmittel steigt das Risiko '
+      + 'für Schleimhautschäden jedoch deutlich.',
+    einnahme: '–',
+    hinweis: 'Nie eigenmächtig absetzen. Änderungen gehören in ärztliche Hand.',
+  },
+];
+
+/*
+ * Was sonst noch gegen Schmerzen genommen wird – und den Magen nicht angreift.
+ *
+ * Gehört hierher, weil die Frage nach der „magenfreundlicheren Alternative"
+ * unter „Was noch fehlt" sonst ins Leere zeigt: Die App soll erkennen, wenn
+ * jemand bereits Paracetamol statt Ibuprofen nimmt. Und sie soll Triptane
+ * kennen, weil bei einer Migräne die Zahl der Tage mit Akutmedikation im
+ * Monat die wichtigste Zahl für die Neurologie ist – und die niedrigste
+ * Schwelle ausgerechnet beim Migränemittel liegt. Beides ohne Empfehlung:
+ * Welches Mittel für wen passt, entscheidet niemand hier.
+ */
+const WEITERE_MITTEL = [
+  {
+    id: 'triptan',
+    gruppe: 'Triptane',
+    // „triptan" als Teilwort fängt jeden Wirkstoff; dazu die Handelsnamen.
+    beispiele: ['triptan', 'Imigran', 'Maxalt', 'AscoTop', 'Naramig', 'Formigran',
+      'Dolortriptan', 'Relpax', 'Almogran'],
+    kurz: 'Ein Mittel eigens gegen den Migräneanfall – für einen Spannungskopfschmerz das falsche Werkzeug, und nicht für den Magen.',
+    wirkung: 'Dockt an Serotonin-Schaltern an den Nerven und Gefäßen der Hirnhaut an '
+      + 'und dämpft dort die Weiterleitung des Anfalls; nebenbei engt es Gefäße – '
+      + 'auch außerhalb des Kopfes. Deshalb bessert es auch die Übelkeit, die zum '
+      + 'Anfall gehört, und deshalb ist es für einen Spannungskopfschmerz das '
+      + 'falsche Werkzeug. Die Magenschleimhaut greift es nicht an.',
+    einnahme: 'Früh im Anfall, sobald der Schmerz da ist; während einer Aura '
+      + 'üblicherweise noch nicht. Wie oft an einem Tag und mit welchem Abstand, '
+      + 'steht auf der Packung – es ist begrenzt. Im Anfall steht der Magen oft '
+      + 'still, und eine Tablette kommt dann schlecht weiter; dafür gibt es '
+      + 'Schmelztabletten, Nasenspray und Spritze. Wer im Anfall erbricht, hat '
+      + 'damit eine Frage für die Sprechstunde.',
+    hinweis: 'Triptane engen Gefäße auch außerhalb des Kopfes. Darum sind sie bei '
+      + 'Herz- und Gefäßkrankheiten, nach einem Schlaganfall und bei unbehandeltem '
+      + 'Bluthochdruck nicht vorgesehen – das wird vor dem ersten Rezept geprüft '
+      + 'und gehört neu gefragt, wenn sich daran etwas ändert. Ein Engegefühl in '
+      + 'Brust oder Hals kurz nach der Einnahme ist beschrieben und meist harmlos – '
+      + 'trotzdem vor der nächsten Einnahme in der Praxis ansprechen, nicht erst '
+      + 'beim nächsten Termin. Kommt es mit Luftnot oder kaltem Schweiß, oder hält '
+      + 'es an: sofort. Übelkeit kann vom Anfall kommen und vom Mittel. Sehr selten: '
+      + 'plötzliche Bauchkrämpfe mit blutigem Durchfall nach der Einnahme, das ist '
+      + 'ein Fall für sofort. Und ab etwa zehn Tagen im Monat kann ein Triptan den '
+      + 'Kopfschmerz selbst unterhalten – früher als einfache Schmerzmittel, '
+      + 'gleichauf mit Kombinationsmitteln.',
+  },
+  /*
+   * Nicht „magenschonend" – das wäre eine Empfehlung in einem Wort, und
+   * welches Mittel bei Migräne passt, entscheidet sich nicht am Magen allein.
+   * Beschrieben wird der Unterschied im Mechanismus, und was er kostet.
+   */
+  /*
+   * Opioide und die neuen Anfallsmittel stehen hier, damit die Zählung sie
+   * sieht – nicht als Magenwissen. Ein Codein-Kombinationsmittel zählt für
+   * den Kopf wie ein Triptan ab zehn Tagen; die Gruppe steht deshalb VOR den
+   * einfachen Schmerzmitteln, damit „Paracetamol Codein" hier landet.
+   */
+  {
+    id: 'opioid',
+    gruppe: 'Opioide',
+    beispiele: ['Tramadol', 'Tramal', 'Tilidin', 'Valoron', 'Codein', 'Oxycodon', 'Tapentadol'],
+    kurz: 'Greift den Magen nicht an – für den Kopf gilt die niedrige Grenze von zehn Tagen.',
+    wirkung: 'Dämpft den Schmerz im Nervensystem, nicht an der Stelle, wo er entsteht. '
+      + 'Gegen Migräne sehen die Leitlinien es nicht vor – es wirkt dort schlecht '
+      + 'und macht leicht abhängig; wenn es trotzdem im Schrank steht, soll die '
+      + 'App es wenigstens zählen.',
+    einnahme: '–',
+    hinweis: 'Verstopfung und Übelkeit gehören dazu; Müdigkeit auch. Ab etwa zehn '
+      + 'Tagen im Monat kann ein Opioid den Kopfschmerz selbst unterhalten – wie '
+      + 'ein Triptan. Nicht eigenmächtig absetzen und nicht eigenmächtig '
+      + 'steigern; beides gehört in ärztliche Hand.',
+  },
+  {
+    id: 'gepant',
+    gruppe: 'Gepante und Ditane',
+    // Mit Namen, nicht mit dem Teilwort „gepant": Atogepant ist Vorbeugung.
+    beispiele: ['Rimegepant', 'Vydura', 'Ubrogepant', 'Zavegepant', 'Lasmiditan', 'Rayvow'],
+    kurz: 'Die neueren Anfallsmittel – ohne Gefäßverengung, ohne Angriff auf den Magen.',
+    wirkung: 'Blockieren einen Botenstoff des Anfalls (CGRP) oder dämpfen die '
+      + 'Weiterleitung an anderer Stelle als Triptane – ohne Gefäße zu verengen. '
+      + 'Deshalb kommen sie auch für Menschen infrage, die kein Triptan nehmen '
+      + 'dürfen. Für den Magen sind sie kein Reizstoff.',
+    einnahme: 'Früh im Anfall, nach Rezept. Lasmiditan macht müde und schwindelig – '
+      + 'danach stundenlang nicht fahren.',
+    hinweis: 'Zählt hier als Tag mit Akutmittel, ohne eigene Übergebrauchsgrenze – '
+      + 'die Klassifikation kennt dafür noch keine. Was es im Einzelnen tut und '
+      + 'verträgt, steht auf dem Rezept und im Gespräch.',
+  },
+  {
+    id: 'nichtnsar',
+    gruppe: 'Schmerzmittel ohne Entzündungshemmung',
+    beispiele: ['Paracetamol', 'ben-u-ron', 'Dafalgan', 'Mexalen', 'Metamizol', 'Novalgin', 'Novaminsulfon'],
+    kurz: 'Lässt die Schutzschicht des Magens in Ruhe – belastet dafür anderes.',
+    wirkung: 'Paracetamol wirkt vor allem im Gehirn gegen Schmerz und Fieber, kaum '
+      + 'gegen Entzündung, und greift die Schleimschicht des Magens nicht an. '
+      + 'Metamizol wirkt stärker und auch krampflösend; für den Magen gilt '
+      + 'dasselbe. „Harmlos" heißt das nicht – die Risiken liegen nur woanders.',
+    einnahme: 'Paracetamol gibt es frei, Metamizol nur auf Rezept. Beide stecken '
+      + 'auch in Kombinationsmitteln gegen Erkältung und Kopfschmerz – wer '
+      + 'zweierlei nimmt, nimmt es leicht doppelt.',
+    hinweis: 'Paracetamol geht über die Leber. Die Grenze pro Tag steht auf der '
+      + 'Packung; sie gilt auch an Tagen, an denen nichts im Magen bleibt – da '
+      + 'verträgt die Leber eher weniger, nicht mehr –, und mit regelmäßig Alkohol '
+      + 'erst recht. Metamizol kann die weißen Blutkörperchen verschwinden lassen '
+      + '(Agranulozytose) – selten, aber nicht so selten wie lange angenommen, und '
+      + 'auch, wenn es früher gut vertragen wurde: Fieber, Schüttelfrost, '
+      + 'Halsschmerzen oder wunde Stellen im Mund unter oder kurz nach der Einnahme '
+      + 'sind ein Grund, sofort anzurufen und ein Blutbild machen zu lassen. Für den '
+      + 'Kopf zählen beide wie jedes Akutmittel: Ab etwa fünfzehn Tagen im Monat '
+      + 'kann das Mittel den Kopfschmerz selbst unterhalten. Welches Mittel bei '
+      + 'Migräne das richtige ist, entscheidet sich nicht am Magen allein – das ist '
+      + 'die Frage für die Neurologie.',
+  },
+  /*
+   * Vorbeugende Mittel stehen hier, damit die App sie kennt und *nicht* als
+   * Akutmittel zählt: Ein tägliches Metoprolol würde sonst die Übergebrauchs-
+   * zählung sprengen. Manche davon sind zugleich Blutdruck- oder
+   * Stimmungsmittel – was es bei wem ist, weiß die App nicht.
+   */
+  {
+    id: 'prophylaxe',
+    gruppe: 'Vorbeugende Migränemittel',
+    beispiele: ['Metoprolol', 'Propranolol', 'Amitriptylin', 'Topiramat', 'Valproat',
+      'Flunarizin', 'Candesartan', 'Erenumab', 'Aimovig', 'Galcanezumab', 'Emgality',
+      'Fremanezumab', 'Ajovy', 'Eptinezumab', 'Atogepant', 'Aquipta'],
+    kurz: 'Regelmäßig genommen, damit Anfälle seltener kommen – kein Akutmittel.',
+    wirkung: 'Senkt die Bereitschaft des Nervensystems, einen Anfall zu starten. '
+      + 'Wirkt nicht gegen den Anfall, der gerade da ist, sondern über Wochen auf '
+      + 'die Zahl der Anfälle. Einige davon sind zugleich Mittel gegen hohen '
+      + 'Blutdruck, Epilepsie oder Depression – bei Migräne werden sie in anderer '
+      + 'Absicht eingesetzt. Die Antikörper (Spritze alle vier Wochen oder alle '
+      + 'drei Monate) richten sich gezielt gegen einen Botenstoff des Anfalls.',
+    einnahme: 'Regelmäßig nach Plan, unabhängig davon, ob gerade ein Anfall ist. '
+      + 'Ob es wirkt, zeigt sich erst nach Wochen – deshalb gehört das '
+      + 'Kopfschmerztagebuch dazu.',
+    hinweis: 'Zählt in dieser App nicht als Akutmittel. Nicht eigenmächtig absetzen; '
+      + 'bei den Blutdruckmitteln darunter schon gar nicht. Was es im Einzelnen '
+      + 'tut und welche Nebenwirkungen es hat, ist bei jedem anders – das steht '
+      + 'auf der Packung und im Gespräch, nicht hier. Eine Ausnahme ist allgemein: '
+      + 'Topiramat und Valproat gehören bei Frauen, die schwanger werden könnten, '
+      + 'in ein eigenes Gespräch über Verhütung – das gilt seit 2024 ausdrücklich.',
+  },
+];
+
+const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL];
+
+/*
+ * Die Mittel bei ADHS – vorerst nur zum Erkennen, ohne Texte.
+ *
+ * Die Namen stehen hier, weil die Zählung sie braucht, bevor es etwas über
+ * sie zu lesen gibt: Ein Tag, an dem nur „Medikinet" steht, sagt über Bauch
+ * und Kopf so wenig wie ein Glas Wasser (siehe eintragZaehlt in
+ * js/wasser.js). Ohne die Namen wäre er ein notierter Tag und ohne Beschwerde
+ * ein beschwerdefreier – und das Mittel, das man jeden Morgen nimmt, machte
+ * aus jeder Lücke im Tagebuch einen guten Tag.
+ *
+ * Die Reihenfolge ist Absicht: „Lisdexamfetamin" enthält „dexamfetamin".
+ * Stünde Dexamfetamin vorn, wäre Lisdexamfetamin Dexamfetamin – ein anderer
+ * Wirkstoff mit anderer Einnahme.
+ *
+ * Bupropion steht dabei, damit es erkannt wird – gezählt wird es wie bisher,
+ * wie jedes andere Mittel: Es gehört nicht zu ADHS_GRUPPEN, und ein Tag, an
+ * dem es steht, bleibt ein notierter Tag. Ob es dort wegen ADHS oder aus
+ * einem anderen Grund steht, kann die App nicht wissen.
+ */
+const ADHS_NAMEN = [
+  { id: 'mph', beispiele: ['Methylphenidat', 'Ritalin', 'Medikinet', 'Concerta', 'Kinecteen', 'Equasym', 'MPH'] },
+  { id: 'lisdex', beispiele: ['Lisdexamfetamin', 'Elvanse'] },
+  { id: 'dex', beispiele: ['Dexamfetamin', 'Attentin'] },
+  { id: 'atomox', beispiele: ['Atomoxetin', 'Strattera'] },
+  { id: 'guanf', beispiele: ['Guanfacin', 'Intuniv'] },
+  { id: 'bupro', beispiele: ['Bupropion', 'Elontril', 'Zyban'] },
+];
+
+/** Die Gruppen, die als ADHS-Mittel zählen – ohne Bupropion (siehe oben). */
+const ADHS_GRUPPEN = ['mph', 'lisdex', 'dex', 'atomox', 'guanf'];
+
+/** Die Stimulanzien darunter. */
+const STIMULANZIEN = ['mph', 'lisdex', 'dex'];
+
+/** Ein eingetragener Name, so wie er verglichen wird. */
+const suchform = (name) => String(name || '').toLowerCase().trim();
+
+/*
+ * Was auf der Haut bleibt, zählt nicht: Ein Diclofenac-Gel fürs Knie kommt
+ * im Magen praktisch nicht an und ist kein Kopfschmerz-Akutmittel. Es
+ * steht dann unter „nicht zugeordnet" statt in der Zählung. „Spray" bleibt
+ * draußen aus dieser Regel – das Triptan-Nasenspray wirkt im ganzen Körper.
+ */
+const aufDerHaut = (gesucht) => /(gel|salbe|creme|pflaster)\b/.test(gesucht);
+
+/*
+ * Kurze Kürzel („ASS", „Ibu", „MCP") nur am Wortanfang: Als bloßes Teilwort
+ * traf „ass" auch „Wasser" und „Passionsblume" – und ein Glas Wasser zählte
+ * als entzündungshemmendes Schmerzmittel. Lange Namen dürfen weiter überall
+ * im Eingetragenen stehen („Pantoprazol 20mg", „IbuHexal").
+ */
+function beispielPasst(gesucht, beispiel) {
+  const k = beispiel.toLowerCase();
+  if (k.length > 3) return gesucht.includes(k);
+  return new RegExp(`(^|[^a-zäöüß])${k}`).test(gesucht);
+}
+
+/**
+ * Zu einem eingetragenen Namen die passende Gruppe finden.
+ *
+ * Eingetragen wird frei: „Pantoprazol 20mg", „pantoprazol", „Panto". Deshalb
+ * wird kleingeschrieben verglichen und geprüft, ob eines der Beispiele im
+ * Eingetragenen vorkommt – nicht auf Gleichheit.
+ */
+function wissenZu(name) {
+  const gesucht = suchform(name);
+  if (!gesucht) return null;
+  if (aufDerHaut(gesucht)) return null;
+  const passt = (b) => beispielPasst(gesucht, b);
+  return ALLE.find((g) => g.beispiele.some(passt))
+    || ALLE.find((g) => gesucht.includes(g.gruppe.toLowerCase()))
+    || null;
+}
+
+/**
+ * Die ADHS-Gruppe eines eingetragenen Namens – 'mph', 'lisdex', 'dex',
+ * 'atomox', 'guanf', 'bupro' – oder null.
+ *
+ * Mit denselben Regeln wie wissenZu(): Kürzel nur am Wortanfang, und was auf
+ * der Haut bleibt, ist keines.
+ */
+function adhsGruppe(name) {
+  const gesucht = suchform(name);
+  if (!gesucht || aufDerHaut(gesucht)) return null;
+  const g = ADHS_NAMEN.find((x) => x.beispiele.some((b) => beispielPasst(gesucht, b)));
+  return g ? g.id : null;
+}
+
+/*
+ * Gefragt wird für jeden Eintrag in jeder Rechnung, die Tage zählt – bei
+ * einem Jahr Tagebuch viele tausend Mal, und fast immer nach denselben
+ * wenigen Namen. Deshalb je Name einmal gerechnet und gemerkt.
+ */
+const adhsSchon = new Map();
+
+/** Zählt dieser Name als ADHS-Mittel? (Bupropion nicht, siehe ADHS_NAMEN.) */
+function istAdhsMittel(name) {
+  const k = suchform(name);
+  if (!adhsSchon.has(k)) adhsSchon.set(k, ADHS_GRUPPEN.includes(adhsGruppe(k)));
+  return adhsSchon.get(k);
+}
+
 /* ===== js/wasser.js ===== */
 /*
  * Wasser: wie viele Gläser an einem Tag getrunken wurden.
@@ -1380,8 +1837,11 @@ function kuerze(s, max = 60) {
  * selbst: „Gym um 18 Uhr" ist ein Eintrag, sagt aber über Bauch und Kopf so
  * wenig wie ein Glas Wasser. Für ihn gibt es eintragZaehlt(), die Schwester
  * von tagZaehlt() – beide stehen hier, damit es die Regel nur einmal gibt.
+ * Seit der Fassung 28 gilt dasselbe für ein ADHS-Mittel: Es wird jeden Morgen
+ * genommen, ob der Bauch Ruhe gibt oder nicht.
  *
- * Hängt von nichts ab und darf deshalb überall benutzt werden.
+ * Hängt nur von js/mittel.js ab (das selbst nichts importiert), um ein
+ * ADHS-Mittel am Namen zu erkennen, und darf deshalb überall benutzt werden.
  */
 
 /** Mehr als vierzig Gläser an einem Tag sind ein Tippfehler, keine Angabe. */
@@ -1400,8 +1860,22 @@ const GLAS_VORGABE = 250;
  * Felder des Tagesspeichers, die einen Tag nicht zu einem notierten machen.
  * Eine Liste und kein einzelner Vergleich, damit die nächste Angabe dieser
  * Art an genau einer Stelle dazukommt.
+ *
+ * Seit der Fassung 28 stehen hier auch die Angaben zu ADHS-Mittel und
+ * Verspannung. Jede von ihnen ist eine Antwort – aber auf eine Frage, die mit
+ * dem Bauch und dem Kopf erst verglichen werden soll:
+ *
+ *   adhsPause  „heute ohne ADHS-Mittel" – sagt über den Bauch nichts.
+ *   verspannt  Nacken und Schultern.
+ *   kiefer     der Kiefer am Morgen.
+ *   gepresst   tagsüber gepresst oder geknirscht.
+ *   schiene    ob in der Nacht davor eine Aufbissschiene getragen wurde.
+ *
+ * Machte eine davon den Tag zu einem notierten, wäre jeder Tag, an dem nur
+ * „Schiene getragen" steht, für den Kopf ein Tag ohne Kopfschmerz – und die
+ * Schiene sähe in jedem Vergleich besser aus, als sie war.
  */
-const ZAEHLT_NICHT = ['wasser'];
+const ZAEHLT_NICHT = ['wasser', 'adhsPause', 'verspannt', 'kiefer', 'gepresst', 'schiene'];
 
 const feldLeer = (v) => v === null || v === undefined || v === ''
   || (typeof v === 'string' && !v.trim());
@@ -1438,9 +1912,16 @@ const SAGT_NICHTS = ['aktivitaet'];
  * hielt, fragt jetzt das. Ohne diese Frage wäre der Tag, an dem nur „Laufen"
  * steht, ein beschwerdefreier Tag – und das Laufen sähe in jeder Rechnung
  * besser aus, als es war.
+ *
+ * Ein ADHS-Mittel sagt ebenso wenig (siehe ADHS_NAMEN in js/mittel.js): Es
+ * wird nach Plan genommen, nicht wegen des Bauchs oder des Kopfes. Steht an
+ * einem Tag nur die Tablette vom Morgen, ist der Tag für beide eine Lücke.
+ * Andere Mittel zählen weiter – ein Säureblocker oder ein Schmerzmittel wird
+ * meist genommen, weil etwas war.
  */
 function eintragZaehlt(e) {
-  return !!e && typeof e === 'object' && !SAGT_NICHTS.includes(e.art);
+  if (!e || typeof e !== 'object' || SAGT_NICHTS.includes(e.art)) return false;
+  return !(e.art === 'medikament' && istAdhsMittel(e.mittel));
 }
 
 /**
@@ -1941,394 +2422,6 @@ function eigeneId(name) {
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   return `x:${rumpf || 'eigen'}`;
-}
-
-/* ===== js/mittel.js ===== */
-/*
- * Was die Mittel bewirken – eine Übersicht, kein Rat.
- *
- * Wer Magenbeschwerden hat, hat bald mehrere Schachteln im Schrank, und die
- * Beipackzettel beantworten selten die Frage, die man wirklich hat: Was macht
- * das eigentlich, und warum soll ich es ausgerechnet vor dem Frühstück nehmen?
- * Genau dafür steht das hier – in ganzen Sätzen, nicht in Fachsprache.
- *
- * Drei Regeln, an die sich dieser Text hält:
- *
- *   1. **Keine Dosierungen.** Was jemand nimmt und wie viel, steht auf seiner
- *      Packung und ist mit einer Ärztin besprochen. Eine App, die hier eine
- *      Zahl hinschreibt, macht sich zu etwas, das sie nicht ist.
- *   2. **Keine Empfehlung.** Nirgends steht „nimm", nirgends „hilft gegen".
- *      Beschrieben wird, wie ein Wirkstoff arbeitet – ob er für einen
- *      bestimmten Menschen der richtige ist, weiß diese App nicht und kann
- *      es nicht wissen.
- *   3. **Was schadet, steht mit dabei.** Eine Übersicht über Magenmittel, in
- *      der die Schmerzmittel fehlen, die den Magen erst reizen, ist die
- *      halbe Wahrheit – und die gefährlichere Hälfte. Siehe REIZSTOFFE.
- *
- * Reine Daten, keine Abhängigkeiten.
- */
-
-const MITTEL_WISSEN = [
-  {
-    id: 'ppi',
-    gruppe: 'Protonenpumpenhemmer',
-    kuerzel: 'PPI',
-    beispiele: ['Pantoprazol', 'Omeprazol', 'Esomeprazol', 'Lansoprazol', 'Rabeprazol'],
-    kurz: 'Drosselt die Säurebildung, damit die Schleimhaut zur Ruhe kommt.',
-    wirkung: 'Blockiert die Pumpen in der Magenwand, an denen die Säure entsteht. '
-      + 'Es wird also nicht neutralisiert, was schon da ist – es kommt weniger nach. '
-      + 'Deshalb ist die volle Wirkung erst nach ein bis vier Tagen da, und deshalb '
-      + 'hilft eine einzelne Tablette gegen akutes Brennen kaum.',
-    einnahme: 'Üblicherweise morgens auf nüchternen Magen, eine halbe bis eine Stunde '
-      + 'vor dem Frühstück. Hemmen lassen sich nur Pumpen, die gerade arbeiten – und '
-      + 'das tun sie zur ersten Mahlzeit.',
-    hinweis: 'Nach längerer Einnahme nicht von einem Tag auf den anderen weglassen: '
-      + 'Der Magen antwortet dann vorübergehend mit mehr Säure als vorher, und das '
-      + 'fühlt sich an wie ein Rückfall. Das Ausschleichen gehört besprochen. Bei '
-      + 'monatelanger Einnahme wird gelegentlich auf Magnesium, Vitamin B12 und '
-      + 'Eisen geschaut.',
-  },
-  {
-    id: 'h2',
-    gruppe: 'H2-Blocker',
-    beispiele: ['Famotidin', 'Cimetidin'],
-    kurz: 'Drosselt die Säure auch, schwächer als ein PPI, aber schneller.',
-    wirkung: 'Setzt eine Stufe früher an als der PPI: Er besetzt den Schalter '
-      + '(den Histamin-H2-Rezeptor), über den die Säurebildung angeregt wird. '
-      + 'Wirkt innerhalb einer Stunde, dafür weniger stark.',
-    einnahme: 'Oft abends, weil er die nächtliche Säure gut abfängt.',
-    hinweis: 'Bei täglicher Einnahme lässt die Wirkung nach einigen Tagen nach – '
-      + 'der Körper gewöhnt sich daran. Ranitidin, das früher hierher gehörte, ist '
-      + 'seit 2020 vom Markt.',
-  },
-  {
-    id: 'antazida',
-    gruppe: 'Antazida',
-    beispiele: ['Magaldrat', 'Hydrotalcit', 'Riopan', 'Talcid', 'Rennie', 'Antazidum'],
-    kurz: 'Neutralisiert die Säure, die schon da ist. Wirkt in Minuten.',
-    wirkung: 'Eine Base, die die vorhandene Säure abpuffert. Nichts wird gedrosselt '
-      + 'und nichts geheilt – es wird das gelöscht, was gerade brennt. Nach ein bis '
-      + 'drei Stunden ist es vorbei.',
-    einnahme: 'Bei Bedarf, häufig etwa eine Stunde nach dem Essen und vor dem '
-      + 'Schlafengehen.',
-    hinweis: 'Der wichtigste Punkt steht selten vorn auf der Packung: Antazida binden '
-      + 'andere Wirkstoffe und können sie damit unwirksam machen. Zu anderen '
-      + 'Medikamenten gehören ein bis zwei Stunden Abstand. Magnesiumhaltige wirken '
-      + 'eher abführend, aluminium- und calciumhaltige eher stopfend.',
-  },
-  {
-    id: 'alginat',
-    gruppe: 'Alginate',
-    beispiele: ['Gaviscon', 'Alginat'],
-    kurz: 'Legt einen Deckel auf den Mageninhalt, gegen Aufsteigendes.',
-    wirkung: 'Aus Algen gewonnen: Im Magen bildet sich ein leichtes Gel, das oben '
-      + 'aufschwimmt und die Säure am Übertritt in die Speiseröhre hindert. Zielt '
-      + 'also auf Sodbrennen und Aufstoßen, nicht auf die Säuremenge.',
-    einnahme: 'Nach dem Essen und vor dem Hinlegen – dann ist etwas da, worauf sich '
-      + 'das Gel legen kann.',
-    hinweis: 'Auch hier Abstand zu anderen Medikamenten.',
-  },
-  {
-    id: 'sucralfat',
-    gruppe: 'Sucralfat',
-    beispiele: ['Sucralfat', 'Ulcogant'],
-    kurz: 'Legt sich als Film über die wunden Stellen.',
-    wirkung: 'Haftet an entzündeter oder verletzter Schleimhaut und bildet dort eine '
-      + 'Schutzschicht gegen Säure und Verdauungsenzyme. Greift nicht in die '
-      + 'Säurebildung ein – es deckt ab.',
-    einnahme: 'Auf nüchternen Magen, meist etwa eine Stunde vor den Mahlzeiten.',
-    hinweis: 'Braucht ein saures Milieu, um zu haften – zusammen mit einem Antazidum '
-      + 'im selben Moment wirkt es schlechter. Auch von anderen Medikamenten Abstand '
-      + 'halten.',
-  },
-  {
-    id: 'prokinetika',
-    gruppe: 'Prokinetika',
-    beispiele: ['Domperidon', 'Metoclopramid', 'MCP'],
-    kurz: 'Bringt den Magen dazu, sich schneller zu entleeren.',
-    wirkung: 'Regt die Magenbewegung an. Gedacht für den Fall, dass das Essen zu '
-      + 'lange liegen bleibt – Völlegefühl, Übelkeit, frühes Sattsein. Bei Migräne '
-      + 'wird es auch gegen die Übelkeit des Anfalls verordnet – und damit die '
-      + 'Schmerztablette aus dem Magen weiterkommt, der im Anfall stillsteht.',
-    einnahme: 'Vor den Mahlzeiten – bei Migräne eine Viertelstunde vor dem '
-      + 'Schmerzmittel. Verschreibungspflichtig.',
-    hinweis: 'Nicht für den Dauergebrauch gedacht; die zugelassene Anwendungsdauer '
-      + 'ist begrenzt, wegen möglicher Wirkungen auf Herzrhythmus und Nervensystem. '
-      + 'Gehört in ärztliche Hand.',
-  },
-  {
-    id: 'pflanzlich',
-    gruppe: 'Pflanzliche Mittel',
-    beispiele: ['Iberogast', 'Kamille', 'Kamillentee', 'Süßholz', 'Kümmel', 'Fenchel', 'Anis'],
-    kurz: 'Wirkt eher auf Krampf und Bewegung als auf die Säure.',
-    wirkung: 'Iberogast ist eine Mischung aus neun Pflanzenauszügen und zielt auf '
-      + 'Krämpfe und die Magenbewegung. Kamille wirkt reizlindernd, Kümmel, Fenchel '
-      + 'und Anis entkrampfen und helfen gegen Blähungen. Süßholzwurzel wird bei '
-      + 'gereizter Schleimhaut verwendet.',
-    einnahme: 'Meist zu oder nach den Mahlzeiten; Tee, wann man ihn braucht.',
-    hinweis: '„Pflanzlich" heißt nicht „harmlos". Für Iberogast gibt es wegen des '
-      + 'Schöllkraut-Anteils einen Warnhinweis zu den Leberwerten. Süßholz in größeren '
-      + 'Mengen über längere Zeit kann Blutdruck und Kalium beeinflussen. Beides '
-      + 'gehört in ein Gespräch in der Apotheke.',
-  },
-  {
-    id: 'heilerde',
-    gruppe: 'Heilerde und Bismut',
-    beispiele: ['Heilerde', 'Bismut'],
-    kurz: 'Bindet Säure und legt sich über die Schleimhaut.',
-    wirkung: 'Feiner Löss, der Säure bindet – ähnlich einem Antazidum, nur langsamer '
-      + 'und milder. Bismutsalze legen sich zusätzlich schützend auf und werden vor '
-      + 'allem in Kombinationstherapien gegen Helicobacter eingesetzt.',
-    einnahme: 'Zwischen den Mahlzeiten, mit reichlich Wasser.',
-    hinweis: 'Auch das bindet andere Wirkstoffe: Abstand halten. Bismut färbt Stuhl '
-      + 'und Zunge dunkel – erwartbar, kein Alarmzeichen.',
-  },
-  {
-    id: 'eradikation',
-    gruppe: 'Helicobacter-Behandlung',
-    beispiele: ['Amoxicillin', 'Clarithromycin', 'Metronidazol'],
-    kurz: 'Eine befristete Kombination, die ein bestimmtes Bakterium beseitigt.',
-    wirkung: 'Helicobacter pylori ist eine der häufigsten Ursachen einer chronischen '
-      + 'Gastritis. Behandelt wird nicht mit einem Mittel, sondern mit einer '
-      + 'Kombination aus einem PPI und zwei bis drei Antibiotika über sieben bis '
-      + 'vierzehn Tage.',
-    einnahme: 'Genau nach Schema, meist morgens und abends.',
-    hinweis: 'Das eine Mittel, bei dem „ich fühl mich besser, ich lass den Rest weg" '
-      + 'wirklich schadet: Eine abgebrochene Behandlung kann Keime zurücklassen, die '
-      + 'gegen das Antibiotikum unempfindlich geworden sind. Ob der Keim weg ist, '
-      + 'wird hinterher nachgeprüft.',
-  },
-];
-
-/**
- * Was den Magen von der anderen Seite belastet.
- *
- * Gehört in eine Übersicht über Magenmittel, weil es der häufigste vermeidbare
- * Grund für eine gereizte Schleimhaut ist – und weil es das Einzige hier ist,
- * was jemand womöglich gerade selbst einnimmt, ohne den Zusammenhang zu kennen.
- */
-const REIZSTOFFE = [
-  {
-    id: 'nsar',
-    gruppe: 'Entzündungshemmende Schmerzmittel (NSAR)',
-    // Mit den Handelsnamen, die im Schrank einer Migränepatientin stehen:
-    // Ohne „Dolormin" und „Nurofen" zählte die App die Hälfte der NSAR-Tage
-    // nicht – und jeder Satz zum Magen hängt an dieser Zählung.
-    beispiele: ['Ibuprofen', 'Ibu', 'Dolormin', 'Nurofen', 'Diclofenac', 'Diclo',
-      'Voltaren', 'Naproxen', 'ASS', 'Aspirin'],
-    kurz: 'Häufigster vermeidbarer Grund für eine gereizte Magenschleimhaut.',
-    wirkung: 'Sie hemmen Botenstoffe, die Schmerz und Entzündung machen – dieselben '
-      + 'Botenstoffe sorgen aber auch für die Schleimschicht, die den Magen vor '
-      + 'seiner eigenen Säure schützt. Der Schutz wird also mit abgeschaltet.',
-    einnahme: '–',
-    hinweis: 'Wer regelmäßig zu einem davon greift und Magenbeschwerden hat, sollte '
-      + 'das ansprechen: Es gibt Schmerzmittel, die den Magen nicht angreifen, und '
-      + 'wenn es ohne NSAR nicht geht, einen Magenschutz dazu. Welches davon, '
-      + 'entscheidet sich nicht am Magen allein. Zusammen mit Kortison steigt das '
-      + 'Risiko weiter. Als Gel oder Pflaster auf der Haut zählt es hier nicht – '
-      + 'davon kommt kaum etwas im Magen an.',
-  },
-  {
-    id: 'kombi',
-    gruppe: 'Kombinationsmittel mit ASS und Koffein',
-    beispiele: ['Thomapyrin', 'Neuralgin', 'Koffein'],
-    kurz: 'Für den Magen ein NSAR – für den Kopf ein Mittel mit der niedrigsten Übergebrauchsgrenze.',
-    wirkung: 'ASS, meist zusammen mit Paracetamol, und dazu Koffein, das die Wirkung '
-      + 'verstärkt und beschleunigt. Für die Magenschleimhaut gilt, was für jedes '
-      + 'ASS gilt: Der Schutzfilm wird mit abgeschaltet.',
-    einnahme: '–',
-    hinweis: 'Die meistgekauften rezeptfreien Kopfschmerzmittel – und gerade deshalb '
-      + 'die, die am ehesten zu oft genommen werden. Ab etwa zehn Tagen im Monat '
-      + 'kann ein Kombinationsmittel den Kopfschmerz selbst unterhalten, früher als '
-      + 'ein einzelnes Schmerzmittel. Für den Magen zählt es wie ein NSAR.',
-  },
-  {
-    id: 'kortison',
-    gruppe: 'Kortison',
-    beispiele: ['Prednisolon', 'Kortison'],
-    kurz: 'Allein weniger heikel, zusammen mit NSAR deutlich mehr.',
-    wirkung: 'Für sich genommen ein geringerer Magenreiz als lange angenommen. In '
-      + 'Kombination mit einem entzündungshemmenden Schmerzmittel steigt das Risiko '
-      + 'für Schleimhautschäden jedoch deutlich.',
-    einnahme: '–',
-    hinweis: 'Nie eigenmächtig absetzen. Änderungen gehören in ärztliche Hand.',
-  },
-];
-
-/*
- * Was sonst noch gegen Schmerzen genommen wird – und den Magen nicht angreift.
- *
- * Gehört hierher, weil die Frage nach der „magenfreundlicheren Alternative"
- * unter „Was noch fehlt" sonst ins Leere zeigt: Die App soll erkennen, wenn
- * jemand bereits Paracetamol statt Ibuprofen nimmt. Und sie soll Triptane
- * kennen, weil bei einer Migräne die Zahl der Tage mit Akutmedikation im
- * Monat die wichtigste Zahl für die Neurologie ist – und die niedrigste
- * Schwelle ausgerechnet beim Migränemittel liegt. Beides ohne Empfehlung:
- * Welches Mittel für wen passt, entscheidet niemand hier.
- */
-const WEITERE_MITTEL = [
-  {
-    id: 'triptan',
-    gruppe: 'Triptane',
-    // „triptan" als Teilwort fängt jeden Wirkstoff; dazu die Handelsnamen.
-    beispiele: ['triptan', 'Imigran', 'Maxalt', 'AscoTop', 'Naramig', 'Formigran',
-      'Dolortriptan', 'Relpax', 'Almogran'],
-    kurz: 'Ein Mittel eigens gegen den Migräneanfall – für einen Spannungskopfschmerz das falsche Werkzeug, und nicht für den Magen.',
-    wirkung: 'Dockt an Serotonin-Schaltern an den Nerven und Gefäßen der Hirnhaut an '
-      + 'und dämpft dort die Weiterleitung des Anfalls; nebenbei engt es Gefäße – '
-      + 'auch außerhalb des Kopfes. Deshalb bessert es auch die Übelkeit, die zum '
-      + 'Anfall gehört, und deshalb ist es für einen Spannungskopfschmerz das '
-      + 'falsche Werkzeug. Die Magenschleimhaut greift es nicht an.',
-    einnahme: 'Früh im Anfall, sobald der Schmerz da ist; während einer Aura '
-      + 'üblicherweise noch nicht. Wie oft an einem Tag und mit welchem Abstand, '
-      + 'steht auf der Packung – es ist begrenzt. Im Anfall steht der Magen oft '
-      + 'still, und eine Tablette kommt dann schlecht weiter; dafür gibt es '
-      + 'Schmelztabletten, Nasenspray und Spritze. Wer im Anfall erbricht, hat '
-      + 'damit eine Frage für die Sprechstunde.',
-    hinweis: 'Triptane engen Gefäße auch außerhalb des Kopfes. Darum sind sie bei '
-      + 'Herz- und Gefäßkrankheiten, nach einem Schlaganfall und bei unbehandeltem '
-      + 'Bluthochdruck nicht vorgesehen – das wird vor dem ersten Rezept geprüft '
-      + 'und gehört neu gefragt, wenn sich daran etwas ändert. Ein Engegefühl in '
-      + 'Brust oder Hals kurz nach der Einnahme ist beschrieben und meist harmlos – '
-      + 'trotzdem vor der nächsten Einnahme in der Praxis ansprechen, nicht erst '
-      + 'beim nächsten Termin. Kommt es mit Luftnot oder kaltem Schweiß, oder hält '
-      + 'es an: sofort. Übelkeit kann vom Anfall kommen und vom Mittel. Sehr selten: '
-      + 'plötzliche Bauchkrämpfe mit blutigem Durchfall nach der Einnahme, das ist '
-      + 'ein Fall für sofort. Und ab etwa zehn Tagen im Monat kann ein Triptan den '
-      + 'Kopfschmerz selbst unterhalten – früher als einfache Schmerzmittel, '
-      + 'gleichauf mit Kombinationsmitteln.',
-  },
-  /*
-   * Nicht „magenschonend" – das wäre eine Empfehlung in einem Wort, und
-   * welches Mittel bei Migräne passt, entscheidet sich nicht am Magen allein.
-   * Beschrieben wird der Unterschied im Mechanismus, und was er kostet.
-   */
-  /*
-   * Opioide und die neuen Anfallsmittel stehen hier, damit die Zählung sie
-   * sieht – nicht als Magenwissen. Ein Codein-Kombinationsmittel zählt für
-   * den Kopf wie ein Triptan ab zehn Tagen; die Gruppe steht deshalb VOR den
-   * einfachen Schmerzmitteln, damit „Paracetamol Codein" hier landet.
-   */
-  {
-    id: 'opioid',
-    gruppe: 'Opioide',
-    beispiele: ['Tramadol', 'Tramal', 'Tilidin', 'Valoron', 'Codein', 'Oxycodon', 'Tapentadol'],
-    kurz: 'Greift den Magen nicht an – für den Kopf gilt die niedrige Grenze von zehn Tagen.',
-    wirkung: 'Dämpft den Schmerz im Nervensystem, nicht an der Stelle, wo er entsteht. '
-      + 'Gegen Migräne sehen die Leitlinien es nicht vor – es wirkt dort schlecht '
-      + 'und macht leicht abhängig; wenn es trotzdem im Schrank steht, soll die '
-      + 'App es wenigstens zählen.',
-    einnahme: '–',
-    hinweis: 'Verstopfung und Übelkeit gehören dazu; Müdigkeit auch. Ab etwa zehn '
-      + 'Tagen im Monat kann ein Opioid den Kopfschmerz selbst unterhalten – wie '
-      + 'ein Triptan. Nicht eigenmächtig absetzen und nicht eigenmächtig '
-      + 'steigern; beides gehört in ärztliche Hand.',
-  },
-  {
-    id: 'gepant',
-    gruppe: 'Gepante und Ditane',
-    // Mit Namen, nicht mit dem Teilwort „gepant": Atogepant ist Vorbeugung.
-    beispiele: ['Rimegepant', 'Vydura', 'Ubrogepant', 'Zavegepant', 'Lasmiditan', 'Rayvow'],
-    kurz: 'Die neueren Anfallsmittel – ohne Gefäßverengung, ohne Angriff auf den Magen.',
-    wirkung: 'Blockieren einen Botenstoff des Anfalls (CGRP) oder dämpfen die '
-      + 'Weiterleitung an anderer Stelle als Triptane – ohne Gefäße zu verengen. '
-      + 'Deshalb kommen sie auch für Menschen infrage, die kein Triptan nehmen '
-      + 'dürfen. Für den Magen sind sie kein Reizstoff.',
-    einnahme: 'Früh im Anfall, nach Rezept. Lasmiditan macht müde und schwindelig – '
-      + 'danach stundenlang nicht fahren.',
-    hinweis: 'Zählt hier als Tag mit Akutmittel, ohne eigene Übergebrauchsgrenze – '
-      + 'die Klassifikation kennt dafür noch keine. Was es im Einzelnen tut und '
-      + 'verträgt, steht auf dem Rezept und im Gespräch.',
-  },
-  {
-    id: 'nichtnsar',
-    gruppe: 'Schmerzmittel ohne Entzündungshemmung',
-    beispiele: ['Paracetamol', 'ben-u-ron', 'Dafalgan', 'Mexalen', 'Metamizol', 'Novalgin', 'Novaminsulfon'],
-    kurz: 'Lässt die Schutzschicht des Magens in Ruhe – belastet dafür anderes.',
-    wirkung: 'Paracetamol wirkt vor allem im Gehirn gegen Schmerz und Fieber, kaum '
-      + 'gegen Entzündung, und greift die Schleimschicht des Magens nicht an. '
-      + 'Metamizol wirkt stärker und auch krampflösend; für den Magen gilt '
-      + 'dasselbe. „Harmlos" heißt das nicht – die Risiken liegen nur woanders.',
-    einnahme: 'Paracetamol gibt es frei, Metamizol nur auf Rezept. Beide stecken '
-      + 'auch in Kombinationsmitteln gegen Erkältung und Kopfschmerz – wer '
-      + 'zweierlei nimmt, nimmt es leicht doppelt.',
-    hinweis: 'Paracetamol geht über die Leber. Die Grenze pro Tag steht auf der '
-      + 'Packung; sie gilt auch an Tagen, an denen nichts im Magen bleibt – da '
-      + 'verträgt die Leber eher weniger, nicht mehr –, und mit regelmäßig Alkohol '
-      + 'erst recht. Metamizol kann die weißen Blutkörperchen verschwinden lassen '
-      + '(Agranulozytose) – selten, aber nicht so selten wie lange angenommen, und '
-      + 'auch, wenn es früher gut vertragen wurde: Fieber, Schüttelfrost, '
-      + 'Halsschmerzen oder wunde Stellen im Mund unter oder kurz nach der Einnahme '
-      + 'sind ein Grund, sofort anzurufen und ein Blutbild machen zu lassen. Für den '
-      + 'Kopf zählen beide wie jedes Akutmittel: Ab etwa fünfzehn Tagen im Monat '
-      + 'kann das Mittel den Kopfschmerz selbst unterhalten. Welches Mittel bei '
-      + 'Migräne das richtige ist, entscheidet sich nicht am Magen allein – das ist '
-      + 'die Frage für die Neurologie.',
-  },
-  /*
-   * Vorbeugende Mittel stehen hier, damit die App sie kennt und *nicht* als
-   * Akutmittel zählt: Ein tägliches Metoprolol würde sonst die Übergebrauchs-
-   * zählung sprengen. Manche davon sind zugleich Blutdruck- oder
-   * Stimmungsmittel – was es bei wem ist, weiß die App nicht.
-   */
-  {
-    id: 'prophylaxe',
-    gruppe: 'Vorbeugende Migränemittel',
-    beispiele: ['Metoprolol', 'Propranolol', 'Amitriptylin', 'Topiramat', 'Valproat',
-      'Flunarizin', 'Candesartan', 'Erenumab', 'Aimovig', 'Galcanezumab', 'Emgality',
-      'Fremanezumab', 'Ajovy', 'Eptinezumab', 'Atogepant', 'Aquipta'],
-    kurz: 'Regelmäßig genommen, damit Anfälle seltener kommen – kein Akutmittel.',
-    wirkung: 'Senkt die Bereitschaft des Nervensystems, einen Anfall zu starten. '
-      + 'Wirkt nicht gegen den Anfall, der gerade da ist, sondern über Wochen auf '
-      + 'die Zahl der Anfälle. Einige davon sind zugleich Mittel gegen hohen '
-      + 'Blutdruck, Epilepsie oder Depression – bei Migräne werden sie in anderer '
-      + 'Absicht eingesetzt. Die Antikörper (Spritze alle vier Wochen oder alle '
-      + 'drei Monate) richten sich gezielt gegen einen Botenstoff des Anfalls.',
-    einnahme: 'Regelmäßig nach Plan, unabhängig davon, ob gerade ein Anfall ist. '
-      + 'Ob es wirkt, zeigt sich erst nach Wochen – deshalb gehört das '
-      + 'Kopfschmerztagebuch dazu.',
-    hinweis: 'Zählt in dieser App nicht als Akutmittel. Nicht eigenmächtig absetzen; '
-      + 'bei den Blutdruckmitteln darunter schon gar nicht. Was es im Einzelnen '
-      + 'tut und welche Nebenwirkungen es hat, ist bei jedem anders – das steht '
-      + 'auf der Packung und im Gespräch, nicht hier. Eine Ausnahme ist allgemein: '
-      + 'Topiramat und Valproat gehören bei Frauen, die schwanger werden könnten, '
-      + 'in ein eigenes Gespräch über Verhütung – das gilt seit 2024 ausdrücklich.',
-  },
-];
-
-const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL];
-
-/**
- * Zu einem eingetragenen Namen die passende Gruppe finden.
- *
- * Eingetragen wird frei: „Pantoprazol 20mg", „pantoprazol", „Panto". Deshalb
- * wird kleingeschrieben verglichen und geprüft, ob eines der Beispiele im
- * Eingetragenen vorkommt – nicht auf Gleichheit.
- */
-function wissenZu(name) {
-  const gesucht = String(name || '').toLowerCase().trim();
-  if (!gesucht) return null;
-  /*
-   * Kurze Kürzel („ASS", „Ibu", „MCP") nur am Wortanfang: Als bloßes Teilwort
-   * traf „ass" auch „Wasser" und „Passionsblume" – und ein Glas Wasser zählte
-   * als entzündungshemmendes Schmerzmittel. Lange Namen dürfen weiter überall
-   * im Eingetragenen stehen („Pantoprazol 20mg", „IbuHexal").
-   */
-  /*
-   * Was auf der Haut bleibt, zählt nicht: Ein Diclofenac-Gel fürs Knie kommt
-   * im Magen praktisch nicht an und ist kein Kopfschmerz-Akutmittel. Es
-   * steht dann unter „nicht zugeordnet" statt in der Zählung. „Spray" bleibt
-   * draußen aus dieser Regel – das Triptan-Nasenspray wirkt im ganzen Körper.
-   */
-  if (/(gel|salbe|creme|pflaster)\b/.test(gesucht)) return null;
-  const passt = (b) => {
-    const k = b.toLowerCase();
-    if (k.length > 3) return gesucht.includes(k);
-    return new RegExp(`(^|[^a-zäöüß])${k}`).test(gesucht);
-  };
-  return ALLE.find((g) => g.beispiele.some(passt))
-    || ALLE.find((g) => gesucht.includes(g.gruppe.toLowerCase()))
-    || null;
 }
 
 /* ===== js/kueche.js ===== */
@@ -3435,8 +3528,8 @@ function sortenText(f) {
  *
  * Was an einem Kopfschmerztag eingetragen ist und keiner Gruppe zuzuordnen,
  * steht unter `unbekannt` mit Namen: Ein Schmerzmittel, das die App nicht
- * kennt, fehlt sonst still in der Zählung, und die Nutzerin trägt eine zu
- * kleine Zahl in die Sprechstunde. Nur Kopfschmerztage – sonst stünde dort
+ * kennt, fehlt sonst still in der Zählung, und wer einträgt, nimmt eine zu
+ * kleine Zahl mit in die Sprechstunde. Nur Kopfschmerztage – sonst stünde dort
  * das Schilddrüsenmittel von jedem Morgen.
  */
 function kopfMittel(eintraege, gruppeVon, heute) {
@@ -3648,7 +3741,14 @@ const KOPF_UMSTAENDE = [
   { id: 'schlaf', hoch: 'nach schlechten Nächten', niedrig: 'nach guten Nächten' },
 ];
 
-/** Die 0/1-Reihe hinter einem Anteil, für den Zufallsspielraum. */
+/**
+ * Die 0/1-Reihe hinter einem Anteil, für den Zufallsspielraum.
+ *
+ * Exportiert, weil jeder Vergleich von Anteilen sie braucht – Kopfschmerz ja
+ * oder nein, gepresst ja oder nein. Sie bleibt trotzdem hier: js/zufall.js
+ * steht im Bündel hinter dieser Datei, und kopf.js importiert zufall.js mit
+ * Absicht nicht (der Spielraum kommt als Argument herein).
+ */
 function nullEins(tage, anteil) {
   const einsen = Math.round(anteil * tage);
   return [...Array(einsen).fill(1), ...Array(Math.max(0, tage - einsen)).fill(0)];
@@ -3783,8 +3883,7 @@ function kopfMonate(eintraege, tage, gruppeVon, heute, anzahl = 3) {
 /**
  * Fragen für die Sprechstunde, aus den Kopfzahlen – so, wie die Muster sie
  * für den Bauch stellen. Jede ist eine Frage, keine davon eine Empfehlung,
- * und keine legt der Nutzerin eine Diagnose in den Mund; die Antwort hat die
- * Praxis.
+ * und keine legt eine Diagnose in den Mund; die Antwort hat die Praxis.
  */
 function kopfFragen({ zahlen: z, mittel: m, befundIds = [] } = {}) {
   const fragen = [];
@@ -4094,7 +4193,8 @@ const VORGABE = {
   //   essen       { was, zutaten: [{ id, rolle }], portion: 'klein'|'normal'|'gross' }
   //   beschwerde  { staerke: 0..10, arten: [beschwerdeId], notiz, stuhlbezug }
   //   stuhl       { form: 1..7, dringend, unvollstaendig, warnzeichen: [id] }
-  //   medikament  { mittel, dosis, zuKopf }
+  //   medikament  { mittel, dosis, zuKopf, form, essen, essenGesetzt }
+  //   kopf        { staerke: 1..10, kopfArten: [id], dauer, verlauf, mittelWirkung }
   //   notiz       { text }
   //   aktivitaet  { aktivitaeten: [id], intensitaet: 'leicht'|'mittel'|'hart'|null, notiz }
   // Eine Aktivität ist ein Eintrag mit Uhrzeit, aber über den Körper sagt sie
@@ -4103,6 +4203,19 @@ const VORGABE = {
   // Eine Mahlzeit trägt seit November 2026 optional `auswaerts: true`.
   // `zuKopf` (optional) ist die Kennung des Kopfschmerzes, mit dem das Mittel
   // über „Dazu genommen?" angelegt wurde. Ältere Einträge haben es nicht.
+  // Mit einem Zeitknopf eingetragen, trägt jeder Eintrag außerdem
+  //   { ungefaehr: true, tageszeit: 'morgens'|'mittags'|'abends',
+  //     bezug: 'vor'|'beim'|'nach'|null, bezugMahlzeit: Kennung der Mahlzeit|null }
+  // – `um` ist dann aus dem Knopf gerechnet, nicht erhoben (siehe
+  // KNOPF_TAGESZEIT in js/datum.js). Beim Ändern stehen die vier Felder
+  // ausdrücklich auf false/null, statt zu fehlen.
+  // Ein Medikament trägt seit der Fassung 28 optional:
+  //   form          die Freisetzungsform bei Methylphenidat, eine Kennung aus
+  //                 FORM_IDS (siehe unten); fehlt = nicht angegeben
+  //   essen         'mit'|'vor'|'ohne' – ausdrücklich angegeben, nicht abgeleitet
+  //   essenGesetzt  wann `essen` angegeben wurde (ms). Eine Angabe, die erst
+  //                 nach dem kam, womit sie verglichen wird, darf dort nicht
+  //                 zählen – sonst entschiede das Ergebnis über die Einteilung.
   eintraege: [],
   // Was für einen ganzen Tag gilt, nicht für einen Zeitpunkt. Welche Angaben
   // es gibt, steht in TAGESFRAGEN (js/daten.js):
@@ -4110,6 +4223,15 @@ const VORGABE = {
   // `wasser` ist die Zahl der Gläser an diesem Tag – keine Tagesfrage, sondern
   // ein Zähler, und ein Tag, an dem nur sie steht, gilt nirgends als notiert
   // (siehe js/wasser.js). Ältere Stände haben das Feld nicht.
+  // Seit der Fassung 28 optional dazu – keines davon macht einen Tag zu einem
+  // notierten (ZAEHLT_NICHT in js/wasser.js), siehe tageSauber():
+  //   adhsPause  'pause'|'geplant'|'vergessen'|'beschwerden' – ohne ADHS-Mittel
+  //   verspannt  0..4  Nacken und Schultern
+  //   kiefer     0..4  Kiefer und Zähne beim Aufwachen; gilt wie `schlaf` für
+  //                    die Nacht davor
+  //   gepresst   0|1   tagsüber gepresst oder geknirscht bemerkt
+  //   schiene    0|1   Aufbissschiene in der Nacht davor getragen; fehlt heißt
+  //                    „nicht angegeben", nie „ohne"
   tage: {},
   // In wie vielen Stunden nach einer Mahlzeit eine Beschwerde ihr noch
   // zugerechnet wird. Vier Stunden sind der Vorschlag, nicht das Gesetz –
@@ -4178,6 +4300,38 @@ const VORGABE = {
    */
   wasserZeigen: true,
   wasserGlas: 250,
+  /*
+   * Was Body Check mitdenken soll – zwei Schalter unter „Mehr":
+   *
+   *   adhsAn      ADHS-Mittel: wann genommen, ob mit oder ohne Essen, und die
+   *               Zahlen dazu.
+   *   spannungAn  Kiefer, Nacken, Schiene: die Tagesfragen dazu und die
+   *               Zahlen, ob Kopfschmerz mit ihnen öfter oder seltener kommt.
+   *
+   * Dreiwertig, und darauf kommt es an: null heißt „nie entschieden", false
+   * „ausgeschaltet" oder „Nein danke". Nur so wird ein Angebot einmal gemacht
+   * und nach „Nein danke" nie wieder. Und beim Zusammenführen gewinnt, wer von
+   * der Vorgabe abweicht (siehe zusammenfuehren) – ein ausdrückliches Aus also
+   * auch gegen eine ältere Sicherung, in der es noch an war.
+   *
+   * Kein Schalter ändert eine Rechnung. Gerechnet wird immer, sobald Daten da
+   * sind; die Schalter entscheiden nur, was gefragt und was gezeigt wird.
+   */
+  adhsAn: null,
+  spannungAn: null,
+  /*
+   * Ob die einmalige Karte „Was sich an deinen Zahlen geändert hat" gelesen
+   * ist. Mit der Fassung 28 zählen manche Tage anders als vorher, und das soll
+   * niemand daran merken müssen, dass sich eine Zahl still verschoben hat.
+   */
+  v28Gesagt: false,
+  /*
+   * Welche Hinweise zu zwei Mitteln zusammen schon mit „Gelesen" weggetippt
+   * sind: ein Schlüssel je Paar, etwa 'W1|<mittel a>|<mittel b>', Namen klein.
+   * Nach Paar und nicht nach Hinweis – kommt ein anderes Mittel dazu, ist das
+   * ein neuer Hinweis und erscheint wieder.
+   */
+  wechselGelesen: [],
   /*
    * Seit wann die Beschwerden bestehen, als 'YYYY-MM'.
    *
@@ -4354,8 +4508,12 @@ const VORGABE = {
 const EINSTELLUNGEN = [
   'fenster', 'mindestFaelle', 'tagesfragen', 'theme', 'atemUebung', 'atemRunden',
   'ton', 'abnehmenGewollt', 'unterleibGefragt', 'beschwerdenSeit',
-  'wasserZeigen', 'wasserGlas',
+  'wasserZeigen', 'wasserGlas', 'adhsAn', 'spannungAn', 'v28Gesagt',
 ];
+
+/** Die dreiwertigen Schalter – siehe adhsAn in VORGABE. */
+const SCHALTER = ['adhsAn', 'spannungAn'];
+const schalterWert = (v) => (v === true || v === false ? v : null);
 
 /*
  * Was zu diesem Gerät gehört und nicht zum Tagebuch. Eine Sicherung trägt
@@ -4405,6 +4563,18 @@ function laden() {
     s.ideen = ideenMitMarke(s.ideen, s.ideenGeschickt);
     if (!Array.isArray(s.eigeneAktivitaeten)) s.eigeneAktivitaeten = [];
     if (!Array.isArray(s.standardMittel)) s.standardMittel = [];
+    /*
+     * Die Felder der Fassung 28. Ein älterer Stand hat sie nicht, und dann
+     * greift die Vorgabe – umgeschrieben wird nichts. Ein Wert vom falschen
+     * Typ dagegen (von Hand geändert, halb geschrieben) gilt als nicht
+     * entschieden: Ein Schalter, der "ja" heißt, ist weder an noch aus, und
+     * eine Liste, die keine ist, darf beim ersten includes() nicht die ganze
+     * App anhalten.
+     */
+    SCHALTER.forEach((k) => { s[k] = schalterWert(s[k]); });
+    if (typeof s.v28Gesagt !== 'boolean') s.v28Gesagt = false;
+    s.wechselGelesen = Array.isArray(s.wechselGelesen)
+      ? s.wechselGelesen.filter((x) => typeof x === 'string') : [];
     return s;
   } catch {
     return klon(VORGABE);
@@ -4844,6 +5014,14 @@ const TAGESZEIT_IDS = Object.keys(KNOPF_TAGESZEIT);
  */
 const BEZUG_IDS = ['vor', 'beim', 'nach'];
 
+/*
+ * Die Freisetzungsformen bei Methylphenidat – dieselben Kennungen wie
+ * MPH_FORMEN in js/mittel.js. Hier noch einmal aus demselben Grund wie
+ * INTENSITAET_IDS: Der Speicher soll von den Texten nichts wissen.
+ * tests/test-adhs-wissen.mjs prüft, dass beide Listen gleich sind.
+ */
+const FORM_IDS = ['sofort', 'pellet', 'sodas', 'oros', 'retardtab', 'equasym', 'unbekannt'];
+
 /** Ein Standardmittel in seine gespeicherte Form bringen. */
 function standardSauber(x) {
   return {
@@ -4851,6 +5029,14 @@ function standardSauber(x) {
     dosis: String(x.dosis || '').trim().slice(0, 40),
     tageszeit: TAGESZEIT_IDS.includes(x.tageszeit) ? x.tageszeit : null,
     bezug: BEZUG_IDS.includes(x.bezug) ? x.bezug : null,
+    /*
+     * Die Form nur, wenn die Vorlage sie überhaupt nennt. Wer unter „Mehr"
+     * die Dosis ändert, schickt keine Form mit – und meint damit nicht, dass
+     * sie weg ist. Mit `form` im Ergebnis setzte jede solche Änderung sie auf
+     * null (standardAendern mischt das hier über das alte Mittel), und mit
+     * ihr verschwände der Hinweis, der an ihr hängt.
+     */
+    ...(Object.hasOwn(x, 'form') ? { form: FORM_IDS.includes(x.form) ? x.form : null } : {}),
   };
 }
 
@@ -4876,7 +5062,9 @@ function mittelSchluessel(x) {
  * sagt das; verworfen wird nichts still.
  */
 function standardMerken(vorlage) {
-  const neu = { id: neueId(), ...standardSauber(vorlage) };
+  const sauber = standardSauber(vorlage);
+  // Ein neu gemerktes Mittel hat seine Form – oder ausdrücklich keine.
+  const neu = { id: neueId(), ...sauber, form: sauber.form ?? null };
   if (!neu.mittel) return { fehler: 'leer' };
   const da = zustand.standardMittel.find((x) => mittelSchluessel(x) === mittelSchluessel(neu));
   if (da) return { id: da.id, schon: true };
@@ -4888,12 +5076,13 @@ function standardMerken(vorlage) {
 }
 
 /**
- * Ein Standardmittel ändern – Name, Dosis, übliche Zeit.
+ * Ein Standardmittel ändern – Name, Dosis, übliche Zeit, Form.
  *
  * { id } bei Erfolg, { fehler: 'leer' } ohne Namen, { fehler: 'doppelt' },
  * wenn es genau so schon ein anderes gibt, { fehler: 'weg' }, wenn es dieses
  * nicht mehr gibt. Die Einträge, die damit schon angelegt wurden, bleiben,
- * wie sie sind: Sie sagen, was an jenem Tag genommen wurde.
+ * wie sie sind: Sie sagen, was an jenem Tag genommen wurde. Nennt die Vorlage
+ * keine Form, bleibt die alte (siehe standardSauber).
  */
 function standardAendern(id, vorlage) {
   const i = zustand.standardMittel.findIndex((x) => x.id === id);
@@ -5518,7 +5707,16 @@ function sicherungLesen(text) {
   });
   frisch.eintraege = sortiert(gelesen.eintraege.filter((e) => (
     e && typeof e === 'object' && typeof e.am === 'string' && typeof e.art === 'string'
-  )).map((e) => aktivitaetFrisch(mahlzeitFrisch({ ...e, id: e.id || neueId() }))));
+  )).map((e) => mittelFrisch(aktivitaetFrisch(mahlzeitFrisch({ ...e, id: e.id || neueId() })))));
+  // Die Schalter nur mit einem der drei Werte; alles andere gilt als nicht
+  // entschieden. Die Schleife oben nimmt hier jeden Typ, weil die Vorgabe
+  // null ist und null keinen Typ vorgibt.
+  SCHALTER.forEach((k) => { frisch[k] = schalterWert(gelesen[k]); });
+  // Gelesene Hinweise: kurze Zeichenketten, die jüngsten fünfzig. Mehr gibt
+  // es bei ein paar eigenen Mitteln nicht, und eine Datei, die hier Unsinn
+  // trägt, soll den Speicher nicht füllen.
+  frisch.wechselGelesen = frisch.wechselGelesen
+    .filter((x) => typeof x === 'string' && x.length <= 120).slice(-50);
   // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
   // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
   frisch.standardMittel = mittelEindeutig(frisch.standardMittel
@@ -5539,7 +5737,7 @@ function sicherungLesen(text) {
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
-  frisch.tage = wasserSauber(frisch.tage);
+  frisch.tage = tageSauber(frisch.tage);
   frisch.wasserGlas = glasMl(frisch.wasserGlas);
   // Ein halb gelesener Versuch würde die Tagesansicht mit „Tag NaN von
   // undefined" begrüßen. Was nicht vollständig ist, gilt als keiner.
@@ -5606,6 +5804,63 @@ function wasserSauber(tage) {
     if (Object.keys(neu).length) raus[iso] = neu;
   });
   return raus;
+}
+
+/*
+ * Die Tagesangaben der Fassung 28 und was als Wert gilt. Was nicht passt,
+ * fällt weg statt umgedeutet zu werden: Eine 7 bei „Schiene" ist weder
+ * „getragen" noch „nicht getragen", und eine Antwort, die als 0 gelesen
+ * würde, wäre eine erfundene Nacht ohne Schiene.
+ */
+const stufeNullVier = (v) => Number.isInteger(v) && v >= 0 && v <= 4;
+const nullOderEins = (v) => v === 0 || v === 1;
+const TAGESFELD_PRUEFUNG = {
+  adhsPause: (v) => ['pause', 'geplant', 'vergessen', 'beschwerden'].includes(v),
+  verspannt: stufeNullVier,
+  kiefer: stufeNullVier,
+  gepresst: nullOderEins,
+  schiene: nullOderEins,
+};
+
+/**
+ * Den Tagesspeicher aus einer Sicherung lesen: erst das Wasser (siehe
+ * wasserSauber), dann die Angaben der Fassung 28. Ein Tag, an dem danach
+ * nichts mehr steht, fällt weg. Alle übrigen Felder bleiben, wie sie sind.
+ */
+function tageSauber(tage) {
+  const raus = {};
+  Object.entries(wasserSauber(tage)).forEach(([iso, t]) => {
+    if (!t || typeof t !== 'object' || Array.isArray(t)) {
+      raus[iso] = t;
+      return;
+    }
+    const neu = { ...t };
+    Object.entries(TAGESFELD_PRUEFUNG).forEach(([k, gilt]) => {
+      if (k in neu && !gilt(neu[k])) delete neu[k];
+    });
+    if (Object.keys(neu).length) raus[iso] = neu;
+  });
+  return raus;
+}
+
+/**
+ * Ein Medikament aus einer Sicherung: die Angaben der Fassung 28 nur mit
+ * Werten, die es gibt. Eine unbekannte Form wäre im Bogen keine der Marken
+ * und im Hinweis keine Form. Der Zeitpunkt der Essensangabe zählt nur als
+ * Zahl und nur neben einer Angabe – ein Zeitpunkt, der keiner ist, ließe
+ * sich mit der Einnahme nicht vergleichen, und ohne Angabe gehört er zu
+ * nichts.
+ */
+function mittelFrisch(e) {
+  if (!e || e.art !== 'medikament') return e;
+  const neu = { ...e };
+  if ('form' in neu && !FORM_IDS.includes(neu.form)) delete neu.form;
+  if ('essen' in neu && !['mit', 'vor', 'ohne'].includes(neu.essen)) delete neu.essen;
+  if ('essenGesetzt' in neu
+    && !(neu.essen && Number.isFinite(neu.essenGesetzt) && neu.essenGesetzt > 0)) {
+    delete neu.essenGesetzt;
+  }
+  return neu;
 }
 
 /* ---------- Einlesen, ohne etwas zu verlieren ---------- */
@@ -5718,6 +5973,9 @@ function zusammenfuehren(hier, dazu) {
   neu.kueche = vereinigt(hier.kueche, dazu.kueche, (k) => String(k.name || '').toLowerCase());
   neu.befunde = vereinigt(hier.befunde, dazu.befunde, (b) => b.id);
   neu.zuletztMittel = [...new Set([...hier.zuletztMittel, ...dazu.zuletztMittel])].slice(0, 5);
+  // Was auf einem Gerät gelesen wurde, ist gelesen – ein Hinweis, den man
+  // schon weggetippt hat, soll nach dem Umzug nicht wiederkommen.
+  neu.wechselGelesen = [...new Set([...(hier.wechselGelesen || []), ...(dazu.wechselGelesen || [])])];
   // Ohne Kürzen auf STANDARD_HOECHSTENS: Was in einer Sicherung steht, geht
   // beim Zusammenführen nicht still verloren. Die Grenze gilt fürs Merken.
   // Erst nach der Kennung: Dieselbe Kennung ist dasselbe Mittel, auch wenn
@@ -5845,7 +6103,7 @@ try {
   }
 } catch { /* dann bleibt es, wie es war */ }
 
-const store = { AKTIV_HOECHSTENS, AKTIV_NAME_MAX, STANDARD_HOECHSTENS, aktivitaetAnlegen, aktivitaetEntfernen, aktivitaetZurueck, allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, befundLoeschen, befundNotieren, einlesen, einstellen, eintraegeAm, eintraegeZurueck, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeGeschicktMerken, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, ideenUnterwegs, istLeer, kannSpeichern, kuecheLoeschen, kuecheNotieren, kuecheUmschalten, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, rueckgaengig, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, standardAendern, standardEntfernen, standardMerken, standardVon, standardZurueck, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, umzugGeholtMerken, umzugMerken, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, vorherDa, wasserZaehlen, zustandLesen };
+const store = { AKTIV_HOECHSTENS, AKTIV_NAME_MAX, FORM_IDS, STANDARD_HOECHSTENS, aktivitaetAnlegen, aktivitaetEntfernen, aktivitaetZurueck, allesLoeschen, alsJSON, ausJSON, ausloeserAnlegen, ausloeserLoeschen, befundLoeschen, befundNotieren, einlesen, einstellen, eintraegeAm, eintraegeZurueck, eintragAendern, eintragLoeschen, eintragVon, eintragen, gewichtLoeschen, gewichtNotieren, horche, ideeAnlegen, ideeGeschicktMerken, ideeLoeschen, ideeUmschalten, ideenFehlerMerken, ideenGeschicktMerken, ideenOffen, ideenUnterwegs, istLeer, kannSpeichern, kuecheLoeschen, kuecheNotieren, kuecheUmschalten, letzterTag, letzterTermin, letzterZeitpunkt, mittelMerken, planAblegen, planBeenden, planLoeschen, planStarten, provokationAblegen, provokationBeenden, provokationLauf, provokationLaufWeg, provokationLoeschen, provokationStarten, rueckgaengig, sicherungFaellig, sicherungNotiert, sicherungVerschieben, sofortSchreiben, speicherGrund, standardAendern, standardEntfernen, standardMerken, standardVon, standardZurueck, stufeStarten, stufeVerwerfen, tagLesen, tagSetzen, terminAnlegen, terminLoeschen, umzugGeholtMerken, umzugMerken, versuchAblegen, versuchBeenden, versuchLoeschen, versuchProvozieren, versuchStarten, vorherDa, wasserZaehlen, zustandLesen };
 
 /* ===== js/zufall.js ===== */
 /*
@@ -14032,9 +14290,11 @@ function arztBericht(zustand, von, bis) {
    * was der Bauch an den Tagen danach gemacht hat.
    */
   if (kz.anzahl) {
+    // Ein ADHS-Mittel hat seine Gruppe, auch ohne Wissenstext – unter
+    // „Nicht zugeordnet" stehen nur Mittel, die die App nicht kennt.
     const gruppeVon = (name) => {
       const g = wissenZu(name);
-      return g ? g.id : null;
+      return g ? g.id : adhsGruppe(name);
     };
     /*
      * Zwei Blickwinkel: Was im Berichtszeitraum eingetragen wurde (kz, km),
@@ -16057,10 +16317,13 @@ function musterDaten(s) {
     return !!g && (g.id === 'nsar' || g.id === 'kombi');
   };
   // Dieselbe Frage, aber mit der ganzen Antwort: welche Gruppe. Der Kopf
-  // braucht sie, weil er drei Klassen von Akutmitteln auseinanderhält.
+  // braucht sie, weil er drei Klassen von Akutmitteln auseinanderhält. Ein
+  // ADHS-Mittel hat seine Gruppe auch dann, wenn es dazu noch nichts zu
+  // lesen gibt – sonst stünde es am Kopfschmerztag unter „nicht
+  // zugeordnet", als wäre es ein Schmerzmittel, das die App nicht kennt.
   const gruppeVon = (name) => {
     const g = wissenZu(name);
-    return g ? g.id : null;
+    return g ? g.id : adhsGruppe(name);
   };
   const bilanz = ausloeserBilanz(s.eintraege, {
     fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
@@ -20026,6 +20289,21 @@ function bogenSpeichern() {
       delete e.bezugMahlzeit;
     }
   }
+  /*
+   * Die Form gehört zu Methylphenidat, die Essensangabe zu einem ADHS-Mittel.
+   * Wird ein Eintrag umbenannt – aus einem Methylphenidat wird ein
+   * Säureblocker –, müssen beide ausdrücklich zurück: Beim Ändern mischt der Speicher den Bogen in
+   * den alten Eintrag, und ein Säureblocker mit einer Freisetzungsform wäre
+   * ein Hinweis auf ein Paar, das es nicht gibt.
+   */
+  if (b.art === 'medikament') {
+    const weg = (felder) => felder.forEach((k) => {
+      if (b.id) e[k] = null;
+      else delete e[k];
+    });
+    if (adhsGruppe(e.mittel) !== 'mph') weg(['form']);
+    if (!istAdhsMittel(e.mittel)) weg(['essen', 'essenGesetzt']);
+  }
   if (b.art === 'medikament') store.mittelMerken(e.mittel);
   /*
    * Merken oder das eigene Mittel anpassen – und in der Meldung sagen, was
@@ -20039,7 +20317,12 @@ function bogenSpeichern() {
     // siehe gemerktGenau(). „Als mein Mittel merken" merkt dann ohne Zeit.
     const zeit = ref && !e.ungefaehr
       ? { tageszeit: ref.tageszeit || null, bezug: ref.bezug || null } : entwurfZeit(e);
-    const vorlage = { mittel: e.mittel, dosis: e.dosis, ...zeit };
+    // Die Form nur, wenn der Bogen eine hat: Ohne sie behält das eigene
+    // Mittel seine (siehe standardSauber in js/store.js), statt sie zu
+    // verlieren, weil hier nur die Dosis geändert wurde.
+    const vorlage = {
+      mittel: e.mittel, dosis: e.dosis, ...zeit, ...(e.form !== undefined ? { form: e.form } : {}),
+    };
     const r = ref ? store.standardAendern(ref.id, vorlage) : store.standardMerken(vorlage);
     if (r.fehler === 'voll') gemerkt = 'voll';
     else if (r.schon || r.fehler === 'doppelt') gemerkt = 'schon';
@@ -20415,17 +20698,20 @@ const AKTION = {
     const m = s.standardMittel.find((x) => x.id === el.dataset.id);
     if (!m) return;
     const am = ui.tag;
+    // Die Form des eigenen Mittels geht mit, wenn eine angegeben ist – sie
+    // steht auf der Packung und ändert sich nicht von Tag zu Tag.
+    const form = m.form ? { form: m.form } : {};
     if (mittelImBogen(m, am)) {
       bogenOeffnen('medikament');
       ui.bogen.vorlage = m.id;
-      entwurf({ mittel: m.mittel, dosis: m.dosis, um: '', bezug: m.bezug || null });
+      entwurf({ mittel: m.mittel, dosis: m.dosis, um: '', bezug: m.bezug || null, ...form });
       melden('An welchem Teil des Tages? Unter der Uhrzeit antippen.');
       return;
     }
     const zeit = zeitAusVorlage(s, am, am === heuteISO() ? jetztUhr() : '', m.tageszeit, m.bezug);
     delete zeit.bezugBasis;
     store.eintragen({
-      art: 'medikament', am, um: zeit.um || jetztUhr(), mittel: m.mittel, dosis: m.dosis, ...zeit,
+      art: 'medikament', am, um: zeit.um || jetztUhr(), mittel: m.mittel, dosis: m.dosis, ...zeit, ...form,
     });
     store.mittelMerken(m.mittel);
     melden(`${mittelName(m)} eingetragen${zeit.ungefaehr ? ` (≈${zeit.um})` : ''}.`);

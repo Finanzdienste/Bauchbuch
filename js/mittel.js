@@ -165,7 +165,7 @@ export const REIZSTOFFE = [
   {
     id: 'nsar',
     gruppe: 'Entzündungshemmende Schmerzmittel (NSAR)',
-    // Mit den Handelsnamen, die im Schrank einer Migränepatientin stehen:
+    // Mit den Handelsnamen, die bei Migräne im Schrank stehen:
     // Ohne „Dolormin" und „Nurofen" zählte die App die Hälfte der NSAR-Tage
     // nicht – und jeder Satz zum Magen hängt an dieser Zählung.
     beispiele: ['Ibuprofen', 'Ibu', 'Dolormin', 'Nurofen', 'Diclofenac', 'Diclo',
@@ -352,6 +352,63 @@ export const WEITERE_MITTEL = [
 
 const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL];
 
+/*
+ * Die Mittel bei ADHS – vorerst nur zum Erkennen, ohne Texte.
+ *
+ * Die Namen stehen hier, weil die Zählung sie braucht, bevor es etwas über
+ * sie zu lesen gibt: Ein Tag, an dem nur „Medikinet" steht, sagt über Bauch
+ * und Kopf so wenig wie ein Glas Wasser (siehe eintragZaehlt in
+ * js/wasser.js). Ohne die Namen wäre er ein notierter Tag und ohne Beschwerde
+ * ein beschwerdefreier – und das Mittel, das man jeden Morgen nimmt, machte
+ * aus jeder Lücke im Tagebuch einen guten Tag.
+ *
+ * Die Reihenfolge ist Absicht: „Lisdexamfetamin" enthält „dexamfetamin".
+ * Stünde Dexamfetamin vorn, wäre Lisdexamfetamin Dexamfetamin – ein anderer
+ * Wirkstoff mit anderer Einnahme.
+ *
+ * Bupropion steht dabei, damit es erkannt wird – gezählt wird es wie bisher,
+ * wie jedes andere Mittel: Es gehört nicht zu ADHS_GRUPPEN, und ein Tag, an
+ * dem es steht, bleibt ein notierter Tag. Ob es dort wegen ADHS oder aus
+ * einem anderen Grund steht, kann die App nicht wissen.
+ */
+export const ADHS_NAMEN = [
+  { id: 'mph', beispiele: ['Methylphenidat', 'Ritalin', 'Medikinet', 'Concerta', 'Kinecteen', 'Equasym', 'MPH'] },
+  { id: 'lisdex', beispiele: ['Lisdexamfetamin', 'Elvanse'] },
+  { id: 'dex', beispiele: ['Dexamfetamin', 'Attentin'] },
+  { id: 'atomox', beispiele: ['Atomoxetin', 'Strattera'] },
+  { id: 'guanf', beispiele: ['Guanfacin', 'Intuniv'] },
+  { id: 'bupro', beispiele: ['Bupropion', 'Elontril', 'Zyban'] },
+];
+
+/** Die Gruppen, die als ADHS-Mittel zählen – ohne Bupropion (siehe oben). */
+export const ADHS_GRUPPEN = ['mph', 'lisdex', 'dex', 'atomox', 'guanf'];
+
+/** Die Stimulanzien darunter. */
+export const STIMULANZIEN = ['mph', 'lisdex', 'dex'];
+
+/** Ein eingetragener Name, so wie er verglichen wird. */
+const suchform = (name) => String(name || '').toLowerCase().trim();
+
+/*
+ * Was auf der Haut bleibt, zählt nicht: Ein Diclofenac-Gel fürs Knie kommt
+ * im Magen praktisch nicht an und ist kein Kopfschmerz-Akutmittel. Es
+ * steht dann unter „nicht zugeordnet" statt in der Zählung. „Spray" bleibt
+ * draußen aus dieser Regel – das Triptan-Nasenspray wirkt im ganzen Körper.
+ */
+const aufDerHaut = (gesucht) => /(gel|salbe|creme|pflaster)\b/.test(gesucht);
+
+/*
+ * Kurze Kürzel („ASS", „Ibu", „MCP") nur am Wortanfang: Als bloßes Teilwort
+ * traf „ass" auch „Wasser" und „Passionsblume" – und ein Glas Wasser zählte
+ * als entzündungshemmendes Schmerzmittel. Lange Namen dürfen weiter überall
+ * im Eingetragenen stehen („Pantoprazol 20mg", „IbuHexal").
+ */
+function beispielPasst(gesucht, beispiel) {
+  const k = beispiel.toLowerCase();
+  if (k.length > 3) return gesucht.includes(k);
+  return new RegExp(`(^|[^a-zäöüß])${k}`).test(gesucht);
+}
+
 /**
  * Zu einem eingetragenen Namen die passende Gruppe finden.
  *
@@ -360,27 +417,39 @@ const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL];
  * Eingetragenen vorkommt – nicht auf Gleichheit.
  */
 export function wissenZu(name) {
-  const gesucht = String(name || '').toLowerCase().trim();
+  const gesucht = suchform(name);
   if (!gesucht) return null;
-  /*
-   * Kurze Kürzel („ASS", „Ibu", „MCP") nur am Wortanfang: Als bloßes Teilwort
-   * traf „ass" auch „Wasser" und „Passionsblume" – und ein Glas Wasser zählte
-   * als entzündungshemmendes Schmerzmittel. Lange Namen dürfen weiter überall
-   * im Eingetragenen stehen („Pantoprazol 20mg", „IbuHexal").
-   */
-  /*
-   * Was auf der Haut bleibt, zählt nicht: Ein Diclofenac-Gel fürs Knie kommt
-   * im Magen praktisch nicht an und ist kein Kopfschmerz-Akutmittel. Es
-   * steht dann unter „nicht zugeordnet" statt in der Zählung. „Spray" bleibt
-   * draußen aus dieser Regel – das Triptan-Nasenspray wirkt im ganzen Körper.
-   */
-  if (/(gel|salbe|creme|pflaster)\b/.test(gesucht)) return null;
-  const passt = (b) => {
-    const k = b.toLowerCase();
-    if (k.length > 3) return gesucht.includes(k);
-    return new RegExp(`(^|[^a-zäöüß])${k}`).test(gesucht);
-  };
+  if (aufDerHaut(gesucht)) return null;
+  const passt = (b) => beispielPasst(gesucht, b);
   return ALLE.find((g) => g.beispiele.some(passt))
     || ALLE.find((g) => gesucht.includes(g.gruppe.toLowerCase()))
     || null;
+}
+
+/**
+ * Die ADHS-Gruppe eines eingetragenen Namens – 'mph', 'lisdex', 'dex',
+ * 'atomox', 'guanf', 'bupro' – oder null.
+ *
+ * Mit denselben Regeln wie wissenZu(): Kürzel nur am Wortanfang, und was auf
+ * der Haut bleibt, ist keines.
+ */
+export function adhsGruppe(name) {
+  const gesucht = suchform(name);
+  if (!gesucht || aufDerHaut(gesucht)) return null;
+  const g = ADHS_NAMEN.find((x) => x.beispiele.some((b) => beispielPasst(gesucht, b)));
+  return g ? g.id : null;
+}
+
+/*
+ * Gefragt wird für jeden Eintrag in jeder Rechnung, die Tage zählt – bei
+ * einem Jahr Tagebuch viele tausend Mal, und fast immer nach denselben
+ * wenigen Namen. Deshalb je Name einmal gerechnet und gemerkt.
+ */
+const adhsSchon = new Map();
+
+/** Zählt dieser Name als ADHS-Mittel? (Bupropion nicht, siehe ADHS_NAMEN.) */
+export function istAdhsMittel(name) {
+  const k = suchform(name);
+  if (!adhsSchon.has(k)) adhsSchon.set(k, ADHS_GRUPPEN.includes(adhsGruppe(k)));
+  return adhsSchon.get(k);
 }

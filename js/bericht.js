@@ -32,7 +32,7 @@ import { dosisBild } from './dosis.js';
 import { gewichtsBild } from './gewicht.js';
 import { bildLesen } from './bild.js';
 import { phasenBilanz } from './zyklus.js';
-import { wissenZu } from './mittel.js';
+import { adhsGruppe, wissenZu } from './mittel.js';
 import { kriterien } from './kriterien.js';
 import { stuhlZahlen, wasserSatz, wasserVergleich } from './stuhl.js';
 import { glasName, literText, wasserZahlen } from './wasser.js';
@@ -444,9 +444,11 @@ export function arztBericht(zustand, von, bis) {
    * was der Bauch an den Tagen danach gemacht hat.
    */
   if (kz.anzahl) {
+    // Ein ADHS-Mittel hat seine Gruppe, auch ohne Wissenstext – unter
+    // „Nicht zugeordnet" stehen nur Mittel, die die App nicht kennt.
     const gruppeVon = (name) => {
       const g = wissenZu(name);
-      return g ? g.id : null;
+      return g ? g.id : adhsGruppe(name);
     };
     /*
      * Zwei Blickwinkel: Was im Berichtszeitraum eingetragen wurde (kz, km),

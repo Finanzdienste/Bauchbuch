@@ -278,6 +278,99 @@ check(
   s.standardMittel.length === 4 && s.standardMittel.some((x) => x.mittel === 'L-Thyroxin'),
   `beim Zusammenführen kommen fremde Mittel dazu, doppelte nicht (${s.standardMittel.map((x) => x.mittel + ' ' + x.dosis).join(', ')})`,
 );
+check(
+  s.standardMittel.filter((x) => x.mittel === 'Iberogast').every((x) => x.form === null),
+  'ein neu gemerktes Mittel hat ausdrücklich keine Form',
+);
+
+/* ---------- 8. Die Form bei Methylphenidat ---------- */
+
+/*
+ * Die Form steht auf der Packung und gehört zum eigenen Mittel. Sie darf
+ * nicht verschwinden, weil jemand unter „Mehr" die Dosis ändert oder im Bogen
+ * „Dort so ändern" tippt: Daran hängt später, ob ein Säureblocker dazu passt.
+ * Und sie darf nicht stehen bleiben, wenn aus dem Eintrag ein anderes Mittel
+ * wird.
+ */
+await page.evaluate(([k, h]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true,
+  tab: 'mehr',
+  eintraege: [{ id: 'fr', art: 'essen', am: h, um: '07:30', was: 'Müsli', zutaten: [], portion: 'normal' }],
+  tage: {},
+  standardMittel: [
+    { id: 'r1', mittel: 'Ritalin Adult', dosis: '20 mg', tageszeit: 'morgens', bezug: null, form: 'sodas' },
+    { id: 'o1', mittel: 'Omeprazol', dosis: '20 mg', tageszeit: 'morgens', bezug: 'vor', form: null },
+  ],
+})), [KEY, heute]);
+await page.reload({ waitUntil: 'networkidle' });
+const formVon = async (id) => ((await speicher()).standardMittel.find((x) => x.id === id) || {}).form;
+
+await page.locator('[data-act="meinmittel-aendern"][data-id="r1"]').click();
+await kurz();
+await page.locator('#mmDosis').fill('30 mg');
+await page.locator('[data-act="mm-speichern"]').click();
+await page.waitForTimeout(250);
+s = await speicher();
+const r1 = s.standardMittel.find((x) => x.id === 'r1') || {};
+check(r1.dosis === '30 mg' && r1.form === 'sodas',
+  `die Dosis unter „Mehr" ändern lässt die Form stehen (${r1.dosis}, ${r1.form})`);
+
+// Ein Tipp auf dem Tag-Reiter nimmt die Form mit – und nur, wenn es eine gibt.
+await page.locator('[data-act="tab"][data-tab="heute"]').click();
+await kurz();
+await page.locator('[data-act="standard-eintragen"][data-id="r1"]').click();
+await page.waitForTimeout(250);
+await page.locator('[data-act="standard-eintragen"][data-id="o1"]').click();
+await page.waitForTimeout(250);
+s = await speicher();
+const ritalin = s.eintraege.find((e) => e.mittel === 'Ritalin Adult');
+const omep = s.eintraege.find((e) => e.mittel === 'Omeprazol');
+check(ritalin && ritalin.form === 'sodas' && ritalin.dosis === '30 mg', 'ein Tipp trägt die Form des eigenen Mittels mit ein');
+check(omep && !('form' in omep), 'ohne Form keine – auch kein leeres Feld');
+
+// „Dort so ändern" ändert die Dosis und behält die Form.
+await page.locator('[data-act="neu"][data-art="medikament"]').click();
+await kurz();
+await page.locator('[data-act="standard-waehlen"][data-id="r1"]').click();
+await kurz();
+await page.locator('#bogenDosis').fill('40 mg');
+await page.locator('#bogenDosis').dispatchEvent('input');
+await kurz();
+await page.locator('[data-act="standard-anpassen"]').click();
+await kurz();
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(250);
+s = await speicher();
+const r1b = s.standardMittel.find((x) => x.id === 'r1') || {};
+check(r1b.dosis === '40 mg' && r1b.form === 'sodas',
+  `„Dort so ändern" ändert die Dosis und lässt die Form stehen (${r1b.dosis}, ${r1b.form})`);
+
+// Umbenennen: Aus dem Methylphenidat wird ein anderes Mittel.
+await page.evaluate(async (id) => {
+  const st = await import('/js/store.js');
+  st.eintragAendern(id, { essen: 'mit', essenGesetzt: Date.now() });
+  st.sofortSchreiben();
+}, ritalin.id);
+const umbenennen = async (name) => {
+  await page.locator(`[data-act="bearbeiten"][data-id="${ritalin.id}"]`).click();
+  await kurz();
+  await page.locator('#bogenMittel').fill(name);
+  await page.locator('#bogenMittel').dispatchEvent('input');
+  await kurz();
+  await page.locator('[data-act="bogen-speichern"]').click();
+  await page.waitForTimeout(250);
+  return (await speicher()).eintraege.find((e) => e.id === ritalin.id) || {};
+};
+let e1 = await umbenennen('Medikinet retard');
+check(e1.form === 'sodas' && e1.essen === 'mit' && e1.essenGesetzt > 0,
+  'von einem Methylphenidat zum anderen bleiben Form und Essensangabe');
+e1 = await umbenennen('Strattera');
+check(e1.form === null && e1.essen === 'mit',
+  `zu einem ADHS-Mittel ohne Formen: die Form geht, die Essensangabe bleibt (${e1.form}, ${e1.essen})`);
+e1 = await umbenennen('Pantoprazol');
+check(e1.mittel === 'Pantoprazol' && e1.form === null && e1.essen === null && e1.essenGesetzt === null,
+  `umbenannt in einen Säureblocker: Form und Essensangabe sind weg (${e1.form}, ${e1.essen}, ${e1.essenGesetzt})`);
+check(await formVon('r1') === 'sodas', 'das eigene Mittel behält dabei seine Form');
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

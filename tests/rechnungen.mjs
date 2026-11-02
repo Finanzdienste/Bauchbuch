@@ -249,11 +249,7 @@ export function tagebuch(saat, { grunddatum = GRUNDDATUM, tage = TAGE } = {}) {
     if (ja(0.05)) eintraege.push({ id: n('n'), art: 'notiz', ...amUm(iso, 21 * 60), text: 'Ruhiger Tag' });
   }
 
-  const minuten = (um) => {
-    const [h, m] = String(um).split(':').map(Number);
-    return h * 60 + m;
-  };
-  eintraege.sort((a, b) => (a.am === b.am ? minuten(a.um) - minuten(b.um) : (a.am < b.am ? -1 : 1)));
+  sortiere(eintraege);
 
   const gewicht = [];
   for (let t = 0; t < tage; t += 14) {
@@ -289,6 +285,96 @@ export function tagebuch(saat, { grunddatum = GRUNDDATUM, tage = TAGE } = {}) {
   };
 }
 
+const minuten = (um) => {
+  const [h, m] = String(um).split(':').map(Number);
+  return h * 60 + m;
+};
+
+/** Nach Tag und Uhrzeit, wie der Speicher die Liste hält. */
+function sortiere(eintraege) {
+  return eintraege.sort((a, b) => (a.am === b.am ? minuten(a.um) - minuten(b.um) : (a.am < b.am ? -1 : 1)));
+}
+
+/*
+ * ADHS-Mittel für mitNeuenAngaben(): je Startwert ein anderes, damit kein
+ * Test immer dieselbe Zusammenstellung von Mitteln zeigt.
+ */
+const ADHS_BEISPIELE = [
+  { mittel: 'Medikinet retard', dosis: '10 mg', form: 'pellet' },
+  { mittel: 'Ritalin Adult', dosis: '20 mg', form: 'sodas' },
+  { mittel: 'Concerta', dosis: '18 mg', form: 'oros' },
+  { mittel: 'Elvanse', dosis: '30 mg' },
+  { mittel: 'Attentin', dosis: '5 mg' },
+  { mittel: 'Strattera', dosis: '40 mg' },
+  { mittel: 'Intuniv', dosis: '1 mg' },
+  { mittel: 'Kinecteen', dosis: '18 mg', form: 'retardtab' },
+  { mittel: 'Methylphenidat', dosis: '10 mg', form: 'unbekannt' },
+];
+
+/**
+ * Dasselbe Tagebuch mit allem, was die Fassung 28 neu speichert: an jedem Tag
+ * vom ersten Eintrag bis zum letzten Tag – Lücken eingeschlossen – eine
+ * ADHS-Einnahme (mit Form, Essensangabe und Zeitpunkt der Angabe, genau oder
+ * mit dem Zeitknopf), an manchen eine zweite, und die neuen Tagesangaben.
+ *
+ * Nichts davon ist eine Angabe über Bauch oder Kopf. Jede Rechnung, die dabei
+ * etwas anderes ergibt als ohne, zählt etwas mit, das sie nicht zählen darf
+ * (siehe tests/test-notiert.mjs).
+ */
+export function mitNeuenAngaben(daten, saat) {
+  const r = mulberry32(saat * 7919 + 1);
+  const ja = (p) => r() < p;
+  const zahl = (von, bis) => von + Math.floor(r() * (bis - von + 1));
+  const m = ADHS_BEISPIELE[saat % ADHS_BEISPIELE.length];
+  const eintraege = daten.eintraege.map((e) => ({ ...e }));
+  const tage = JSON.parse(JSON.stringify(daten.tage));
+  const erster = daten.eintraege[0].am;
+  const letzter = daten.eintraege[daten.eintraege.length - 1].am;
+  const fruehstueck = new Map(daten.eintraege
+    .filter((e) => e.art === 'essen' && !e.ungefaehr && minuten(e.um) < 11 * 60)
+    .map((e) => [e.am, e]));
+  const ms = (iso, um) => Date.parse(`${iso}T${um}:00Z`);
+  for (let iso = erster; iso <= letzter; iso = isoPlus(iso, 1)) {
+    const e = {
+      id: `${iso}-adhs1`, art: 'medikament', am: iso, um: uhrText(zahl(26, 36) * 15),
+      mittel: m.mittel, dosis: m.dosis, ...(m.form ? { form: m.form } : {}),
+    };
+    const f = fruehstueck.get(iso);
+    if (f && ja(0.25)) {
+      Object.assign(e, {
+        um: uhrText(minuten(f.um) + 10), ungefaehr: true, tageszeit: 'morgens', bezug: 'beim', bezugMahlzeit: f.id,
+      });
+    } else if (ja(0.15)) {
+      Object.assign(e, { um: '08:00', ungefaehr: true, tageszeit: 'morgens' });
+    }
+    if (ja(0.6)) {
+      e.essen = ['mit', 'vor', 'ohne'][zahl(0, 2)];
+      e.essenGesetzt = ms(iso, e.um) + zahl(-10, 180) * 60000;
+    }
+    eintraege.push(e);
+    if (ja(0.3)) {
+      eintraege.push({
+        id: `${iso}-adhs2`, art: 'medikament', am: iso, um: uhrText(zahl(48, 54) * 15), mittel: m.mittel, dosis: m.dosis,
+      });
+    }
+    const tag = { ...(tage[iso] || {}) };
+    if (ja(0.7)) tag.verspannt = zahl(0, 4);
+    if (ja(0.7)) tag.kiefer = zahl(0, 4);
+    if (ja(0.7)) tag.gepresst = zahl(0, 1);
+    if (ja(0.7)) tag.schiene = zahl(0, 1);
+    if (ja(0.1)) tag.adhsPause = ['pause', 'geplant', 'vergessen', 'beschwerden'][zahl(0, 3)];
+    if (Object.keys(tag).length) tage[iso] = tag;
+  }
+  return {
+    ...daten,
+    eintraege: sortiere(eintraege),
+    tage,
+    standardMittel: [...daten.standardMittel, {
+      id: 'sm-adhs', mittel: m.mittel, dosis: m.dosis, tageszeit: 'morgens', bezug: null, form: m.form || null,
+    }],
+  };
+}
+
 /** Lädt ein Modul aus wurzel/js – jede Wurzel bekommt ihre eigenen Module. */
 async function modul(wurzel, name) {
   return import(pathToFileURL(path.join(wurzel, 'js', name)).href);
@@ -319,9 +405,11 @@ export async function alleRechnungen(wurzel, daten, { heute = GRUNDDATUM, tage: 
   // jede Rechnung „nichts" sagen.
   const alleTage = Array.from({ length: anzahl + 2 }, (_, i) => isoPlus(von, i - 1));
   const tagesWert = aus.tagesWert;
+  // Wie die App: Ein ADHS-Mittel hat seine Gruppe, auch ohne Wissenstext.
+  // Eine Fassung ohne adhsGruppe kennt keine – dort bleibt es null.
   const gruppeVon = (name) => {
     const g = mit.wissenZu(name);
-    return g ? g.id : null;
+    return g ? g.id : (mit.adhsGruppe ? mit.adhsGruppe(name) : null);
   };
   const istNsar = (name) => ['nsar', 'kombi'].includes(gruppeVon(name));
   const istSaeuremittel = (name) => ['ppi', 'h2', 'antazida', 'alginat'].includes(gruppeVon(name));

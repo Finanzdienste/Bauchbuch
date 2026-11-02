@@ -27,7 +27,8 @@ const VORGABE = {
   //   essen       { was, zutaten: [{ id, rolle }], portion: 'klein'|'normal'|'gross' }
   //   beschwerde  { staerke: 0..10, arten: [beschwerdeId], notiz, stuhlbezug }
   //   stuhl       { form: 1..7, dringend, unvollstaendig, warnzeichen: [id] }
-  //   medikament  { mittel, dosis, zuKopf }
+  //   medikament  { mittel, dosis, zuKopf, form, essen, essenGesetzt }
+  //   kopf        { staerke: 1..10, kopfArten: [id], dauer, verlauf, mittelWirkung }
   //   notiz       { text }
   //   aktivitaet  { aktivitaeten: [id], intensitaet: 'leicht'|'mittel'|'hart'|null, notiz }
   // Eine Aktivität ist ein Eintrag mit Uhrzeit, aber über den Körper sagt sie
@@ -36,6 +37,19 @@ const VORGABE = {
   // Eine Mahlzeit trägt seit November 2026 optional `auswaerts: true`.
   // `zuKopf` (optional) ist die Kennung des Kopfschmerzes, mit dem das Mittel
   // über „Dazu genommen?" angelegt wurde. Ältere Einträge haben es nicht.
+  // Mit einem Zeitknopf eingetragen, trägt jeder Eintrag außerdem
+  //   { ungefaehr: true, tageszeit: 'morgens'|'mittags'|'abends',
+  //     bezug: 'vor'|'beim'|'nach'|null, bezugMahlzeit: Kennung der Mahlzeit|null }
+  // – `um` ist dann aus dem Knopf gerechnet, nicht erhoben (siehe
+  // KNOPF_TAGESZEIT in js/datum.js). Beim Ändern stehen die vier Felder
+  // ausdrücklich auf false/null, statt zu fehlen.
+  // Ein Medikament trägt seit der Fassung 28 optional:
+  //   form          die Freisetzungsform bei Methylphenidat, eine Kennung aus
+  //                 FORM_IDS (siehe unten); fehlt = nicht angegeben
+  //   essen         'mit'|'vor'|'ohne' – ausdrücklich angegeben, nicht abgeleitet
+  //   essenGesetzt  wann `essen` angegeben wurde (ms). Eine Angabe, die erst
+  //                 nach dem kam, womit sie verglichen wird, darf dort nicht
+  //                 zählen – sonst entschiede das Ergebnis über die Einteilung.
   eintraege: [],
   // Was für einen ganzen Tag gilt, nicht für einen Zeitpunkt. Welche Angaben
   // es gibt, steht in TAGESFRAGEN (js/daten.js):
@@ -43,6 +57,15 @@ const VORGABE = {
   // `wasser` ist die Zahl der Gläser an diesem Tag – keine Tagesfrage, sondern
   // ein Zähler, und ein Tag, an dem nur sie steht, gilt nirgends als notiert
   // (siehe js/wasser.js). Ältere Stände haben das Feld nicht.
+  // Seit der Fassung 28 optional dazu – keines davon macht einen Tag zu einem
+  // notierten (ZAEHLT_NICHT in js/wasser.js), siehe tageSauber():
+  //   adhsPause  'pause'|'geplant'|'vergessen'|'beschwerden' – ohne ADHS-Mittel
+  //   verspannt  0..4  Nacken und Schultern
+  //   kiefer     0..4  Kiefer und Zähne beim Aufwachen; gilt wie `schlaf` für
+  //                    die Nacht davor
+  //   gepresst   0|1   tagsüber gepresst oder geknirscht bemerkt
+  //   schiene    0|1   Aufbissschiene in der Nacht davor getragen; fehlt heißt
+  //                    „nicht angegeben", nie „ohne"
   tage: {},
   // In wie vielen Stunden nach einer Mahlzeit eine Beschwerde ihr noch
   // zugerechnet wird. Vier Stunden sind der Vorschlag, nicht das Gesetz –
@@ -111,6 +134,38 @@ const VORGABE = {
    */
   wasserZeigen: true,
   wasserGlas: 250,
+  /*
+   * Was Body Check mitdenken soll – zwei Schalter unter „Mehr":
+   *
+   *   adhsAn      ADHS-Mittel: wann genommen, ob mit oder ohne Essen, und die
+   *               Zahlen dazu.
+   *   spannungAn  Kiefer, Nacken, Schiene: die Tagesfragen dazu und die
+   *               Zahlen, ob Kopfschmerz mit ihnen öfter oder seltener kommt.
+   *
+   * Dreiwertig, und darauf kommt es an: null heißt „nie entschieden", false
+   * „ausgeschaltet" oder „Nein danke". Nur so wird ein Angebot einmal gemacht
+   * und nach „Nein danke" nie wieder. Und beim Zusammenführen gewinnt, wer von
+   * der Vorgabe abweicht (siehe zusammenfuehren) – ein ausdrückliches Aus also
+   * auch gegen eine ältere Sicherung, in der es noch an war.
+   *
+   * Kein Schalter ändert eine Rechnung. Gerechnet wird immer, sobald Daten da
+   * sind; die Schalter entscheiden nur, was gefragt und was gezeigt wird.
+   */
+  adhsAn: null,
+  spannungAn: null,
+  /*
+   * Ob die einmalige Karte „Was sich an deinen Zahlen geändert hat" gelesen
+   * ist. Mit der Fassung 28 zählen manche Tage anders als vorher, und das soll
+   * niemand daran merken müssen, dass sich eine Zahl still verschoben hat.
+   */
+  v28Gesagt: false,
+  /*
+   * Welche Hinweise zu zwei Mitteln zusammen schon mit „Gelesen" weggetippt
+   * sind: ein Schlüssel je Paar, etwa 'W1|<mittel a>|<mittel b>', Namen klein.
+   * Nach Paar und nicht nach Hinweis – kommt ein anderes Mittel dazu, ist das
+   * ein neuer Hinweis und erscheint wieder.
+   */
+  wechselGelesen: [],
   /*
    * Seit wann die Beschwerden bestehen, als 'YYYY-MM'.
    *
@@ -287,8 +342,12 @@ const VORGABE = {
 const EINSTELLUNGEN = [
   'fenster', 'mindestFaelle', 'tagesfragen', 'theme', 'atemUebung', 'atemRunden',
   'ton', 'abnehmenGewollt', 'unterleibGefragt', 'beschwerdenSeit',
-  'wasserZeigen', 'wasserGlas',
+  'wasserZeigen', 'wasserGlas', 'adhsAn', 'spannungAn', 'v28Gesagt',
 ];
+
+/** Die dreiwertigen Schalter – siehe adhsAn in VORGABE. */
+const SCHALTER = ['adhsAn', 'spannungAn'];
+const schalterWert = (v) => (v === true || v === false ? v : null);
 
 /*
  * Was zu diesem Gerät gehört und nicht zum Tagebuch. Eine Sicherung trägt
@@ -338,6 +397,18 @@ function laden() {
     s.ideen = ideenMitMarke(s.ideen, s.ideenGeschickt);
     if (!Array.isArray(s.eigeneAktivitaeten)) s.eigeneAktivitaeten = [];
     if (!Array.isArray(s.standardMittel)) s.standardMittel = [];
+    /*
+     * Die Felder der Fassung 28. Ein älterer Stand hat sie nicht, und dann
+     * greift die Vorgabe – umgeschrieben wird nichts. Ein Wert vom falschen
+     * Typ dagegen (von Hand geändert, halb geschrieben) gilt als nicht
+     * entschieden: Ein Schalter, der "ja" heißt, ist weder an noch aus, und
+     * eine Liste, die keine ist, darf beim ersten includes() nicht die ganze
+     * App anhalten.
+     */
+    SCHALTER.forEach((k) => { s[k] = schalterWert(s[k]); });
+    if (typeof s.v28Gesagt !== 'boolean') s.v28Gesagt = false;
+    s.wechselGelesen = Array.isArray(s.wechselGelesen)
+      ? s.wechselGelesen.filter((x) => typeof x === 'string') : [];
     return s;
   } catch {
     return klon(VORGABE);
@@ -777,6 +848,14 @@ const TAGESZEIT_IDS = Object.keys(KNOPF_TAGESZEIT);
  */
 const BEZUG_IDS = ['vor', 'beim', 'nach'];
 
+/*
+ * Die Freisetzungsformen bei Methylphenidat – dieselben Kennungen wie
+ * MPH_FORMEN in js/mittel.js. Hier noch einmal aus demselben Grund wie
+ * INTENSITAET_IDS: Der Speicher soll von den Texten nichts wissen.
+ * tests/test-adhs-wissen.mjs prüft, dass beide Listen gleich sind.
+ */
+export const FORM_IDS = ['sofort', 'pellet', 'sodas', 'oros', 'retardtab', 'equasym', 'unbekannt'];
+
 /** Ein Standardmittel in seine gespeicherte Form bringen. */
 function standardSauber(x) {
   return {
@@ -784,6 +863,14 @@ function standardSauber(x) {
     dosis: String(x.dosis || '').trim().slice(0, 40),
     tageszeit: TAGESZEIT_IDS.includes(x.tageszeit) ? x.tageszeit : null,
     bezug: BEZUG_IDS.includes(x.bezug) ? x.bezug : null,
+    /*
+     * Die Form nur, wenn die Vorlage sie überhaupt nennt. Wer unter „Mehr"
+     * die Dosis ändert, schickt keine Form mit – und meint damit nicht, dass
+     * sie weg ist. Mit `form` im Ergebnis setzte jede solche Änderung sie auf
+     * null (standardAendern mischt das hier über das alte Mittel), und mit
+     * ihr verschwände der Hinweis, der an ihr hängt.
+     */
+    ...(Object.hasOwn(x, 'form') ? { form: FORM_IDS.includes(x.form) ? x.form : null } : {}),
   };
 }
 
@@ -809,7 +896,9 @@ function mittelSchluessel(x) {
  * sagt das; verworfen wird nichts still.
  */
 export function standardMerken(vorlage) {
-  const neu = { id: neueId(), ...standardSauber(vorlage) };
+  const sauber = standardSauber(vorlage);
+  // Ein neu gemerktes Mittel hat seine Form – oder ausdrücklich keine.
+  const neu = { id: neueId(), ...sauber, form: sauber.form ?? null };
   if (!neu.mittel) return { fehler: 'leer' };
   const da = zustand.standardMittel.find((x) => mittelSchluessel(x) === mittelSchluessel(neu));
   if (da) return { id: da.id, schon: true };
@@ -821,12 +910,13 @@ export function standardMerken(vorlage) {
 }
 
 /**
- * Ein Standardmittel ändern – Name, Dosis, übliche Zeit.
+ * Ein Standardmittel ändern – Name, Dosis, übliche Zeit, Form.
  *
  * { id } bei Erfolg, { fehler: 'leer' } ohne Namen, { fehler: 'doppelt' },
  * wenn es genau so schon ein anderes gibt, { fehler: 'weg' }, wenn es dieses
  * nicht mehr gibt. Die Einträge, die damit schon angelegt wurden, bleiben,
- * wie sie sind: Sie sagen, was an jenem Tag genommen wurde.
+ * wie sie sind: Sie sagen, was an jenem Tag genommen wurde. Nennt die Vorlage
+ * keine Form, bleibt die alte (siehe standardSauber).
  */
 export function standardAendern(id, vorlage) {
   const i = zustand.standardMittel.findIndex((x) => x.id === id);
@@ -1451,7 +1541,16 @@ function sicherungLesen(text) {
   });
   frisch.eintraege = sortiert(gelesen.eintraege.filter((e) => (
     e && typeof e === 'object' && typeof e.am === 'string' && typeof e.art === 'string'
-  )).map((e) => aktivitaetFrisch(mahlzeitFrisch({ ...e, id: e.id || neueId() }))));
+  )).map((e) => mittelFrisch(aktivitaetFrisch(mahlzeitFrisch({ ...e, id: e.id || neueId() })))));
+  // Die Schalter nur mit einem der drei Werte; alles andere gilt als nicht
+  // entschieden. Die Schleife oben nimmt hier jeden Typ, weil die Vorgabe
+  // null ist und null keinen Typ vorgibt.
+  SCHALTER.forEach((k) => { frisch[k] = schalterWert(gelesen[k]); });
+  // Gelesene Hinweise: kurze Zeichenketten, die jüngsten fünfzig. Mehr gibt
+  // es bei ein paar eigenen Mitteln nicht, und eine Datei, die hier Unsinn
+  // trägt, soll den Speicher nicht füllen.
+  frisch.wechselGelesen = frisch.wechselGelesen
+    .filter((x) => typeof x === 'string' && x.length <= 120).slice(-50);
   // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
   // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
   frisch.standardMittel = mittelEindeutig(frisch.standardMittel
@@ -1472,7 +1571,7 @@ function sicherungLesen(text) {
   frisch.ideen = ideenMitMarke(frisch.ideen, gelesen.ideenGeschickt)
     .map((x) => ({ ...x, id: x.id || neueId(), erledigt: !!x.erledigt }));
   if (!Number.isFinite(frisch.fenster) || frisch.fenster <= 0) frisch.fenster = VORGABE.fenster;
-  frisch.tage = wasserSauber(frisch.tage);
+  frisch.tage = tageSauber(frisch.tage);
   frisch.wasserGlas = glasMl(frisch.wasserGlas);
   // Ein halb gelesener Versuch würde die Tagesansicht mit „Tag NaN von
   // undefined" begrüßen. Was nicht vollständig ist, gilt als keiner.
@@ -1539,6 +1638,63 @@ function wasserSauber(tage) {
     if (Object.keys(neu).length) raus[iso] = neu;
   });
   return raus;
+}
+
+/*
+ * Die Tagesangaben der Fassung 28 und was als Wert gilt. Was nicht passt,
+ * fällt weg statt umgedeutet zu werden: Eine 7 bei „Schiene" ist weder
+ * „getragen" noch „nicht getragen", und eine Antwort, die als 0 gelesen
+ * würde, wäre eine erfundene Nacht ohne Schiene.
+ */
+const stufeNullVier = (v) => Number.isInteger(v) && v >= 0 && v <= 4;
+const nullOderEins = (v) => v === 0 || v === 1;
+const TAGESFELD_PRUEFUNG = {
+  adhsPause: (v) => ['pause', 'geplant', 'vergessen', 'beschwerden'].includes(v),
+  verspannt: stufeNullVier,
+  kiefer: stufeNullVier,
+  gepresst: nullOderEins,
+  schiene: nullOderEins,
+};
+
+/**
+ * Den Tagesspeicher aus einer Sicherung lesen: erst das Wasser (siehe
+ * wasserSauber), dann die Angaben der Fassung 28. Ein Tag, an dem danach
+ * nichts mehr steht, fällt weg. Alle übrigen Felder bleiben, wie sie sind.
+ */
+function tageSauber(tage) {
+  const raus = {};
+  Object.entries(wasserSauber(tage)).forEach(([iso, t]) => {
+    if (!t || typeof t !== 'object' || Array.isArray(t)) {
+      raus[iso] = t;
+      return;
+    }
+    const neu = { ...t };
+    Object.entries(TAGESFELD_PRUEFUNG).forEach(([k, gilt]) => {
+      if (k in neu && !gilt(neu[k])) delete neu[k];
+    });
+    if (Object.keys(neu).length) raus[iso] = neu;
+  });
+  return raus;
+}
+
+/**
+ * Ein Medikament aus einer Sicherung: die Angaben der Fassung 28 nur mit
+ * Werten, die es gibt. Eine unbekannte Form wäre im Bogen keine der Marken
+ * und im Hinweis keine Form. Der Zeitpunkt der Essensangabe zählt nur als
+ * Zahl und nur neben einer Angabe – ein Zeitpunkt, der keiner ist, ließe
+ * sich mit der Einnahme nicht vergleichen, und ohne Angabe gehört er zu
+ * nichts.
+ */
+function mittelFrisch(e) {
+  if (!e || e.art !== 'medikament') return e;
+  const neu = { ...e };
+  if ('form' in neu && !FORM_IDS.includes(neu.form)) delete neu.form;
+  if ('essen' in neu && !['mit', 'vor', 'ohne'].includes(neu.essen)) delete neu.essen;
+  if ('essenGesetzt' in neu
+    && !(neu.essen && Number.isFinite(neu.essenGesetzt) && neu.essenGesetzt > 0)) {
+    delete neu.essenGesetzt;
+  }
+  return neu;
 }
 
 /* ---------- Einlesen, ohne etwas zu verlieren ---------- */
@@ -1651,6 +1807,9 @@ function zusammenfuehren(hier, dazu) {
   neu.kueche = vereinigt(hier.kueche, dazu.kueche, (k) => String(k.name || '').toLowerCase());
   neu.befunde = vereinigt(hier.befunde, dazu.befunde, (b) => b.id);
   neu.zuletztMittel = [...new Set([...hier.zuletztMittel, ...dazu.zuletztMittel])].slice(0, 5);
+  // Was auf einem Gerät gelesen wurde, ist gelesen – ein Hinweis, den man
+  // schon weggetippt hat, soll nach dem Umzug nicht wiederkommen.
+  neu.wechselGelesen = [...new Set([...(hier.wechselGelesen || []), ...(dazu.wechselGelesen || [])])];
   // Ohne Kürzen auf STANDARD_HOECHSTENS: Was in einer Sicherung steht, geht
   // beim Zusammenführen nicht still verloren. Die Grenze gilt fürs Merken.
   // Erst nach der Kennung: Dieselbe Kennung ist dasselbe Mittel, auch wenn

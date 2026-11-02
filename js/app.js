@@ -43,7 +43,9 @@ import { ANSPRECHEN_URTEIL, befund, mittelBilanz } from './ansprechen.js';
 import { luecken } from './luecken.js';
 import { vergleichBalken, verlaufTafel } from './chart.js';
 import { arztBericht, berichtName } from './bericht.js';
-import { MITTEL_WISSEN, REIZSTOFFE, WEITERE_MITTEL, wissenZu } from './mittel.js';
+import {
+  MITTEL_WISSEN, REIZSTOFFE, WEITERE_MITTEL, adhsGruppe, istAdhsMittel, wissenZu,
+} from './mittel.js';
 import {
   belastbar, heutigerStand, mittlereLaenge, phasenBilanz, phasenName, schwankung,
 } from './zyklus.js';
@@ -1618,10 +1620,13 @@ function musterDaten(s) {
     return !!g && (g.id === 'nsar' || g.id === 'kombi');
   };
   // Dieselbe Frage, aber mit der ganzen Antwort: welche Gruppe. Der Kopf
-  // braucht sie, weil er drei Klassen von Akutmitteln auseinanderhält.
+  // braucht sie, weil er drei Klassen von Akutmitteln auseinanderhält. Ein
+  // ADHS-Mittel hat seine Gruppe auch dann, wenn es dazu noch nichts zu
+  // lesen gibt – sonst stünde es am Kopfschmerztag unter „nicht
+  // zugeordnet", als wäre es ein Schmerzmittel, das die App nicht kennt.
   const gruppeVon = (name) => {
     const g = wissenZu(name);
-    return g ? g.id : null;
+    return g ? g.id : adhsGruppe(name);
   };
   const bilanz = ausloeserBilanz(s.eintraege, {
     fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
@@ -5587,6 +5592,21 @@ function bogenSpeichern() {
       delete e.bezugMahlzeit;
     }
   }
+  /*
+   * Die Form gehört zu Methylphenidat, die Essensangabe zu einem ADHS-Mittel.
+   * Wird ein Eintrag umbenannt – aus einem Methylphenidat wird ein
+   * Säureblocker –, müssen beide ausdrücklich zurück: Beim Ändern mischt der Speicher den Bogen in
+   * den alten Eintrag, und ein Säureblocker mit einer Freisetzungsform wäre
+   * ein Hinweis auf ein Paar, das es nicht gibt.
+   */
+  if (b.art === 'medikament') {
+    const weg = (felder) => felder.forEach((k) => {
+      if (b.id) e[k] = null;
+      else delete e[k];
+    });
+    if (adhsGruppe(e.mittel) !== 'mph') weg(['form']);
+    if (!istAdhsMittel(e.mittel)) weg(['essen', 'essenGesetzt']);
+  }
   if (b.art === 'medikament') store.mittelMerken(e.mittel);
   /*
    * Merken oder das eigene Mittel anpassen – und in der Meldung sagen, was
@@ -5600,7 +5620,12 @@ function bogenSpeichern() {
     // siehe gemerktGenau(). „Als mein Mittel merken" merkt dann ohne Zeit.
     const zeit = ref && !e.ungefaehr
       ? { tageszeit: ref.tageszeit || null, bezug: ref.bezug || null } : entwurfZeit(e);
-    const vorlage = { mittel: e.mittel, dosis: e.dosis, ...zeit };
+    // Die Form nur, wenn der Bogen eine hat: Ohne sie behält das eigene
+    // Mittel seine (siehe standardSauber in js/store.js), statt sie zu
+    // verlieren, weil hier nur die Dosis geändert wurde.
+    const vorlage = {
+      mittel: e.mittel, dosis: e.dosis, ...zeit, ...(e.form !== undefined ? { form: e.form } : {}),
+    };
     const r = ref ? store.standardAendern(ref.id, vorlage) : store.standardMerken(vorlage);
     if (r.fehler === 'voll') gemerkt = 'voll';
     else if (r.schon || r.fehler === 'doppelt') gemerkt = 'schon';
@@ -5976,17 +6001,20 @@ const AKTION = {
     const m = s.standardMittel.find((x) => x.id === el.dataset.id);
     if (!m) return;
     const am = ui.tag;
+    // Die Form des eigenen Mittels geht mit, wenn eine angegeben ist – sie
+    // steht auf der Packung und ändert sich nicht von Tag zu Tag.
+    const form = m.form ? { form: m.form } : {};
     if (mittelImBogen(m, am)) {
       bogenOeffnen('medikament');
       ui.bogen.vorlage = m.id;
-      entwurf({ mittel: m.mittel, dosis: m.dosis, um: '', bezug: m.bezug || null });
+      entwurf({ mittel: m.mittel, dosis: m.dosis, um: '', bezug: m.bezug || null, ...form });
       melden('An welchem Teil des Tages? Unter der Uhrzeit antippen.');
       return;
     }
     const zeit = zeitAusVorlage(s, am, am === heuteISO() ? jetztUhr() : '', m.tageszeit, m.bezug);
     delete zeit.bezugBasis;
     store.eintragen({
-      art: 'medikament', am, um: zeit.um || jetztUhr(), mittel: m.mittel, dosis: m.dosis, ...zeit,
+      art: 'medikament', am, um: zeit.um || jetztUhr(), mittel: m.mittel, dosis: m.dosis, ...zeit, ...form,
     });
     store.mittelMerken(m.mittel);
     melden(`${mittelName(m)} eingetragen${zeit.ungefaehr ? ` (≈${zeit.um})` : ''}.`);

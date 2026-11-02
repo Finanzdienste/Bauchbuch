@@ -20,9 +20,13 @@
  * selbst: „Gym um 18 Uhr" ist ein Eintrag, sagt aber über Bauch und Kopf so
  * wenig wie ein Glas Wasser. Für ihn gibt es eintragZaehlt(), die Schwester
  * von tagZaehlt() – beide stehen hier, damit es die Regel nur einmal gibt.
+ * Seit der Fassung 28 gilt dasselbe für ein ADHS-Mittel: Es wird jeden Morgen
+ * genommen, ob der Bauch Ruhe gibt oder nicht.
  *
- * Hängt von nichts ab und darf deshalb überall benutzt werden.
+ * Hängt nur von js/mittel.js ab (das selbst nichts importiert), um ein
+ * ADHS-Mittel am Namen zu erkennen, und darf deshalb überall benutzt werden.
  */
+import { istAdhsMittel } from './mittel.js';
 
 /** Mehr als vierzig Gläser an einem Tag sind ein Tippfehler, keine Angabe. */
 export const WASSER_HOECHSTENS = 40;
@@ -40,8 +44,22 @@ export const GLAS_VORGABE = 250;
  * Felder des Tagesspeichers, die einen Tag nicht zu einem notierten machen.
  * Eine Liste und kein einzelner Vergleich, damit die nächste Angabe dieser
  * Art an genau einer Stelle dazukommt.
+ *
+ * Seit der Fassung 28 stehen hier auch die Angaben zu ADHS-Mittel und
+ * Verspannung. Jede von ihnen ist eine Antwort – aber auf eine Frage, die mit
+ * dem Bauch und dem Kopf erst verglichen werden soll:
+ *
+ *   adhsPause  „heute ohne ADHS-Mittel" – sagt über den Bauch nichts.
+ *   verspannt  Nacken und Schultern.
+ *   kiefer     der Kiefer am Morgen.
+ *   gepresst   tagsüber gepresst oder geknirscht.
+ *   schiene    ob in der Nacht davor eine Aufbissschiene getragen wurde.
+ *
+ * Machte eine davon den Tag zu einem notierten, wäre jeder Tag, an dem nur
+ * „Schiene getragen" steht, für den Kopf ein Tag ohne Kopfschmerz – und die
+ * Schiene sähe in jedem Vergleich besser aus, als sie war.
  */
-const ZAEHLT_NICHT = ['wasser'];
+export const ZAEHLT_NICHT = ['wasser', 'adhsPause', 'verspannt', 'kiefer', 'gepresst', 'schiene'];
 
 const feldLeer = (v) => v === null || v === undefined || v === ''
   || (typeof v === 'string' && !v.trim());
@@ -78,9 +96,16 @@ const SAGT_NICHTS = ['aktivitaet'];
  * hielt, fragt jetzt das. Ohne diese Frage wäre der Tag, an dem nur „Laufen"
  * steht, ein beschwerdefreier Tag – und das Laufen sähe in jeder Rechnung
  * besser aus, als es war.
+ *
+ * Ein ADHS-Mittel sagt ebenso wenig (siehe ADHS_NAMEN in js/mittel.js): Es
+ * wird nach Plan genommen, nicht wegen des Bauchs oder des Kopfes. Steht an
+ * einem Tag nur die Tablette vom Morgen, ist der Tag für beide eine Lücke.
+ * Andere Mittel zählen weiter – ein Säureblocker oder ein Schmerzmittel wird
+ * meist genommen, weil etwas war.
  */
 export function eintragZaehlt(e) {
-  return !!e && typeof e === 'object' && !SAGT_NICHTS.includes(e.art);
+  if (!e || typeof e !== 'object' || SAGT_NICHTS.includes(e.art)) return false;
+  return !(e.art === 'medikament' && istAdhsMittel(e.mittel));
 }
 
 /**

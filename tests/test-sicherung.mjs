@@ -312,6 +312,236 @@ check(
   'und die App zeichnet danach ohne Fehler weiter',
 );
 
+/* ---------- Die Angaben der Fassung 28 ---------- */
+
+/*
+ * Neu sind zwei dreiwertige Schalter, die gelesenen Hinweise, die Form und
+ * die Essensangabe an einem Medikament, die Form an einem eigenen Mittel und
+ * fünf Tagesangaben. Für jede gilt dasselbe wie für alles andere hier: Eine
+ * Sicherung nimmt sie mit, ein Wert, den es nicht gibt, fällt weg, und ein
+ * älterer Stand lädt weiter.
+ */
+const zustand = () => page.evaluate(async () => {
+  const st = await import('/js/store.js');
+  return JSON.parse(JSON.stringify(st.zustandLesen()));
+});
+const einfuegen = async (text) => {
+  await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+  await page.waitForTimeout(200);
+  await page.locator('[data-act="einfuegen-auf"]').click();
+  await page.waitForTimeout(200);
+  await page.locator('[data-act="einfuegen-text"]').fill(text);
+  await page.locator('[data-act="einfuegen-los"]').click();
+  await page.waitForTimeout(400);
+};
+const stand28 = {
+  begruesst: true,
+  tab: 'mehr',
+  eintraege: [
+    {
+      id: 'n1', am: vorTagen(1), um: '07:40', art: 'medikament', mittel: 'Ritalin Adult', dosis: '20 mg',
+      form: 'sodas', essen: 'ohne', essenGesetzt: 1767600000000,
+    },
+    { id: 'n2', am: vorTagen(1), um: '08:10', art: 'essen', was: 'Brot', zutaten: [], portion: 'normal' },
+  ],
+  tage: {
+    [vorTagen(1)]: { stress: 1, verspannt: 3, kiefer: 0, gepresst: 1, schiene: 0, adhsPause: 'geplant' },
+    [vorTagen(2)]: { schiene: 1, kiefer: 4 },
+  },
+  standardMittel: [
+    { id: 's1', mittel: 'Ritalin Adult', dosis: '20 mg', tageszeit: 'morgens', bezug: null, form: 'sodas' },
+    { id: 's2', mittel: 'Omeprazol', dosis: '20 mg', tageszeit: 'morgens', bezug: 'vor', form: null },
+  ],
+  adhsAn: true,
+  spannungAn: false,
+  v28Gesagt: true,
+  wechselGelesen: ['W1u|ritalin adult|omeprazol'],
+};
+await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, stand28]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.locator('[data-act="sicherung-text"]').click();
+await page.waitForTimeout(250);
+const text28 = await page.locator('.bericht').inputValue();
+await page.locator('[data-act="sicherung-zu"]').click();
+await page.locator('[data-act="alles-weg"]').click();
+await page.waitForTimeout(300);
+check((await zustand()).eintraege.length === 0, 'Fassung 28: gesichert und gelöscht');
+await einfuegen(text28);
+let z28 = await zustand();
+const mittel28 = z28.eintraege.find((e) => e.id === 'n1') || {};
+check(
+  mittel28.form === 'sodas' && mittel28.essen === 'ohne' && mittel28.essenGesetzt === 1767600000000,
+  `hin und zurück: Form und Essensangabe samt Zeitpunkt (${mittel28.form}, ${mittel28.essen}, ${mittel28.essenGesetzt})`,
+);
+check(
+  JSON.stringify(z28.tage[vorTagen(1)]) === JSON.stringify(stand28.tage[vorTagen(1)])
+    && JSON.stringify(z28.tage[vorTagen(2)]) === JSON.stringify(stand28.tage[vorTagen(2)]),
+  'die neuen Tagesangaben, auch eine 0',
+);
+check(
+  (z28.standardMittel.find((x) => x.id === 's1') || {}).form === 'sodas'
+    && (z28.standardMittel.find((x) => x.id === 's2') || {}).form === null,
+  'die Form der eigenen Mittel',
+);
+check(
+  z28.adhsAn === true && z28.spannungAn === false && z28.v28Gesagt === true
+    && JSON.stringify(z28.wechselGelesen) === JSON.stringify(stand28.wechselGelesen),
+  `die Schalter, ein ausdrückliches Aus eingeschlossen, und die gelesenen Hinweise (${z28.adhsAn}, ${z28.spannungAn})`,
+);
+
+// Was es nicht gibt, fällt weg – statt umgedeutet zu werden.
+const unsinn = JSON.stringify({
+  eintraege: [
+    {
+      id: 'u1', am: vorTagen(1), um: '07:00', art: 'medikament', mittel: 'Medikinet', dosis: '10 mg',
+      form: 'x', essen: 'irgendwann', essenGesetzt: 5,
+    },
+    {
+      id: 'u2', am: vorTagen(1), um: '07:05', art: 'medikament', mittel: 'Concerta', dosis: '18 mg',
+      essenGesetzt: 1767600000000,
+    },
+    {
+      id: 'u3', am: vorTagen(1), um: '07:10', art: 'medikament', mittel: 'Elvanse', dosis: '30 mg',
+      form: 'pellet', essen: 'mit', essenGesetzt: 'gestern',
+    },
+  ],
+  tage: {
+    [vorTagen(1)]: { schiene: 7, kiefer: 9, adhsPause: 'x', verspannt: 2.5, gepresst: true, stress: 2 },
+    [vorTagen(2)]: { schiene: 2, kiefer: -1 },
+    [vorTagen(3)]: { verspannt: 4, gepresst: 0, adhsPause: 'beschwerden' },
+  },
+  standardMittel: [
+    { id: 'q1', mittel: 'Equasym Retard', dosis: '10 mg', form: 'x' },
+    { id: 'q2', mittel: 'Strattera', dosis: '40 mg' },
+  ],
+  adhsAn: 'ja',
+  spannungAn: 1,
+  v28Gesagt: 'ja',
+  wechselGelesen: [3, null, 'W1|a|b', 'x'.repeat(121), ...Array.from({ length: 60 }, (_, i) => `W3|m${i}|p`)],
+});
+await page.locator('[data-act="alles-weg"]').click();
+await page.waitForTimeout(300);
+await einfuegen(unsinn);
+const zu = await zustand();
+const u = (id) => zu.eintraege.find((e) => e.id === id) || {};
+check(!('form' in u('u1')) && !('essen' in u('u1')) && !('essenGesetzt' in u('u1')),
+  'eine unbekannte Form und Essensangabe fallen weg, der Zeitpunkt ohne Angabe mit');
+check(!('essenGesetzt' in u('u2')), 'ein Zeitpunkt ohne Essensangabe fällt weg');
+check(u('u3').form === 'pellet' && u('u3').essen === 'mit' && !('essenGesetzt' in u('u3')),
+  'eine gültige Angabe bleibt, ein Zeitpunkt, der keine Zahl ist, nicht');
+check(
+  JSON.stringify(zu.tage[vorTagen(1)]) === JSON.stringify({ stress: 2 }),
+  `schiene:7, kiefer:9, adhsPause:'x', verspannt:2.5, gepresst:true fallen weg (${JSON.stringify(zu.tage[vorTagen(1)])})`,
+);
+check(!(vorTagen(2) in zu.tage), 'ein Tag, an dem danach nichts mehr steht, fällt ganz weg');
+check(
+  JSON.stringify(zu.tage[vorTagen(3)]) === JSON.stringify({ verspannt: 4, gepresst: 0, adhsPause: 'beschwerden' }),
+  'gültige Werte bleiben, auch die Ränder 0 und 4',
+);
+check(
+  (zu.standardMittel.find((x) => x.id === 'q1') || {}).form === null
+    && !('form' in (zu.standardMittel.find((x) => x.id === 'q2') || {})),
+  'eine unbekannte Form am eigenen Mittel wird null, eine fehlende bleibt fehlend',
+);
+check(zu.adhsAn === null && zu.spannungAn === null && zu.v28Gesagt === false,
+  `Schalter mit falschem Wert gelten als nicht entschieden (${zu.adhsAn}, ${zu.spannungAn}, ${zu.v28Gesagt})`);
+check(
+  zu.wechselGelesen.length === 50 && zu.wechselGelesen.every((x) => typeof x === 'string' && x.length <= 120)
+    && zu.wechselGelesen[49] === 'W3|m59|p',
+  `gelesene Hinweise: nur Zeichenketten bis 120 Zeichen, die jüngsten fünfzig (${zu.wechselGelesen.length})`,
+);
+
+/*
+ * Ausschalten gewinnt. Wer ein Angebot abgelehnt oder einen Schalter
+ * ausgemacht hat, liest später vielleicht eine ältere Sicherung ein, in der
+ * er noch an war – oder den Stand aus Safari. Beim Zusammenführen gewinnt,
+ * wer von der Vorgabe abweicht; das ist bei einem dreiwertigen Schalter das
+ * ausdrückliche Aus.
+ */
+await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, {
+  begruesst: true,
+  tab: 'mehr',
+  eintraege: [{ id: 'h1', am: vorTagen(0), um: '08:00', art: 'notiz', text: 'hier' }],
+  tage: { [vorTagen(1)]: { schiene: 1 } },
+  adhsAn: false,
+  spannungAn: null,
+  wechselGelesen: ['W1|x|y'],
+}]);
+await page.reload({ waitUntil: 'networkidle' });
+await einfuegen(JSON.stringify({
+  eintraege: [{ id: 'd1', am: vorTagen(1), um: '09:00', art: 'notiz', text: 'dort' }],
+  tage: { [vorTagen(1)]: { schiene: 0, kiefer: 2 } },
+  adhsAn: true,
+  spannungAn: true,
+  v28Gesagt: true,
+  wechselGelesen: ['W1|x|y', 'W5|a|b'],
+}));
+const zz = await zustand();
+check(zz.eintraege.length === 2, 'zusammengeführt, nicht ersetzt');
+check(zz.adhsAn === false, `ein ausdrückliches Aus übersteht eine ältere Sicherung mit „an" (${zz.adhsAn})`);
+check(zz.spannungAn === true && zz.v28Gesagt === true, 'was hier nie entschieden war, kommt von dort');
+check(
+  JSON.stringify(zz.tage[vorTagen(1)]) === JSON.stringify({ schiene: 1, kiefer: 2 }),
+  `die Tagesangaben je Feld, bei Gleichstand gewinnt, was hier stand (${JSON.stringify(zz.tage[vorTagen(1)])})`,
+);
+check(
+  JSON.stringify(zz.wechselGelesen) === JSON.stringify(['W1|x|y', 'W5|a|b']),
+  'gelesene Hinweise werden vereinigt',
+);
+
+// Ein Stand der Fassung 27 lädt – ohne einen der neuen Schlüssel.
+await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, {
+  begruesst: true,
+  tab: 'heute',
+  alterName: null,
+  eintraege: [{ id: 'v1', am: vorTagen(0), um: '08:00', art: 'medikament', mittel: 'Pantoprazol', dosis: '20 mg' }],
+  tage: { [vorTagen(0)]: { stress: 1 } },
+  standardMittel: [{ id: 'o1', mittel: 'Pantoprazol', dosis: '20 mg', tageszeit: 'morgens', bezug: 'vor' }],
+}]);
+await page.reload({ waitUntil: 'networkidle' });
+const z27 = await zustand();
+check(
+  z27.adhsAn === null && z27.spannungAn === null && z27.v28Gesagt === false
+    && Array.isArray(z27.wechselGelesen) && !z27.wechselGelesen.length,
+  'ein Stand der Fassung 27 lädt mit beiden Schaltern auf „nie entschieden"',
+);
+check(!('form' in z27.standardMittel[0]) && !('form' in z27.eintraege[0]),
+  'und nichts daran wird umgeschrieben – ein altes Mittel hat einfach keine Form');
+check((await page.locator('.strang-zeile').count()) === 1, 'die App zeigt ihn wie gewohnt');
+
+// Beschädigt: wechselGelesen keine Liste, Schalter vom falschen Typ.
+const vorFehlern = fehler.length;
+await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, {
+  begruesst: true,
+  tab: 'heute',
+  eintraege: [{ id: 'k1', am: vorTagen(0), um: '08:00', art: 'notiz', text: 'kaputt' }],
+  tage: {},
+  wechselGelesen: 'kaputt',
+  adhsAn: 'ja',
+  spannungAn: { an: true },
+  v28Gesagt: 1,
+  tagesfragen: ['stimmung', 'schiene', 'kiefer'],
+}]);
+await page.reload({ waitUntil: 'networkidle' });
+const zk = await zustand();
+check(
+  Array.isArray(zk.wechselGelesen) && !zk.wechselGelesen.length
+    && zk.adhsAn === null && zk.spannungAn === null && zk.v28Gesagt === false,
+  'ein beschädigtes wechselGelesen und Schalter vom falschen Typ werfen nicht, sie gelten als leer',
+);
+await page.locator('[data-act="tab"][data-tab="muster"]').click();
+await page.waitForTimeout(250);
+await page.locator('[data-act="tab"][data-tab="heute"]').click();
+await page.waitForTimeout(250);
+check(fehler.length === vorFehlern && (await page.locator('.strang-zeile').count()) === 1,
+  'die App zeichnet damit weiter, auch mit Tagesfragen, die sie nicht kennt');
+await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, {
+  begruesst: true, tab: 'heute', eintraege: [], tage: {}, wechselGelesen: [1, null, 'W1|a|b', { x: 1 }],
+}]);
+await page.reload({ waitUntil: 'networkidle' });
+check(JSON.stringify((await zustand()).wechselGelesen) === JSON.stringify(['W1|a|b']),
+  'aus einer Liste mit Fremdem bleiben nur die Zeichenketten');
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await page.screenshot({ path: `${SHOT}/umzug.png`, fullPage: true });
 await browser.close();

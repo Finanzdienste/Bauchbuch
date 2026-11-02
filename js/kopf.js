@@ -347,8 +347,8 @@ export function sortenText(f) {
  *
  * Was an einem Kopfschmerztag eingetragen ist und keiner Gruppe zuzuordnen,
  * steht unter `unbekannt` mit Namen: Ein Schmerzmittel, das die App nicht
- * kennt, fehlt sonst still in der Zählung, und die Nutzerin trägt eine zu
- * kleine Zahl in die Sprechstunde. Nur Kopfschmerztage – sonst stünde dort
+ * kennt, fehlt sonst still in der Zählung, und wer einträgt, nimmt eine zu
+ * kleine Zahl mit in die Sprechstunde. Nur Kopfschmerztage – sonst stünde dort
  * das Schilddrüsenmittel von jedem Morgen.
  */
 export function kopfMittel(eintraege, gruppeVon, heute) {
@@ -560,8 +560,15 @@ export const KOPF_UMSTAENDE = [
   { id: 'schlaf', hoch: 'nach schlechten Nächten', niedrig: 'nach guten Nächten' },
 ];
 
-/** Die 0/1-Reihe hinter einem Anteil, für den Zufallsspielraum. */
-function nullEins(tage, anteil) {
+/**
+ * Die 0/1-Reihe hinter einem Anteil, für den Zufallsspielraum.
+ *
+ * Exportiert, weil jeder Vergleich von Anteilen sie braucht – Kopfschmerz ja
+ * oder nein, gepresst ja oder nein. Sie bleibt trotzdem hier: js/zufall.js
+ * steht im Bündel hinter dieser Datei, und kopf.js importiert zufall.js mit
+ * Absicht nicht (der Spielraum kommt als Argument herein).
+ */
+export function nullEins(tage, anteil) {
   const einsen = Math.round(anteil * tage);
   return [...Array(einsen).fill(1), ...Array(Math.max(0, tage - einsen)).fill(0)];
 }
@@ -695,8 +702,7 @@ export function kopfMonate(eintraege, tage, gruppeVon, heute, anzahl = 3) {
 /**
  * Fragen für die Sprechstunde, aus den Kopfzahlen – so, wie die Muster sie
  * für den Bauch stellen. Jede ist eine Frage, keine davon eine Empfehlung,
- * und keine legt der Nutzerin eine Diagnose in den Mund; die Antwort hat die
- * Praxis.
+ * und keine legt eine Diagnose in den Mund; die Antwort hat die Praxis.
  */
 export function kopfFragen({ zahlen: z, mittel: m, befundIds = [] } = {}) {
   const fragen = [];
