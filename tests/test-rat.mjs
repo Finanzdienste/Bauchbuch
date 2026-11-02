@@ -15,7 +15,9 @@
  *     Hintertür einschleichen.
  */
 import { chromium } from 'playwright';
-import { URL, KEY, HANDY, SHOT, vorTagen, pruefer } from './umgebung.mjs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { URL, KEY, HANDY, SHOT, ROOT, vorTagen, pruefer } from './umgebung.mjs';
 
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
@@ -161,6 +163,85 @@ check(
   await page.locator('.rat').count() === 0,
   'an einem vergangenen Tag stehen keine Vorschläge – für gestern kommt jeder Rat zu spät',
 );
+
+/* ---------- Vorsicht beim Essen mit einem ADHS-Mittel (seit der Fassung 28) ---------- */
+
+/*
+ * Weniger Appetit gehört bei ADHS-Mitteln zu den häufigen Nebenwirkungen.
+ * Wer dabei ungewollt abnimmt oder tagsüber keinen Appetit hat, bekommt hier
+ * keinen Rat, weniger oder früher zu essen – das wägt die Praxis ab. Ohne
+ * Abnehmen und ohne „Kein Appetit" bleibt der Rat zur späten Mahlzeit, mit
+ * einem Satz dazu. Alles nur mit dem Schalter ADHS.
+ */
+const essenRat = [];
+for (let t = 1; t <= 12; t++) {
+  essenRat.push({ id: `rk${t}`, am: vorTagen(t), um: '09:00', art: 'essen', was: 'Frühstück', portion: 'normal', zutaten: [{ id: 'kaffee', rolle: 'getraenk' }] });
+  essenRat.push({ id: `rb${t}`, am: vorTagen(t), um: '10:30', art: 'beschwerde', staerke: 7, arten: ['brennen'] });
+  essenRat.push({ id: `ra${t}`, am: vorTagen(t), um: '18:00', art: 'essen', was: 'Abend', portion: 'normal', zutaten: [] });
+}
+for (let t = 13; t <= 20; t++) {
+  essenRat.push({ id: `rs${t}`, am: vorTagen(t), um: '20:30', art: 'essen', was: 'Spät', portion: 'normal', zutaten: [] });
+  essenRat.push({ id: `rsb${t}`, am: vorTagen(t), um: '22:00', art: 'beschwerde', staerke: 6, arten: ['druck'] });
+}
+const einnahme = { id: 'rm1', am: vorTagen(2), um: '07:30', art: 'medikament', mittel: 'Elvanse', dosis: '30 mg' };
+const appetit = [1, 2, 3].map((t) => ({ id: `rp${t}`, am: vorTagen(t), um: '08:30', art: 'beschwerde', staerke: 2, arten: ['appetit'] }));
+const ratText = async () => (await page.locator('.rat').textContent()) || '';
+
+await setze({ eintraege: [...essenRat, einnahme, ...appetit] });
+let r = await ratText();
+check(r.includes('Heute eher ohne Kaffee') && r.includes('Die letzte Mahlzeit früher legen'),
+  'ohne den Schalter ADHS: die Vorschläge zum Essen wie bisher');
+await setze({ adhsAn: true, eintraege: [...essenRat, einnahme, ...appetit] });
+r = await ratText();
+check(!r.includes('Heute eher ohne') && !r.includes('Die letzte Mahlzeit früher legen'),
+  'mit ADHS-Mittel und „Kein Appetit“ an 3 der letzten 7 Tage: kein Rat, weniger oder später zu essen');
+await setze({ adhsAn: true, eintraege: [...essenRat, einnahme, ...appetit.slice(0, 2)] });
+r = await ratText();
+check(r.includes('Heute eher ohne Kaffee') && r.includes('Die letzte Mahlzeit früher legen')
+  && r.includes('ist die späte Mahlzeit vielleicht nötig – das wägt die Praxis ab, nicht diese Karte.'),
+'an 2 von 7 Tagen: die Vorschläge bleiben, die späte Mahlzeit bekommt den Satz dazu');
+const waage = [
+  { am: vorTagen(1), kg: 60 }, { am: vorTagen(8), kg: 60.2 }, { am: vorTagen(15), kg: 60.1 },
+  { am: vorTagen(70), kg: 64 }, { am: vorTagen(80), kg: 64.2 }, { am: vorTagen(90), kg: 64.1 },
+];
+await setze({ adhsAn: true, gewicht: waage, abnehmenGewollt: false, eintraege: [...essenRat, einnahme] });
+r = await ratText();
+check(!r.includes('Heute eher ohne') && !r.includes('Die letzte Mahlzeit früher legen'),
+  'mit ADHS-Mittel und ungewolltem Abnehmen: ebenfalls kein Rat, weniger oder später zu essen');
+await setze({ adhsAn: true, gewicht: waage, abnehmenGewollt: false, eintraege: essenRat });
+r = await ratText();
+check(r.includes('Heute eher ohne Kaffee') && !r.includes('vielleicht nötig'),
+  'ohne Einnahme in den letzten 14 Tagen gilt das alles nicht');
+
+/* Und dieselbe Rechnung ohne Anzeige: raete() liest essenVorsicht, sonst nichts. */
+const { raete } = await import(pathToFileURL(path.join(ROOT, 'js', 'rat.js')).href);
+const { ausloeserBilanz } = await import(pathToFileURL(path.join(ROOT, 'js', 'auswertung.js')).href);
+const grundlage = {
+  eintraege: essenRat, tage: {}, heute: vorTagen(0), eigene: [],
+  bilanz: ausloeserBilanz(essenRat, { fenster: 4, mindestFaelle: 5 }),
+  faktoren: {}, phasen: [], letzteMahlzeitStunden: null, mittel: [{ name: 'Elvanse', zuletzt: 'gestern' }],
+};
+const ids = (l) => l.map((x) => x.id).join(',');
+const ohne = raete(grundlage);
+const bremse = raete({ ...grundlage, essenVorsicht: 'bremse' });
+const zusatz = raete({ ...grundlage, essenVorsicht: 'zusatz' });
+check(ids(ohne).includes('essen-eigen') && ids(ohne).includes('essen-spaet')
+  && !ids(bremse).includes('essen-eigen') && !ids(bremse).includes('essen-spaet'),
+'raete(): die Bremse nimmt „Heute eher ohne …“ und „Die letzte Mahlzeit früher legen“ heraus');
+check(JSON.stringify(ohne.filter((x) => x.id !== 'essen-spaet')) === JSON.stringify(zusatz.filter((x) => x.id !== 'essen-spaet'))
+  && zusatz.find((x) => x.id === 'essen-spaet').warum.endsWith('das wägt die Praxis ab, nicht diese Karte.'),
+'raete(): der Zusatz ändert nur den Grund unter der späten Mahlzeit');
+/*
+ * Kein Satz rät zu einem Mittel. „Nimm die Liste mit zum Termin" ist der Satz
+ * der Fassung 27 unter „Was du nimmst" – er bittet, die Liste mitzunehmen,
+ * und ist im Gold der Ansichten festgeschrieben (tests/gold/v27-ansichten.json).
+ */
+const RAT_RE = /\b(nimm|nehmen Sie|empfehlen|empfohlen|du solltest|hilft gegen)\b/i;
+const saetze = [ohne, bremse, zusatz].flat().flatMap((x) => [x.titel, x.text, x.warum])
+  .flatMap((t) => String(t).split(/(?<=[.!?])\s+/))
+  .filter((t) => t !== 'Nimm die Liste mit zum Termin.');
+const geraten2 = saetze.filter((t) => RAT_RE.test(t));
+check(geraten2.length === 0, `kein Satz der Vorschläge trifft den Empfehlungs-Ausdruck${geraten2.length ? `: ${geraten2[0]}` : ''}`);
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

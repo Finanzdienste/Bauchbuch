@@ -202,6 +202,76 @@ for (const t of ['mehr', 'muster', 'verlauf']) {
   await passt(t === 'mehr' ? '„Mehr" mit Formwahl und Hinweisen' : `„${t}"`);
 }
 
+/* ---------- 4. „Muster" mit den Karten „ADHS-Mittel" und „Kiefer, Nacken, Schiene" ---------- */
+
+/*
+ * Neunzig Tage mit einem Stimulans, Tagen ohne, Kopfschmerz, Schiene,
+ * Nacken und Wärme – genug, dass beide Karten Funde mit Balken, Zahlenlisten
+ * und Fragen zeigen. Kein Säureblocker und keine Massagepistole: Dieses
+ * Tagebuch soll keine bestimmte Zusammenstellung nachbilden.
+ */
+const musterStand = (() => {
+  const p = (n) => String(n).padStart(2, '0');
+  const iso = (n) => {
+    const d = new Date(Date.UTC(2026, 2, 10 - n));
+    return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
+  };
+  const eintraege = [];
+  const tage = {};
+  let k = 0;
+  const id = (x) => `${x}${(k += 1)}`;
+  for (let n = 90; n >= 1; n--) {
+    const d = iso(n);
+    const ohneMittel = n % 5 === 0;
+    const ohneEssen = n % 4 === 1;
+    if (!ohneMittel) {
+      eintraege.push({
+        id: id('m'), art: 'medikament', am: d, um: '07:30', mittel: 'Concerta Retardtabletten mit Hülle', dosis: '36 mg',
+        ...(ohneEssen ? { essen: 'ohne', essenGesetzt: new Date(`${d}T07:40:00+01:00`).getTime() } : {}),
+      });
+      if (n % 3 !== 0) eintraege.push({ id: id('m'), art: 'medikament', am: d, um: `${12 + (n % 4)}:15`, mittel: 'Concerta Retardtabletten mit Hülle', dosis: '18 mg' });
+      if (ohneEssen) eintraege.push({ id: id('b'), art: 'beschwerde', am: d, um: '09:30', staerke: 5 + (n % 3), arten: ['druck'] });
+      if (n % 3 === 0) eintraege.push({ id: id('k'), art: 'kopf', am: d, um: '15:00', staerke: 5, kopfArten: ['beidseitig'] });
+    } else tage[d] = { adhsPause: n % 10 === 0 ? 'geplant' : 'vergessen' };
+    eintraege.push({ id: id('e'), art: 'essen', am: d, um: ohneEssen && !ohneMittel ? '11:00' : '07:15', was: 'Frühstück', zutaten: [{ id: 'kaffee', rolle: 'getraenk' }], portion: 'normal' });
+    eintraege.push({ id: id('e'), art: 'essen', am: d, um: '19:00', was: 'Abendessen mit einer langen Beschreibung', zutaten: [], portion: 'normal' });
+    eintraege.push({ id: id('s'), art: 'stuhl', am: d, um: '06:40', form: 1 + (n % 7) });
+    if (n % 2 === 0) eintraege.push({ id: id('a'), art: 'aktivitaet', am: d, um: '18:00', aktivitaeten: [n % 4 === 0 ? 'waerme' : 'yoga'] });
+    const verspannt = n % 3 === 1 ? 4 : n % 3;
+    if (verspannt >= 3 && n > 1) eintraege.push({ id: id('k'), art: 'kopf', am: iso(n - 1), um: '16:00', staerke: 4, kopfArten: ['kauen'] });
+    tage[d] = {
+      ...(tage[d] || {}), stress: n % 5, schlaf: n % 4, verspannt, kiefer: n % 5, gepresst: n % 3 === 0 ? 1 : 0,
+      ...(n % 6 ? { schiene: n % 7 === 0 ? 0 : 1 } : {}),
+    };
+  }
+  return {
+    begruesst: true, tab: 'muster', alterName: null, startbildschirmWeg: true, sicherungSpaeter: '2999-01-01',
+    adhsAn: true, spannungAn: true, v28Gesagt: true,
+    tagesfragen: ['stimmung', 'stress', 'verspannt', 'gepresst', 'schlaf', 'schiene', 'kiefer'],
+    eintraege, tage, fenster: 4, mindestFaelle: 5,
+  };
+})();
+await page.evaluate(([k, st]) => localStorage.setItem(k, JSON.stringify(st)), [KEY, musterStand]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.waitForTimeout(400);
+const karten = await page.evaluate(() => ({
+  adhs: document.querySelectorAll('.karte-adhs').length,
+  spannung: document.querySelectorAll('.karte-spannung').length,
+  funde: document.querySelectorAll('.karte-adhs .fund, .karte-spannung .fund').length,
+  balken: document.querySelectorAll('.karte-adhs .vgl, .karte-spannung .vgl').length,
+  listen: document.querySelectorAll('.karte-adhs ul.wartend, .karte-spannung ul.wartend').length,
+  text: [...document.querySelectorAll('.karte-adhs, .karte-spannung')].map((k) => k.innerText).join('\n'),
+}));
+check(karten.adhs === 1 && karten.spannung === 1 && karten.funde >= 1 && karten.balken >= 1 && karten.listen >= 2,
+  `„Muster“ mit beiden Karten, mit Funden, Balken und Zahlenlisten (${karten.funde} Funde, ${karten.listen} Listen)`);
+await passt('„Muster“ mit beiden neuen Karten, 320 Pixel');
+const breiter = await page.evaluate(() => [...document.querySelectorAll('.karte-adhs *, .karte-spannung *')]
+  .filter((el) => el.getBoundingClientRect().right > document.documentElement.clientWidth + 0.5).length);
+check(breiter === 0, `kein Teil der beiden Karten ragt über den Rand (${breiter})`);
+check(!/(braucht|nötig|noch)\W{0,3}\d/i.test(karten.text), 'R9: in den Karten nirgends eine Zielzahl');
+await page.locator('.karte-adhs').screenshot({ path: `${SHOT}/schmal-muster-adhs.png` });
+await page.locator('.karte-spannung').screenshot({ path: `${SHOT}/schmal-muster-spannung.png` });
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();
 await kopie.zu();
