@@ -53,7 +53,7 @@ import {
   ESSEN_GILT_MIN, PAUSE_GRUENDE, adhsAuswertung, adhsEinnahmen, ausloeserNahAmMittel, ausloeserNahSatz,
   essenZurEinnahme, istStimulans, zeitprofilNahAmMittel,
 } from './adhs.js';
-import { spannungAuswertung } from './spannung.js';
+import { V3_IDS, spannungAuswertung } from './spannung.js';
 import { grenzeText, hatUrteil } from './vergleich.js';
 import {
   belastbar, heutigerStand, mittlereLaenge, phasenBilanz, phasenName, schwankung,
@@ -3235,13 +3235,20 @@ function aktivTeil(s, nurFertig = false) {
    * Mit „Kiefer, Nacken, Schiene" stehen Massage, Massagepistole und Wärme
    * nur noch gefiltert da – nach einem mindestens mittel verspannten Vortag,
    * in der Karte „Kiefer, Nacken, Schiene". Hier stünde sonst daneben der
-   * ungefilterte Lauf mit einer anderen Zahl für dieselbe Aktivität.
+   * ungefilterte Lauf mit einer anderen Zahl für dieselbe Aktivität. Für den
+   * Kopf gilt das auch beim Dehnen (V3_IDS in js/spannung.js); seine
+   * Bauchzeile bleibt hier, denn der gefilterte Lauf misst nur den Kopf.
+   *
+   * Gerechnet und gezählt wird trotzdem alles wie ohne Schalter (R0) – hier
+   * wird nur ausgewählt, was zu sehen ist.
    */
   const gefiltert = s.spannungAn === true;
+  const nurBauch = (z) => gefiltert && V3_IDS.includes(z.id);
+  const kopfDa = (z) => !nurBauch(z) && z.kopf.genug;
   const zeilen = gefiltert ? alleZeilen.filter((z) => !z.gegenmittel) : alleZeilen;
-  const verschoben = gefiltert && alleZeilen.some((z) => z.gegenmittel);
-  const fertig = zeilen.filter((z) => z.bauch.genug || z.kopf.genug);
-  const offen = zeilen.filter((z) => !z.bauch.genug && !z.kopf.genug);
+  const verschoben = gefiltert && alleZeilen.some((z) => V3_IDS.includes(z.id));
+  const fertig = zeilen.filter((z) => z.bauch.genug || kopfDa(z));
+  const offen = zeilen.filter((z) => !z.bauch.genug && !kopfDa(z));
   const bewegung = bewegungSatz(faktorBilanz(s.eintraege, s.tage, 'bewegung', tagesWert));
   if (!fertig.length && !bewegung && (nurFertig || !offen.length)) {
     return verschoben && !nurFertig ? `<div class="karte karte-aktiv" id="wasDuGemachtHast">
@@ -3252,23 +3259,25 @@ function aktivTeil(s, nurFertig = false) {
   const rang = ['auffaellig', 'moeglich', 'unauffaellig', 'neutral', 'zuwenig'];
   const fund = (z) => {
     const a = aktivitaetVon(z.id, s.eigeneAktivitaeten);
-    const art = [z.bauch.art, z.kopf.art].sort((x, y) => rang.indexOf(x) - rang.indexOf(y))[0];
+    const art = [z.bauch.art, ...(nurBauch(z) ? [] : [z.kopf.art])]
+      .sort((x, y) => rang.indexOf(x) - rang.indexOf(y))[0];
     // Massage, Massagepistole und Wärme haben keine Bauchseite (siehe
     // aktivitaetBilanz) – eine Zeile „Bauch: zählt noch" verspräche eine.
     const bauch = z.gegenmittel ? ''
       : (z.bauch.genug
         ? `<b>Bauch, ${esc(AKTIV_BAUCH_WORT[z.bauch.art])}:</b> ${esc(aktivBauchSatz(z, fenster))}`
         : `<b>Bauch:</b> zählt noch – ${aktivNoch(z.bauch)} auswertbar.`);
-    const kopf = z.kopf.genug
+    let kopf = z.kopf.genug
       ? `<b>Kopf, ${esc(AKTIV_KOPF_WORT[z.kopf.art])}:</b> ${esc(aktivKopfSatz(z))}`
       : `<b>Kopf:</b> zählt noch – ${aktivNoch(z.kopf, true)} auswertbar.`;
+    if (nurBauch(z)) kopf = '';
     return `<li class="fund f-${art}">
       <div class="fund-kopf">
         <b><span aria-hidden="true">${a.icon}</span> ${mitUmbruch(a.name)}</b>
         <span class="fund-urteil">${mehrzahl(z.anzahl, 'Mal', 'Mal')}</span>
       </div>
       ${bauch ? `<p class="klein">${bauch}</p>` : ''}
-      <p class="klein">${kopf}</p>
+      ${kopf ? `<p class="klein">${kopf}</p>` : ''}
     </li>`;
   };
   return `<div class="karte karte-aktiv" id="wasDuGemachtHast">
@@ -3291,8 +3300,8 @@ function aktivTeil(s, nurFertig = false) {
   </div>`;
 }
 
-const GEGENMITTEL_VERSCHOBEN = 'Massage, Massagepistole und Wärme stehen unter „Kiefer, Nacken, Schiene“ – '
-  + 'gezählt nur nach einem mindestens mittel verspannten Vortag.';
+const GEGENMITTEL_VERSCHOBEN = 'Massage, Massagepistole und Wärme – und beim Kopfschmerz auch Yoga/Dehnen – '
+  + 'stehen unter „Kiefer, Nacken, Schiene“, gezählt nur nach einem mindestens mittel verspannten Vortag.';
 
 /*
  * Die Wörter für ein Urteil in den neuen Karten. „Auffällig" heißt dort immer:
@@ -3392,13 +3401,17 @@ function adhsKarte(s, d) {
       z.offen ? `Reihenfolge offen ${z.offen}` : '',
     ].filter(Boolean).join(' · ');
     const fund = neuFund('Ohne gegen mit Essen', v, h.saetze[0], { mit: 'ohne Essen', ohne: 'mit Essen' });
-    teile.push(`<p class="feld-name">Bauch in den 4 Stunden nach der ersten Einnahme</p>
+    // Mit dem Namen des Mittels: A1 rechnet über das ganze Tagebuch, und nach
+    // einem Wechsel stammen die Zahlen womöglich nicht vom Mittel in der
+    // Kopfzeile. Dann steht auch dabei, bis wann es eingetragen war.
+    const vonWem = `${h.anzeige}${!h.imAbschnitt && h.letzte ? `, Einnahmen bis ${fmtDatum(h.letzte)}` : ''}`;
+    teile.push(`<p class="feld-name">Bauch in den 4 Stunden nach der ersten Einnahme – ${esc(vonWem)}</p>
       ${fund ? `<ul class="funde">${fund}</ul>${kleinSaetze(h.saetze.slice(1))}` : `<ul class="wartend">
         ${zeile('ohne Essen', `${mehrzahl(v.ohne.n, 'Mal', 'Mal')}${v.genug ? `, im Mittel ${fmtZahl(v.ohne.schnitt)}` : ''}`)}
         ${zeile('mit Essen', `${mehrzahl(v.mit.n, 'Mal', 'Mal')}${v.genug ? `, im Mittel ${fmtZahl(v.mit.schnitt)}` : ''}`)}
       </ul>${kleinSaetze(h.saetze)}`}
       ${nicht ? `<p class="klein">Nicht gewertet: ${esc(nicht)}.</p>` : ''}
-      ${a.a1.auch.length ? `<p class="klein">Auch: ${esc(a.a1.auch.map((x) => `${x.name}: ${mehrzahl(x.faelle, 'Fall', 'Fälle')}`).join(', '))}.</p>` : ''}`);
+      ${a.a1.auch.length ? `<p class="klein">Auch: ${esc(a.a1.auch.map((x) => `${x.anzeige}: ${mehrzahl(x.faelle, 'Fall', 'Fälle')}`).join(', '))}.</p>` : ''}`);
   }
 
   /* A2 */
@@ -3419,7 +3432,7 @@ function adhsKarte(s, d) {
         + `Stuhlgang), ohne ${Math.round(st.ohne.schnitt * 100)} % (${st.ohne.n}) – nur beschrieben.`
       : '';
     teile.push(`<p class="feld-name">Tage mit gegen ohne Mittel (nur notierte Tage)</p>
-      <ul class="wartend">${zeile('Tage ohne ADHS-Mittel', `${a.a2.ohneTage}${gruende ? ` (${gruende})` : ''}`)}</ul>
+      <ul class="wartend">${zeile('Tage ohne ADHS-Mittel', `${a.a2.alleTage}${gruende ? ` (${gruende})` : ''}`)}</ul>
       ${funde ? `<ul class="funde">${funde}</ul>` : ''}
       ${ohneUrteil}
       ${kleinSaetze([stuhl, ...a.a2.saetze])}`);

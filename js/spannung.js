@@ -32,7 +32,9 @@
  * Rein, wie js/adhs.js: alles als Argument, nichts gespeichert, keine
  * Schalter. Ob etwas davon zu sehen ist, entscheidet js/app.js (R0).
  */
-import { fmtDatum, minutenAmTag, plusTage, tageDazwischen, tageszeitVon, zeitpunkt } from './datum.js';
+import {
+  KNOPF_TAGESZEIT, fmtDatum, minutenAmTag, plusTage, tageDazwischen, tageszeitVon, zeitpunkt,
+} from './datum.js';
 import { fmtZahl } from './text.js';
 import { eintragZaehlt, tagZaehlt } from './wasser.js';
 import { zutatenVon } from './auswertung.js';
@@ -51,6 +53,16 @@ export const V3_IDS = ['massagepistole', 'massage', 'waerme', 'yoga'];
 
 /** Ohne Einnahme am Morgen gilt ein Kopfschmerz vor 9 Uhr als „am Morgen". */
 const MORGEN_BIS = 9 * 60;
+
+/*
+ * Was als Einnahme am Morgen gilt: das Fenster des Zeitknopfs „morgens"
+ * (5 bis 11 Uhr, js/datum.js). Nur eine Einnahme bis 11 Uhr verschiebt die
+ * Grenze für „Kopf am Morgen" – eine am Abend, wie sie bei Guanfacin oder
+ * Atomoxetin vorkommt, machte sonst einen Kopfschmerz am Nachmittag zu einem
+ * am Morgen.
+ */
+const MORGEN_EINNAHME_VON = KNOPF_TAGESZEIT.morgens.von;
+const MORGEN_EINNAHME_BIS = KNOPF_TAGESZEIT.morgens.bis;
 
 /** Nach diesen Aktivitäten zählt die Nacht auf keiner Seite. */
 const NACHT_STOERT = ['feier', 'unterwegs'];
@@ -73,29 +85,70 @@ function nachtGestoert(amVortag) {
 
 /**
  * V1a: Kopf am Morgen. Ein Kopfschmerz mit „Schon beim Aufwachen da" – oder
- * einer mit genauer Zeit vor der ersten Einnahme eines ADHS-Mittels, ohne
- * Einnahme vor 9 Uhr. Ein Kopfschmerz nur mit „morgens" und ohne das
- * Merkmal lässt offen, ob er beim Aufwachen schon da war: Der Tag zählt dann
- * nicht (R3), statt geraten zu werden.
+ * einer mit genauer Zeit vor der ersten Einnahme eines ADHS-Mittels am
+ * Morgen, ohne Einnahme am Morgen vor 9 Uhr. Ein Kopfschmerz nur mit
+ * „morgens" und ohne das Merkmal lässt offen, ob er beim Aufwachen schon da
+ * war: Der Tag zählt dann nicht (R3), statt geraten zu werden.
+ *
+ * Als Grenze zählt nur eine Einnahme am Morgen, nicht einfach die erste des
+ * Tages. Guanfacin und Atomoxetin werden oft abends genommen; mit einer
+ * Einnahme um 20 Uhr wäre sonst jeder Kopfschmerz am Nachmittag einer „am
+ * Morgen" geworden – mit Urteil und Frage für die Praxis.
+ *
+ * Ist die Einnahme am Morgen nur ungefähr („morgens"), steht die Grenze
+ * irgendwo zwischen 5 und 11 Uhr (vor einer genauen Einnahme am Morgen). Ein
+ * genauer Kopfschmerz in dieser Zeit kann davor oder danach liegen: offen,
+ * wie bei einem ungefähren Kopfschmerz (R3). Sicher davor ist nur, was vor
+ * 5 Uhr begann.
+ *
+ * @param morgen  { fest, offen } – die früheste genaue Einnahme am Morgen
+ *                in Minuten (oder null) und ob es eine ungefähre am Morgen gab
  */
-function morgenKopf(amTag, ersteEinnahme) {
+function morgenKopf(amTag, morgen) {
   const koepfe = kopfEintraege(amTag);
   if (koepfe.some((k) => (k.kopfArten || []).includes('aufwachen'))) return 1;
-  const grenze = ersteEinnahme !== null ? ersteEinnahme : MORGEN_BIS;
-  if (koepfe.some((k) => !k.ungefaehr && minutenAmTag(k.um) < grenze)) return 1;
+  const fest = morgen && morgen.fest !== null ? morgen.fest : null;
+  const genau = koepfe.filter((k) => !k.ungefaehr).map((k) => minutenAmTag(k.um));
+  if (morgen && morgen.offen) {
+    const sicherDavor = Math.min(fest !== null ? fest : Infinity, MORGEN_EINNAHME_VON);
+    if (genau.some((m) => m < sicherDavor)) return 1;
+    if (genau.some((m) => m < (fest !== null ? fest : MORGEN_EINNAHME_BIS))) return null;
+  } else if (genau.some((m) => m < (fest !== null ? fest : MORGEN_BIS))) {
+    return 1;
+  }
   if (koepfe.some((k) => k.ungefaehr && tageszeitVon(k) === 'morgens')) return null;
   return 0;
 }
 
+/*
+ * Die Einnahmen am Morgen je Tag: die früheste genaue oder gebundene vor
+ * 11 Uhr (`fest`, Minuten seit Mitternacht) und ob eine ungefähre „morgens"
+ * dabei war (`offen`). Einnahmen später am Tag spielen für „Kopf am Morgen"
+ * keine Rolle.
+ */
+function morgenEinnahmen(einnahmen) {
+  const raus = new Map();
+  einnahmen.forEach((x) => {
+    const iso = x.e.am;
+    const m = raus.get(iso) || { fest: null, offen: false };
+    if (x.zeitArt === 'ungefaehr') {
+      if (tageszeitVon(x.e) === 'morgens') m.offen = true;
+    } else {
+      const min = (x.t - zeitpunkt(iso, '00:00')) / 60000;
+      if (min < MORGEN_EINNAHME_BIS && (m.fest === null || min < m.fest)) m.fest = min;
+    }
+    raus.set(iso, m);
+  });
+  return raus;
+}
+
+/** Die Seiten von V1 als Satzanfang – es geht um Nächte, nicht um Tage. */
+const V1_SEITEN = { mit: 'Die Nächte mit Schiene', ohne: 'Die Nächte ohne Schiene' };
+
 function v1Rechnen(liste, tage, heute, einnahmen) {
   const nachTag = eintraegeNachTag(liste);
   const am = (iso) => nachTag.get(iso) || [];
-  const ersteNachTag = new Map();
-  einnahmen.forEach((x) => {
-    if (!ersteNachTag.has(x.e.am)) {
-      ersteNachTag.set(x.e.am, x.zeitArt === 'ungefaehr' ? null : (x.t - zeitpunkt(x.e.am, '00:00')) / 60000);
-    }
-  });
+  const morgenNachTag = morgenEinnahmen(einnahmen);
   const naechte = Object.keys(tage || {}).filter((iso) => (!heute || iso <= heute)
     && [0, 1].includes(spFeld(tage, iso, 'schiene'))).sort();
   const v1a = { mit: [], ohne: [] };
@@ -113,7 +166,7 @@ function v1Rechnen(liste, tage, heute, einnahmen) {
     if (tagNotiertOhne(liste, tage, iso, ZIEL_KOPF)) {
       if (herueberreichend(liste, iso)) herueber += 1;
       else {
-        const w = morgenKopf(am(iso), ersteNachTag.has(iso) ? ersteNachTag.get(iso) : null);
+        const w = morgenKopf(am(iso), morgenNachTag.get(iso) || null);
         if (w === null) unklar += 1;
         else v1a[seite].push({ iso, wert: w });
       }
@@ -141,8 +194,8 @@ function v1Rechnen(liste, tage, heute, einnahmen) {
     gestoert,
     unklar,
     herueber,
-    v1a: vergleichRoh({ ...v1a, mindest: SPANNUNG_MINDEST.v1a, name: 'Schiene', dichte }),
-    v1b: vergleichRoh({ ...v1b, mindest: SPANNUNG_MINDEST.v1b, name: 'Schiene', dichte }),
+    v1a: vergleichRoh({ ...v1a, mindest: SPANNUNG_MINDEST.v1a, name: 'Schiene', seiten: V1_SEITEN, dichte }),
+    v1b: vergleichRoh({ ...v1b, mindest: SPANNUNG_MINDEST.v1b, name: 'Schiene', seiten: V1_SEITEN, dichte }),
   };
 }
 
@@ -151,7 +204,13 @@ function v1Rechnen(liste, tage, heute, einnahmen) {
  * einem lockeren (locker oder leicht) – kam am nächsten Tag ein neuer
  * Kopfschmerz? „Mittel" zählt auf keiner Seite. Ein Tag, an dem schon
  * Kopfschmerz war, zählt nicht: Dann ginge es um denselben Kopfschmerz, und
- * die Verspannung könnte seine Folge sein.
+ * die Verspannung könnte seine Folge sein. Das gilt auch für einen
+ * Kopfschmerz vom Vorabend, der in den Tag hineinreicht (herueberreichend
+ * in js/kopf.js) – gerade dann kann die Verspannung vom Anfall kommen.
+ *
+ * Am Tag danach braucht es diese Prüfung nicht mehr: Hineinreichen könnte
+ * dort nur ein Kopfschmerz vom verspannten Tag selbst, und solche Tage sind
+ * schon weg.
  */
 function v2Rechnen(liste, tage, heute) {
   const nachTag = eintraegeNachTag(liste);
@@ -167,9 +226,12 @@ function v2Rechnen(liste, tage, heute) {
     if (heute && morgen >= heute) return;
     const seite = v >= 3 ? 'mit' : 'ohne';
     if (!tagNotiertOhne(liste, tage, iso, ZIEL_KOPF)) return;
-    if (kopfEintraege(am(iso)).length) { kopfAmTag += 1; return; }
+    if (kopfEintraege(am(iso)).length || herueberreichend(am(plusTage(iso, -1)), iso)) {
+      kopfAmTag += 1;
+      return;
+    }
     if (!tagNotiertOhne(liste, tage, morgen, ZIEL_KOPF)) return;
-    const wert = kopfEintraege(am(morgen)).length && !herueberreichend(liste, morgen) ? 1 : 0;
+    const wert = kopfEintraege(am(morgen)).length ? 1 : 0;
     seiten[seite].push({ iso, wert });
     const s = spFeld(tage, iso, 'stress');
     if (s !== null) stress[seite].push(s);
@@ -181,6 +243,7 @@ function v2Rechnen(liste, tage, heute) {
       ...seiten,
       mindest: SPANNUNG_MINDEST.v2,
       name: 'starke Verspannung',
+      seiten: { mit: 'Die stark verspannten Tage', ohne: 'Die lockeren Tage' },
       dichte: { eintraege: liste, tage, istZiel: ZIEL_BAUCH, ohneFelder: ['verspannt'] },
     }),
     gut: {

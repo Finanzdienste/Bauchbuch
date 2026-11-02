@@ -17,6 +17,13 @@
  *     100 sein, sonst prüft die Zeile nichts;
  *   * je Karte höchstens 10 Prozent der Tagebücher mit irgendeinem Urteil.
  *
+ * Was das zeigt und was nicht: Ohne den Wochentag (R6), ohne die Ausnahme
+ * für Nächte nach Feier, Reise oder Alkohol und ohne die Mindeststrenge der
+ * Familien (R4) steigen die Raten hier über die Grenzen. Bei den Blöcken
+ * (R6b), der Eintragsdichte (R6c) und der Nacht davor sind die Störwege dafür
+ * zu schwach – dass es sie braucht, zeigt tests/test-adhs-rechnung.mjs. Hier
+ * wird nur gezählt, dass sie in diesen Tagebüchern anschlagen.
+ *
  * Fester Startwert: Dieselben 300 Tagebücher bei jedem Lauf.
  */
 import { pruefer } from './umgebung.mjs';
@@ -67,7 +74,8 @@ Object.entries(je).sort().forEach(([name, z]) => {
   check(karte[k].n >= 100 && rate <= 0.1,
     `Karte „${titel}“: in ${karte[k].mit} von ${karte[k].n} Tagebüchern irgendein Urteil (${(rate * 100).toFixed(1)} %, höchstens 10 %)`);
 });
-// Die Störwege wirken: Jede der Regeln hat in diesen Tagebüchern zu tun.
+// Jede der Regeln hat in diesen Tagebüchern zu tun – ob sie hier auch
+// gebraucht wird, sagt diese Zählung nicht (siehe oben).
 check(['wochentag', 'bloecke', 'dichte', 'vornacht'].every((s) => stoerungen[s] > 0),
   `die Störwege greifen – Urteile zurückgehalten wegen Wochentag ${stoerungen.wochentag || 0}, Blöcken `
   + `${stoerungen.bloecke || 0}, Dichte ${stoerungen.dichte || 0}, Nacht davor ${stoerungen.vornacht || 0}`);

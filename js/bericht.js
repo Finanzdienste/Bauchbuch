@@ -13,7 +13,9 @@
  * Der Bericht behauptet nichts. Er zählt, und er sagt dazu, wie oft. Die
  * Einordnung macht die Praxis.
  */
-import { fmtDatum, plusTage, tageDazwischen, zeitpunkt } from './datum.js';
+import {
+  fmtDatum, plusTage, tageDazwischen, zeitpunkt, zuISO,
+} from './datum.js';
 import { fmtZahl, mehrzahl } from './text.js';
 import { ausloeserName, beschwerdeName, STAERKE_WORT } from './daten.js';
 import {
@@ -242,7 +244,7 @@ function berAdhs(a, rhythmus, { spannungAn, gewichtDa }) {
       g.pause ? `ohne Grund ${g.pause}` : '',
       g.beschwerden ? `wegen Beschwerden ${g.beschwerden} – nicht gewertet` : '',
     ].filter(Boolean).join(', ');
-    absatz(`Tage ohne ADHS-Mittel: ${a.a2.ohneTage + g.beschwerden}${gruende ? ` (${gruende})` : ''}`);
+    absatz(`Tage ohne ADHS-Mittel: ${a.a2.alleTage}${gruende ? ` (${gruende})` : ''}`);
   }
 
   /* A1 */
@@ -265,7 +267,10 @@ function berAdhs(a, rhythmus, { spannungAn, gewichtDa }) {
       zl.nichtNotiert ? `Tag sonst ohne Bauch-Angaben ${zl.nichtNotiert}` : '',
     ].filter(Boolean).join(' · ');
     if (nicht) absatz(`Nicht gewertet: ${nicht}`, '    ', '      ');
-    absatz(`Bauch in den 4 Stunden nach der ersten Einnahme (0–10)${a.a1.alle.length > 1 ? `, ${h.name}` : ''}`);
+    // Bei mehreren Mitteln mit Namen – und bei einem früheren mit dem letzten
+    // Einnahmetag, damit der Befund nicht beim heutigen Mittel landet.
+    absatz(`Bauch in den 4 Stunden nach der ersten Einnahme (0–10)${a.a1.alle.length > 1 ? `, ${h.anzeige}` : ''}`
+      + `${!h.imAbschnitt && h.letzte ? `, Einnahmen bis ${fmtDatum(h.letzte)}` : ''}`);
     z.push(`    ohne Essen ${String(v.ohne.n).padStart(3)} Mal${v.genug ? `, im Mittel ${fmtZahl(v.ohne.schnitt)}` : ''}`);
     z.push(`    mit Essen  ${String(v.mit.n).padStart(3)} Mal${v.genug ? `, im Mittel ${fmtZahl(v.mit.schnitt)}` : ''}`);
     const saetze = [];
@@ -291,7 +296,7 @@ function berAdhs(a, rhythmus, { spannungAn, gewichtDa }) {
     }
     klammer(saetze);
     if (a.a1.auch.length) {
-      absatz(`auch: ${a.a1.auch.map((x) => `${x.name}: ${mehrzahl(x.faelle, 'Fall', 'Fälle')}`).join(', ')}`,
+      absatz(`auch: ${a.a1.auch.map((x) => `${x.anzeige}: ${mehrzahl(x.faelle, 'Fall', 'Fälle')}`).join(', ')}`,
         '    ', '      ');
     }
   }
@@ -1156,9 +1161,11 @@ export function arztBericht(zustand, von, bis) {
       eintraege: imZeitraum, tage: tageImZeitraum, heute: bis, jetzt: berichtJetzt,
       mindestFaelle: zustand.mindestFaelle, standardMittel: zustand.standardMittel, gewicht: zustand.gewicht,
     });
+    // Nur abgeschlossene Tage: Reicht der Zeitraum bis heute, zählt der
+    // angefangene Tag nicht – vormittags wäre er sonst ein Tag „ohne Mittagessen“.
     const rhythmus = essensRhythmus({
-      eintraege: imZeitraum, tage: tageImZeitraum, von, bis, standardMittel: zustand.standardMittel,
-      gewicht: zustand.gewicht,
+      eintraege: imZeitraum, tage: tageImZeitraum, von, bis, heute: zuISO(new Date(berichtJetzt)),
+      standardMittel: zustand.standardMittel, gewicht: zustand.gewicht,
     });
     if (a.einnahmen && a.abschnitt) {
       berAdhs(a, rhythmus, { spannungAn, gewichtDa }).forEach(sag);

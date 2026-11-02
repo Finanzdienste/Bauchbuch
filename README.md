@@ -1020,11 +1020,15 @@ Wirkdauer:
 * **A1** Bauch in den vier Stunden nach der ersten Einnahme des Tages, ohne
   gegen mit Essen – je Mittel und bei Methylphenidat je Form, ein Fall je Tag,
   nur mit genauer oder an eine Mahlzeit gebundener Zeit, ohne Beschwerde in
-  den zwei Stunden davor.
+  den zwei Stunden davor. Gezeigt wird das Mittel mit den meisten Fällen, mit
+  seinem Namen – nach einem Wechsel auch mit dem letzten Einnahmetag, damit
+  der Befund nicht beim heutigen Mittel landet.
 * **A2** Tage mit gegen Tage ohne Stimulans: Bauch, Kopfschmerz nach der
   Einnahmezeit, Schlaf in der Nacht danach, mit dem zweiten Schalter auch
   Kiefer und Pressen; harter Stuhl nur beschrieben. Dazu immer der Satz, dass
-  Tage ohne Mittel keine Zufallsauswahl sind.
+  Tage ohne Mittel keine Zufallsauswahl sind. Ob es „zu wenige“ Tage ohne
+  Mittel sind, hängt an den Vergleichen, nicht an der Zahl der angegebenen
+  Tage: Ein Tag, an dem nur „ohne Mittel“ steht, ist nicht notiert.
 * **A3** Schlaf nach späterer gegen frühere letzte Einnahme, geteilt an der
   eigenen mittleren Uhrzeit, nur Tage mit der häufigsten Zahl von Gaben, mit
   der Nacht davor daneben.
@@ -1032,7 +1036,8 @@ Wirkdauer:
   beschrieben, in gleich breiten Fächern, ohne Schwerpunkt und ohne Frage.
 * **A5** der Essensrhythmus – erste Mahlzeit nach der Einnahme, Tage ohne
   Mittagessen, späte Mahlzeiten, „Kein Appetit“, jede Zahl mit ihrem Nenner –,
-  nur im Bericht.
+  nur im Bericht und nur über abgeschlossene Tage: Vormittags wäre heute sonst
+  ein Tag „ohne Mittagessen“.
 
 Gerechnet wird ab dem Tag, seit dem das heutige Mittel genommen wird: Ein
 Wechsel von Präparat oder Form fängt neu an, ein zusätzliches Mittel nicht.
@@ -1052,18 +1057,24 @@ Fragen für die Sprechstunde gibt es nur bei einem Urteil, höchstens drei.
   Abschnitt **KIEFER, NACKEN, SCHIENE**. Massage, Massagepistole und Wärme
   stehen dann nur noch gefiltert da – nach einem mindestens mittel
   verspannten Vortag –, in dieser Karte statt unter „Was du gemacht hast“.
+  Beim Dehnen gilt das für den Kopfschmerz; seine Bauchzeile bleibt dort.
 
 Gerechnet wird in `js/spannung.js`:
 
 * **V1** Nächte mit gegen ohne Schiene: Kopfschmerz am Morgen und Kiefer am
-  Morgen. Nächte nach einer Feier, einer Reise oder Alkohol zählen auf keiner
+  Morgen. „Am Morgen“ heißt: mit „Schon beim Aufwachen da“ oder vor der
+  ersten Einnahme eines ADHS-Mittels am Morgen (bis 11 Uhr), sonst vor 9 Uhr –
+  eine Einnahme am Abend verschiebt nichts. Ist die Einnahme am Morgen nur
+  ungefähr, bleibt offen, was davor lag, und der Tag zählt nicht. Nächte nach
+  einer Feier, einer Reise oder Alkohol zählen auf keiner
   Seite – danach wird die Schiene eher vergessen, und der Kopf ist ohnehin
   schwerer. Immer dabei: Die Schiene ist vor allem zum Schutz der Zähne
   gedacht, und wer sie regelmäßig trägt, hat keinen Vergleich – das ist so in
   Ordnung.
 * **V2** nach einem stark gegen nach einem locker verspannten Tag: ein neuer
-  Kopfschmerz am nächsten Tag? Mit dem Satz, dass Nackenschmerz auch ein
-  Vorbote sein kann.
+  Kopfschmerz am nächsten Tag? Ein Tag, an dem schon Kopfschmerz war – auch
+  einer vom Vorabend, der hineinreicht –, zählt nicht. Mit dem Satz, dass
+  Nackenschmerz auch ein Vorbote sein kann.
 * **V3** Massage, Massagepistole, Wärme und Dehnen nach einem mindestens
   mittel verspannten Vortag: Kopfschmerz in den 24 Stunden danach. Gefiltert
   wird am Vortag, weil die Verspannung vor der Massage feststehen muss.
@@ -1802,7 +1813,9 @@ fände jede dieser Rechnungen etwas. Die gemeinsamen Bausteine stehen in
   ein Unterschied genauso vom Wochentag kommen kann.
 * **R6b Blöcke.** Liegt mehr als die Hälfte der kleineren Seite in einem
   zusammenhängenden Zeitraum, oder hat sie weniger als vier getrennte, gibt es
-  kein Urteil – ein Urlaub misst alles mit, was im Urlaub anders war.
+  kein Urteil – ein Urlaub misst alles mit, was im Urlaub anders war. Der Satz
+  dazu nennt die Seite, die so liegt: Oft ist die kleinere die Seite „mit“ –
+  die späten Einnahmen, die stark verspannten Tage, die Tage mit Wärme.
 * **R6c Eintragsdichte.** Ist auf einer Seite im Mittel weniger als zwei
   Drittel so viel eingetragen wie auf der anderen (ohne die Zielgröße), gibt
   es kein Urteil.
@@ -1840,6 +1853,10 @@ Wochenende und im Urlaub, dünnere Einträge an Tagen ohne Mittel, „Zum Essen?
 erst nach der Beschwerde getippt, Alkohol vor Nächten ohne Schiene,
 nachgetragene Uhrzeiten. Je Rechnung darf in höchstens sechs von hundert
 Tagebüchern mit genug Fällen ein Urteil fallen, je Karte in höchstens zehn.
+Ohne den Wochentag, ohne die Ausnahme für Nächte nach Feier oder Alkohol und
+ohne die Mindeststrenge der Familien läge das darüber; für Blöcke,
+Eintragsdichte und die Nacht davor sind diese Störwege zu schwach – die prüft
+`test-adhs-rechnung.mjs` Fall für Fall.
 
 ## Die Zusage
 
@@ -2305,9 +2322,10 @@ den Rückgabewert.
 | `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
 | `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste |
 | `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll |
-| `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, der Filter fragt den Vortag |
+| `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend macht keinen Kopfschmerz am Nachmittag zu einem am Morgen, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag |
 | `test-nulltagebuch.mjs` | 300 Tagebücher ohne Zusammenhang, aber mit Störwegen: je Rechnung höchstens 6 %, je Karte höchstens 10 % mit Urteil |
 | `test-adhs-gegenprobe.mjs` | R0: Rechnungen, Rat-Karte und Bericht mit jedem Stand der Schalter gleich – ohne Schalter fehlen nur die neuen Abschnitte und Karten |
+| `test-adhs-karte.mjs` | als iPhone: nach einem Wechsel trägt der Befund zum Bauch den Namen des früheren Mittels und seinen letzten Einnahmetag, die Zahl der Tage ohne Mittel ist die Summe ihrer Gründe, und Tage, an denen nur „ohne Mittel“ steht, ergeben „zu wenige“ ohne Zielzahl |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,
 sondern an Verläufen, deren richtiges Ergebnis vorher feststeht. Der wichtigste

@@ -7,8 +7,8 @@
  * Tagebuch hängt nur am Startwert; „heute" ist der Tag nach dem letzten, damit
  * jedes Fenster abgelaufen ist.
  *
- * DIE STÖRWEGE – was ein echtes Tagebuch mitbringt und was ohne die Regeln in
- * js/vergleich.js einen Fund vortäuscht, wo keiner ist:
+ * DIE STÖRWEGE – was ein echtes Tagebuch mitbringt und wofür es die Regeln
+ * in js/vergleich.js, js/adhs.js und js/spannung.js gibt:
  *
  *   * Pausen am Wochenende und in Urlaubsblöcken – und an Wochenenden und im
  *     Urlaub sind Bauch, Kopf und Schlaf ohnehin anders.
@@ -19,6 +19,17 @@
  *     Morgen danach ohnehin schwerer.
  *   * Einnahmen werden nachgetragen: Die eingetragene Zeit liegt später als
  *     die wirkliche.
+ *
+ * Wie weit sie reichen, ist verschieden – nachgeprüft mit Mutationsproben
+ * gegen tests/test-nulltagebuch.mjs: Ohne den Wochentag (R6), ohne die
+ * Ausnahme für Nächte nach Feier, Reise oder Alkohol und ohne die
+ * Mindeststrenge der Familien (R4) täuschen diese Tagebücher wirklich Funde
+ * vor. Für die Blöcke (R6b), die Eintragsdichte (R6c) und die Nacht davor
+ * sind die Störwege zu schwach: Ohne diese Regeln ändern sich die Raten kaum,
+ * der Nulltest merkt es nur daran, dass sie nicht mehr anschlagen. Und „Zum
+ * Essen?" nach einer Beschwerde verschiebt nur die Zeit der Angabe, nicht
+ * die Antwort – ohne R10 täuscht das hier nichts vor. Dass jede dieser Regeln
+ * gebraucht wird, zeigt tests/test-adhs-rechnung.mjs Fall für Fall.
  *
  * Ohne Effekt hängt nichts davon am Mittel, am Essen zur Einnahme, an der
  * Schiene, an der Verspannung oder an einer Massage. Jeder Fund in einem

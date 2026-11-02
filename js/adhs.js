@@ -43,7 +43,7 @@ import {
 } from './datum.js';
 import { fmtZahl } from './text.js';
 import {
-  ADHS_MITTEL, STIMULANZIEN, adhsGruppe, istAdhsMittel, mphForm,
+  ADHS_MITTEL, STIMULANZIEN, adhsGruppe, formAusName, istAdhsMittel, mphForm,
 } from './mittel.js';
 import { formZu } from './zusammen.js';
 import { zaehltFuerBauch } from './wasser.js';
@@ -273,6 +273,19 @@ export function schluesselText(schluessel) {
   const g = ADHS_MITTEL.find((m) => m.id === gruppe);
   const name = g ? g.gruppe : gruppe;
   if (gruppe !== 'mph') return name;
+  const f = mphForm(form);
+  return `${name} (${f ? f.kurzname : 'Form nicht angegeben'})`;
+}
+
+/**
+ * Der Name eines Schlüssels für A1: der eingetragene, bei Methylphenidat mit
+ * der Form, wenn der Name sie nicht schon festlegt – „Medikinet (Kapsel mit
+ * zweierlei Kügelchen)", aber „Concerta" allein. A1 trennt nach Form, und
+ * zwei Formen unter demselben Namen sähen sonst wie ein Mittel aus.
+ */
+function a1Anzeige(schluessel, name) {
+  const [gruppe, form] = String(schluessel).split(':');
+  if (gruppe !== 'mph' || formAusName(name) === form) return name;
   const f = mphForm(form);
   return `${name} (${f ? f.kurzname : 'Form nicht angegeben'})`;
 }
@@ -640,13 +653,29 @@ function a3Faelle(p, abschnitt, heute) {
   const dicht = gleich.length >= 2 && iqr < 60;
   const spaeter = dicht ? [] : gleich.filter((f) => f.min > median);
   const sonst = dicht ? [] : gleich.filter((f) => f.min <= median);
-  const roh = vergleichRoh({ mit: spaeter, ohne: sonst, mindest: ADHS_MINDEST.a3, name: 'späte Einnahme' });
+  const roh = vergleichRoh({
+    mit: spaeter,
+    ohne: sonst,
+    mindest: ADHS_MINDEST.a3,
+    name: 'späte Einnahme',
+    seiten: { mit: 'Die Tage mit späterer letzter Einnahme', ohne: 'Die Tage mit früherer letzter Einnahme' },
+  });
   // Die Nacht davor: War sie auf beiden Seiten schon verschieden, misst der
-  // Vergleich das mit.
-  const vor = (l) => adhsSchnitt(l.map((f) => f.vorNacht).filter((x) => x !== null && Number.isFinite(x)));
+  // Vergleich das mit. Eine Seite ohne jede Angabe hat keinen Mittelwert –
+  // eine Lücke ist nie 0 = „gut geschlafen“ (R1). Fehlen die Angaben nur auf
+  // einer Seite, lässt sich die Nacht davor nicht vergleichen, und es gibt
+  // vorsichtshalber kein Urteil; fehlen sie auf beiden, gibt es nichts zu
+  // prüfen.
+  const vor = (l) => {
+    const w = l.map((f) => f.vorNacht).filter((x) => x !== null && Number.isFinite(x));
+    return w.length ? adhsSchnitt(w) : null;
+  };
   const vorNacht = { spaeter: vor(spaeter), sonst: vor(sonst) };
-  const vorNachtUngleich = roh.genug && Math.abs(vorNacht.spaeter - vorNacht.sonst) >= 0.5;
-  if (vorNachtUngleich && !roh.stoerung) roh.stoerung = 'vornacht';
+  if (roh.genug && !roh.stoerung) {
+    const da = [vorNacht.spaeter, vorNacht.sonst].filter((x) => x !== null).length;
+    if (da === 2 && Math.abs(vorNacht.spaeter - vorNacht.sonst) >= 0.5) roh.stoerung = 'vornacht';
+    else if (da === 1) roh.stoerung = 'vornachtLeer';
+  }
   const st = (l) => {
     const w = l.map((f) => f.stress).filter((x) => x !== null && Number.isFinite(x));
     return w.length ? adhsSchnitt(w) : null;
@@ -664,6 +693,9 @@ function a3Faelle(p, abschnitt, heute) {
   };
 }
 
+const A3_VORNACHT_LEER = 'Zur Nacht davor fehlen auf einer Seite die Angaben – ob sie schon verschieden war, '
+  + 'kann der Vergleich nicht prüfen.';
+
 function a3Saetze(a3, v) {
   if (a3.dicht) return ['Deine Einnahmezeiten liegen zu dicht beieinander für diesen Vergleich.'];
   if (!v.genug) {
@@ -680,6 +712,7 @@ function a3Saetze(a3, v) {
     return [zahlen, `Schon die Nacht davor war auf beiden Seiten verschieden (${fmtZahl(a3.vorNacht.spaeter)} `
       + `gegen ${fmtZahl(a3.vorNacht.sonst)}) – der Vergleich misst das mit.`];
   }
+  if (v.stoerung === 'vornachtLeer') return [zahlen, A3_VORNACHT_LEER];
   return [zahlen, ...v.saetze];
 }
 
@@ -778,12 +811,17 @@ function a5Zeilen(p, isos, mitEinnahme) {
 /**
  * Der Essensrhythmus für einen Zeitraum – mit Einnahmen ihre Tage, sonst alle
  * Tage mit Bauch-Angaben. Exportiert für den Bericht.
+ *
+ * Gezählt werden nur abgeschlossene Tage, also vor `heute` – wie in A2 bis
+ * A4. Wer vormittags schon zwei Mahlzeiten eingetragen hat, hätte sonst einen
+ * Tag „ohne Mittagessen“, und eine Mahlzeit ab 20 Uhr könnte heute noch gar
+ * nicht dastehen, während der Tag im Nenner schon mitzählt.
  */
 export function essensRhythmus({
-  eintraege, tage, von = null, bis = null, standardMittel = [], gewicht = [],
+  eintraege, tage, von = null, bis = null, heute = null, standardMittel = [], gewicht = [],
 } = {}) {
   const p = adhsVorbereiten({ eintraege, tage, heute: bis, standardMittel });
-  const imZeitraum = (iso) => (!von || iso >= von) && (!bis || iso <= bis);
+  const imZeitraum = (iso) => (!von || iso >= von) && (!bis || iso <= bis) && (!heute || iso < heute);
   const einnahmeTage = [...p.einnahmenNachTag.keys()].filter(imZeitraum).sort();
   const mitEinnahme = einnahmeTage.length > 0;
   const isos = mitEinnahme ? einnahmeTage
@@ -791,7 +829,9 @@ export function essensRhythmus({
   const zeilen = a5Zeilen(p, isos, mitEinnahme);
   let ohne = null;
   if (mitEinnahme) {
-    const pausen = adhsPausen(p, von, bis ? plusTage(bis, 1) : null).ohne;
+    // adhsPausen nimmt das Ende ausschließlich: der Tag nach `bis`, höchstens heute.
+    const ende = [bis ? plusTage(bis, 1) : null, heute].filter(Boolean).sort()[0] || null;
+    const pausen = adhsPausen(p, von, ende).ohne;
     const kleiner = pausen.length < einnahmeTage.length ? pausen : einnahmeTage;
     if (pausen.length && !wochenendeUngleich(einnahmeTage, pausen) && !blockUngleich(kleiner).ungleich) {
       ohne = a5Zeilen(p, pausen, false);
@@ -835,7 +875,13 @@ export function adhsAuswertung({
   const a1Mindest = Math.max(Number(mindestFaelle) || 0, ADHS_MINDEST.a1);
   const a1 = [];
   a1Faelle(p, { jetzt }).forEach((z, schluessel) => {
-    const roh = vergleichRoh({ mit: z.mit, ohne: z.ohne, mindest: a1Mindest, name: 'Essen zur Einnahme' });
+    const roh = vergleichRoh({
+      mit: z.mit,
+      ohne: z.ohne,
+      mindest: a1Mindest,
+      name: 'Essen zur Einnahme',
+      seiten: { mit: 'Die Einnahmen mit Essen', ohne: 'Die Einnahmen ohne Essen' },
+    });
     a1.push({ schluessel, z, roh });
   });
 
@@ -855,6 +901,12 @@ export function adhsAuswertung({
   const vergleiche = familienVergleiche(genug);
 
   /* --- Urteile --- */
+  // Der letzte Einnahmetag je Schlüssel: A1 rechnet über das ganze Tagebuch,
+  // und nach einem Wechsel stammen die Zahlen womöglich vom früheren Mittel.
+  const letzteNach = new Map();
+  p.einnahmen.forEach((x) => {
+    if (!letzteNach.has(x.schluessel) || x.e.am > letzteNach.get(x.schluessel)) letzteNach.set(x.schluessel, x.e.am);
+  });
   const a1Raus = a1.map(({ schluessel, z, roh }) => {
     const v = vergleichUrteilen(roh, { skala: 'bauch', vergleiche, richtung: 'ohne' });
     const st = (l) => {
@@ -862,10 +914,14 @@ export function adhsAuswertung({
       return w.length ? adhsSchnitt(w) : null;
     };
     const anspannung = { ohne: st(z.ohne), mit: st(z.mit) };
+    const name = p.name(schluessel);
     return {
       schluessel,
-      name: p.name(schluessel),
+      name,
+      anzeige: a1Anzeige(schluessel, name),
       text: schluesselText(schluessel),
+      letzte: letzteNach.get(schluessel) || null,
+      imAbschnitt: abschnitt.schluessel.includes(schluessel),
       faelle: v.mit.n + v.ohne.n,
       vergleich: v,
       zaehl: {
@@ -888,8 +944,21 @@ export function adhsAuswertung({
     const stuhl = vergleichUrteilen(a2.stuhlRoh, { skala: 'anteil', vergleiche, richtung: 'mit' });
     const saetze = [];
     const ohneZahl = pausen.ohne.length;
-    if (ohneZahl < ADHS_MINDEST.bauch) {
-      saetze.push(`Tage ohne ADHS-Mittel bisher: ${ohneZahl} – zu wenige für einen Vergleich.`, WEGLASS_SATZ);
+    /*
+     * R9: „zu wenige“ hängt an den Vergleichen, nicht an der Zahl der
+     * angegebenen Tage – gewertet wird nur ein notierter Tag (R1, R10), und
+     * zehn Tage, an denen nur „ohne Mittel“ steht, ergeben keinen Vergleich.
+     * Der Satz steht, wenn weder Bauch noch Kopf auf der Seite „ohne“ genug
+     * Tage hat; fehlen sie nur auf der Seite „mit“, meinte er die falsche
+     * Seite. Genannt wird nur, was es bisher gibt, nie eine Mindestzahl.
+     */
+    const zuWenigOhne = ['bauch', 'kopf'].every((id) => zeilen[id].ohne.n < zeilen[id].mindest);
+    if (zuWenigOhne) {
+      const gewertet = Math.max(zeilen.bauch.ohne.n, zeilen.kopf.ohne.n);
+      saetze.push(gewertet === ohneZahl
+        ? `Tage ohne ADHS-Mittel bisher: ${ohneZahl} – zu wenige für einen Vergleich.`
+        : `Tage ohne ADHS-Mittel bisher: ${ohneZahl}, davon gewertet ${gewertet} – zu wenige für einen Vergleich.`,
+      WEGLASS_SATZ);
     }
     if (ohneZahl || pausen.beschwerden.length) {
       saetze.push('Tage ohne Mittel sind keine Zufallsauswahl. Wer an einem schlechten Tag das Mittel '
@@ -900,6 +969,9 @@ export function adhsAuswertung({
     a2Raus = {
       mitTage: a2.mitTage,
       ohneTage: ohneZahl,
+      // Alle angegebenen Tage ohne Mittel, auch „wegen Beschwerden“ – die Zahl
+      // vor der Aufschlüsselung nach Gründen, die sie zusammen ergeben.
+      alleTage: ohneZahl + pausen.beschwerden.length,
       gruende: pausen.gruende,
       zeilen,
       // Harter Stuhl nur beschrieben – ohne Urteil, auch wenn es eines gäbe.
@@ -932,17 +1004,19 @@ export function adhsAuswertung({
 
   const a4 = a4Zaehlung(p, abschnitt, bisHeute);
   const a5 = essensRhythmus({
-    eintraege: p.liste, tage: p.tage, von: abschnitt.von, bis: bisHeute, standardMittel, gewicht,
+    eintraege: p.liste, tage: p.tage, von: abschnitt.von, bis: bisHeute, heute: bisHeute, standardMittel, gewicht,
   });
 
   /* --- Fragen für die Sprechstunde (Muster und Bericht) --- */
   const fragen = [];
   const haupt = a1Raus[0];
   if (haupt && ['auffaellig', 'moeglich'].includes(haupt.vergleich.art)) {
+    // Mit dem Namen: A1 rechnet je Mittel über das ganze Tagebuch, und die
+    // Frage soll auch nach einem Wechsel beim richtigen Mittel landen.
     fragen.push({
       id: 'a1',
-      text: 'Nach Einnahmen ohne Essen ging es meinem Bauch in den Stunden danach schlechter. Was '
-        + 'heißt das für die Einnahme?',
+      text: `Nach Einnahmen von ${haupt.anzeige} ohne Essen ging es meinem Bauch in den Stunden danach `
+        + 'schlechter. Was heißt das für die Einnahme?',
     });
   }
   if (a2Raus && a2Raus.zeilen.kopf.art === 'auffaellig') {

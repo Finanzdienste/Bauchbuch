@@ -17,7 +17,7 @@
  *      an einem Auslöser, der nahe am Mittel liegt.
  *   5. Mit „Kiefer, Nacken, Schiene" stehen Massage und Wärme nur gefiltert
  *      da – in der neuen Karte, nicht mehr ungefiltert unter „Was du gemacht
- *      hast".
+ *      hast". Beim Dehnen gilt das für die Kopfzeile; die Bauchzeile bleibt.
  */
 import { chromium } from 'playwright';
 import path from 'node:path';
@@ -187,6 +187,9 @@ async function muster(stand) {
       rest: ohneNeu.textContent.replace(/\s+/g, ' ').trim(),
       vorbehalt: [...view.querySelectorAll('.vorbehalt-mittel')].map((p) => p.textContent.replace(/\s+/g, ' ').trim()),
       aktiv: (view.querySelector('.karte-aktiv') || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim(),
+      // Die Fundzeilen von Yoga/Dehnen unter „Was du gemacht hast".
+      yoga: [...view.querySelectorAll('.karte-aktiv .fund')].map((li) => li.textContent.replace(/\s+/g, ' ').trim())
+        .filter((t) => t.includes('Yoga/Dehnen')),
       spannungText: (view.querySelector('.karte-spannung') || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim(),
     };
   });
@@ -196,8 +199,12 @@ async function muster(stand) {
 
 {
   // Das Tagebuch des Golds mit ADHS-Einnahmen und allen neuen Tagesangaben –
-  // ohne Massage und Wärme, damit „Was du gemacht hast" gleich bleibt.
-  const d = mitNeuenAngaben(tagebuch(29), 29);
+  // ohne Massage und Wärme, damit „Was du gemacht hast" gleich bleibt. Ebenso
+  // ohne Dehnen: Dessen Kopfzeile steht mit dem Schalter gefiltert in der
+  // neuen Karte (geprüft unter 5.).
+  const voll = mitNeuenAngaben(tagebuch(29), 29);
+  const d = { ...voll, eintraege: voll.eintraege.filter((e) => !(e.aktivitaeten || []).includes('yoga')) };
+  check(voll.eintraege.length - d.eintraege.length > 5, 'das Tagebuch hatte Dehnen – herausgenommen');
   const aus = await muster({ ...d, adhsAn: null, spannungAn: null });
   const an = await muster({ ...d, adhsAn: true, spannungAn: true });
   const nein = await muster({ ...d, adhsAn: false, spannungAn: false });
@@ -251,10 +258,14 @@ async function muster(stand) {
   check(/Wärme|Massage/.test(aus.aktiv) && !aus.aktiv.includes('stehen unter „Kiefer, Nacken, Schiene“'),
     'ohne den Schalter stehen Massage und Wärme unter „Was du gemacht hast“');
   check(!/Wärme \d|Massage\/Physio \d|Massagepistole \d/.test(an.aktiv)
-    && an.aktiv.includes('Massage, Massagepistole und Wärme stehen unter „Kiefer, Nacken, Schiene“'),
+    && an.aktiv.includes('Massage, Massagepistole und Wärme – und beim Kopfschmerz auch Yoga/Dehnen – stehen '
+      + 'unter „Kiefer, Nacken, Schiene“'),
   'mit dem Schalter dort nicht mehr – nur der Hinweis, wo sie stehen');
   check(an.spannungText.includes('Nach mindestens mittel verspanntem Vortag') && /Wärme/.test(an.spannungText),
     'und in der Karte „Kiefer, Nacken, Schiene“ der gefilterte Lauf');
+  check(aus.yoga.some((t) => t.includes('Kopf')) && an.yoga.length > 0 && an.yoga.every((t) => !t.includes('Kopf'))
+    && /Yoga\/Dehnen/.test(an.spannungText),
+  `Dehnen: ohne Schalter mit Kopfzeile, mit Schalter nur noch die Bauchzeile – der Kopf steht gefiltert in der neuen Karte (${an.yoga.join(' | ').slice(0, 80)})`);
 }
 
 check(fehler.length === 0, `keine Seitenfehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);

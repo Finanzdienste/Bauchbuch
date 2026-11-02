@@ -240,10 +240,16 @@ export function wochentagSatz(name) {
     + 'Unterschied kann genauso vom Wochentag kommen.';
 }
 
-/** R6b */
-export function bloeckeSatz(name, n) {
+/**
+ * R6b – `seite` ist die Seite, die in Blöcken liegt, schon als Satzanfang
+ * („Die Tage ohne ADHS-Mittel", „Die stark verspannten Tage"). Geprüft wird
+ * die kleinere Seite, und das ist oft die Seite „mit": die späten Einnahmen,
+ * die stark verspannten Tage, die Tage mit Wärme. Der Satz muss die Seite
+ * nennen, die es ist, mit ihrer Zahl von Blöcken.
+ */
+export function bloeckeSatz(seite, n) {
   const wo = n === 1 ? 'einem zusammenhängenden Zeitraum' : `${n} zusammenhängenden Zeiträumen`;
-  return `Die Tage ohne ${name} liegen fast alle in ${wo} – was dort sonst anders war, `
+  return `${seite} liegen fast alle in ${wo} – was dort sonst anders war, `
     + 'misst der Vergleich mit.';
 }
 
@@ -278,9 +284,13 @@ export function grenzeText(grenze, art) {
  *   mit, ohne    [{ iso, wert }]
  *   mindest      Fälle je Seite
  *   name         was auf der „ohne"-Seite fehlt, für die Sätze („ADHS-Mittel")
+ *   seiten       { mit, ohne } – die beiden Seiten als Satzanfang für R6b
+ *                („Die stark verspannten Tage"); ohne: „Die Tage mit/ohne {name}"
  *   dichte       { eintraege, tage, istZiel, ohneFelder } – ohne: kein R6c
  */
-export function vergleichRoh({ mit = [], ohne = [], mindest = 8, name = '', dichte = null } = {}) {
+export function vergleichRoh({
+  mit = [], ohne = [], mindest = 8, name = '', seiten = null, dichte = null,
+} = {}) {
   const isosMit = mit.map((x) => x.iso);
   const isosOhne = ohne.map((x) => x.iso);
   const werteMit = mit.map((x) => x.wert);
@@ -288,16 +298,18 @@ export function vergleichRoh({ mit = [], ohne = [], mindest = 8, name = '', dich
   const genug = mit.length >= mindest && ohne.length >= mindest;
   let stoerung = null;
   let bloecke = 0;
+  let blockSeite = null;
   if (genug) {
     // Die kleinere Seite ist die, deren Tage etwas Besonderes sein könnten –
-    // bei gleich vielen beide.
-    const kleiner = isosMit.length === isosOhne.length ? [isosMit, isosOhne]
-      : [isosMit.length < isosOhne.length ? isosMit : isosOhne];
-    const block = kleiner.map((l) => blockUngleich(l)).find((b) => b.ungleich);
+    // bei gleich vielen beide; dann gilt die, die zuerst in Blöcken liegt.
+    const kleiner = isosMit.length === isosOhne.length ? [['mit', isosMit], ['ohne', isosOhne]]
+      : [isosMit.length < isosOhne.length ? ['mit', isosMit] : ['ohne', isosOhne]];
+    const block = kleiner.map(([seite, l]) => ({ seite, ...blockUngleich(l) })).find((b) => b.ungleich);
     if (wochenendeUngleich(isosMit, isosOhne)) stoerung = 'wochentag';
     else if (block) {
       stoerung = 'bloecke';
       bloecke = block.bloecke;
+      blockSeite = block.seite;
     } else if (dichte && dichteUngleich(dichte.eintraege, dichte.tage, isosMit, isosOhne,
       dichte.istZiel, dichte.ohneFelder || []).ungleich) {
       stoerung = 'dichte';
@@ -307,10 +319,15 @@ export function vergleichRoh({ mit = [], ohne = [], mindest = 8, name = '', dich
     genug,
     mindest,
     name,
+    seiten: {
+      mit: (seiten && seiten.mit) || `Die Tage mit ${name}`,
+      ohne: (seiten && seiten.ohne) || `Die Tage ohne ${name}`,
+    },
     mit: { n: mit.length, schnitt: vglSchnitt(werteMit), isos: isosMit, werte: werteMit },
     ohne: { n: ohne.length, schnitt: vglSchnitt(werteOhne), isos: isosOhne, werte: werteOhne },
     stoerung,
     bloecke,
+    blockSeite,
   };
 }
 
@@ -334,7 +351,7 @@ export function vergleichUrteilen(roh, { skala = 'bauch', schwelle, vergleiche =
   if (roh.genug) art = roh.stoerung ? 'gestoert' : urteil.art;
   const saetze = [];
   if (roh.stoerung === 'wochentag') saetze.push(wochentagSatz(roh.name));
-  if (roh.stoerung === 'bloecke') saetze.push(bloeckeSatz(roh.name, roh.bloecke));
+  if (roh.stoerung === 'bloecke') saetze.push(bloeckeSatz(roh.seiten[roh.blockSeite], roh.bloecke));
   if (roh.stoerung === 'dichte') saetze.push(DICHTE_SATZ);
   if (roh.genug && !roh.stoerung && art === 'neutral') {
     saetze.push(nachweisSatz(grenzeText(urteil.grenze, skala)));
@@ -347,6 +364,7 @@ export function vergleichUrteilen(roh, { skala = 'bauch', schwelle, vergleiche =
     mit,
     ohne,
     stoerung: roh.stoerung,
+    blockSeite: roh.blockSeite,
     urteil,
     art,
     skala,

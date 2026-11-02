@@ -34,6 +34,9 @@ const stuhl = (iso, um = '06:30') => ({ id: nid('s'), art: 'stuhl', am: iso, um,
 const essen = (iso, um, extra = {}) => ({ id: nid('e'), art: 'essen', am: iso, um, was: 'Essen', zutaten: [], portion: 'normal', ...extra });
 const aktiv = (iso, um, id) => ({ id: nid('a'), art: 'aktivitaet', am: iso, um, aktivitaeten: [id] });
 const mittel = (iso, um) => ({ id: nid('m'), art: 'medikament', am: iso, um, mittel: 'Strattera', dosis: '40 mg' });
+const mittelAm = (iso, um, name, extra = {}) => ({
+  id: nid('m'), art: 'medikament', am: iso, um, mittel: name, dosis: '', ...extra,
+});
 const HEUTE = '2026-12-31';
 const JETZT = Date.parse('2027-01-01T12:00:00Z');
 const auswerten = (eintraege, tage) => spannungAuswertung({ eintraege, tage, heute: HEUTE, jetzt: JETZT });
@@ -81,15 +84,17 @@ const verteilt = (n, ab = 0, schritt = 3) => Array.from({ length: n }, (_, k) =>
   check(v1.saetze.includes('18 Nächte nach Feier, Reise oder Alkohol nicht gewertet.'), 'und die Zahl steht da');
 }
 {
-  // V1a, wie es definiert ist.
-  const fall = (eintraegeAmTag, mitEinnahme = false) => {
+  // V1a, wie es definiert ist. `einnahme` ist true (07:00) oder eine Funktion,
+  // die die Einnahme des Tages baut.
+  const fall = (eintraegeAmTag, einnahme = false) => {
     const eintraege = [];
     const tage = {};
     for (let k = 0; k < 14; k++) {
       const d = tagN(k * 3);
       tage[d] = { schiene: 0 };
       eintraege.push(stuhl(d));
-      if (mitEinnahme) eintraege.push(mittel(d, '07:00'));
+      if (einnahme === true) eintraege.push(mittel(d, '07:00'));
+      else if (einnahme) eintraege.push(einnahme(d));
       eintraege.push(...eintraegeAmTag(d));
     }
     for (let k = 0; k < 14; k++) {
@@ -110,6 +115,26 @@ const verteilt = (n, ab = 0, schritt = 3) => Array.from({ length: n }, (_, k) =>
   check(unklar.n === 0 && unklar.unklar === 14, 'V1a: „morgens“ ohne Uhrzeit und ohne Merkmal bleibt offen und zählt nicht');
   const her = fall((d) => [kopf(isoPlus(d, -1), '22:00')]);
   check(her.n === 0 && her.herueber === 14, 'V1a: ein Kopfschmerz vom Vorabend reicht herüber – der Morgen zählt nicht');
+
+  // Nur eine Einnahme am Morgen verschiebt die Grenze. Guanfacin wird oft
+  // abends genommen – ein Kopfschmerz am Nachmittag ist trotzdem keiner am Morgen.
+  const abends = (d) => mittelAm(d, '20:00', 'Intuniv');
+  check(fall((d) => [kopf(d, '15:30')], abends).schnitt === 0,
+    'V1a: mit einer Einnahme um 20 Uhr ist ein Kopfschmerz um 15:30 keiner am Morgen');
+  check(fall((d) => [kopf(d, '08:30')], abends).schnitt === 1,
+    'V1a: mit einer Einnahme am Abend gilt dasselbe wie ohne Einnahme – vor 9 Uhr');
+  check(fall((d) => [kopf(d, '10:00')], (d) => mittelAm(d, '10:30', 'Elvanse')).schnitt === 1
+    && fall((d) => [kopf(d, '10:00')], (d) => mittelAm(d, '11:30', 'Elvanse')).schnitt === 0,
+  'V1a: eine Einnahme bis 11 Uhr ist eine am Morgen, eine danach nicht');
+  // Eine ungefähre Einnahme „morgens" lässt offen, ob ein Kopfschmerz um 8:30
+  // davor oder danach begann (R3) – der Tag zählt dann nicht, statt 9 Uhr anzunehmen.
+  const ungefaehr = (d) => mittelAm(d, '08:00', 'Medikinet adult', { ungefaehr: true, tageszeit: 'morgens' });
+  const offen = fall((d) => [kopf(d, '08:30')], ungefaehr);
+  check(offen.n === 0 && offen.unklar === 14,
+    `V1a: ungefähre Einnahme „morgens“ und Kopfschmerz um 8:30 – offen, nicht gezählt (${offen.n}/${offen.unklar})`);
+  check(fall((d) => [kopf(d, '04:30')], ungefaehr).schnitt === 1
+    && fall((d) => [kopf(d, '11:30')], ungefaehr).schnitt === 0,
+  'V1a: vor 5 Uhr liegt ein Kopfschmerz sicher vor einer Einnahme „morgens“, ab 11 Uhr sicher danach');
 }
 
 {
@@ -146,6 +171,45 @@ const verteilt = (n, ab = 0, schritt = 3) => Array.from({ length: n }, (_, k) =>
     `V2: ein Tag, an dem schon Kopfschmerz war, zählt nicht (${v2.kopfAmTag} ausgeschlossen, ${v2.mit.n + v2.ohne.n} gezählt); „mittel“ auf keiner Seite`);
   check(v2.vorbote === 'Nackenschmerz kann auch ein Vorbote sein; ob Verspannung den Kopfschmerz macht oder '
     + 'ankündigt, kann ein Tagebuch nicht trennen.', 'V2 mit dem Pflichtsatz zum Vorboten');
+}
+{
+  // Ein Kopfschmerz vom Vorabend, der in den verspannten Tag hineinreicht
+  // (ab 18 Uhr oder „1 bis 3 Tage“), schließt ihn aus wie einer am Tag selbst –
+  // die Verspannung kann dann vom Anfall kommen.
+  const bau = (hinein) => {
+    const eintraege = [];
+    const tage = {};
+    verteilt(20, 1, 4).forEach((i, k) => {
+      const d = tagN(i);
+      tage[d] = { verspannt: 4 };
+      eintraege.push(stuhl(d), stuhl(tagN(i + 1)), kopf(tagN(i + 1), '09:00'));
+      if (hinein) eintraege.push(kopf(tagN(i - 1), k % 2 ? '20:30' : '10:00', k % 2 ? {} : { dauer: 'lang' }));
+    });
+    return auswerten(eintraege, tage).v2;
+  };
+  const ohne = bau(false);
+  const mit = bau(true);
+  check(ohne.mit.n === 20 && ohne.kopfAmTag === 0, `V2: ohne Kopfschmerz am Vorabend zählen alle 20 verspannten Tage (${ohne.mit.n})`);
+  check(mit.mit.n === 0 && mit.kopfAmTag === 20,
+    `V2: ein hineinreichender Kopfschmerz vom Vorabend schließt den verspannten Tag aus (${mit.mit.n} gezählt, ${mit.kopfAmTag} ausgeschlossen)`);
+}
+{
+  // R6b: 16 stark verspannte Tage am Stück, lockere über das ganze Tagebuch
+  // verteilt. Geprüft wird die kleinere Seite – hier die verspannte –, und
+  // der Satz nennt genau sie mit ihrer Zahl von Blöcken.
+  const eintraege = [];
+  const tage = {};
+  for (let i = 0; i < 151; i++) {
+    const d = tagN(i);
+    eintraege.push(stuhl(d));
+    if (i >= 60 && i < 76) tage[d] = { verspannt: 4 };
+    else if (i % 3 === 0) tage[d] = { verspannt: 0 };
+  }
+  const v2 = auswerten(eintraege, tage).v2;
+  check(v2.genug && v2.stoerung === 'bloecke' && v2.blockSeite === 'mit' && v2.mit.n === 16
+    && v2.saetze.includes('Die stark verspannten Tage liegen fast alle in einem zusammenhängenden Zeitraum – was '
+      + 'dort sonst anders war, misst der Vergleich mit.'),
+  `V2, R6b: die verspannten Tage am Stück – der Satz nennt sie, nicht die lockeren (${v2.saetze.join(' ')})`);
 }
 function v2Tagebuch(saat, p = [0.15, 0.6]) {
   const r = mulberry32(saat * 31 + 9);

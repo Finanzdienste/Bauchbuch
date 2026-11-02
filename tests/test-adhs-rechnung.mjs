@@ -163,11 +163,13 @@ const zaehl = (liste) => auswerten(liste).a1.haupt;
     'R3: eine Beschwerde „morgens“ ohne Bezug neben einer Einnahme am Morgen – Reihenfolge offen, der Fall fällt weg');
 }
 {
-  const { liste } = mitTag((d) => [essen(d, '07:10'), mittel(d, '07:30'), essen(d, '12:30'),
+  // Ohne Mahlzeit um die zweite Einnahme: Als eigener Fall wäre sie ein
+  // gültiges „ohne Essen“ mit einer Beschwerde danach – die Prüfung merkt es.
+  const { liste } = mitTag((d) => [essen(d, '07:10'), mittel(d, '07:30'),
     mittel(d, '13:00', angabe(d, '13:00', 'ohne')), beschwerde(d, '14:00', 9)]);
   const h = zaehl(liste);
-  check(h.vergleich.mit.n === 21 && h.vergleich.ohne.n === 20,
-    'die zweite Einnahme eines Tages ist kein eigener Fall');
+  check(h.vergleich.mit.n === 21 && h.vergleich.ohne.n === 20 && h.zaehl.widerspruch === 0,
+    `die zweite Einnahme eines Tages ist kein eigener Fall (${h.vergleich.mit.n}/${h.vergleich.ohne.n}, Widerspruch ${h.zaehl.widerspruch})`);
 }
 {
   const { liste } = mitTag((d) => [mittel(d, '07:30', angabe(d, '07:30', 'ohne', 90)), essen(d, '12:30'),
@@ -252,6 +254,29 @@ function a1Tagebuch(saat, effekt = 2.5) {
   const l2 = [...l];
   for (let i = 40; i < 60; i++) l2.push(mittel(tagN(i), '19:00', { mittel: 'Intuniv' }));
   check(adhsAbschnitt(adhsEinnahmen(l2), ENDE).von === tagN(30), 'ein zusätzliches Mittel setzt nicht zurück');
+}
+{
+  // A1 rechnet je Mittel über das ganze Tagebuch: Nach einem Wechsel hat das
+  // frühere Mittel die meisten Fälle – dann trägt der Befund dessen Namen.
+  const l = [];
+  for (let i = 0; i < 75; i++) {
+    const d = tagN(i);
+    const ohne = i % 3 === 0;
+    l.push(mittel(d, '07:30', { mittel: 'Ritalin Adult', ...(ohne ? angabe(d, '07:30', 'ohne') : {}) }), essen(d, '12:30'));
+    if (ohne) l.push(beschwerde(d, '09:00', 6)); else l.push(essen(d, '07:10'));
+  }
+  for (let i = 75; i < 100; i++) l.push(mittel(tagN(i), '07:30'), essen(tagN(i), '07:10'), essen(tagN(i), '12:30'));
+  const a = auswerten(l);
+  const h = a.a1.haupt;
+  check(a.abschnitt.namen.join() === MITTEL && h.anzeige === 'Ritalin Adult' && !h.imAbschnitt && h.letzte === tagN(74)
+    && a.a1.auch[0].anzeige === MITTEL && a.a1.auch[0].imAbschnitt,
+  `A1 nach einem Wechsel: der Befund nennt sein Mittel und den letzten Einnahmetag (${h.anzeige}, bis ${h.letzte})`);
+  const frage = a.fragen.find((f) => f.id === 'a1');
+  check(['auffaellig', 'moeglich'].includes(h.vergleich.art) && frage && frage.text.startsWith('Nach Einnahmen von Ritalin Adult ohne Essen'),
+    `und die Frage für die Sprechstunde auch (${frage ? frage.text.slice(0, 45) : 'keine Frage'})`);
+  const m = auswerten([mittel(tagN(0), '07:30', { mittel: 'Medikinet' }), essen(tagN(0), '07:10')]).a1.haupt;
+  check(m.anzeige === 'Medikinet (Form nicht angegeben)',
+    `bei Methylphenidat mit der Form, wenn der Name sie nicht festlegt (${m.anzeige})`);
 }
 
 /* ---------- 5. A2: Tage mit gegen ohne Mittel ---------- */
@@ -388,6 +413,33 @@ function kopfTagebuch(saat, p = [0.15, 0.6]) {
   const ziel = texte.filter((t) => ZIELZAHL.test(t));
   check(ziel.length === 0, `nirgends eine Zielzahl („braucht 8“, „noch 5“, „nötig: 12“)${ziel.length ? `: ${ziel[0]}` : ''}`);
 }
+{
+  // Zehn Tage, an denen nur „ohne Mittel“ steht: angegeben, aber nicht
+  // notiert – kein Vergleich. Der R9-Satz hängt am Vergleich, nicht an der Zahl.
+  const { liste, tage } = a2Tagebuch({ mit: werktage(30), ohne: [] });
+  werktage(10, 60).forEach((i) => { tage[tagN(i)] = { adhsPause: 'vergessen' }; });
+  const a = auswerten(liste, tage);
+  check(!a.a2.zeilen.bauch.genug && !a.a2.zeilen.kopf.genug
+    && a.a2.saetze[0] === 'Tage ohne ADHS-Mittel bisher: 10, davon gewertet 0 – zu wenige für einen Vergleich.'
+    && a.a2.saetze.includes(WEGLASS_SATZ),
+  `R9: zehn angegebene, aber nicht notierte Tage ohne Mittel – „zu wenige“ und der Satz zum Weglassen (${a.a2.saetze[0]})`);
+  check(!alleSaetze(a).some((t) => ZIELZAHL.test(t)), 'auch dort keine Zielzahl');
+  // Genug Tage ohne, aber zu wenige mit: Der Satz meinte die falsche Seite.
+  const w = a2Tagebuch({ mit: werktage(5), ohne: werktage(14, 40) });
+  const b = auswerten(w.liste, w.tage);
+  check(!b.a2.zeilen.bauch.genug && !b.a2.saetze.some((t) => t.includes('zu wenige')),
+    'fehlen nur Tage mit Mittel, steht kein „zu wenige Tage ohne“');
+}
+{
+  // Die Zahl vorn ist die Summe der Gründe in der Klammer.
+  const { liste, tage } = a2Tagebuch({ mit: werktage(30), ohne: werktage(8, 40), grund: 'geplant' });
+  werktage(6, 60).forEach((i) => { tage[tagN(i)] = { adhsPause: 'vergessen', stress: 1 }; });
+  werktage(3, 80).forEach((i) => { tage[tagN(i)] = { adhsPause: 'beschwerden', stress: 1 }; });
+  const a2 = auswerten(liste, tage).a2;
+  const g = a2.gruende;
+  check(a2.alleTage === 17 && g.geplant + g.vergessen + g.pause + g.beschwerden === a2.alleTage && a2.ohneTage === 14,
+    `Tage ohne Mittel: ${a2.alleTage} angegeben (geplant ${g.geplant}, vergessen ${g.vergessen}, wegen Beschwerden ${g.beschwerden}), ${a2.ohneTage} gewertet`);
+}
 
 /* ---------- 7. A1: Wochentag und Nachweisgrenze ---------- */
 
@@ -437,6 +489,14 @@ function a3Tagebuch({ spaetAm, schlafSpaet = 2, schlafFrueh = 1, vorNacht = [1, 
   const a2x = auswerten(d2.liste, d2.tage).a3;
   check(a2x.stoerung === 'wochentag' && a2x.art === 'gestoert',
     `A3, R6: späte Einnahme nur am Wochenende – kein Urteil (${a2x.art}, ${a2x.stoerung})`);
+  // R6b: Die späten Tage – die kleinere Seite – liegen am Stück. Der Satz
+  // nennt diese Seite und ihre Zahl von Blöcken, nicht die andere.
+  const d3 = a3Tagebuch({ spaetAm: (i) => i >= 20 && i < 40 });
+  const a3x = auswerten(d3.liste, d3.tage).a3;
+  check(a3x.stoerung === 'bloecke' && a3x.blockSeite === 'mit' && a3x.mit.n < a3x.ohne.n
+    && a3x.saetze.includes('Die Tage mit späterer letzter Einnahme liegen fast alle in einem zusammenhängenden '
+      + 'Zeitraum – was dort sonst anders war, misst der Vergleich mit.'),
+  `A3, R6b: die späten Tage am Stück – der Satz nennt sie (${a3x.saetze.slice(1).join(' ')})`);
 }
 {
   // Vor-Nacht: Die späten Tage hatten schon die schlechtere Nacht davor.
@@ -464,6 +524,26 @@ function a3Tagebuch({ spaetAm, schlafSpaet = 2, schlafFrueh = 1, vorNacht = [1, 
   const a = auswerten(liste, tage).a3;
   check(a.genug && a.stoerung === 'vornacht' && a.saetze.some((t) => t.startsWith('Schon die Nacht davor war auf beiden Seiten verschieden')),
     `A3: Schon die Nacht davor war verschieden – kein Urteil, mit dem Satz dazu (${a.stoerung})`);
+}
+{
+  // Vor-Nacht: Auf der späten Seite fehlt jede Angabe zur Nacht davor. Eine
+  // Lücke ist nie 0 = „gut geschlafen“ (R1) – keine erfundene Zahl im Satz.
+  const liste = [];
+  const tage = {};
+  for (let k = 0; k < 40; k++) {
+    const d = tagN(2 * k);
+    const spaet = k % 2 === 0;
+    liste.push(mittel(d, spaet ? '16:00' : '11:00'), stuhl(d));
+    tage[d] = { stress: 1, ...(spaet ? {} : { schlaf: 1 }) };
+    tage[tagN(2 * k + 1)] = { schlaf: 1 };
+  }
+  const a = auswerten(liste, tage).a3;
+  check(a.genug && a.vorNacht.spaeter === null && a.vorNacht.sonst === 1,
+    `A3: eine Seite ohne Angaben zur Nacht davor hat keinen Mittelwert (${a.vorNacht.spaeter} gegen ${a.vorNacht.sonst})`);
+  check(a.art === 'gestoert' && !a.saetze.some((t) => /\(0 gegen|gegen 0\)/.test(t))
+    && a.saetze.includes('Zur Nacht davor fehlen auf einer Seite die Angaben – ob sie schon verschieden war, '
+      + 'kann der Vergleich nicht prüfen.'),
+  `A3: dann vorsichtshalber kein Urteil, mit einem Satz ohne Zahl (${a.art}: ${a.saetze.slice(1).join(' ')})`);
 }
 
 /* ---------- 9. A4: Kopfschmerzbeginn ab der ersten Einnahme ---------- */
@@ -510,6 +590,19 @@ function a3Tagebuch({ spaetAm, schlafSpaet = 2, schlafFrueh = 1, vorNacht = [1, 
   check(r.zeilen.appetit.k === 3 && r.zeilen.appetit.n === 10, `A5: „Kein Appetit“ an ${r.zeilen.appetit.k} von ${r.zeilen.appetit.n} Einnahmetagen mit Bauch-Angaben`);
   check(r.satz === 'Ob eine Mahlzeit ausgefallen ist oder nur nicht eingetragen wurde, weiß Body Check nicht.',
     'A5 sagt, dass eine fehlende Mahlzeit auch eine nicht eingetragene sein kann');
+}
+{
+  // Der laufende Tag zählt nicht: Um 10 Uhr ist er noch kein Tag „ohne Mittagessen“.
+  const { essensRhythmus } = adhs;
+  const liste = [];
+  for (let i = 0; i < 9; i++) liste.push(mittel(tagN(i), '07:00'), essen(tagN(i), '07:30'), essen(tagN(i), '12:30'));
+  const heute = tagN(9);
+  liste.push(mittel(heute, '07:00'), essen(heute, '07:30'), essen(heute, '09:45'));
+  const r = essensRhythmus({ eintraege: liste, tage: {}, von: tagN(0), bis: heute, heute });
+  const a5 = adhsAuswertung({ eintraege: liste, tage: {}, heute, jetzt: msAm(heute, '10:00') }).a5;
+  check(r.zeilen.ohneMittag.k === 0 && r.zeilen.ohneMittag.n === 9 && a5.zeilen.ohneMittag.k === 0
+    && a5.zeilen.ohneMittag.n === 9 && a5.tage === 9,
+  `A5: der angefangene Tag zählt nicht mit (ohne Mittag ${r.zeilen.ohneMittag.k} von ${r.zeilen.ohneMittag.n}, in der Auswertung ${a5.zeilen.ohneMittag.k} von ${a5.zeilen.ohneMittag.n})`);
 }
 
 /* ---------- 11. R4 und der Spielraum ---------- */
