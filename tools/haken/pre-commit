@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Lokaler Haken vor jedem Commit: nichts Persoenliches ins oeffentliche Repository.
+
+INSTALLIEREN (einmal je Arbeitskopie, wird nicht mit eingecheckt):
+
+    cp tools/haken/pre-commit tools/haken/commit-msg .git/hooks/
+    chmod +x .git/hooks/pre-commit .git/hooks/commit-msg
+
+WARUM
+
+Das Repository ist oeffentlich, die App ist allgemein gebaut. Was nicht
+hineingehoert - Namen, Angaben, die auf einen bestimmten Menschen zeigen -,
+steht in einer Sperrliste, die NUR auf dem eigenen Rechner liegt:
+
+    ~/.config/bodycheck/verboten.txt
+    (anderer Ort: Umgebungsvariable BODYCHECK_VERBOTEN)
+
+Jede Zeile dort ist ein regulaerer Ausdruck, gross und klein egal. Leere
+Zeilen und Zeilen, die mit # beginnen, zaehlen nicht. Fehlt die Datei, tut
+der Haken nichts - auf einem fremden Rechner und in CI gibt es sie nicht,
+und dort prueft tools/pruefung/allgemein.py, was sich ohne Liste pruefen
+laesst.
+
+Geprueft werden nur die HINZUGEFUEGTEN Zeilen des vorgemerkten Diffs (und
+die Namen der beteiligten Dateien). Was schon im Repository steht, hat
+jemand anders zu entscheiden; ein Haken, der wegen einer alten Zeile jeden
+Commit verweigert, wird abgeschaltet.
+
+Die Meldung nennt Datei und Zeile, aber nie das getroffene Muster und nie
+den Text: Die Sperrliste soll auch im Terminal, in Protokollen und in
+Bildschirmfotos nicht auftauchen.
+"""
+import os
+import pathlib
+import re
+import subprocess
+import sys
+
+
+def sperrliste():
+    """Die Muster der lokalen Liste - oder [], wenn es keine gibt."""
+    pfad = os.environ.get('BODYCHECK_VERBOTEN') or str(
+        pathlib.Path.home() / '.config' / 'bodycheck' / 'verboten.txt')
+    try:
+        zeilen = pathlib.Path(pfad).read_text(encoding='utf-8').splitlines()
+    except OSError:
+        return []
+    muster = []
+    for nr, zeile in enumerate(zeilen, 1):
+        zeile = zeile.strip()
+        if not zeile or zeile.startswith('#'):
+            continue
+        try:
+            muster.append(re.compile(zeile, re.IGNORECASE))
+        except re.error:
+            # Kein gueltiger Ausdruck: dann eben woertlich. Gemeldet wird nur
+            # die Zeilennummer, nie der Inhalt.
+            print(f'Hinweis: Zeile {nr} der Sperrliste ist kein gueltiger Ausdruck '
+                  '- sie wird woertlich gesucht.', file=sys.stderr)
+            muster.append(re.compile(re.escape(zeile), re.IGNORECASE))
+    return muster
+
+
+def hinzugefuegt(diff):
+    """(Datei, Zeilennummer, Text) fuer jede hinzugefuegte Zeile eines Diffs."""
+    datei = None
+    nr = 0
+    kopf = False
+    for zeile in diff.splitlines():
+        if zeile.startswith('diff --git '):
+            kopf = True
+            continue
+        if kopf:
+            if zeile.startswith('+++ '):
+                datei = zeile[4:]
+                datei = datei[2:] if datei.startswith('b/') else datei
+                yield (datei, 0, datei)
+            if zeile.startswith('@@'):
+                kopf = False
+            else:
+                continue
+        if zeile.startswith('@@'):
+            m = re.match(r'@@ -\S+ \+(\d+)', zeile)
+            nr = int(m.group(1)) if m else 0
+            continue
+        if zeile.startswith('+'):
+            yield (datei, nr, zeile[1:])
+            nr += 1
+        elif not zeile.startswith('-') and not zeile.startswith('\\'):
+            nr += 1
+
+
+def main():
+    muster = sperrliste()
+    if not muster:
+        return 0
+    diff = subprocess.run(
+        ['git', 'diff', '--cached', '--no-color', '--no-ext-diff', '--unified=0'],
+        capture_output=True, check=True,
+    ).stdout.decode('utf-8', errors='replace')
+    treffer = []
+    for datei, nr, text in hinzugefuegt(diff):
+        if not any(m.search(text) for m in muster):
+            continue
+        # Trifft schon der Dateiname, wird auch er nicht ausgegeben - sonst
+        # stuende das Getroffene doch in der Meldung.
+        if any(m.search(datei or '') for m in muster):
+            ort = '  ein Dateiname' + (f', Zeile {nr}' if nr else '')
+        else:
+            ort = f'  {datei}, Zeile {nr}'
+        if ort not in treffer:
+            treffer.append(ort)
+    if not treffer:
+        return 0
+    print('Commit abgebrochen: Eine hinzugefuegte Zeile trifft die lokale Sperrliste.',
+          file=sys.stderr)
+    print('\n'.join(treffer[:20]), file=sys.stderr)
+    print('Bitte allgemein fassen - ohne Bezug auf einen bestimmten Menschen.',
+          file=sys.stderr)
+    return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Lokaler Haken fuer den Commit-Text: nichts Persoenliches in die Vorgeschichte.
+
+INSTALLIEREN (einmal je Arbeitskopie, wird nicht mit eingecheckt):
+
+    cp tools/haken/pre-commit tools/haken/commit-msg .git/hooks/
+    chmod +x .git/hooks/pre-commit .git/hooks/commit-msg
+
+Dieselbe Sperrliste wie tools/haken/pre-commit (dort steht das Warum):
+
+    ~/.config/bodycheck/verboten.txt
+    (anderer Ort: Umgebungsvariable BODYCHECK_VERBOTEN)
+
+Ein Commit-Text ist schwerer loszuwerden als eine Zeile Code: Er steht in der
+Vorgeschichte, und die laesst sich auf einem oeffentlichen Repository nur mit
+Gewalt umschreiben. Geprueft wird jede Zeile ausser denen, die git ohnehin
+entfernt (sie beginnen mit #). Gemeldet wird die Zeilennummer, nie das
+Muster und nie der Text.
+"""
+import os
+import pathlib
+import re
+import sys
+
+
+def sperrliste():
+    """Die Muster der lokalen Liste - oder [], wenn es keine gibt."""
+    pfad = os.environ.get('BODYCHECK_VERBOTEN') or str(
+        pathlib.Path.home() / '.config' / 'bodycheck' / 'verboten.txt')
+    try:
+        zeilen = pathlib.Path(pfad).read_text(encoding='utf-8').splitlines()
+    except OSError:
+        return []
+    muster = []
+    for nr, zeile in enumerate(zeilen, 1):
+        zeile = zeile.strip()
+        if not zeile or zeile.startswith('#'):
+            continue
+        try:
+            muster.append(re.compile(zeile, re.IGNORECASE))
+        except re.error:
+            print(f'Hinweis: Zeile {nr} der Sperrliste ist kein gueltiger Ausdruck '
+                  '- sie wird woertlich gesucht.', file=sys.stderr)
+            muster.append(re.compile(re.escape(zeile), re.IGNORECASE))
+    return muster
+
+
+def main():
+    if len(sys.argv) < 2:
+        return 0
+    muster = sperrliste()
+    if not muster:
+        return 0
+    text = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8', errors='replace')
+    treffer = [nr for nr, zeile in enumerate(text.splitlines(), 1)
+               if not zeile.startswith('#') and any(m.search(zeile) for m in muster)]
+    if not treffer:
+        return 0
+    print('Commit abgebrochen: Der Commit-Text trifft die lokale Sperrliste '
+          f'(Zeile {", ".join(map(str, treffer))}).', file=sys.stderr)
+    print('Bitte allgemein fassen - ohne Bezug auf einen bestimmten Menschen.',
+          file=sys.stderr)
+    return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())
