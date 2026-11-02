@@ -190,6 +190,58 @@ export function belastbar(tage) {
   return zyklen(tage).filter((z) => z.laenge).length >= 2;
 }
 
+/** Ab so vielen Tagen mit Antwort hat eine Phase einen Mittelwert. */
+export const PHASE_FRAGE_MINDEST = 8;
+
+/**
+ * Eine Tagesfrage (Stimmung, Anspannung) je Zyklusphase.
+ *
+ * Nur Tage, an denen die Frage beantwortet ist – ein Tag ohne Antwort ist
+ * keine gute Stimmung. Nur Phasen mit mindestens acht solchen Tagen haben
+ * einen Mittelwert; die übrigen stehen mit ihrer Zahl da und ohne Schnitt.
+ * Kein Urteil: Wer aus vier Phasen die höchste und die niedrigste heraussucht,
+ * findet immer einen Abstand. Deshalb kommt der Standardfehler dieses
+ * Abstands mit (`se`); wie streng er zu lesen ist, entscheidet der Aufrufer
+ * (js/zufall.js, das hier nicht hergehört – es steht im Bündel weiter hinten).
+ *
+ * @returns {{ id, belastbar, phasen: {phase, name, tage, schnitt|null}[],
+ *             genug, hoch, tief, abstand, se }}
+ */
+export function phasenFrage(tage, id) {
+  const eimer = Object.fromEntries(PHASEN.map((p) => [p.id, []]));
+  Object.keys(tage || {}).forEach((iso) => {
+    const wert = tage[iso] ? tage[iso][id] : null;
+    if (wert === null || wert === undefined || wert === '' || !Number.isFinite(Number(wert))) return;
+    const p = phaseVon(tage, iso);
+    if (p) eimer[p].push(Number(wert));
+  });
+  const mittel = (l) => l.reduce((s, x) => s + x, 0) / l.length;
+  const phasen = PHASEN.filter((p) => eimer[p.id].length).map((p) => ({
+    phase: p.id,
+    name: p.name,
+    tage: eimer[p.id].length,
+    schnitt: eimer[p.id].length >= PHASE_FRAGE_MINDEST ? mittel(eimer[p.id]) : null,
+  }));
+  const voll = phasen.filter((p) => p.schnitt !== null);
+  const genug = belastbar(tage) && voll.length === PHASEN.length;
+  if (!genug) return { id, belastbar: belastbar(tage), phasen, genug: false, hoch: null, tief: null, abstand: 0, se: Infinity };
+  const sortiert = [...voll].sort((a, b) => b.schnitt - a.schnitt);
+  const hoch = sortiert[0];
+  const tief = sortiert[sortiert.length - 1];
+  // Gemeinsame Streuung über alle Phasen – wie in zufallsSpielraum.
+  let quadrate = 0;
+  let n = 0;
+  voll.forEach((p) => {
+    eimer[p.phase].forEach((x) => { quadrate += (x - p.schnitt) ** 2; });
+    n += eimer[p.phase].length;
+  });
+  const varianz = n > voll.length ? quadrate / (n - voll.length) : 0;
+  const se = Math.sqrt(varianz * (1 / hoch.tage + 1 / tief.tage));
+  return {
+    id, belastbar: true, phasen, genug: true, hoch: hoch.phase, tief: tief.phase, abstand: hoch.schnitt - tief.schnitt, se,
+  };
+}
+
 /** Der Stand von heute, für die Tagesansicht. */
 export function heutigerStand(tage, iso) {
   const tag = zyklusTag(tage, iso);

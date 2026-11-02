@@ -49,8 +49,11 @@ import {
 } from './mittel.js';
 import { WECHSEL_TAGE, formZu, wechselHinweise } from './zusammen.js';
 import {
-  ESSEN_GILT_MIN, PAUSE_GRUENDE, adhsEinnahmen, essenZurEinnahme, istStimulans,
+  ESSEN_GILT_MIN, PAUSE_GRUENDE, adhsAuswertung, adhsEinnahmen, ausloeserNahAmMittel, ausloeserNahSatz,
+  essenZurEinnahme, istStimulans, zeitprofilNahAmMittel,
 } from './adhs.js';
+import { spannungAuswertung } from './spannung.js';
+import { grenzeText, hatUrteil } from './vergleich.js';
 import {
   belastbar, heutigerStand, mittlereLaenge, phasenBilanz, phasenName, schwankung,
 } from './zyklus.js';
@@ -70,7 +73,7 @@ import {
 import { fragenVorschlagen } from './unterleib.js';
 import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import {
-  fensterWerte, spaeteFunde, zeitBild, zeitProfil,
+  FENSTER, fensterWerte, spaeteFunde, zeitBild, zeitProfil,
 } from './zeitprofil.js';
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
@@ -1623,6 +1626,29 @@ function sicherungKarte(iso) {
  * eigenen Verlauf oder aus dem, was allgemein empfohlen wird. Ohne diese
  * Unterscheidung wäre beides gleich viel wert, und das ist es nicht.
  */
+/*
+ * Vorsicht beim Essen (siehe ESSEN_VORSICHT in js/rat.js): nur mit dem
+ * Schalter ADHS und einer Einnahme in den letzten 14 Tagen. Gebremst wird,
+ * wenn das Gewicht ungewollt sinkt oder „Kein Appetit" an mindestens drei der
+ * letzten sieben Tage mit Bauch-Angaben steht.
+ */
+function essenVorsichtVon(s, heute) {
+  if (s.adhsAn !== true) return null;
+  const ab = plusTage(heute, -13);
+  const einnahme = adhsEinnahmen(s.eintraege.filter((e) => e.am >= ab && e.am <= heute)).length > 0;
+  if (!einnahme) return null;
+  const gewicht = gewichtsBild(s.gewicht, heute, s.abnehmenGewollt);
+  if (gewicht && gewicht.warnung) return 'bremse';
+  const bauchTage = [];
+  for (let i = 0; i < 400 && bauchTage.length < 7; i++) {
+    const iso = plusTage(heute, -i);
+    if (tagesWert(s.eintraege, iso, s.tage).notiert) bauchTage.push(iso);
+  }
+  const appetit = bauchTage.filter((iso) => s.eintraege.some((e) => e.am === iso && e.art === 'beschwerde'
+    && (e.arten || []).includes('appetit'))).length;
+  return appetit >= 3 ? 'bremse' : 'zusatz';
+}
+
 function ratKarte(s) {
   const letzteMahlzeit = [...s.eintraege].reverse().find((e) => e.art === 'essen');
   const mittel = new Map();
@@ -1646,6 +1672,7 @@ function ratKarte(s) {
     letzteMahlzeitStunden: letzteMahlzeit
       ? stundenSeitLetzterMahlzeit(s.eintraege, heuteISO(), jetztUhr()) : null,
     mittel: [...mittel.entries()].slice(-3).map(([name, am]) => ({ name, zuletzt: fmtDatum(am) })),
+    essenVorsicht: essenVorsichtVon(s, heuteISO()),
   });
 
   if (!liste.length) return '';
@@ -2012,10 +2039,31 @@ function musterDaten(s) {
       dosis: UMSTAND_IDS.includes(b.id) ? null : dosisBild(s.eintraege, b.id, s.fenster),
     }));
 
+  /*
+   * Die Familien der Fassung 28 – ADHS und Kiefer/Nacken – immer gerechnet,
+   * auch mit ausgeschalteten Schaltern (R0): Die Schalter entscheiden nur,
+   * was zu sehen ist. Einmal hier, damit die Karten unten und die Vorbehalte
+   * an den alten Rechnungen dieselben Zahlen sehen.
+   */
+  const adhs = adhsAuswertung({
+    eintraege: s.eintraege, tage: s.tage, heute, mindestFaelle: s.mindestFaelle,
+    standardMittel: s.standardMittel, gewicht: s.gewicht,
+  });
+  const spannung = spannungAuswertung({
+    eintraege: s.eintraege, tage: s.tage, heute, fenster: s.fenster, mindestFaelle: s.mindestFaelle,
+    standardMittel: s.standardMittel,
+  });
+  const zeit = zeitBild(s.eintraege);
+
   return {
     heute, istNsar, gruppeVon, bewertet, bilanz, klassen, kriterien: k, mittel, fenster,
     uebersehen, wechsel, bild, luecke, gepruefte,
-    zeit: zeitBild(s.eintraege),
+    zeit,
+    // Ebene 0: Liegen die Beschwerden des Zeitprofils zugleich nach einem
+    // ADHS-Mittel? Steht bei der Karte „Wie lange nach dem Essen".
+    zeitNah: zeitprofilNahAmMittel(s.eintraege, zeit, FENSTER),
+    adhs,
+    spannung,
   };
 }
 
@@ -2169,6 +2217,10 @@ function spaetTeil(s, d) {
 function zeitTeil(d) {
   const z = d.zeit;
   if (!z.zugeordnet) return '';
+  // Vorbehalt (Ebene 0): Fällt das Fenster nach dem Essen mit dem nach einem
+  // ADHS-Mittel zusammen, kann das Profil auch das Mittel zeigen.
+  const nah = d.zeitNah && d.zeitNah.zeigen
+    ? `<p class="klein vorbehalt-mittel">${esc(d.zeitNah.satz)}</p>` : '';
   const zeilen = z.teile.map((t) => `<li>
     <span>${esc(t.name)}</span>
     <span class="klein">${t.anzahl}× · ${Math.round(t.anteil * 100)} %
@@ -2181,6 +2233,7 @@ function zeitTeil(d) {
     <ul class="wartend">${zeilen}</ul>
     <p class="klein">${z.zugeordnet} von ${z.gesamt} Beschwerden ließen sich
       einer Mahlzeit davor zuordnen. ${esc(z.hinweis)}</p>
+    ${nah}
   </div>`;
 }
 
@@ -3032,13 +3085,15 @@ function musterInhalt(s) {
   if (frueh) {
     return `${lageTeil(s, d)}${warnTeil(d)}${fortschrittTeil(s, d)}`
       + `${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}`
-      + `${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${aktivTeil(s, true)}${zyklusTeil(s)}${erklaerung}`;
+      + `${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${aktivTeil(s, true)}`
+      + `${adhsKarte(s, d)}${spannungKarte(s, d)}${zyklusTeil(s)}${erklaerung}`;
   }
 
   if (!mahlzeiten) {
     return `${lageTeil(s, d)}${bildTeil(s, d)}${kriterienTeil(s, d)}${versuchTeil(s, d)}${planTeil(s, d)}${provokationTeil(s, d)}<p class="leer">Noch keine Mahlzeit
       eingetragen. Sobald ein paar Tage beisammen sind, steht hier, was
-      auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${aktivTeil(s)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
+      auffällt.</p>${ansprechenTeil(s, d)}${stuhlTeil(s)}${kopfTeil(s, d)}${aktivTeil(s)}`
+      + `${adhsKarte(s, d)}${spannungKarte(s, d)}${brauchtTeil(s, d)}${zyklusTeil(s)}${erklaerung}`;
   }
 
   const fertig = bilanz.filter((b) => b.genug);
@@ -3063,6 +3118,11 @@ function musterInhalt(s) {
     // Und die eigentliche Frage dahinter: wie viel, nicht ob – auch das kommt
     // aus musterDaten, damit oben und unten dasselbe steht.
     const dosis = g ? g.dosis : null;
+    // Vorbehalt (Ebene 0): Liegen die Mahlzeiten mit diesem Auslöser deutlich
+    // öfter nach einem ADHS-Mittel als die übrigen, misst der Fund das Mittel
+    // womöglich mit.
+    const nahSatz = ausloeserNahSatz(ausloeserNahAmMittel(d.bewertet, s.eintraege, b.id),
+      ausloeserName(b.id, s.eigeneAusloeser));
     return `<li class="fund f-${art}">
       <div class="fund-kopf">
         <b>${esc(ausloeserName(b.id, s.eigeneAusloeser))}</b>
@@ -3072,6 +3132,7 @@ function musterInhalt(s) {
       <p class="klein">${mehrzahl(b.faelle, 'Mahlzeit', 'Mahlzeiten')} damit,
         ${b.gegenFaelle} ohne · danach ${Math.round(b.quoteMit * 100)} % mit
         Beschwerden, sonst ${Math.round(b.quoteOhne * 100)} %</p>
+      ${nahSatz ? `<p class="klein vorbehalt-mittel">${esc(nahSatz)}</p>` : ''}
       ${nachRolle}
       ${dosis ? dosisBlock(dosis) : ''}
       ${stand ? schichtBlock(stand) : ''}
@@ -3129,7 +3190,8 @@ function musterInhalt(s) {
     + kriterienTeil(s, d) + versuchTeil(s, d) + planTeil(s, d) + provokationTeil(s, d)
     + klassenTeil(s, d) + gefunden + spaetTeil(s, d) + wechselTeil(s, d)
     + wartet + ansprechenTeil(s, d)
-    + zeitTeil(d) + wann + wie + stuhlTeil(s) + kopfTeil(s, d) + aktivTeil(s) + brauchtTeil(s, d)
+    + zeitTeil(d) + wann + wie + stuhlTeil(s) + kopfTeil(s, d) + aktivTeil(s)
+    + adhsKarte(s, d) + spannungKarte(s, d) + brauchtTeil(s, d)
     + zyklusTeil(s) + erklaerung;
 }
 
@@ -3166,11 +3228,25 @@ function aktivNoch(v, kopf = false) {
 
 function aktivTeil(s, nurFertig = false) {
   const fenster = s.fenster || 4;
-  const zeilen = aktivitaetBilanz(s.eintraege, s.tage, { fenster, mindestFaelle: s.mindestFaelle });
+  const alleZeilen = aktivitaetBilanz(s.eintraege, s.tage, { fenster, mindestFaelle: s.mindestFaelle });
+  /*
+   * Mit „Kiefer, Nacken, Schiene" stehen Massage, Massagepistole und Wärme
+   * nur noch gefiltert da – nach einem mindestens mittel verspannten Vortag,
+   * in der Karte „Kiefer, Nacken, Schiene". Hier stünde sonst daneben der
+   * ungefilterte Lauf mit einer anderen Zahl für dieselbe Aktivität.
+   */
+  const gefiltert = s.spannungAn === true;
+  const zeilen = gefiltert ? alleZeilen.filter((z) => !z.gegenmittel) : alleZeilen;
+  const verschoben = gefiltert && alleZeilen.some((z) => z.gegenmittel);
   const fertig = zeilen.filter((z) => z.bauch.genug || z.kopf.genug);
   const offen = zeilen.filter((z) => !z.bauch.genug && !z.kopf.genug);
   const bewegung = bewegungSatz(faktorBilanz(s.eintraege, s.tage, 'bewegung', tagesWert));
-  if (!fertig.length && !bewegung && (nurFertig || !offen.length)) return '';
+  if (!fertig.length && !bewegung && (nurFertig || !offen.length)) {
+    return verschoben && !nurFertig ? `<div class="karte karte-aktiv" id="wasDuGemachtHast">
+      <h3>Was du gemacht hast</h3>
+      <p class="klein">${esc(GEGENMITTEL_VERSCHOBEN)}</p>
+    </div>` : '';
+  }
   const rang = ['auffaellig', 'moeglich', 'unauffaellig', 'neutral', 'zuwenig'];
   const fund = (z) => {
     const a = aktivitaetVon(z.id, s.eigeneAktivitaeten);
@@ -3207,8 +3283,284 @@ function aktivTeil(s, nurFertig = false) {
       </li>`).join('')}</ul>` : ''}
     ${bewegung ? `<p class="klein aktiv-bewegung">${esc(bewegung)} Gezählt am selben Tag –
       an schlechten Tagen bewegt man sich oft weniger.</p>` : ''}
+    ${verschoben ? `<p class="klein">${esc(GEGENMITTEL_VERSCHOBEN)}</p>` : ''}
     <p class="klein">Das ist eine Häufigkeit, keine Ursache. Wer an schlechten Tagen
     anders lebt, findet sich hier wieder, ohne dass die Aktivität schuld wäre.</p>
+  </div>`;
+}
+
+const GEGENMITTEL_VERSCHOBEN = 'Massage, Massagepistole und Wärme stehen unter „Kiefer, Nacken, Schiene“ – '
+  + 'gezählt nur nach einem mindestens mittel verspannten Vortag.';
+
+/*
+ * Die Wörter für ein Urteil in den neuen Karten. „Auffällig" heißt dort immer:
+ * auf der genannten Seite mehr – mehr Beschwerden, mehr Kopfschmerz, schlechter
+ * geschlafen. Wo höhere Zahlen besser wären, gibt es keine Zeile.
+ */
+const NEU_URTEIL_WORT = {
+  auffaellig: 'auffällig',
+  moeglich: 'möglicherweise',
+  unauffaellig: 'eher weniger',
+};
+
+/*
+ * Zwei Balken für Anteile, mit Prozent statt einer Zahl von 0 bis 10 –
+ * vergleichBalken (js/chart.js) zeigt eine Stufe, und „0,4" läse sich hier
+ * wie eine.
+ */
+function anteilBalken(a, b, worte) {
+  const breite = (x) => `${Math.max(1.5, Math.min(100, x * 100)).toFixed(1)}%`;
+  const zeile = (wort, x, farbe) => `<div class="vgl-zeile"><span class="vgl-mark">${esc(wort)}</span>
+    <span class="vgl-spur"><i style="width:${breite(x)};background:${farbe}"></i></span>
+    <b>${Math.round(x * 100)} %</b></div>`;
+  return `<div class="vgl">${zeile(worte.mit, a, 'var(--warn)')}${zeile(worte.ohne, b, 'var(--muted)')}</div>`;
+}
+
+/** Ein Vergleich mit Urteil als Fund – oder '' ohne Urteil. */
+function neuFund(titel, v, satz, worte) {
+  if (!hatUrteil(v)) return '';
+  const [a, b] = v.richtung === 'ohne' ? [v.ohne.schnitt, v.mit.schnitt] : [v.mit.schnitt, v.ohne.schnitt];
+  const balken = v.skala === 'anteil' ? anteilBalken(a, b, worte) : vergleichBalken(a, b, worte);
+  return `<li class="fund f-${v.art}">
+    <div class="fund-kopf"><b>${esc(titel)}</b><span class="fund-urteil">${NEU_URTEIL_WORT[v.art]}</span></div>
+    ${balken}
+    <p class="klein">${esc(satz)}</p>
+  </li>`;
+}
+
+const kleinSaetze = (liste) => liste.filter(Boolean).map((t) => `<p class="klein">${esc(t)}</p>`).join('');
+
+/*
+ * Vergleiche mit genug Fällen, aber ohne Urteil: als Zahlen in einer Liste,
+ * und darunter in einem Satz, ab welchem Unterschied eines gefallen wäre (R5)
+ * – oder warum keines fallen durfte (R6 bis R6c). Untereinander als ganze
+ * Sätze wären es fünf Absätze, die alle fast dasselbe sagen.
+ */
+function ohneUrteilBlock(liste, seiten = ['mit Mittel', 'ohne']) {
+  const da = liste.filter(({ v }) => v && v.genug && !hatUrteil(v));
+  if (!da.length) return '';
+  const wert = (v, x) => (v.skala === 'anteil' ? `${Math.round(x * 100)} %` : fmtZahl(x));
+  const zeilen = da.map(({ titel, v }) => `<li><span>${esc(titel)}</span><span class="klein">${esc(
+    `${seiten[0]} ${wert(v, v.mit.schnitt)} · ${seiten[1]} ${wert(v, v.ohne.schnitt)} (${v.mit.n}/${v.ohne.n})`,
+  )}</span></li>`).join('');
+  const grenzen = da.filter(({ v }) => v.art === 'neutral')
+    .map(({ kurz, v }) => `${grenzeText(v.urteil.grenze, v.skala)} (${kurz})`);
+  const grenzSatz = grenzen.length
+    ? `Kein Unterschied über dem Zufall – unter ${grenzen.length > 1
+      ? `${grenzen.slice(0, -1).join(', ')} und ${grenzen[grenzen.length - 1]}` : grenzen[0]} wäre hier keiner zu sehen.`
+    : '';
+  const stoerung = [...new Set(da.filter(({ v }) => v.stoerung).flatMap(({ v }) => v.saetze))];
+  return `<ul class="wartend">${zeilen}</ul>${kleinSaetze([grenzSatz, ...stoerung])}`;
+}
+
+/**
+ * Die Karte „ADHS-Mittel" – nur mit dem Schalter (Ebene 1).
+ *
+ * Alles hier kommt aus js/adhs.js und ist dort begründet. Die Karte wählt nur
+ * aus: Was ein Urteil hat, steht als Fund mit Balken; was keines hat, steht als
+ * Zahl, mit dem Grund daneben. Auf der Seite „ohne" steht nie, wie viel noch
+ * fehlt (R9) – nur, wie viel es bisher gibt.
+ */
+function adhsKarte(s, d) {
+  if (s.adhsAn !== true) return '';
+  const a = d.adhs;
+  if (!a || !a.einnahmen || !a.abschnitt) {
+    return `<div class="karte karte-adhs">
+      <h3>ADHS-Mittel</h3>
+      <p class="klein">Bisher ist kein ADHS-Mittel eingetragen. Hier stehen Zahlen dazu, sobald es Einnahmen gibt –
+      nur aus dem, was eingetragen ist.</p>
+    </div>`;
+  }
+  const teile = [];
+  const zeile = (name, wert) => `<li><span>${esc(name)}</span><span class="klein">${esc(wert)}</span></li>`;
+
+  /* A1 */
+  const h = a.a1 && a.a1.haupt;
+  if (h) {
+    const v = h.vergleich;
+    const z = h.zaehl;
+    const nicht = [
+      z.vor ? `kurz vor dem Essen ${z.vor}` : '',
+      z.ohneAngabe ? `ohne Angabe ${z.ohneAngabe}` : '',
+      z.spaet ? `später angegeben ${z.spaet}` : '',
+      z.widerspruch ? `Angabe und Mahlzeit widersprechen sich ${z.widerspruch}` : '',
+      z.unklar ? `Mahlzeit nur ungefähr ${z.unklar}` : '',
+      z.nichtZuzuordnen ? `Zeit nur ungefähr ${z.nichtZuzuordnen}` : '',
+      z.davor ? `Beschwerde schon davor ${z.davor}` : '',
+      z.offen ? `Reihenfolge offen ${z.offen}` : '',
+    ].filter(Boolean).join(' · ');
+    const fund = neuFund('Ohne gegen mit Essen', v, h.saetze[0], { mit: 'ohne Essen', ohne: 'mit Essen' });
+    teile.push(`<p class="feld-name">Bauch in den 4 Stunden nach der ersten Einnahme</p>
+      ${fund ? `<ul class="funde">${fund}</ul>${kleinSaetze(h.saetze.slice(1))}` : `<ul class="wartend">
+        ${zeile('ohne Essen', `${mehrzahl(v.ohne.n, 'Mal', 'Mal')}${v.genug ? `, im Mittel ${fmtZahl(v.ohne.schnitt)}` : ''}`)}
+        ${zeile('mit Essen', `${mehrzahl(v.mit.n, 'Mal', 'Mal')}${v.genug ? `, im Mittel ${fmtZahl(v.mit.schnitt)}` : ''}`)}
+      </ul>${kleinSaetze(h.saetze)}`}
+      ${nicht ? `<p class="klein">Nicht gewertet: ${esc(nicht)}.</p>` : ''}
+      ${a.a1.auch.length ? `<p class="klein">Auch: ${esc(a.a1.auch.map((x) => `${x.name}: ${mehrzahl(x.faelle, 'Fall', 'Fälle')}`).join(', '))}.</p>` : ''}`);
+  }
+
+  /* A2 */
+  if (a.a2) {
+    const g = a.a2.gruende;
+    const gruende = [
+      g.geplant ? `geplant ${g.geplant}` : '', g.vergessen ? `vergessen ${g.vergessen}` : '',
+      g.pause ? `ohne Grund ${g.pause}` : '',
+      g.beschwerden ? `wegen Beschwerden ${g.beschwerden} – nicht gewertet` : '',
+    ].filter(Boolean).join(', ');
+    const ids = ['bauch', 'kopf', 'schlaf', ...(s.spannungAn === true ? ['kiefer', 'gepresst'] : [])];
+    const worte = { mit: 'mit Mittel', ohne: 'ohne' };
+    const funde = ids.map((id) => neuFund(A2_TITEL[id], a.a2.zeilen[id], a.a2.zeilen[id].satz, worte)).join('');
+    const ohneUrteil = ohneUrteilBlock(ids.map((id) => ({ titel: A2_TITEL[id], kurz: A2_KURZ[id], v: a.a2.zeilen[id] })));
+    const st = a.a2.stuhl;
+    const stuhl = st.genug && !st.stoerung
+      ? `Harter Stuhl (Typ 1–2) an Tagen mit Mittel ${Math.round(st.mit.schnitt * 100)} % (${st.mit.n} Tage mit `
+        + `Stuhlgang), ohne ${Math.round(st.ohne.schnitt * 100)} % (${st.ohne.n}) – nur beschrieben.`
+      : '';
+    teile.push(`<p class="feld-name">Tage mit gegen ohne Mittel (nur notierte Tage)</p>
+      <ul class="wartend">${zeile('Tage ohne ADHS-Mittel', `${a.a2.ohneTage}${gruende ? ` (${gruende})` : ''}`)}</ul>
+      ${funde ? `<ul class="funde">${funde}</ul>` : ''}
+      ${ohneUrteil}
+      ${kleinSaetze([stuhl, ...a.a2.saetze])}`);
+  }
+
+  /* A3 */
+  if (a.a3 && a.a3.faelle) {
+    const v = a.a3;
+    const fund = neuFund('Schlaf nach späterer letzter Einnahme', v, v.saetze[0],
+      { mit: `nach ${v.uhr}`, ohne: 'früher' });
+    teile.push(`<p class="feld-name">Schlaf nach späterer letzter Einnahme (0 gut – 4 kaum)</p>
+      ${fund ? `<ul class="funde">${fund}</ul>${kleinSaetze(v.saetze.slice(1))}` : kleinSaetze(v.saetze)}`);
+  }
+
+  /* A4 */
+  if (a.a4 && a.a4.sichtbar) {
+    const f = a.a4.faecher;
+    teile.push(`<p class="feld-name">Kopfschmerz-Beginn ab der ersten Einnahme (${a.a4.n}, nur beschrieben)</p>
+      <ul class="wartend">
+        ${zeile('0–4 Stunden', `${f[0]}×`)}${zeile('4–8 Stunden', `${f[1]}×`)}${zeile('8–12 Stunden', `${f[2]}×`)}
+      </ul>
+      <p class="klein">Schon vorher ${a.a4.vorher}×, später als 12 Stunden ${a.a4.spaeter}×.</p>
+      ${kleinSaetze(a.a4.saetze)}`);
+  }
+
+  const fragen = a.fragen.filter((f) => !f.nurMitSpannung || s.spannungAn === true).slice(0, 3);
+  return `<div class="karte karte-adhs">
+    <h3>ADHS-Mittel</h3>
+    <p class="klein">${esc(a.abschnitt.namen.join(', '))} seit ${esc(a.abschnitt.datum)}:
+      ${mehrzahl(a.abschnitt.tage, 'Einnahmetag', 'Einnahmetage')}. Gezählt wird in festen Fenstern –
+      das sagt nichts darüber, wie lange ein Mittel wirkt.</p>
+    ${teile.join('')}
+    ${fragen.length ? `<p class="feld-name">Fragen für die Sprechstunde</p>
+    <ul class="belege">${fragen.map((f) => `<li>${esc(f.text)}</li>`).join('')}</ul>` : ''}
+    <p class="klein">Zahlen aus dem Tagebuch, kein Urteil über das Mittel – Fragen dazu gehören in die Praxis.</p>
+  </div>`;
+}
+
+// Die Skala in Klammern bricht nicht am Strich um (Wortverbinder um „–").
+const A2_TITEL = {
+  bauch: 'Bauch am Tag (0\u2060–\u206010)',
+  kopf: 'Kopfschmerz nach der Einnahmezeit',
+  schlaf: 'Schlaf in der Nacht danach (0\u2060–\u20604)',
+  kiefer: 'Kiefer am Morgen danach (0\u2060–\u20604)',
+  gepresst: 'Tagsüber gepresst',
+};
+const A2_KURZ = { bauch: 'Bauch', kopf: 'Kopf', schlaf: 'Schlaf', kiefer: 'Kiefer', gepresst: 'gepresst' };
+
+/**
+ * Die Karte „Kiefer, Nacken, Schiene" – nur mit dem Schalter (Ebene 2).
+ *
+ * Wie die ADHS-Karte: Funde nur mit Urteil, sonst Zahlen mit Grund. Was am
+ * selben Tag zusammen vorkommt, steht nur als Zahl (R7) – Nacken und
+ * Kopfschmerz am selben Tag sagen nichts darüber, was zuerst kam.
+ */
+function spannungKarte(s, d) {
+  if (s.spannungAn !== true) return '';
+  const sp = d.spannung;
+  const teile = [];
+  const zeile = (name, wert) => `<li><span>${esc(name)}</span><span class="klein">${esc(wert)}</span></li>`;
+
+  /* V1 */
+  const v1 = sp.v1;
+  if (v1.getragen || v1.nicht) {
+    const worte = { mit: 'ohne Schiene', ohne: 'mit Schiene' };
+    const funde = [
+      neuFund('Kopf am Morgen', v1.v1a, v1.saetze.find((t) => t.startsWith('Kopf am Morgen')) || '', worte),
+      neuFund('Kiefer am Morgen', v1.v1b, v1.saetze.find((t) => t.startsWith('Kiefer am Morgen')) || '', worte),
+    ].join('');
+    // Die Sätze zu V1a und V1b stehen als Fund oder als Zahl darüber; übrig
+    // bleiben „zu wenige", die nicht gewerteten Nächte und der Satz zur Schiene.
+    const rest = v1.saetze.filter((t) => !t.startsWith('Kopf am Morgen') && !t.startsWith('Kiefer am Morgen'));
+    const ohne = ohneUrteilBlock([
+      { titel: 'Kopf am Morgen', kurz: 'Kopf', v: v1.v1a },
+      { titel: 'Kiefer am Morgen (0\u2060–\u20604)', kurz: 'Kiefer', v: v1.v1b },
+    ], ['mit Schiene', 'ohne']);
+    teile.push(`<p class="feld-name">Schiene</p>
+      <ul class="wartend">
+        ${zeile('Nächte getragen', String(v1.getragen))}
+        ${zeile('nicht getragen', String(v1.nicht))}
+        ${v1.ohneAngabe ? zeile('ohne Angabe', String(v1.ohneAngabe)) : ''}
+      </ul>
+      ${funde ? `<ul class="funde">${funde}</ul>` : ''}
+      ${ohne}
+      ${kleinSaetze(rest)}`);
+  }
+
+  /* V2 */
+  const v2 = sp.v2;
+  if (v2.mit.n || v2.ohne.n) {
+    const fund = neuFund('Neuer Kopfschmerz am nächsten Tag', v2, v2.satz,
+      { mit: 'stark verspannt', ohne: 'locker' });
+    const gut = v2.gut.genug
+      ? `Nur nach guten Nächten: nach stark verspanntem Tag ${v2.gut.mit.k} von ${v2.gut.mit.n}, nach lockerem `
+        + `${v2.gut.ohne.k} von ${v2.gut.ohne.n} – nur beschrieben.`
+      : '';
+    teile.push(`<p class="feld-name">Nacken/Schultern und Kopfschmerz am nächsten Tag</p>
+      ${fund ? `<ul class="funde">${fund}</ul>` : (v2.genug ? kleinSaetze([v2.satz])
+    : `<ul class="wartend">${zeile('nach stark verspanntem Tag', mehrzahl(v2.mit.n, 'Tag', 'Tage'))}${zeile('nach lockerem Tag', mehrzahl(v2.ohne.n, 'Tag', 'Tage'))}</ul>`)}
+      ${kleinSaetze([
+    v2.genug ? `Anspannung an diesen Tagen: ${fmtZahl(v2.stress.mit)} gegen ${fmtZahl(v2.stress.ohne)}.` : '',
+    gut, v2.vorbote,
+  ])}`);
+  }
+
+  /* V3 */
+  if (sp.v3.length) {
+    const funde = sp.v3.map((z) => neuFund(z.name, z.vergleich, z.satz, { mit: 'danach', ohne: 'sonst' })).join('');
+    const ohneUrteil = sp.v3.filter((z) => !hatUrteil(z.vergleich));
+    teile.push(`<p class="feld-name">Nach mindestens mittel verspanntem Vortag: Kopfschmerz in 24 Stunden</p>
+      ${funde ? `<ul class="funde">${funde}</ul>` : ''}
+      ${ohneUrteil.length ? `<ul class="wartend">${ohneUrteil.map((z) => zeile(z.name,
+    `${mehrzahl(z.vergleich.mit.n, 'Tag', 'Tage')} damit, ${z.vergleich.ohne.n} ohne`)).join('')}</ul>` : ''}
+      ${kleinSaetze(ohneUrteil.filter((z) => z.vergleich.genug).map((z) => z.satz))}
+      <p class="klein">Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach kann
+      schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.</p>`);
+  }
+
+  /* R7: am selben Tag */
+  const g = sp.gleichzeitig;
+  const zahlen = [
+    g.nacken.an.n >= 4 && g.nacken.sonst.n >= 4
+      ? zeile('Nacken/Schultern an Kopfschmerztagen', `${fmtZahl(g.nacken.an.schnitt)}, sonst ${fmtZahl(g.nacken.sonst.schnitt)}`)
+      : '',
+    g.gepresst.n ? zeile('Tagsüber gepresst', `an ${g.gepresst.ja} von ${mehrzahl(g.gepresst.n, 'Tag', 'Tagen')}`) : '',
+    g.merkmale.kauen ? zeile('Kopfschmerz schlimmer beim Kauen', `${g.merkmale.kauen}×`) : '',
+    g.merkmale.nackenbewegung ? zeile('Kopfschmerz schlimmer bei Kopf- oder Nackenbewegung', `${g.merkmale.nackenbewegung}×`) : '',
+    g.merkmale.schlaefe ? zeile('Kopfschmerz an Schläfe oder Kiefer', `${g.merkmale.schlaefe}×`) : '',
+  ].filter(Boolean);
+  if (zahlen.length) {
+    teile.push(`<p class="feld-name">Am selben Tag – nur gezählt</p>
+      <ul class="wartend">${zahlen.join('')}</ul>
+      <p class="klein">Gleichzeitig heißt nicht: das eine kommt vom anderen.</p>`);
+  }
+
+  const fragen = sp.fragen.slice(0, 2);
+  return `<div class="karte karte-spannung">
+    <h3>Kiefer, Nacken, Schiene</h3>
+    ${teile.length ? teile.join('') : '<p class="klein">Bisher ist dazu nichts eingetragen. Gefragt wird auf „Tag“ unter „Wie war der Tag sonst?“.</p>'}
+    ${fragen.length ? `<p class="feld-name">Fragen für die Sprechstunde</p>
+    <ul class="belege">${fragen.map((f) => `<li>${esc(f.text)}</li>`).join('')}</ul>` : ''}
+    <p class="klein">Body Check bestätigt oder widerlegt keine ärztliche oder zahnärztliche Einschätzung – es
+    zählt, ob Kopfschmerz mit diesen Dingen zusammen öfter oder seltener kommt.</p>
   </div>`;
 }
 

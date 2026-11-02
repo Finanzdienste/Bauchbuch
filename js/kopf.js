@@ -34,7 +34,7 @@
  * Fenster ist bei einer Migräne ein Zufallswert – eine schlechte Woche, ein
  * Zyklus.
  */
-import { fmtMonat, monatsStart, plusMonate, plusTage } from './datum.js';
+import { fmtMonat, minutenAmTag, monatsStart, plusMonate, plusTage } from './datum.js';
 import { PHASEN, phaseVon, zyklen } from './zyklus.js';
 import { eintragZaehlt, tagZaehlt } from './wasser.js';
 
@@ -159,6 +159,82 @@ export function kopfEintraege(eintraege, heute) {
 /** Die Kopfschmerztage als Menge – für alles, was Tage vergleicht. */
 export function kopfTageVon(eintraege, heute) {
   return new Set(kopfEintraege(eintraege, heute).map((e) => e.am));
+}
+
+/** Ab dieser Uhrzeit reicht ein Kopfschmerz in den nächsten Tag hinein. */
+const HINEIN_AB = 18 * 60;
+
+/**
+ * Reicht ein Kopfschmerz vom Vortag in diesen Tag hinein?
+ *
+ * Ja, wenn er am Vortag ab 18 Uhr begann oder als „1 bis 3 Tage" oder
+ * „länger als 3 Tage" eingetragen ist. Ein Kopfschmerz an einem solchen Tag
+ * ist dann womöglich kein neuer, sondern derselbe – und wer fragt, was einen
+ * Kopfschmerz auslöst oder wann er nach einer Einnahme beginnt, darf ihn
+ * nicht als neuen zählen. Gezählt wird, was da ist: ohne Dauer und vor 18 Uhr
+ * gilt er als vorbei, auch wenn er es nicht war – die Rechnungen lassen
+ * solche Tage deshalb nur weg und zählen sie nie als frei.
+ */
+export function herueberreichend(eintraege, iso) {
+  const vortag = plusTage(iso, -1);
+  return (eintraege || []).some((e) => e && e.art === 'kopf' && e.am === vortag && Number(e.staerke) >= 1
+    && (e.dauer === 'lang' || e.dauer === 'status' || minutenAmTag(e.um) >= HINEIN_AB));
+}
+
+/*
+ * Die Merkmale, die es erst seit der Fassung 28 gibt. Steht im Zeitraum
+ * keines davon, bleibt der Bericht, wie er war – ein Tagebuch aus der
+ * Fassung 27 bekommt keine Zeilen, die es nicht füllen konnte.
+ */
+const KOPF_NEU = ['beidseitig', 'aufwachen', 'lichtscheu', 'laermscheu', 'kauen', 'nackenbewegung', 'schlaefe'];
+
+/**
+ * Die Merkmale der Kopfschmerzen eines Zeitraums – so gezählt, wie die
+ * Kopfschmerzklassifikation fragt: eine Seite oder beide, pochend oder
+ * drückend, Licht und Lärm zusammen oder nur eins, Übelkeit oder Erbrechen,
+ * schon beim Aufwachen. Das alte „Licht oder Lärm" steht für sich: Es lässt
+ * sich nicht sagen, welches von beiden gemeint war.
+ *
+ * Gezählt, nicht eingeordnet: Welche Art Kopfschmerz das ist, sagt die
+ * Ärztin, nicht diese Zählung.
+ *
+ * @returns {{ neu: boolean, anzahl: number, zeilen: {id, name, anzahl}[], satz: string }}
+ */
+export function kopfMerkmale(eintraege, von, bis) {
+  const kopf = kopfEintraege(eintraege).filter((e) => (!von || e.am >= von) && (!bis || e.am <= bis));
+  const hat = (e, id) => (e.kopfArten || []).includes(id);
+  const neu = kopf.some((e) => KOPF_NEU.some((id) => hat(e, id)));
+  const zaehl = (fn) => kopf.filter(fn).length;
+  const zeilen = [
+    { id: 'beidseitig', name: 'beidseitig', anzahl: zaehl((e) => hat(e, 'beidseitig')) },
+    { id: 'einseitig', name: 'einseitig', anzahl: zaehl((e) => hat(e, 'einseitig')) },
+    { id: 'drueckend', name: 'drückend', anzahl: zaehl((e) => hat(e, 'drueckend')) },
+    { id: 'pochend', name: 'pochend', anzahl: zaehl((e) => hat(e, 'pochend')) },
+    {
+      id: 'lichtlaerm',
+      name: 'Licht und Lärm zusammen',
+      anzahl: zaehl((e) => hat(e, 'lichtscheu') && hat(e, 'laermscheu')),
+    },
+    {
+      id: 'lichtoderlaerm',
+      name: 'nur Licht oder nur Lärm',
+      anzahl: zaehl((e) => hat(e, 'lichtscheu') !== hat(e, 'laermscheu')),
+    },
+    { id: 'licht', name: 'früher eingetragen: Licht oder Lärm', anzahl: zaehl((e) => hat(e, 'licht')) },
+    {
+      id: 'uebel',
+      name: 'mit Übelkeit oder Erbrechen',
+      anzahl: zaehl((e) => hat(e, 'kopfuebel') || hat(e, 'kopferbrechen')),
+    },
+    { id: 'aufwachen', name: 'schon beim Aufwachen', anzahl: zaehl((e) => hat(e, 'aufwachen')) },
+  ];
+  return {
+    neu,
+    anzahl: kopf.length,
+    zeilen: neu ? zeilen.filter((z) => z.anzahl > 0) : [],
+    satz: neu ? 'Gezählt nach den Merkmalen der Kopfschmerzklassifikation (ICHD-3); die '
+      + 'Einordnung nimmt die Ärztin vor.' : '',
+  };
 }
 
 /**

@@ -12,11 +12,49 @@
  * Rein: alles kommt als Argument herein, nichts wird gespeichert, nichts geht
  * hinaus. Wer diese Datei liest, liest auch ihre Grenze – sie weiß nichts von
  * der Anzeige und nichts von den Schaltern. Gerechnet wird immer, sobald
- * Daten da sind; ob etwas davon zu sehen ist, entscheidet js/app.js.
+ * Daten da sind; ob etwas davon zu sehen ist, entscheidet js/app.js (R0).
+ *
+ * DIE RECHNUNGEN (Familie „ADHS", siehe adhsAuswertung)
+ *
+ *   A1  Bauch in den vier Stunden nach der ersten Einnahme des Tages: ohne
+ *       gegen mit Essen – je Mittel und Form.
+ *   A2  Tage mit gegen Tage ohne Stimulans: Bauch, Kopf, Schlaf, Kiefer,
+ *       Pressen, dazu harter Stuhl als Beschreibung.
+ *   A3  Schlaf nach späterer gegen früherer letzter Einnahme.
+ *   A4  Wann ein Kopfschmerz nach der ersten Einnahme beginnt – nur
+ *       beschrieben, ohne Vergleich und ohne Frage.
+ *   A5  Der Essensrhythmus an Einnahmetagen – nur beschrieben, für den
+ *       Bericht.
+ *
+ * Was alle gemeinsam haben, steht in js/vergleich.js: wann ein Tag zählt,
+ * und wann ein Vergleich kein Urteil bekommt, weil die Seiten verschieden
+ * liegen. Zwei Dinge gelten hier besonders streng, weil das Weglassen eines
+ * Mittels nie wie eine Einladung aussehen darf:
+ *
+ *   * „Ohne" zählt nur, wenn es jemand angegeben hat (R2) – ein Tag ohne
+ *     Einnahme im Tagebuch ist kein Tag ohne Mittel, ein fehlendes Frühstück
+ *     kein leerer Magen.
+ *   * Auf der Seite „ohne" steht nie, wie viele noch fehlen (R9). Es steht
+ *     die bisherige Zahl, und dass ein Vergleich nur entsteht, wenn es das
+ *     ohnehin gibt.
  */
-import { tageszeitVon, zeitpunkt } from './datum.js';
-import { STIMULANZIEN, adhsGruppe, istAdhsMittel } from './mittel.js';
+import {
+  fmtDatum, knopfTageszeit, plusTage, tageszeitVon, zeitpunkt, fachVon, minutenAmTag,
+} from './datum.js';
+import { fmtZahl } from './text.js';
+import {
+  ADHS_MITTEL, STIMULANZIEN, adhsGruppe, istAdhsMittel, mphForm,
+} from './mittel.js';
 import { formZu } from './zusammen.js';
+import { zaehltFuerBauch } from './wasser.js';
+import { reihenfolgeUnklar, stundenSeitEssen, tagesWert } from './auswertung.js';
+import {
+  ZIEL_BAUCH, ZIEL_KOPF, blockUngleich, eintraegeNachTag, familienVergleiche, grenzeText,
+  nachweisSatz, tagNotiertOhne, vergleichRoh, vergleichUrteilen, wochenendeUngleich,
+} from './vergleich.js';
+import { herueberreichend, kopfEintraege } from './kopf.js';
+import { stuhlgaenge } from './stuhl.js';
+import { bristolVon } from './daten.js';
 
 const MINUTE = 60 * 1000;
 
@@ -155,4 +193,911 @@ export function essenZurEinnahme(eintraege, einnahme) {
   if (angabe && mitZeit) return { art: 'spaet', quelle: 'angabe' };
   if (mahlzeiten.some(ungefaehrDabei)) return { art: 'unklar', quelle: 'mahlzeit' };
   return nichts;
+}
+
+/* ==================== Die Rechnungen ==================== */
+
+const STUNDE = 60 * MINUTE;
+
+/** Das Zählfenster nach einer Einnahme: fest vier Stunden. Kein Wirkfenster. */
+export const ADHS_FENSTER_STD = 4;
+
+/** Mindestfälle je Seite: Tage (A2, A3) und Fälle (A1 mindestens 5). */
+export const ADHS_MINDEST = { a1: 5, bauch: 8, kopf: 12, schlaf: 8, kiefer: 8, gepresst: 8, stuhl: 8, a3: 8 };
+
+/** Eine Mahlzeit ab dieser Stunde ist spät – dieselbe Grenze wie SPAET_AB in js/auswertung.js. */
+const ADHS_SPAET_AB = 20;
+
+/*
+ * Wo eine Einnahme oder Beschwerde liegt, die an eine Mahlzeit gebunden ist –
+ * dieselben Versätze, mit denen der Bogen sie einträgt (ESSENSBEZUG in
+ * js/app.js). Sind beide an dieselbe Mahlzeit gebunden, folgt ihre
+ * Reihenfolge allein daraus.
+ */
+const ADHS_VERSATZ = { vor: -30, beim: 10, nach: 30 };
+
+/** Der Satz, der auf der Seite „ohne" steht, wo sonst eine Zielzahl stünde (R9). */
+export const WEGLASS_SATZ = 'Ein Vergleich entsteht nur, wenn es das ohnehin gibt. Kein Grund, '
+  + 'dafür etwas wegzulassen oder anders einzunehmen: Änderungen am Mittel gehören in die Praxis.';
+
+const adhsSchnitt = (l) => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0);
+const adhsUhr = (min) => {
+  const m = ((Math.round(min) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+};
+/** Der untere Median – damit „nach 12:45" eine Zeit ist, die es gab. */
+const adhsMedian = (l) => {
+  if (!l.length) return null;
+  const s = [...l].sort((a, b) => a - b);
+  return s[Math.floor((s.length - 1) / 2)];
+};
+/** Ein Quantil mit linearer Zwischenrechnung. */
+const adhsQuantil = (l, p) => {
+  const s = [...l].sort((a, b) => a - b);
+  if (!s.length) return null;
+  const pos = p * (s.length - 1);
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return s[lo] + (s[hi] - s[lo]) * (pos - lo);
+};
+const adhsIqr = (l) => (l.length >= 2 ? adhsQuantil(l, 0.75) - adhsQuantil(l, 0.25) : 0);
+/** Minuten seit Mitternacht des Tages `iso` – über Mitternacht hinaus größer als 1440. */
+const adhsMinuten = (t, iso) => (t - zeitpunkt(iso, '00:00')) / MINUTE;
+
+/** Der Name eines Schlüssels: der eingetragene, der am häufigsten vorkommt. */
+function adhsNamen(einnahmen) {
+  const zaehler = new Map();
+  einnahmen.forEach((x) => {
+    const name = String(x.e.mittel || '').trim();
+    if (!name) return;
+    if (!zaehler.has(x.schluessel)) zaehler.set(x.schluessel, new Map());
+    const z = zaehler.get(x.schluessel);
+    z.set(name, (z.get(name) || 0) + 1);
+  });
+  return (schluessel) => {
+    const z = zaehler.get(schluessel);
+    if (!z || !z.size) {
+      const g = ADHS_MITTEL.find((m) => m.id === String(schluessel).split(':')[0]);
+      return g ? g.gruppe : String(schluessel);
+    }
+    return [...z.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  };
+}
+
+/**
+ * Ein Schlüssel in Worten – Gruppe und bei Methylphenidat die Form:
+ * „Methylphenidat (Kapsel mit zweierlei Kügelchen)".
+ */
+export function schluesselText(schluessel) {
+  const [gruppe, form] = String(schluessel).split(':');
+  const g = ADHS_MITTEL.find((m) => m.id === gruppe);
+  const name = g ? g.gruppe : gruppe;
+  if (gruppe !== 'mph') return name;
+  const f = mphForm(form);
+  return `${name} (${f ? f.kurzname : 'Form nicht angegeben'})`;
+}
+
+/**
+ * Wann liegen Einnahme und Beschwerde, wenn beide an derselben Mahlzeit
+ * hängen? Dann aus den Versätzen – sonst die eingetragenen Zeiten.
+ */
+function adhsZeiten(x, b, mahlzeiten) {
+  const e = x.e;
+  if (e.ungefaehr && b.ungefaehr && e.bezugMahlzeit && e.bezugMahlzeit === b.bezugMahlzeit
+    && ADHS_VERSATZ[e.bezug] !== undefined && ADHS_VERSATZ[b.bezug] !== undefined) {
+    const m = mahlzeiten.get(e.bezugMahlzeit);
+    if (m && !m.ungefaehr) {
+      const tm = zeitpunkt(m.am, m.um);
+      return { tE: tm + ADHS_VERSATZ[e.bezug] * MINUTE, tB: tm + ADHS_VERSATZ[b.bezug] * MINUTE, gebunden: true };
+    }
+  }
+  return { tE: x.t, tB: zeitpunkt(b.am, b.um), gebunden: false };
+}
+
+/**
+ * Ist offen, ob diese Beschwerde vor oder nach der Einnahme kam?
+ *
+ * Offen ist sie, wenn beide am selben Tag in derselben Tageszeit liegen und
+ * eine Seite nur ungefähr ist, ohne dass beide an derselben Mahlzeit hängen
+ * – wie reihenfolgeUnklar() in js/auswertung.js für eine Mahlzeit. Gleiche
+ * Versätze an derselben Mahlzeit („nach dem Essen" beide) sind ebenso offen.
+ */
+export function reihenfolgeOffen(x, b, mahlzeiten) {
+  if (!x || !b || b.am !== x.e.am) return false;
+  const z = adhsZeiten(x, b, mahlzeiten);
+  if (z.gebunden) return z.tE === z.tB;
+  const bezugFest = (y) => !!(y.bezug && y.bezugMahlzeit && mahlzeiten.get(y.bezugMahlzeit)
+    && !mahlzeiten.get(y.bezugMahlzeit).ungefaehr);
+  const bOffen = !!b.ungefaehr && !bezugFest(b);
+  const eOffen = x.zeitArt === 'ungefaehr';
+  if (!bOffen && !eOffen) return false;
+  const tz = tageszeitVon(b);
+  return tz !== null && tz === tageszeitVon(x.e);
+}
+
+/* ---------- Vorbereitung ---------- */
+
+function adhsVorbereiten({ eintraege, tage, heute, standardMittel }) {
+  const liste = (Array.isArray(eintraege) ? eintraege : [])
+    .filter((e) => e && typeof e === 'object' && typeof e.am === 'string' && (!heute || e.am <= heute));
+  const einnahmen = adhsEinnahmen(liste, standardMittel || []);
+  const mahlzeiten = new Map(liste.filter((e) => e.art === 'essen').map((e) => [e.id, e]));
+  const nachTag = eintraegeNachTag(liste);
+  const beschwerden = liste.filter((e) => e.art === 'beschwerde')
+    .map((b) => ({ b, t: zeitpunkt(b.am, b.um) }));
+  const einnahmenNachTag = new Map();
+  einnahmen.forEach((x) => {
+    if (!einnahmenNachTag.has(x.e.am)) einnahmenNachTag.set(x.e.am, []);
+    einnahmenNachTag.get(x.e.am).push(x);
+  });
+  return {
+    liste, tage: tage || {}, einnahmen, mahlzeiten, nachTag, beschwerden, einnahmenNachTag,
+    name: adhsNamen(einnahmen),
+  };
+}
+
+/** Die Einträge des Tages – schneller als die ganze Liste. */
+const adhsTagListe = (p, iso) => p.nachTag.get(iso) || [];
+
+/**
+ * Der aktuelle Abschnitt: seit wann das Mittel genommen wird, das heute
+ * genommen wird.
+ *
+ * Er beginnt am ersten Einnahmetag nach dem letzten Einnahmetag, an dem
+ * keines der heutigen Mittel stand. Ein zusätzliches Mittel setzt also nicht
+ * zurück, ein Wechsel schon: Wer im Sommer von einer Form auf eine andere
+ * gewechselt hat, vergleicht seine Tage nicht mit denen davor.
+ */
+export function adhsAbschnitt(einnahmen, heute) {
+  const tageKeys = new Map();
+  (einnahmen || []).forEach((x) => {
+    if (heute && x.e.am > heute) return;
+    if (!tageKeys.has(x.e.am)) tageKeys.set(x.e.am, new Set());
+    tageKeys.get(x.e.am).add(x.schluessel);
+  });
+  const isos = [...tageKeys.keys()].sort();
+  if (!isos.length) return null;
+  const heutige = tageKeys.get(isos[isos.length - 1]);
+  let von = isos[0];
+  for (let i = isos.length - 1; i >= 0; i--) {
+    if (![...tageKeys.get(isos[i])].some((k) => heutige.has(k))) {
+      von = isos[i + 1];
+      break;
+    }
+  }
+  return { von, schluessel: [...heutige].sort(), tage: isos.filter((iso) => iso >= von) };
+}
+
+/** Die Tage ohne Mittel (R2): nur angegebene, und nur ohne Stimulans-Einnahme. */
+function adhsPausen(p, von, bis) {
+  const raus = { ohne: [], beschwerden: [], gruende: { pause: 0, geplant: 0, vergessen: 0, beschwerden: 0 } };
+  Object.keys(p.tage).sort().forEach((iso) => {
+    if ((von && iso < von) || (bis && iso >= bis)) return;
+    const grund = p.tage[iso] && p.tage[iso].adhsPause;
+    if (!PAUSE_WERTE.includes(grund)) return;
+    if ((p.einnahmenNachTag.get(iso) || []).some((x) => STIMULANZIEN.includes(x.gruppe))) return;
+    raus.gruende[grund] += 1;
+    // „Wegen Beschwerden" ist keine Zufallsauswahl, sondern das Ergebnis:
+    // Es zählt nie in einem Vergleich (Pflichtvorbehalt in A2).
+    if (grund === 'beschwerden') raus.beschwerden.push(iso);
+    else raus.ohne.push(iso);
+  });
+  return raus;
+}
+
+/* ---------- A1 ---------- */
+
+/**
+ * A1: der Bauch in den vier Stunden nach der ersten Einnahme des Tages – je
+ * Mittel (bei Methylphenidat je Form), ohne gegen mit Essen.
+ *
+ * Ein Fall ist die erste Einnahme eines Tages; eine zweite Einnahme am
+ * selben Tag ist keiner, sie läge im Fenster der ersten. Gezählt wird nur,
+ * was eine feste Reihenfolge hat (R3): eine genaue oder an eine Mahlzeit
+ * gebundene Zeit, keine Beschwerde in den zwei Stunden davor (die wäre schon
+ * da gewesen), keine Beschwerde, bei der offen ist, ob sie davor oder danach
+ * kam. Und der Tag muss durch etwas anderes notiert sein als die Beschwerden
+ * im Fenster (R10) – sonst stünde ein Tag nur dann in der Rechnung, wenn es
+ * danach wehtat.
+ */
+function a1Faelle(p, { jetzt }) {
+  const jeSchluessel = new Map();
+  const leer = () => ({
+    mit: [], ohne: [], vor: 0, ohneAngabe: 0, widerspruch: 0, unklar: 0, spaet: 0,
+    nichtZuzuordnen: 0, davor: 0, offen: 0, nichtNotiert: 0, nuechtern: 0, fensterBeschwerden: 0,
+  });
+  const erste = new Map();
+  p.einnahmen.forEach((x) => {
+    const k = `${x.schluessel}|${x.e.am}`;
+    if (!erste.has(k)) erste.set(k, x);
+  });
+  erste.forEach((x) => {
+    if (!jeSchluessel.has(x.schluessel)) jeSchluessel.set(x.schluessel, leer());
+    const z = jeSchluessel.get(x.schluessel);
+    const iso = x.e.am;
+    if (x.zeitArt === 'ungefaehr') { z.nichtZuzuordnen += 1; return; }
+    const ende = x.t + ADHS_FENSTER_STD * STUNDE;
+    if (ende > jetzt) return;
+    const imFenster = (e) => {
+      const t = zeitpunkt(e.am, e.um);
+      return t >= x.t - 60 * MINUTE && t <= ende;
+    };
+    // Notiert ohne die Zielgröße (R10): Eine Beschwerde im Fenster macht den
+    // Tag nicht zu einem gezählten, eine davor oder danach schon. Kopfschmerz
+    // und sein Mittel sagen über den Bauch wie überall nichts (zaehltFuerBauch).
+    if (!tagNotiertOhne(p.liste, p.tage, iso, (e) => ZIEL_BAUCH(e) && (e.art !== 'beschwerde' || imFenster(e)))) {
+      z.nichtNotiert += 1;
+      return;
+    }
+    const nahe = [plusTage(iso, -1), iso, plusTage(iso, 1)]
+      .flatMap((d) => adhsTagListe(p, d)).filter((e) => e.art === 'beschwerde');
+    const zeiten = nahe.map((b) => ({ b, ...adhsZeiten(x, b, p.mahlzeiten) }));
+    if (zeiten.some(({ tE, tB }) => tB >= tE - 2 * STUNDE && tB <= tE)) { z.davor += 1; return; }
+    if (nahe.some((b) => reihenfolgeOffen(x, b, p.mahlzeiten))) { z.offen += 1; return; }
+    const essen = essenZurEinnahme(p.liste, x);
+    if (essen.art === 'vor') { z.vor += 1; return; }
+    if (essen.art === 'widerspruch') { z.widerspruch += 1; return; }
+    if (essen.art === 'unklar') { z.unklar += 1; return; }
+    if (essen.art === 'spaet') { z.spaet += 1; return; }
+    if (essen.art !== 'mit' && essen.art !== 'ohne') { z.ohneAngabe += 1; return; }
+    const imFall = zeiten.filter(({ tE, tB }) => tB > tE && tB <= tE + ADHS_FENSTER_STD * STUNDE);
+    const wert = imFall.reduce((m, { b }) => Math.max(m, Number(b.staerke) || 0), 0);
+    // Dieselben Beschwerden in der Lesart „wie lange nach dem Essen": Wie
+    // viele zählen dort als nüchtern (vier Stunden und mehr seit der letzten
+    // Mahlzeit, siehe essensbezug in js/auswertung.js)?
+    const umfeld = [plusTage(iso, -1), iso, plusTage(iso, 1)].flatMap((d) => adhsTagListe(p, d));
+    imFall.forEach(({ b }) => {
+      z.fensterBeschwerden += 1;
+      const std = stundenSeitEssen(umfeld, b);
+      if (std !== null && std >= 4) z.nuechtern += 1;
+    });
+    const stress = p.tage[iso] ? Number(p.tage[iso].stress) : NaN;
+    z[essen.art].push({ iso, wert, stress: Number.isFinite(stress) ? stress : null });
+  });
+  return jeSchluessel;
+}
+
+function a1Saetze(v, z, anspannung) {
+  const saetze = [];
+  const a = fmtZahl(v.ohne.schnitt);
+  const b = fmtZahl(v.mit.schnitt);
+  const zahlen = `Nach Einnahmen ohne Essen lag der Bauch in den vier Stunden danach im Mittel bei ${a}, `
+    + `nach Einnahmen mit Essen bei ${b} (${v.ohne.n} gegen ${v.mit.n} Mal).`;
+  if (!v.genug) {
+    saetze.push(`Bisher ${v.mit.n}-mal mit, ${v.ohne.n}-mal ohne Essen angegeben – zu wenige `
+      + `Einnahmen ${v.ohne.n < v.mindest ? 'ohne' : 'mit'} Essen für einen Vergleich.`);
+    if (v.ohne.n < v.mindest) {
+      saetze.push(WEGLASS_SATZ);
+      saetze.push('Bei manchen Präparaten steht in der Fachinformation, dass sie mit oder nach '
+        + 'einer Mahlzeit genommen werden.');
+    }
+  } else if (['auffaellig', 'moeglich', 'unauffaellig'].includes(v.art)) {
+    saetze.push(`${zahlen} Das liegt über dem Zufallsspielraum (±${fmtZahl(v.urteil.spielraum)}). `
+      + 'Ob es am leeren Magen liegt oder an dem, was an solchen Morgen sonst anders ist, zeigt das '
+      + 'Tagebuch nicht. Zahlen, keine Einnahmeregel – wie dein Präparat zum Essen gehört, steht in '
+      + 'der Packungsbeilage.');
+  } else if (v.art === 'neutral') {
+    saetze.push(`${zahlen} ${nachweisSatz(grenzeText(v.urteil.grenze, 'bauch'))}`);
+  } else {
+    saetze.push(zahlen, ...v.saetze);
+  }
+  if (v.mit.n) saetze.push('Bei „mit Essen“ zählt die Mahlzeit selbst mit.');
+  // Daneben, nicht darin: War es an den Morgen ohne Essen auch sonst anders?
+  if (v.genug && anspannung.ohne !== null && anspannung.mit !== null) {
+    saetze.push(`Anspannung an diesen Tagen: ${fmtZahl(anspannung.ohne)} gegen ${fmtZahl(anspannung.mit)}.`);
+  }
+  if (z.nuechtern) {
+    saetze.push(`${z.nuechtern} dieser Beschwerden zählen unter „Wie lange nach dem Essen“ auch als `
+      + 'nüchtern – dieselben Beschwerden, zwei Lesarten.');
+  }
+  return saetze;
+}
+
+/* ---------- A2 ---------- */
+
+/**
+ * Die Bezugszeit eines Tages für den Kopf: die erste Stimulans-Einnahme, wenn
+ * ihre Zeit feststeht – sonst und an Tagen ohne Mittel die mittlere Uhrzeit
+ * der ersten Einnahmen mit fester Zeit. Ein Kopfschmerz davor hat mit dem
+ * Mittel des Tages nichts zu tun.
+ */
+function a2KopfWert(p, iso, bezugMin) {
+  if (bezugMin === null) return { grund: 'ohneBezug' };
+  if (herueberreichend(p.liste, iso)) return { grund: 'herueber' };
+  const bezug = zeitpunkt(iso, '00:00') + bezugMin * MINUTE;
+  const bezugTz = knopfTageszeit(adhsUhr(bezugMin));
+  const koepfe = kopfEintraege(adhsTagListe(p, iso));
+  if (koepfe.some((k) => k.ungefaehr && tageszeitVon(k) !== null && tageszeitVon(k) === bezugTz)) {
+    return { grund: 'offen' };
+  }
+  if (koepfe.some((k) => zeitpunkt(k.am, k.um) <= bezug)) return { grund: 'davor' };
+  return { wert: koepfe.length ? 1 : 0 };
+}
+
+function a2Zeilen(p, abschnitt, pausen, heute) {
+  const stim = (iso) => (p.einnahmenNachTag.get(iso) || []).filter((x) => STIMULANZIEN.includes(x.gruppe));
+  const mitTage = abschnitt.tage.filter((iso) => iso < heute && stim(iso).length);
+  const ohneTage = pausen.ohne;
+  // Die mittlere Uhrzeit der ersten Stimulans-Einnahme mit fester Zeit.
+  const ersteMin = mitTage.map((iso) => stim(iso)[0]).filter((x) => x.zeitArt !== 'ungefaehr')
+    .map((x) => adhsMinuten(x.t, x.e.am));
+  const median = adhsMedian(ersteMin);
+  const zaehl = { ohneBezug: 0, herueber: 0, offen: 0, davor: 0 };
+  const zahl = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+  const seiten = (wert) => ({
+    mit: mitTage.map((iso) => ({ iso, wert: wert(iso, true) })).filter((x) => x.wert !== null),
+    ohne: ohneTage.map((iso) => ({ iso, wert: wert(iso, false) })).filter((x) => x.wert !== null),
+  });
+  const dichte = (ohneFelder = []) => ({ eintraege: p.liste, tage: p.tage, istZiel: ZIEL_BAUCH, ohneFelder });
+  const name = 'ADHS-Mittel';
+
+  const bauch = seiten((iso) => (tagNotiertOhne(p.liste, p.tage, iso, ZIEL_BAUCH)
+    ? tagesWert(adhsTagListe(p, iso), iso, p.tage).wert : null));
+  const kopf = seiten((iso, mit) => {
+    if (!tagNotiertOhne(p.liste, p.tage, iso, ZIEL_KOPF)) return null;
+    const erste = mit ? stim(iso)[0] : null;
+    const bezugMin = erste && erste.zeitArt !== 'ungefaehr' ? adhsMinuten(erste.t, iso) : median;
+    const r = a2KopfWert(p, iso, bezugMin);
+    if (r.grund) { zaehl[r.grund] += 1; return null; }
+    return r.wert;
+  });
+  const schlaf = seiten((iso) => zahl((p.tage[plusTage(iso, 1)] || {}).schlaf));
+  const kiefer = seiten((iso) => zahl((p.tage[plusTage(iso, 1)] || {}).kiefer));
+  const gepresst = seiten((iso) => zahl((p.tage[iso] || {}).gepresst));
+
+  // Harter Stuhl: nur beschrieben. Anteil der Tage mit Stuhlgang, an denen
+  // einer davon Typ 1 oder 2 war.
+  const stuhl = seiten((iso) => {
+    const s = stuhlgaenge(adhsTagListe(p, iso));
+    if (!s.length) return null;
+    return s.some((e) => bristolVon(e.form).gruppe === 'hart') ? 1 : 0;
+  });
+  const roh = {
+    bauch: vergleichRoh({ ...bauch, mindest: ADHS_MINDEST.bauch, name, dichte: dichte() }),
+    kopf: vergleichRoh({ ...kopf, mindest: ADHS_MINDEST.kopf, name, dichte: dichte() }),
+    schlaf: vergleichRoh({ ...schlaf, mindest: ADHS_MINDEST.schlaf, name, dichte: dichte() }),
+    kiefer: vergleichRoh({ ...kiefer, mindest: ADHS_MINDEST.kiefer, name, dichte: dichte() }),
+    gepresst: vergleichRoh({ ...gepresst, mindest: ADHS_MINDEST.gepresst, name, dichte: dichte(['gepresst']) }),
+  };
+  const stuhlRoh = vergleichRoh({ ...stuhl, mindest: ADHS_MINDEST.stuhl, name });
+  return {
+    roh, stuhlRoh, zaehl, median, mitTage: mitTage.length,
+  };
+}
+
+const A2_SKALA = {
+  bauch: { skala: 'bauch' },
+  kopf: { skala: 'anteil', schwelle: 0.2 },
+  schlaf: { skala: 'skala', schwelle: 0.5 },
+  kiefer: { skala: 'skala', schwelle: 0.5 },
+  gepresst: { skala: 'anteil', schwelle: 0.2 },
+};
+
+const A2_NAME = {
+  bauch: 'Bauch am Tag (0–10)',
+  kopf: 'Kopfschmerz nach der Einnahmezeit',
+  schlaf: 'Schlaf in der Nacht danach (0 gut – 4 kaum)',
+  kiefer: 'Kiefer am Morgen danach (0–4)',
+  gepresst: 'Tagsüber gepresst/geknirscht',
+};
+
+function a2Satz(id, v) {
+  const prozent = (x) => `${Math.round(x * 100)} %`;
+  const wert = (x) => (A2_SKALA[id].skala === 'anteil' ? prozent(x) : fmtZahl(x));
+  const zahlen = `${A2_NAME[id]}: an Tagen mit Mittel ${wert(v.mit.schnitt)}, an Tagen ohne `
+    + `${wert(v.ohne.schnitt)} (${v.mit.n} gegen ${v.ohne.n} Tage).`;
+  if (!v.genug) return '';
+  if (['auffaellig', 'moeglich', 'unauffaellig'].includes(v.art)) {
+    const s = A2_SKALA[id].skala === 'anteil'
+      ? `${Math.round(v.urteil.spielraum * 100)} Prozentpunkte` : fmtZahl(v.urteil.spielraum);
+    return `${zahlen} Das liegt über dem Zufallsspielraum (±${s}).`;
+  }
+  return `${zahlen} ${v.saetze.join(' ')}`;
+}
+
+/* ---------- A3 ---------- */
+
+function a3Faelle(p, abschnitt, heute) {
+  const tageListe = abschnitt.tage.filter((iso) => iso < heute);
+  const faelle = [];
+  let nichtZuzuordnen = 0;
+  tageListe.forEach((iso) => {
+    const liste = (p.einnahmenNachTag.get(iso) || []).filter((x) => STIMULANZIEN.includes(x.gruppe));
+    if (!liste.length) return;
+    // R8: Innerhalb von vier Stunden nach einer Einnahme desselben Mittels
+    // ist es dieselbe Gabe.
+    let gaben = 0;
+    const zuletzt = new Map();
+    liste.forEach((x) => {
+      const vorher = zuletzt.get(x.schluessel);
+      if (vorher === undefined || x.t - vorher > ADHS_FENSTER_STD * STUNDE) gaben += 1;
+      zuletzt.set(x.schluessel, x.t);
+    });
+    const letzte = liste[liste.length - 1];
+    if (letzte.zeitArt === 'ungefaehr') { nichtZuzuordnen += 1; return; }
+    const schlaf = Number((p.tage[plusTage(iso, 1)] || {}).schlaf);
+    const raw = (p.tage[plusTage(iso, 1)] || {}).schlaf;
+    if (raw === undefined || raw === null || raw === '' || !Number.isFinite(schlaf)) return;
+    const vor = (p.tage[iso] || {}).schlaf;
+    const stress = (p.tage[iso] || {}).stress;
+    faelle.push({
+      iso,
+      gaben,
+      min: adhsMinuten(letzte.t, iso),
+      wert: schlaf,
+      vorNacht: vor === undefined || vor === null || vor === '' ? null : Number(vor),
+      stress: stress === undefined || stress === null || stress === '' ? null : Number(stress),
+    });
+  });
+  // Nur Tage mit der häufigsten Gabenzahl: Wer an manchen Tagen zweimal
+  // nimmt, nimmt dann auch später – und hat dann auch mehr vom Mittel.
+  const haeufig = new Map();
+  faelle.forEach((f) => haeufig.set(f.gaben, (haeufig.get(f.gaben) || 0) + 1));
+  const gaben = [...haeufig.entries()].sort((a, b) => (b[1] - a[1]) || (a[0] - b[0]))[0];
+  const gleich = gaben ? faelle.filter((f) => f.gaben === gaben[0]) : [];
+  const iqr = adhsIqr(gleich.map((f) => f.min));
+  const median = adhsMedian(gleich.map((f) => f.min));
+  const dicht = gleich.length >= 2 && iqr < 60;
+  const spaeter = dicht ? [] : gleich.filter((f) => f.min > median);
+  const sonst = dicht ? [] : gleich.filter((f) => f.min <= median);
+  const roh = vergleichRoh({ mit: spaeter, ohne: sonst, mindest: ADHS_MINDEST.a3, name: 'späte Einnahme' });
+  // Die Nacht davor: War sie auf beiden Seiten schon verschieden, misst der
+  // Vergleich das mit.
+  const vor = (l) => adhsSchnitt(l.map((f) => f.vorNacht).filter((x) => x !== null && Number.isFinite(x)));
+  const vorNacht = { spaeter: vor(spaeter), sonst: vor(sonst) };
+  const vorNachtUngleich = roh.genug && Math.abs(vorNacht.spaeter - vorNacht.sonst) >= 0.5;
+  if (vorNachtUngleich && !roh.stoerung) roh.stoerung = 'vornacht';
+  const st = (l) => {
+    const w = l.map((f) => f.stress).filter((x) => x !== null && Number.isFinite(x));
+    return w.length ? adhsSchnitt(w) : null;
+  };
+  return {
+    roh,
+    dicht,
+    iqr,
+    median,
+    gaben: gaben ? gaben[0] : 0,
+    faelle: gleich.length,
+    nichtZuzuordnen,
+    vorNacht,
+    stress: { spaeter: st(spaeter), sonst: st(sonst) },
+  };
+}
+
+function a3Saetze(a3, v) {
+  if (a3.dicht) return ['Deine Einnahmezeiten liegen zu dicht beieinander für diesen Vergleich.'];
+  if (!v.genug) {
+    return [`Bisher ${a3.faelle} Tage mit einer Schlafangabe in der Nacht danach – zu wenige für einen `
+      + 'Vergleich.'];
+  }
+  const zahlen = `Nach Tagen mit späterer letzter Einnahme (nach ${adhsUhr(a3.median)}) hast du den Schlaf `
+    + `im Mittel mit ${fmtZahl(v.mit.schnitt)} bewertet, sonst mit ${fmtZahl(v.ohne.schnitt)} `
+    + `(${v.mit.n} gegen ${v.ohne.n} Nächte; Spielraum ±${fmtZahl(v.urteil.spielraum)}).`
+    + `${a3.stress.spaeter !== null && a3.stress.sonst !== null ? ` Anspannung an diesen Tagen: `
+      + `${fmtZahl(a3.stress.spaeter)} gegen ${fmtZahl(a3.stress.sonst)}.` : ''} Späteres `
+    + 'Einschlafen gehört oft auch zu ADHS selbst – beides lässt sich hier nicht trennen.';
+  if (v.stoerung === 'vornacht') {
+    return [zahlen, `Schon die Nacht davor war auf beiden Seiten verschieden (${fmtZahl(a3.vorNacht.spaeter)} `
+      + `gegen ${fmtZahl(a3.vorNacht.sonst)}) – der Vergleich misst das mit.`];
+  }
+  return [zahlen, ...v.saetze];
+}
+
+/* ---------- A4 ---------- */
+
+/**
+ * A4: Wann beginnt ein Kopfschmerz, gezählt ab der ersten Einnahme? Nur eine
+ * Beschreibung in gleich breiten Fächern – ohne Schwerpunkt, ohne Vergleich
+ * und ohne Frage. Auch ohne Mittel häufen sich Kopfschmerzen zu bestimmten
+ * Tageszeiten, und wer jeden Tag zur selben Zeit einnimmt, für den heißen
+ * Stunden nach der Einnahme fast dasselbe wie Uhrzeit.
+ */
+function a4Zaehlung(p, abschnitt, heute) {
+  const faecher = [0, 0, 0];
+  let vorher = 0;
+  let spaeter = 0;
+  let weg = 0;
+  let nichtZuzuordnen = 0;
+  const ersteMin = [];
+  abschnitt.tage.filter((iso) => iso < heute).forEach((iso) => {
+    const x = (p.einnahmenNachTag.get(iso) || [])[0];
+    if (!x) return;
+    if (x.zeitArt === 'ungefaehr') { nichtZuzuordnen += 1; return; }
+    ersteMin.push(adhsMinuten(x.t, iso));
+    const koepfe = kopfEintraege(adhsTagListe(p, iso))
+      .sort((a, b) => zeitpunkt(a.am, a.um) - zeitpunkt(b.am, b.um));
+    if (!koepfe.length) return;
+    const k = koepfe[0];
+    if (k.ungefaehr || herueberreichend(p.liste, iso)) { weg += 1; return; }
+    const std = (zeitpunkt(k.am, k.um) - x.t) / STUNDE;
+    if (std <= 0) vorher += 1;
+    else if (std <= 4) faecher[0] += 1;
+    else if (std <= 8) faecher[1] += 1;
+    else if (std <= 12) faecher[2] += 1;
+    else spaeter += 1;
+  });
+  const n = faecher[0] + faecher[1] + faecher[2] + vorher + spaeter;
+  const dicht = ersteMin.length >= 2 && adhsIqr(ersteMin) < 60;
+  const saetze = [];
+  if (dicht) {
+    saetze.push('Die Einnahme liegt fast jeden Tag zur selben Zeit – Stunden nach der Einnahme heißen '
+      + 'hier fast dasselbe wie Uhrzeit.');
+  }
+  saetze.push('Eine Beschreibung, kein Vergleich: Auch ohne Mittel häufen sich Kopfschmerzen zu bestimmten '
+    + 'Tageszeiten. Kopfschmerz schon vor der Einnahme hat mit dem Mittel des Tages nichts zu tun.');
+  return {
+    n, sichtbar: n >= 10, faecher, vorher, spaeter, weg, nichtZuzuordnen, dicht, saetze,
+  };
+}
+
+/* ---------- A5 ---------- */
+
+/**
+ * A5: der Essensrhythmus – nur beschrieben, mit benannten Nennern.
+ *
+ * Ob eine Mahlzeit ausgefallen ist oder nur nicht eingetragen wurde, weiß
+ * niemand; deshalb steht jede Zahl mit dem, worüber gezählt wurde. Ohne
+ * Einnahmen (`einnahmeTage` leer) dieselben Zeilen über alle Bauch-Tage, ohne
+ * Bezug zu einem Mittel und ohne Vergleich.
+ */
+function a5Zeilen(p, isos, mitEinnahme) {
+  const zeilen = {};
+  const mahlzeitenAm = (iso) => adhsTagListe(p, iso).filter((e) => e.art === 'essen');
+  if (mitEinnahme) {
+    const std = [];
+    isos.forEach((iso) => {
+      const x = (p.einnahmenNachTag.get(iso) || [])[0];
+      if (!x || x.zeitArt === 'ungefaehr') return;
+      const tz = tageszeitVon(x.e);
+      const m = mahlzeitenAm(iso);
+      if (m.some((e) => e.ungefaehr && tageszeitVon(e) === tz)) return;
+      const danach = m.map((e) => (zeitpunkt(e.am, e.um) - x.t) / STUNDE).filter((h) => h > 0 && h <= 12);
+      if (danach.length) std.push(Math.min(...danach));
+    });
+    zeilen.ersteMahlzeit = { tage: std.length, median: std.length ? adhsQuantil(std, 0.5) : null };
+  }
+  const zweiPlus = isos.filter((iso) => mahlzeitenAm(iso).length >= 2);
+  zeilen.ohneMittag = {
+    k: zweiPlus.filter((iso) => !mahlzeitenAm(iso).some((e) => fachVon(e) === 'mittag')).length,
+    n: zweiPlus.length,
+  };
+  const abends = isos.filter((iso) => adhsTagListe(p, iso).some((e) => zaehltFuerBauch(e) && minutenAmTag(e.um) >= 15 * 60));
+  zeilen.spaet = {
+    k: abends.filter((iso) => mahlzeitenAm(iso).some((e) => minutenAmTag(e.um) >= ADHS_SPAET_AB * 60)).length,
+    n: abends.length,
+  };
+  const bauchTage = isos.filter((iso) => tagesWert(adhsTagListe(p, iso), iso, p.tage).notiert);
+  zeilen.appetit = {
+    k: bauchTage.filter((iso) => adhsTagListe(p, iso).some((e) => e.art === 'beschwerde'
+      && (e.arten || []).includes('appetit'))).length,
+    n: bauchTage.length,
+  };
+  return zeilen;
+}
+
+/**
+ * Der Essensrhythmus für einen Zeitraum – mit Einnahmen ihre Tage, sonst alle
+ * Tage mit Bauch-Angaben. Exportiert für den Bericht.
+ */
+export function essensRhythmus({
+  eintraege, tage, von = null, bis = null, standardMittel = [], gewicht = [],
+} = {}) {
+  const p = adhsVorbereiten({ eintraege, tage, heute: bis, standardMittel });
+  const imZeitraum = (iso) => (!von || iso >= von) && (!bis || iso <= bis);
+  const einnahmeTage = [...p.einnahmenNachTag.keys()].filter(imZeitraum).sort();
+  const mitEinnahme = einnahmeTage.length > 0;
+  const isos = mitEinnahme ? einnahmeTage
+    : [...new Set([...p.liste.map((e) => e.am), ...Object.keys(p.tage)])].filter(imZeitraum).sort();
+  const zeilen = a5Zeilen(p, isos, mitEinnahme);
+  let ohne = null;
+  if (mitEinnahme) {
+    const pausen = adhsPausen(p, von, bis ? plusTage(bis, 1) : null).ohne;
+    const kleiner = pausen.length < einnahmeTage.length ? pausen : einnahmeTage;
+    if (pausen.length && !wochenendeUngleich(einnahmeTage, pausen) && !blockUngleich(kleiner).ungleich) {
+      ohne = a5Zeilen(p, pausen, false);
+    }
+  }
+  return {
+    mitEinnahme,
+    tage: isos.length,
+    zeilen,
+    ohne,
+    gewicht: Array.isArray(gewicht) && gewicht.length > 0,
+    satz: 'Ob eine Mahlzeit ausgefallen ist oder nur nicht eingetragen wurde, weiß Body Check nicht.',
+  };
+}
+
+/* ---------- Die ganze Familie ---------- */
+
+/**
+ * Alle Rechnungen der Familie „ADHS" auf einmal.
+ *
+ * Erst werden alle Seiten gefüllt, dann gezählt, wie viele Vergleiche genug
+ * Fälle haben (R4), und erst dann geurteilt – mit mindestens strenge 2,5
+ * (familienVergleiche in js/vergleich.js). A4 und A5 zählen nicht mit: Sie
+ * vergleichen nichts.
+ *
+ * @param {object} d  { eintraege, tage, heute, jetzt, mindestFaelle, standardMittel, gewicht }
+ */
+export function adhsAuswertung({
+  eintraege, tage, heute, jetzt = Date.now(), mindestFaelle = 5, standardMittel = [], gewicht = [],
+} = {}) {
+  const p = adhsVorbereiten({ eintraege, tage, heute, standardMittel });
+  const abschnitt = adhsAbschnitt(p.einnahmen, heute);
+  const leer = {
+    einnahmen: p.einnahmen.length, abschnitt: null, a1: null, a2: null, a3: null, a4: null, a5: null,
+    vergleiche: 0, fragen: [],
+  };
+  if (!p.einnahmen.length || !abschnitt) return leer;
+  const bisHeute = heute || p.einnahmen[p.einnahmen.length - 1].e.am;
+
+  /* --- A1: Seiten je Schlüssel --- */
+  const a1Mindest = Math.max(Number(mindestFaelle) || 0, ADHS_MINDEST.a1);
+  const a1 = [];
+  a1Faelle(p, { jetzt }).forEach((z, schluessel) => {
+    const roh = vergleichRoh({ mit: z.mit, ohne: z.ohne, mindest: a1Mindest, name: 'Essen zur Einnahme' });
+    a1.push({ schluessel, z, roh });
+  });
+
+  /* --- A2, A3 im aktuellen Abschnitt --- */
+  const pausen = adhsPausen(p, abschnitt.von, bisHeute);
+  const stimDa = abschnitt.tage.some((iso) => (p.einnahmenNachTag.get(iso) || [])
+    .some((x) => STIMULANZIEN.includes(x.gruppe)));
+  const a2 = stimDa ? a2Zeilen(p, abschnitt, pausen, bisHeute) : null;
+  const a3 = stimDa ? a3Faelle(p, abschnitt, bisHeute) : null;
+
+  /* --- R4: wie viele Vergleiche hat die Familie? --- */
+  const genug = [
+    ...a1.map((x) => x.roh.genug),
+    ...(a2 ? Object.values(a2.roh).map((r) => r.genug) : []),
+    ...(a3 && !a3.dicht ? [a3.roh.genug] : []),
+  ].filter(Boolean).length;
+  const vergleiche = familienVergleiche(genug);
+
+  /* --- Urteile --- */
+  const a1Raus = a1.map(({ schluessel, z, roh }) => {
+    const v = vergleichUrteilen(roh, { skala: 'bauch', vergleiche, richtung: 'ohne' });
+    const st = (l) => {
+      const w = l.map((f) => f.stress).filter((x) => x !== null);
+      return w.length ? adhsSchnitt(w) : null;
+    };
+    const anspannung = { ohne: st(z.ohne), mit: st(z.mit) };
+    return {
+      schluessel,
+      name: p.name(schluessel),
+      text: schluesselText(schluessel),
+      faelle: v.mit.n + v.ohne.n,
+      vergleich: v,
+      zaehl: {
+        vor: z.vor, ohneAngabe: z.ohneAngabe, widerspruch: z.widerspruch, unklar: z.unklar, spaet: z.spaet,
+        nichtZuzuordnen: z.nichtZuzuordnen, davor: z.davor, offen: z.offen, nichtNotiert: z.nichtNotiert,
+      },
+      anspannung,
+      nuechtern: z.nuechtern,
+      fensterBeschwerden: z.fensterBeschwerden,
+      saetze: a1Saetze(v, z, anspannung),
+    };
+  }).sort((a, b) => (b.faelle - a.faelle) || (a.schluessel < b.schluessel ? -1 : 1));
+
+  let a2Raus = null;
+  if (a2) {
+    const zeilen = Object.fromEntries(Object.entries(a2.roh).map(([id, roh]) => {
+      const v = vergleichUrteilen(roh, { ...A2_SKALA[id], vergleiche, richtung: 'mit' });
+      return [id, { ...v, satz: a2Satz(id, v) }];
+    }));
+    const stuhl = vergleichUrteilen(a2.stuhlRoh, { skala: 'anteil', vergleiche, richtung: 'mit' });
+    const saetze = [];
+    const ohneZahl = pausen.ohne.length;
+    if (ohneZahl < ADHS_MINDEST.bauch) {
+      saetze.push(`Tage ohne ADHS-Mittel bisher: ${ohneZahl} – zu wenige für einen Vergleich.`, WEGLASS_SATZ);
+    }
+    if (ohneZahl || pausen.beschwerden.length) {
+      saetze.push('Tage ohne Mittel sind keine Zufallsauswahl. Wer an einem schlechten Tag das Mittel '
+        + 'weglässt, macht die Tage ohne schlechter, ohne dass das Mittel etwas getan hat – deshalb '
+        + `zählen Tage „wegen Beschwerden“ nicht mit (${pausen.beschwerden.length} solche Tage).`);
+    }
+    a2Raus = {
+      mitTage: a2.mitTage,
+      ohneTage: ohneZahl,
+      gruende: pausen.gruende,
+      zeilen,
+      // Harter Stuhl nur beschrieben – ohne Urteil, auch wenn es eines gäbe.
+      stuhl: {
+        genug: stuhl.genug, mit: stuhl.mit, ohne: stuhl.ohne, stoerung: stuhl.stoerung,
+      },
+      kopfZaehl: a2.zaehl,
+      bezugUhr: a2.median === null ? null : adhsUhr(a2.median),
+      saetze,
+    };
+  }
+
+  let a3Raus = null;
+  if (a3) {
+    const v = vergleichUrteilen(a3.roh, { skala: 'skala', schwelle: 0.5, vergleiche, richtung: 'mit' });
+    a3Raus = {
+      ...v,
+      art: a3.dicht ? 'dicht' : v.art,
+      dicht: a3.dicht,
+      iqr: a3.iqr,
+      uhr: a3.median === null ? null : adhsUhr(a3.median),
+      gaben: a3.gaben,
+      faelle: a3.faelle,
+      nichtZuzuordnen: a3.nichtZuzuordnen,
+      vorNacht: a3.vorNacht,
+      stress: a3.stress,
+      saetze: a3Saetze(a3, v),
+    };
+  }
+
+  const a4 = a4Zaehlung(p, abschnitt, bisHeute);
+  const a5 = essensRhythmus({
+    eintraege: p.liste, tage: p.tage, von: abschnitt.von, bis: bisHeute, standardMittel, gewicht,
+  });
+
+  /* --- Fragen für die Sprechstunde (Muster und Bericht) --- */
+  const fragen = [];
+  const haupt = a1Raus[0];
+  if (haupt && ['auffaellig', 'moeglich'].includes(haupt.vergleich.art)) {
+    fragen.push({
+      id: 'a1',
+      text: 'Nach Einnahmen ohne Essen ging es meinem Bauch in den Stunden danach schlechter. Was '
+        + 'heißt das für die Einnahme?',
+    });
+  }
+  if (a2Raus && a2Raus.zeilen.kopf.art === 'auffaellig') {
+    fragen.push({
+      id: 'a2-kopf',
+      text: 'An Tagen mit dem ADHS-Mittel hatte ich öfter Kopfschmerzen. Kann das zusammenhängen?',
+    });
+  }
+  if (a3Raus && a3Raus.art === 'auffaellig') {
+    fragen.push({ id: 'a3', text: 'Nach späterer Einnahme habe ich schlechter geschlafen. Kann das zusammenhängen?' });
+  }
+  // Pressen oder Knirschen an Einnahmetagen eines Stimulans – angezeigt nur
+  // mit „Kiefer, Nacken, Schiene".
+  if (stimDa) {
+    const stimTage = abschnitt.tage.filter((iso) => (p.einnahmenNachTag.get(iso) || [])
+      .some((x) => STIMULANZIEN.includes(x.gruppe)));
+    const gepresst = stimTage.filter((iso) => Number((p.tage[iso] || {}).gepresst) === 1).length;
+    const kiefer = stimTage.filter((iso) => Number((p.tage[plusTage(iso, 1)] || {}).kiefer) >= 2).length;
+    if (gepresst >= 3 || kiefer >= 5) {
+      fragen.push({
+        id: 'pressen',
+        nurMitSpannung: true,
+        text: 'Mir fällt Pressen oder Knirschen auf. Kann das mit meinem ADHS-Mittel zusammenhängen?',
+      });
+    }
+  }
+
+  return {
+    einnahmen: p.einnahmen.length,
+    abschnitt: {
+      von: abschnitt.von,
+      datum: fmtDatum(abschnitt.von),
+      schluessel: abschnitt.schluessel,
+      namen: abschnitt.schluessel.map((k) => p.name(k)),
+      tage: abschnitt.tage.length,
+    },
+    a1: a1Raus.length ? { haupt: a1Raus[0], auch: a1Raus.slice(1), alle: a1Raus } : null,
+    a2: a2Raus,
+    a3: a3Raus,
+    a4,
+    a5,
+    vergleiche: genug,
+    familie: vergleiche,
+    fragen,
+  };
+}
+
+/* ---------- Vorbehalte an Rechnungen, die es schon gab (Ebene 0) ---------- */
+
+const ADHS_NAH_CACHE = new WeakMap();
+
+/** Die Zeitpunkte aller Einnahmen mit fester Zeit, sortiert. */
+function festeEinnahmen(eintraege) {
+  const liste = Array.isArray(eintraege) ? eintraege : [];
+  if (!ADHS_NAH_CACHE.has(liste)) {
+    ADHS_NAH_CACHE.set(liste, adhsEinnahmen(liste).filter((x) => x.zeitArt !== 'ungefaehr').map((x) => x.t));
+  }
+  return ADHS_NAH_CACHE.get(liste);
+}
+
+/** Liegt `t` in [Einnahme − vor, Einnahme + nach] für eine der Einnahmen? */
+function naheEinnahme(zeiten, t, vorMin, nachMin) {
+  // Binäre Suche nach der ersten Einnahme ab t − nach.
+  let lo = 0;
+  let hi = zeiten.length;
+  const ab = t - nachMin * MINUTE;
+  while (lo < hi) {
+    const mitte = (lo + hi) >> 1;
+    if (zeiten[mitte] < ab) lo = mitte + 1;
+    else hi = mitte;
+  }
+  return lo < zeiten.length && zeiten[lo] <= t + vorMin * MINUTE;
+}
+
+/**
+ * Wie viele Mahlzeiten mit einem Auslöser lagen nahe an einer ADHS-Einnahme –
+ * von einer halben Stunde davor bis vier Stunden danach –, verglichen mit
+ * den übrigen Mahlzeiten?
+ *
+ * Der Unterschied ist die Auskunft, nicht der Anteil: Wer sein Mittel zum
+ * Frühstück nimmt, hat fast jedes Frühstück nahe am Mittel – mit und ohne
+ * Kaffee. Erst wenn der Auslöser deutlich öfter dort liegt als der Rest,
+ * misst die Auslöserbilanz womöglich das Mittel mit.
+ *
+ * @returns {{ n, m, k, l, differenz, zeigen }}
+ */
+export function ausloeserNahAmMittel(bewertet, eintraege, id) {
+  const zeiten = festeEinnahmen(eintraege);
+  let n = 0;
+  let m = 0;
+  let k = 0;
+  let l = 0;
+  (bewertet || []).forEach((b) => {
+    const nah = zeiten.length > 0 && naheEinnahme(zeiten, zeitpunkt(b.m.am, b.m.um), 30, ADHS_FENSTER_STD * 60);
+    if (b.merkmale.has(id)) {
+      m += 1;
+      if (nah) n += 1;
+    } else {
+      l += 1;
+      if (nah) k += 1;
+    }
+  });
+  const differenz = (m ? n / m : 0) - (l ? k / l : 0);
+  return { n, m, k, l, differenz, zeigen: n >= 3 && differenz >= 0.25 };
+}
+
+/** Der Satz dazu – nur, wenn der Vorbehalt greift. */
+export function ausloeserNahSatz(r, name) {
+  if (!r || !r.zeigen) return '';
+  return `${r.n} von ${r.m} Mahlzeiten mit ${name} lagen in den 4 Stunden nach einem ADHS-Mittel, `
+    + `von den übrigen ${r.k} von ${r.l} – ob es am Essen oder am Mittel liegt, trennt diese Rechnung nicht.`;
+}
+
+/**
+ * Nennt das Zeitprofil einen Schwerpunkt – liegen dessen Beschwerden zugleich
+ * in den vier Stunden nach einem ADHS-Mittel?
+ *
+ * Zugeordnet wird wie in js/zeitprofil.js (zeitBild): jede Beschwerde der
+ * letzten Mahlzeit davor, höchstens acht Stunden, ohne ungefähre Zeiten.
+ * `fensterListe` ist FENSTER aus js/zeitprofil.js (das hier im Bündel weiter
+ * hinten steht und deshalb hereingereicht wird).
+ *
+ * @returns {{ n, m, zeigen, satz } | null}
+ */
+export function zeitprofilNahAmMittel(eintraege, zeit, fensterListe) {
+  if (!zeit || !zeit.schwerpunkt) return null;
+  const f = (fensterListe || []).find((x) => x.id === zeit.schwerpunkt);
+  if (!f) return null;
+  const liste = Array.isArray(eintraege) ? eintraege : [];
+  const essen = liste.filter((e) => e.art === 'essen')
+    .map((e) => ({ e, t: zeitpunkt(e.am, e.um) }))
+    .sort((a, b) => a.t - b.t);
+  const zeiten = festeEinnahmen(liste);
+  let n = 0;
+  let m = 0;
+  liste.filter((e) => e.art === 'beschwerde').forEach((b) => {
+    const t = zeitpunkt(b.am, b.um);
+    let letzte = null;
+    for (let i = essen.length - 1; i >= 0; i--) {
+      if (essen[i].t < t) { letzte = essen[i]; break; }
+    }
+    if (!letzte) return;
+    const std = (t - letzte.t) / STUNDE;
+    if (std > 8) return;
+    if (b.ungefaehr || letzte.e.ungefaehr || essen.some((x) => x.e.am === b.am && reihenfolgeUnklar(x.e, b))) return;
+    if (!(std > f.von && std <= f.bis)) return;
+    m += 1;
+    // In (Einnahme, Einnahme + 4 h]: wie im Zählfenster von A1.
+    if (zeiten.length && naheEinnahme(zeiten, t - 1, 0, ADHS_FENSTER_STD * 60)) n += 1;
+  });
+  const zeigen = n >= 6 && n * 2 >= m;
+  return {
+    n,
+    m,
+    zeigen,
+    satz: zeigen ? `${n} dieser ${m} Beschwerden lagen zugleich in den 4 Stunden nach einem ADHS-Mittel – `
+      + 'das Zeitfenster nach dem Essen und das nach dem Mittel fallen hier zusammen.' : '',
+  };
 }

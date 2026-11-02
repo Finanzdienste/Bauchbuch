@@ -506,6 +506,21 @@ p { margin: 0 0 8px; }
  * (3×)") – die dürfen umbrechen, sonst laufen sie in die Bezeichnung. */
 .karte-kopf .wartend li > span:first-child { flex: 0 0 44%; }
 .karte-kopf .wartend li > .klein { flex: 1 1 auto; min-width: 0; white-space: normal; text-align: right; }
+/* Die Karten „ADHS-Mittel" und „Kiefer, Nacken, Schiene" haben dieselbe Art
+   Zeilen – „9 (geplant 6, vergessen 2 …)" – und dürfen ebenso umbrechen. Die
+   Balkenbeschriftung („stark verspannt") ist dort länger als bei den
+   Auslösern und bekommt deshalb etwas mehr Platz. */
+/* Die Bezeichnung bricht nur zwischen Wörtern um („Massagepistole" nicht
+   mitten im Wort); ist kein Platz für beide Spalten, rutscht die Zahl in die
+   nächste Zeile, rechtsbündig. */
+.karte-adhs .wartend li,
+.karte-spannung .wartend li { flex-wrap: wrap; }
+.karte-adhs .wartend li > span:first-child,
+.karte-spannung .wartend li > span:first-child { flex: 1 1 9em; overflow-wrap: break-word; hyphens: auto; }
+.karte-adhs .wartend li > .klein,
+.karte-spannung .wartend li > .klein { flex: 1 1 8em; min-width: 0; white-space: normal; text-align: right; }
+.karte-adhs .vgl-mark, .karte-spannung .vgl-mark { min-width: 88px; }
+.vorbehalt-mittel { border-left: 3px solid var(--line); padding-left: 8px; }
 .schichten { list-style: none; margin: 8px 0; padding: 0; }
 .schichten li {
   display: flex; justify-content: space-between; gap: 8px;

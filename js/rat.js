@@ -42,12 +42,38 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
   id, bereich, titel, text, warum, quelle,
 });
 
+/*
+ * Vorsicht beim Essen – wenn ein ADHS-Mittel den Appetit nehmen kann.
+ *
+ * Die Vorschläge zum Essen sagen „weniger davon" oder „früher". Bei jemandem,
+ * der ein ADHS-Mittel nimmt und dabei abnimmt oder tagsüber keinen Appetit
+ * hat, ist das der falsche Rat: Weniger Appetit steht etwa bei Methylphenidat
+ * und Lisdexamfetamin unter den häufigsten Nebenwirkungen (siehe die Texte in
+ * ADHS_MITTEL, js/mittel.js), und eine späte Mahlzeit ist dann womöglich die
+ * einzige, die gelingt. Was gegessen wird, wägt in diesem Fall die Praxis ab.
+ *
+ *   'bremse'  Schalter ADHS an, eine Einnahme in den letzten 14 Tagen, und
+ *             ungewollt abgenommen oder „Kein Appetit" an mindestens 3 der
+ *             letzten 7 Bauch-Tage: „Heute eher ohne …" und „Die letzte
+ *             Mahlzeit früher legen" entfallen.
+ *   'zusatz'  Schalter und Einnahme, sonst nichts: „Die letzte Mahlzeit früher
+ *             legen" bekommt einen Satz dazu.
+ *
+ * Berechnet wird das in js/app.js (ratKarte) und hier nur gelesen – diese
+ * Datei bleibt rein und kennt keinen Schalter.
+ */
+export const ESSEN_VORSICHT = ['bremse', 'zusatz'];
+
+const SPAET_ZUSATZ = 'Wenn der Appetit tagsüber fehlt und erst abends kommt, ist die späte Mahlzeit '
+  + 'vielleicht nötig – das wägt die Praxis ab, nicht diese Karte.';
+
 /**
  * @param {object} d
  *   eintraege, tage, heute (ISO), bilanz (aus ausloeserBilanz),
  *   faktoren ({stress, schlaf, stimmung, bewegung} aus faktorenBilanz),
  *   phasen (aus phasenBilanz), eigene (eigene Auslöser),
- *   letzteMahlzeitStunden (Zahl oder null), mittel (zuletzt eingenommene)
+ *   letzteMahlzeitStunden (Zahl oder null), mittel (zuletzt eingenommene),
+ *   essenVorsicht ('bremse', 'zusatz' oder nichts – siehe ESSEN_VORSICHT)
  */
 export function raete(d) {
   const raus = [];
@@ -80,7 +106,9 @@ export function raete(d) {
     .filter((b) => !UMSTAND_IDS.includes(b.id))
     .slice(0, 3);
 
-  if (auffaellig.length) {
+  const bremse = d.essenVorsicht === 'bremse';
+
+  if (auffaellig.length && !bremse) {
     const namen = auffaellig.map((b) => ausloeserName(b.id, d.eigene)).join(', ');
     raus.push(rat('essen-eigen', 'essen',
       `Heute eher ohne ${namen}`,
@@ -104,14 +132,15 @@ export function raete(d) {
   }
 
   const spaet = (d.bilanz || []).find((b) => b.id === 'spaet');
-  if (spaet && spaet.genug && spaet.differenz >= 1) {
+  if (spaet && spaet.genug && spaet.differenz >= 1 && !bremse) {
     raus.push(rat('essen-spaet', 'essen',
       'Die letzte Mahlzeit früher legen',
       'Zwischen dem letzten Essen und dem Hinlegen etwa drei Stunden – im Liegen '
       + 'hat der Magen keine Schwerkraft mehr auf seiner Seite.',
       `Nach Mahlzeiten nach 20 Uhr lag der Wert bei `
       + `${spaet.schnittMit.toFixed(1).replace('.', ',')} statt `
-      + `${spaet.schnittOhne.toFixed(1).replace('.', ',')} (${spaet.faelle} Fälle).`,
+      + `${spaet.schnittOhne.toFixed(1).replace('.', ',')} (${spaet.faelle} Fälle).`
+      + (d.essenVorsicht === 'zusatz' ? ` ${SPAET_ZUSATZ}` : ''),
       'eigen'));
   }
 

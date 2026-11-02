@@ -362,9 +362,25 @@ function aktivVergleich(mit, ohne, mindest) {
  * Vergleichsseite gab es die Regel nicht – jede Knopf-Aktivität sah danach
  * schützend aus. Ob ein Fall zählt, darf nie davon abhängen, was danach kam.
  *
+ * ZWEI OPTIONEN FÜR EINE ENGERE FRAGE (seit der Fassung 28)
+ *
+ *   tagFilter(iso)  Nur Tage, für die das wahr ist – auf beiden Seiten: das
+ *                   Vorkommen an diesem Tag ebenso wie der Vergleichstag.
+ *                   Gebraucht für „Massage nach einem verspannten Vortag"
+ *                   (js/spannung.js). Der Filter fragt mit Absicht nach dem
+ *                   Vortag: Was vor der Massage feststand, entscheidet, nicht
+ *                   was danach kam.
+ *   nurIds          Nur diese Aktivitäten bekommen eine Zeile.
+ *
+ * Mit einer der beiden steht in der Kopfseite jeder Zeile auch, welche Tage
+ * gezählt wurden (`kopf.tage`), damit der Aufrufer prüfen kann, ob sie
+ * verschieden in der Woche liegen. Ohne Optionen ist das Ergebnis Zeichen für
+ * Zeichen das der Fassung 27 (siehe tests/test-gold.mjs).
+ *
  * @param {object[]} eintraege
  * @param {object} tage   der Tagesspeicher
- * @param {{fenster?: number, mindestFaelle?: number, jetzt?: number}} opt
+ * @param {{fenster?: number, mindestFaelle?: number, jetzt?: number,
+ *          tagFilter?: function, nurIds?: string[]}} opt
  */
 export function aktivitaetBilanz(eintraege, tage, opt = {}) {
   const alle = eintraege || [];
@@ -372,6 +388,10 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
   const mindest = Number(opt.mindestFaelle) > 0 ? Number(opt.mindestFaelle) : 5;
   const kopfMindest = Math.max(mindest, AKTIV_KOPF_MINDEST);
   const jetzt = Number.isFinite(opt.jetzt) ? opt.jetzt : Date.now();
+  const tagFilter = typeof opt.tagFilter === 'function' ? opt.tagFilter : null;
+  const nurIds = Array.isArray(opt.nurIds) ? opt.nurIds : null;
+  const mitTagen = !!(tagFilter || nurIds);
+  const tagGilt = (iso) => !tagFilter || !!tagFilter(iso);
   const aktiv = alle.filter((e) => aktivitaetenVon(e).length && typeof e.am === 'string');
   if (!aktiv.length) return [];
 
@@ -407,6 +427,7 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
 
   const vorkommen = new Map();
   aktiv.forEach((e) => aktivitaetenVon(e).forEach((id) => {
+    if (nurIds && !nurIds.includes(id)) return;
     if (!vorkommen.has(id)) vorkommen.set(id, []);
     vorkommen.get(id).push(e);
   }));
@@ -466,6 +487,8 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
 
     const bauchMit = [];
     const kopfMit = [];
+    const kopfMitTage = [];
+    const kopfOhneTage = [];
     let offenMit = 0;
     let letztesFenster = -Infinity;
     sortiert.forEach((a) => {
@@ -473,6 +496,7 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
       // Beginnt im Fenster des vorigen Vorkommens: kein eigener Fall.
       if (t0 <= letztesFenster + fenster * STUNDE_MS) return;
       letztesFenster = t0;
+      if (!tagGilt(a.am)) return;
       if (t0 + fenster * STUNDE_MS > jetzt || !bauchNotiert(a.am)) return;
       const w = bauchWert(t0, a.am, [a]);
       bauchMit.push(w.wert);
@@ -485,8 +509,12 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
       jeTag.get(a.am).push(a);
     });
     jeTag.forEach((amTag, iso) => {
+      if (!tagGilt(iso)) return;
       const k = kopfWert(zeitpunkt(iso, amTag[0].um), iso, amTag);
-      if (k !== null) kopfMit.push(k);
+      if (k !== null) {
+        kopfMit.push(k);
+        kopfMitTage.push(iso);
+      }
     });
 
     const bauchOhne = [];
@@ -495,7 +523,9 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
     const n = tageDazwischen(erster, letzterTag);
     for (let i = 0; i <= n; i++) {
       const iso = plusTage(erster, i);
-      if (tageMit.has(iso)) continue;
+      // Ein Tag mit der Aktivität ist nie ein Tag ohne – auch dann nicht, wenn
+      // der Filter ihn auf der Seite „mit" nicht zulässt.
+      if (tageMit.has(iso) || !tagGilt(iso)) continue;
       const t0 = zeitpunkt(iso, uhr);
       const ort = [vergleichszeit(iso)];
       if (iso <= letzterBauchTag && t0 + fenster * STUNDE_MS <= jetzt && bauchNotiert(iso)
@@ -506,7 +536,10 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
       }
       if (frei(t0, AKTIV_KOPF_STUNDEN)) {
         const k = kopfWert(t0, iso, ort);
-        if (k !== null) kopfOhne.push(k);
+        if (k !== null) {
+          kopfOhne.push(k);
+          kopfOhneTage.push(iso);
+        }
       }
     }
 
@@ -526,7 +559,10 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
       uhr,
       ...(gegen ? { gegenmittel: true } : {}),
       bauch,
-      kopf: aktivVergleich(kopfMit, kopfOhne, kopfMindest),
+      kopf: {
+        ...aktivVergleich(kopfMit, kopfOhne, kopfMindest),
+        ...(mitTagen ? { tage: { mit: kopfMitTage, ohne: kopfOhneTage } } : {}),
+      },
     });
   });
 
