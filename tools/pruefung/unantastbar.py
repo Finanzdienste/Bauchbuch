@@ -30,8 +30,8 @@ duerfen -- jeder davon steht da, weil sein Fehlen jemandem schaden kann:
 
   * die Formtexte von Methylphenidat (MPH_FORMEN: einnahme, saeure, extra)
     und der Klaer-Satz dazu (KLAER_SATZ) in js/mittel.js -- darunter der
-    eine, dass Medikinet-Kapseln mit einem Saeureblocker nicht vorgesehen
-    sind;
+    eine, dass Medikinet-Kapseln mit einem Saeureblocker laut
+    Fachinformation zusammen eine Gegenanzeige sind;
   * die Hinweise zu den ADHS-Mitteln (ADHS_MITTEL, Feld hinweis) in
     js/mittel.js -- MAO-Hemmer, Leber, Absetzen;
   * alle Texte in js/zusammen.js, den Paaren von Mitteln;

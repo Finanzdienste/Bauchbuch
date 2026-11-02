@@ -97,7 +97,7 @@ export function wasSacheIst(q = {}) {
   }
 
   /*
-   * 1c. Zwei Mittel, die laut Fachinformation nicht zusammen vorgesehen sind
+   * 1c. Zwei Mittel, die laut Fachinformation zusammen eine Gegenanzeige sind
    * (Stufe A in js/zusammen.js) – gleich nach den Warnzeichen.
    *
    * Es ist kein Befund aus dem Tagebuch, sondern eine Frage, die in die
@@ -109,12 +109,12 @@ export function wasSacheIst(q = {}) {
   const paarIds = new Set((q.paare || []).map((p) => p && p.id));
   if (paarIds.has('W1')) {
     sag('paar', 'Eingetragen sind Methylphenidat als Kapsel mit zweierlei Kügelchen und ein '
-      + 'Säureblocker – laut Fachinformation nicht zusammen vorgesehen; das gehört geprüft, ohne '
+      + 'Säureblocker – laut Fachinformation zusammen eine Gegenanzeige; das gehört geprüft, ohne '
       + 'etwas eigenmächtig wegzulassen.');
   }
   if (paarIds.has('W1u')) {
     sag('paar', 'Eingetragen sind Methylphenidat ohne Angabe der Form und ein Säureblocker – bei '
-      + 'manchen Kapseln laut Fachinformation nicht zusammen vorgesehen; die Form gehört geklärt.');
+      + 'manchen Kapseln laut Fachinformation zusammen eine Gegenanzeige; die Form gehört geklärt.');
   }
 
   /*

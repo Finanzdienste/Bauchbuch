@@ -302,7 +302,7 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   const text = arztBericht({ eintraege, tage: {} }, isoPlus(GRUND, -59), GRUND);
   const kurz = abschnitt(text, 'IN KÜRZE').split('\n  - ').map((x) => x.replace(/\s+/g, ' ').trim());
   check(kurz[1].startsWith('Im Tagebuch stehen Dinge') && kurz[2].startsWith('Eingetragen sind Methylphenidat als Kapsel '
-    + 'mit zweierlei Kügelchen und ein Säureblocker – laut Fachinformation nicht zusammen vorgesehen'),
+    + 'mit zweierlei Kügelchen und ein Säureblocker – laut Fachinformation zusammen eine Gegenanzeige'),
   `IN KÜRZE: W1 als erster Satz nach den Warnzeichen (${(kurz[2] || '').slice(0, 40)}…)`);
   check(kurz.length - 1 <= 5, `IN KÜRZE: höchstens fünf Sätze (${kurz.length - 1})`);
   const mittel = abschnitt(text, 'EINGENOMMENE MITTEL');
@@ -311,6 +311,9 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   check(/Zusammen eingetragen: Medikinet retard \(Methylphenidat, Kapsel mit\s+zweierlei Kügelchen\) und Nexium\./.test(mittel)
     && mittel.includes('Frage: Passt mein Säureblocker zu meinem Methylphenidat?'),
   'das Paar steht bei den Mitteln, mit der Frage für die Sprechstunde');
+  // So streng, wie die Fachinformation es sagt: eine Gegenanzeige, nicht bloß „nicht vorgesehen".
+  check(/unter den\s+Gegenanzeigen/.test(mittel) && !/nicht zusammen\s+vor/.test(mittel),
+    'beim Paar steht die Gegenanzeige aus der Fachinformation');
   check(!/weglassen|absetzen|nimm|empfohlen|du solltest/i.test(mittel), 'und ohne Rat, etwas wegzulassen oder zu nehmen');
   const bewirkt = abschnitt(text, 'HAT ES ETWAS BEWIRKT?');
   check(bewirkt.includes('Medikinet retard') && bewirkt.replace(/\s+/g, ' ').includes('Seit dem ersten Eintrag')
@@ -325,6 +328,9 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   const kurz2 = abschnitt(t2, 'IN KÜRZE').split('\n  - ').map((x) => x.replace(/\s+/g, ' ').trim());
   check(kurz2[1].startsWith('Eingetragen sind Methylphenidat ohne Angabe der Form und ein Säureblocker'),
     'IN KÜRZE: W1u ohne Warnzeichen als erster Satz');
+  check(kurz2[1].includes('bei manchen Kapseln laut Fachinformation zusammen eine Gegenanzeige')
+    && /unter den\s+Gegenanzeigen/.test(abschnitt(t2, 'EINGENOMMENE MITTEL')),
+  'W1u: in IN KÜRZE und beim Paar die Gegenanzeige, wie die Fachinformation sie nennt');
   check(abschnitt(t2, 'EINGENOMMENE MITTEL').includes('Form: nicht angegeben'), 'ohne Form steht „nicht angegeben“');
   // Mit Form „Retardtablette mit Hülle": kein Satz zum Säureblocker.
   const oros = ohneForm.map((e) => (e.mittel === 'Methylphenidat' ? { ...e, mittel: 'Concerta' } : e));

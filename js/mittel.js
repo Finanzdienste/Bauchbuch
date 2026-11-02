@@ -838,10 +838,24 @@ export const KLAER_SATZ = 'Ob ein Säureblocker zu deinem Präparat passt, häng
  * gehört. Wo nichts steht, ist nichts belegt – auch kein beruhigender Satz.
  * Wirkdauern stehen nicht hier: Belegt war keine.
  *
+ * Jede Form sagt selbst, wen man fragt: Im Medikamenten-Bogen steht unter
+ * „Welche Form?" nur ihr Text, ohne den Hinweis des Wirkstoffs.
+ *
+ * Bei der Kapsel mit zweierlei Kügelchen gibt der Satz die Quelle so streng
+ * wieder, wie sie ist: Unter den Gegenanzeigen (4.3) steht dort nicht nur ein
+ * Magen ohne Säure, sondern ausdrücklich auch die Behandlung mit H2-Blockern,
+ * Protonenpumpenhemmern oder Antazida, und unter 4.5 „darf nicht zusammen …
+ * eingenommen werden". Weil das nach Weglassen klingt, sagt der Satz dazu,
+ * dass nichts eigenmächtig weggelassen wird – wer einen Säureblocker absetzt,
+ * hat womöglich ein anderes Problem als vorher.
+ *
  * Quellen:
  *   sofort    Medikinet Tabletten FI, fachinfo.de/pdf/002039 (06/2023), 4.2
  *   pellet    Medikinet retard FI, www.fachinfo.de/fi/pdf/009621 (12/2025), 4.3/4.5;
- *             Medikinet adult FI, fachinfo.de/pdf/013066 (04/2023; 50/60 mg 12/2014), 4.2
+ *             Rote Liste 19655-1 (Gegenanzeigen); Medikinet adult FI,
+ *             fachinfo.de/pdf/013066 (04/2023; 50/60 mg 12/2014), 4.2, und
+ *             www.fachinfo.de/fi/pdf/013066 (09/2025), 4.3; GI Medikinet adult,
+ *             www.patienteninfo-service.de/gi/14524/ (Abschnitt 2)
  *   sodas     GI Ritalin Adult, PatientenInfo-Service
  *             (www.patienteninfo-service.de/a-z-liste/r/ritalinR-adult-10-20-30-40-mg-hartkapseln-mit-veraenderter-wirkstofffreisetzung)
  *   oros      GI Concerta (Wiedergabe medikamio, 18 und 54 mg; Stand 08/2020) – Essen, Ganzschlucken,
@@ -871,10 +885,11 @@ export const MPH_FORMEN = [
       + 'einer Mahlzeit. Laut Fachinformation von Medikinet adult wird der Wirkstoff '
       + 'nüchtern deutlich schneller aufgenommen; die Wirkung hält dann nicht wie '
       + 'vorgesehen an, und es entstehen hohe Spitzen im Blut.',
-    saeure: 'Laut Fachinformation nicht zusammen mit Protonenpumpenhemmern (etwa '
-      + 'Pantoprazol), H2-Blockern oder säurebindenden Mitteln (Antazida) vorgesehen: In '
-      + 'einem weniger sauren Magen kann der ganze Wirkstoff früher frei werden. Ein '
-      + 'Magen, der von sich aus kaum Säure bildet, steht dort als Gegenanzeige.',
+    saeure: 'Laut Fachinformation nicht zusammen mit Protonenpumpenhemmern (etwa Pantoprazol), '
+      + 'H2-Blockern oder säurebindenden Mitteln (Antazida) zu nehmen; die Behandlung damit '
+      + 'steht dort unter den Gegenanzeigen, ebenso ein Magen, der kaum Säure bildet. In '
+      + 'einem weniger sauren Magen kann der ganze Wirkstoff früher frei werden. Wer beides '
+      + 'nimmt: nichts eigenmächtig weglassen, sondern in Praxis oder Apotheke ansprechen.',
   },
   {
     id: 'sodas',
@@ -906,7 +921,8 @@ export const MPH_FORMEN = [
     name: 'Equasym Retard',
     kurzname: 'Equasym Retard',
     einnahme: 'Laut Packungsbeilage morgens vor der Mahlzeit; laut Fachinformation darf die '
-      + 'Kapsel geöffnet und der Inhalt auf etwas Apfelmus gegeben werden.',
+      + 'Kapsel geöffnet und der Inhalt auf etwas Apfelmus gegeben werden. Fragen dazu: '
+      + 'Ärztin oder Apotheke.',
   },
   {
     id: 'unbekannt',

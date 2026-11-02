@@ -494,6 +494,17 @@ const knopfSagt = (page, id) => page.locator(`[data-act="standard-eintragen"][da
     'bei „Concerta" ist die Form nach dem Namen vorgewählt');
   check((await text(page, wissen)).includes('vorgewählt nach dem Namen'), 'und das steht dabei');
   check((await text(page, wissen)).includes('Tablettenhülle'), 'mit dem Text der Form');
+  /*
+   * Unter „Welche Form?" steht nur der Text der Form, ohne den Hinweis des
+   * Wirkstoffs – auch er muss sagen, wen man fragt.
+   */
+  check(/Ärztin oder Apotheke|Praxis oder Apotheke/.test(await text(page, `${wissen} .form-text`)),
+    'der Formtext im Bogen verweist auf Ärztin oder Apotheke (Retardtablette mit Hülle)');
+  await page.locator('#bogenMittel').fill('Equasym Retard');
+  await kurz(page);
+  check(await page.locator('[data-act="bogen-form"][data-id="equasym"]').getAttribute('aria-pressed') === 'true'
+    && /Ärztin oder Apotheke|Praxis oder Apotheke/.test(await text(page, `${wissen} .form-text`)),
+  `ebenso bei Equasym Retard (${await text(page, `${wissen} .form-text`)})`);
   await page.locator('#bogenMittel').fill('Medikinet');
   await kurz(page);
   check(await page.locator('[data-act="bogen-form"][data-id="sofort"]').getAttribute('aria-pressed') === 'true',
@@ -506,6 +517,14 @@ const knopfSagt = (page, id) => page.locator(`[data-act="standard-eintragen"][da
   check(await page.locator('[data-act="bogen-form"]').count() === 7, 'sieben Formen zur Wahl');
   await tipp(page, '[data-act="bogen-form"][data-id="pellet"]');
   check(await page.locator('[data-act="bogen-form"][data-id="pellet"]').getAttribute('aria-pressed') === 'true', 'ein Tipp wählt eine Form');
+  /*
+   * Kein Säureblocker eingetragen, also keine Karte W1 mit ihrem Verweis: Der
+   * Formtext allein nennt die Gegenanzeige – und sagt, wen man fragt.
+   */
+  const pelletText = await text(page, `${wissen} .form-text`);
+  check(pelletText.includes('unter den Gegenanzeigen') && pelletText.includes('Praxis oder Apotheke')
+    && pelletText.includes('nichts eigenmächtig weglassen'),
+  'Kapsel mit zweierlei Kügelchen: im Bogen die Gegenanzeige, mit Verweis auf Praxis oder Apotheke');
   // „Zum Essen?" ohne Bezug, mit Bezug nicht.
   check(await page.locator('[data-act="bogen-essen"]').count() === 3, 'ohne Bezug fragt der Bogen „Zum Essen?"');
   await tipp(page, '[data-act="bogen-essen"][data-id="vor"]');
@@ -539,7 +558,7 @@ const knopfSagt = (page, id) => page.locator(`[data-act="standard-eintragen"][da
   await ctx.close();
 }
 
-/* ---------- 7. Zwei Mittel, die die Fachinformation nicht zusammen vorsieht ---------- */
+/* ---------- 7. Zwei Mittel, die zusammen unter den Gegenanzeigen stehen ---------- */
 
 {
   const { ctx, page } = await iphone({

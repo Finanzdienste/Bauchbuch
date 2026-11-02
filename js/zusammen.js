@@ -11,17 +11,17 @@
  *
  * Der eine Fall, um den es vor allem geht: Methylphenidat als Kapsel mit
  * zweierlei Kügelchen (Medikinet retard, Medikinet adult) und ein
- * Säureblocker. Die Fachinformation sieht beides nicht zusammen vor – in
- * einem weniger sauren Magen kann der ganze Wirkstoff auf einmal frei
- * werden. Säureblocker und Methylphenidat werden oft von zwei verschiedenen
- * Praxen verordnet, und auf keiner der beiden Packungen steht der Name der
- * anderen.
+ * Säureblocker. Die Fachinformation führt die Behandlung mit einem
+ * Säureblocker unter den Gegenanzeigen – in einem weniger sauren Magen kann
+ * der ganze Wirkstoff auf einmal frei werden. Säureblocker und
+ * Methylphenidat werden oft von zwei verschiedenen Praxen verordnet, und auf
+ * keiner der beiden Packungen steht der Name der anderen.
  *
  * DIE STUFEN
  *
- *   A  ein Paar, das die Fachinformation nicht zusammen vorsieht (W1), oder
- *      eines, bei dem es so sein könnte, weil die Form fehlt (W1u). Die Karte
- *      auf „Tag" zeigt es, bis es gelesen ist.
+ *   A  ein Paar, das die Fachinformation unter den Gegenanzeigen führt (W1),
+ *      oder eines, bei dem es so sein könnte, weil die Form fehlt (W1u). Die
+ *      Karte auf „Tag" zeigt es, bis es gelesen ist.
  *   B  ein Paar, bei dem die Fachinformation eine Veränderung beschreibt.
  *   C  ein Paar, das in der Fachinformation steht, aber selten ist oder nur
  *      in der US-Fassung.
@@ -130,20 +130,28 @@ function wEingetragen(standardMittel, eintraege, heute) {
 
 /*
  * W1 und W1u – Quellen: Medikinet retard FI, www.fachinfo.de/fi/pdf/009621
- * (12/2025), 4.3/4.5; Gebrauchsinformation Medikinet adult (Wiedergabe apomio.de).
+ * (12/2025), 4.3/4.5; Rote Liste 19655-1; Medikinet adult FI,
+ * www.fachinfo.de/fi/pdf/013066 (09/2025), 4.3; Gebrauchsinformation Medikinet
+ * adult (Wiedergabe apomio.de, patienteninfo-service.de/gi/14524/).
+ *
+ * Unter den Gegenanzeigen steht dort ausdrücklich die Behandlung mit
+ * H2-Blockern, Protonenpumpenhemmern oder Antazida, nicht nur ein Magen ohne
+ * Säure; die Karte sagt es deshalb so und nicht milder.
  */
 const wKarteW1 = (b) => 'Zum Nachfragen: In deinen Mitteln stehen Methylphenidat als Kapsel '
-  + `mit zweierlei Kügelchen und ${b}, ein Mittel gegen oder gegen zu viel Magensäure. Die `
-  + 'Fachinformation solcher Kapseln sieht beides nicht zusammen vor: In einem weniger '
-  + `sauren Magen kann der Wirkstoff früher frei werden. Bitte nichts davon eigenmächtig `
-  + `weglassen – auch ${b} nicht – und es zeitnah in der Praxis oder Apotheke ansprechen.`;
+  + `mit zweierlei Kügelchen und ${b}, ein Mittel gegen oder gegen zu viel Magensäure. In der `
+  + 'Fachinformation solcher Kapseln steht die Einnahme zusammen mit solchen Mitteln unter den '
+  + 'Gegenanzeigen: In einem weniger sauren Magen kann der Wirkstoff früher frei werden. '
+  + `Bitte nichts davon eigenmächtig weglassen – auch ${b} nicht – und es zeitnah in der `
+  + 'Praxis oder Apotheke ansprechen.';
 
 const wKarteW1u = (a, b) => `Zum Nachfragen: In deinen Mitteln stehen Methylphenidat (${a}) `
   + `und ${b}, ein Mittel gegen oder gegen zu viel Magensäure. Bei manchen `
-  + 'Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) sieht die Fachinformation '
-  + 'das nicht zusammen vor. Welche Form du hast, steht auf der Packung; du kannst sie bei '
-  + 'deinem Mittel unter „Meine Mittel“ angeben. Bitte nichts eigenmächtig weglassen – '
-  + `auch ${b} nicht – und es in Praxis oder Apotheke klären.`;
+  + 'Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) steht die Einnahme zusammen '
+  + 'mit solchen Mitteln in der Fachinformation unter den Gegenanzeigen. Welche Form du hast, '
+  + 'steht auf der Packung; du kannst sie bei deinem Mittel unter „Meine Mittel“ angeben. '
+  + `Bitte nichts eigenmächtig weglassen – auch ${b} nicht – und es in Praxis oder Apotheke `
+  + 'klären.';
 
 /*
  * W5 – Quelle: Attentin 10/20 mg FI, www.fachinfo.de/fi/pdf/020945 (08/2024),

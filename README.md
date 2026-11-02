@@ -901,9 +901,11 @@ Unter Methylphenidat steht **„Je nach Form“**: sieben Formen (nicht
 retardierte Tablette, Kapsel mit zweierlei Kügelchen, Ritalin LA / Ritalin
 Adult, Retardtablette mit Hülle, andere Retardtablette, Equasym Retard, „Weiß
 ich nicht“), denn wie Methylphenidat freigesetzt wird, hängt an der Form – und
-damit, wie es sich zum Essen und zu einem Säureblocker verhält. Die Form fragt
-der Medikamenten-Bogen (vorgewählt nach dem Namen, wo der Name sie eindeutig
-nennt, auch mit Bindestrich oder ® geschrieben) und „Meine Mittel“; ältere
+damit, wie es sich zum Essen und zu einem Säureblocker verhält. Jeder dieser
+Texte sagt selbst, wen man fragt (Ärztin, Praxis oder Apotheke): Im Bogen steht
+er allein, ohne den Hinweis zum Wirkstoff. Die Form fragt der Medikamenten-Bogen
+(vorgewählt nach dem Namen, wo der Name sie eindeutig nennt, auch mit
+Bindestrich oder ® geschrieben) und „Meine Mittel“; ältere
 Einträge gelten als „Form nicht angegeben“. „Weiß ich nicht“ bei einer
 Einnahme ist keine Auskunft: Es überdeckt weder die Form unter „Meine Mittel“
 noch einen eindeutigen Namen.
@@ -957,10 +959,12 @@ Metamizol, einige Mittel gegen Depression, Blutverdünner der Cumarin-Art. Als
 eingetragen gilt, was unter „Meine Mittel“ steht oder in den letzten 30 Tagen
 genommen wurde. Drei Stufen:
 
-* **A** – die Fachinformation sieht beides nicht zusammen vor: Methylphenidat
-  als Kapsel mit zweierlei Kügelchen und ein Mittel gegen Magensäure (in einem
-  weniger sauren Magen kann der Wirkstoff früher frei werden), und dasselbe
-  mit unbekannter Form, solange keine angegeben ist. Stufe A steht als Karte
+* **A** – die Fachinformation führt die Einnahme zusammen unter den
+  Gegenanzeigen: Methylphenidat als Kapsel mit zweierlei Kügelchen und ein
+  Mittel gegen Magensäure (in einem weniger sauren Magen kann der Wirkstoff
+  früher frei werden), und dasselbe mit unbekannter Form, solange keine
+  angegeben ist. Gesagt wird es so streng, wie es dort steht – und immer mit
+  dem Satz, nichts eigenmächtig wegzulassen. Stufe A steht als Karte
   auf „Tag“, bis sie gelesen ist, in der Meldung beim Speichern, im Bogen,
   unter „Meine Mittel“, im Bericht und dort oben in IN KÜRZE, gleich nach den
   Warnzeichen.

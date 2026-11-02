@@ -180,15 +180,18 @@ function berReihen(teile, breite) {
  * Die Kernsätze der Paare für den Zettel. Die Karte auf „Tag" spricht den
  * Menschen an, der die Mittel nimmt („In deinen Mitteln …", „bitte nichts
  * weglassen"); der Zettel geht an die Praxis und braucht nur, was die
- * Fachinformation sagt. Die Sätze sind Teile der Kartentexte aus
- * js/zusammen.js und mit ihnen belegt. Für die übrigen Paare reicht der
+ * Fachinformation sagt. Die Sätze folgen den Kartentexten aus
+ * js/zusammen.js (statt „solchen Mitteln" steht „Säureblockern", weil die
+ * Karte davor den Namen nennt) und sind mit ihnen belegt – bei W1 und W1u so
+ * streng wie die Quelle: eine Gegenanzeige. Für die übrigen Paare reicht der
  * erste Satz des Hinweises bis zum Gedankenstrich.
  */
 const BER_PAAR = {
-  W1: 'Die Fachinformation solcher Kapseln sieht beides nicht zusammen vor: In einem weniger '
-    + 'sauren Magen kann der Wirkstoff früher frei werden.',
-  W1u: 'Bei manchen Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) sieht die '
-    + 'Fachinformation das nicht zusammen vor; die Form ist nicht angegeben.',
+  W1: 'In der Fachinformation solcher Kapseln steht die Einnahme zusammen mit Säureblockern '
+    + 'unter den Gegenanzeigen: In einem weniger sauren Magen kann der Wirkstoff früher frei werden.',
+  W1u: 'Bei manchen Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) steht die Einnahme '
+    + 'zusammen mit Säureblockern in der Fachinformation unter den Gegenanzeigen; die Form ist '
+    + 'nicht angegeben.',
   W3: 'Ob ein Säureblocker zum Präparat passt, hängt bei Methylphenidat an der Form.',
   W4: 'Ob ein Säureblocker zum Präparat passt, hängt bei Methylphenidat an der Form.',
 };

@@ -101,6 +101,31 @@ check(!mphForm('oros').saeure && !mphForm('equasym').saeure,
 check(/Protonenpumpenhemmern/.test(mphForm('pellet').saeure) && /Gegenanzeige/.test(mphForm('pellet').saeure),
   'bei der Kapsel mit zweierlei Kügelchen der Satz aus der Fachinformation');
 /*
+ * Und zwar so streng, wie die Quelle ist: Die Fachinformation von Medikinet
+ * retard nennt unter den Gegenanzeigen (4.3) neben der Anazidität des Magens
+ * auch die Behandlung mit H2-Blockern, Protonenpumpenhemmern oder Antazida, und
+ * unter den Wechselwirkungen (4.5) „darf nicht zusammen … eingenommen werden“.
+ * Ein Satz, der nur den Magen „von sich aus“ ohne Säure eine Gegenanzeige nennt
+ * und das Paar bloß „nicht vorgesehen“, gibt die Quelle schwächer wieder, als
+ * sie ist – und schließt gerade den Fall aus, um den es geht.
+ */
+const pelletSaeure = mphForm('pellet').saeure;
+check(/nicht zusammen mit Protonenpumpenhemmern/.test(pelletSaeure)
+  && /Behandlung damit steht dort unter den Gegenanzeigen/.test(pelletSaeure)
+  && !/vorgesehen|von sich aus/.test(pelletSaeure),
+  `Kapsel mit zweierlei Kügelchen: die Behandlung mit Säureblockern selbst steht unter den Gegenanzeigen (${pelletSaeure.slice(0, 60)}…)`);
+check(/nichts eigenmächtig weglassen/.test(pelletSaeure),
+  'und der Satz sagt dazu, nichts eigenmächtig wegzulassen');
+/*
+ * Im Medikamenten-Bogen steht unter „Welche Form?" nur der Text der
+ * gewählten Form – ohne den Hinweis des Wirkstoffs, der auf Ärztin und
+ * Apotheke verweist. Deshalb nennt jede Form selbst, wen man fragt.
+ */
+const formOhneVerweis = MPH_FORMEN.filter((f) => !/Ärztin|Praxis|Apotheke/
+  .test([f.einnahme, f.saeure, f.extra].filter(Boolean).join(' ')));
+check(formOhneVerweis.length === 0,
+  `jeder Formtext verweist auf Ärztin, Praxis oder Apotheke${formOhneVerweis.length ? ` – nicht: ${formOhneVerweis.map((f) => f.id).join(', ')}` : ''}`);
+/*
  * Concerta: Die Verengung im Magen-Darm-Trakt steht in der Fachinformation
  * unter den Warnhinweisen („normalerweise nicht"), nicht unter den
  * Gegenanzeigen. Ein Satz, der eine Quelle falsch wiedergibt, ist schlimmer
@@ -217,6 +242,11 @@ check(w1u[0].frage === 'Passt mein Säureblocker zu meinem Methylphenidat?' && w
   'W1u mit Frage und Kartentext');
 check(wechselHinweise(meine('Medikinet adult', 'Pantozol'), [], heute)[0].text.includes('auch Pantozol nicht'),
   'die Karte W1 nennt den Säureblocker beim Namen – und rät nicht, ihn wegzulassen');
+// Die Karten geben die Quelle so streng wieder, wie sie ist (siehe Formen oben).
+const w1Text = wechselHinweise(meine('Medikinet adult', 'Pantozol'), [], heute)[0].text;
+check(/unter den Gegenanzeigen/.test(w1Text) && /unter den Gegenanzeigen/.test(w1u[0].text)
+  && !/nicht zusammen vor/.test(`${w1Text} ${w1u[0].text}`),
+  'W1 und W1u: die Einnahme zusammen mit einem Säureblocker steht unter den Gegenanzeigen – nicht bloß „nicht vorgesehen"');
 
 // Eingetragen ist „Meine Mittel" oder eine Einnahme in den letzten 30 Tagen.
 check(gleich(ergibt([], [ein('Medikinet adult', WECHSEL_TAGE - 1), ein('Nexium', 3)]), ['W1']),
