@@ -57,6 +57,14 @@ const W_CUMARIN = /phenprocoumon|marcumar|falithrom|warfarin/;
 const W_SAEURE_GRUPPEN = ['ppi', 'h2', 'antazida', 'alginat'];
 
 const wKlein = (name) => String(name || '').toLowerCase().trim();
+
+/**
+ * So viele Zeichen eines Namens stehen im Schlüssel eines Paars – so viele,
+ * wie ein Name unter „Meine Mittel" haben darf. Ein Schlüssel ist damit
+ * höchstens 3 + 1 + 80 + 1 + 80 = 165 Zeichen lang; js/store.js nimmt beim
+ * Einlesen bis 170 an.
+ */
+export const W_SCHLUESSEL_NAME = 80;
 const wGruppe = (name) => {
   const g = wissenZu(name);
   return g ? g.id : null;
@@ -220,7 +228,12 @@ const W_RANG = { A: 0, B: 1, C: 2 };
  *
  * `schluessel` ist „W1|<a>|<b>" mit kleingeschriebenen Namen – daran merkt
  * sich die App, dass eine Karte gelesen ist (`wechselGelesen`). Ändert sich
- * ein Name, ist es ein neues Paar und wird neu gezeigt.
+ * ein Name, ist es ein neues Paar und wird neu gezeigt. Jeder Name steht mit
+ * höchstens W_SCHLUESSEL_NAME Zeichen darin: Unter „Meine Mittel" sind 80
+ * erlaubt, im Eintrag beliebig viele, und eine Sicherung nimmt nur kurze
+ * Schlüssel mit (sicherungLesen in js/store.js) – sonst erschiene eine
+ * gelesene Karte nach dem Einlesen wieder. Zwei Namen, die sich erst nach
+ * 80 Zeichen unterscheiden, gelten damit als dasselbe Mittel.
  *
  * Methylphenidat mit Retardtablette mit Hülle (Concerta) oder Equasym und
  * einem Säureblocker ergibt keinen Hinweis: Belegt war dazu nichts, und ein
@@ -238,7 +251,7 @@ export function wechselHinweise(standardMittel, eintraege, heute) {
   const von = (gruppe) => mit.filter((m) => m.gruppe === gruppe);
   const raus = [];
   const dazu = (id, a, b, text, frage) => {
-    const schluessel = `${id}|${a.k}|${b.k}`;
+    const schluessel = `${id}|${a.k.slice(0, W_SCHLUESSEL_NAME)}|${b.k.slice(0, W_SCHLUESSEL_NAME)}`;
     if (raus.some((h) => h.schluessel === schluessel)) return;
     raus.push({ id, stufe: W_STUFE[id], schluessel, namen: [a.name, b.name], text, frage });
   };

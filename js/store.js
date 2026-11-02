@@ -349,6 +349,14 @@ const EINSTELLUNGEN = [
 const SCHALTER = ['adhsAn', 'spannungAn'];
 const schalterWert = (v) => (v === true || v === false ? v : null);
 
+/**
+ * Wie lang ein gelesener Hinweis (`wechselGelesen`) beim Einlesen sein darf:
+ * etwas mehr als die 165 Zeichen, die ein Schlüssel aus js/zusammen.js
+ * höchstens hat. tests/test-sicherung.mjs prüft den Weg mit zwei Namen von
+ * je 80 Zeichen.
+ */
+const WECHSEL_SCHLUESSEL_LAENGE = 170;
+
 /*
  * Was zu diesem Gerät gehört und nicht zum Tagebuch. Eine Sicherung trägt
  * diese Felder mit, eingelesen werden sie nicht: Sonst stünde auf einem
@@ -1572,9 +1580,13 @@ function sicherungLesen(text) {
   SCHALTER.forEach((k) => { frisch[k] = schalterWert(gelesen[k]); });
   // Gelesene Hinweise: kurze Zeichenketten, die jüngsten fünfzig. Mehr gibt
   // es bei ein paar eigenen Mitteln nicht, und eine Datei, die hier Unsinn
-  // trägt, soll den Speicher nicht füllen.
+  // trägt, soll den Speicher nicht füllen. Kurz heißt: so lang, wie ein
+  // Schlüssel aus js/zusammen.js werden kann – zwei Namen mit je bis zu 80
+  // Zeichen (W_SCHLUESSEL_NAME) und die Kennung, höchstens 165. Wäre die
+  // Grenze knapper, erschiene eine gelesene Karte zu zwei langen Namen nach
+  // einem Umzug oder Einlesen wieder.
   frisch.wechselGelesen = frisch.wechselGelesen
-    .filter((x) => typeof x === 'string' && x.length <= 120).slice(-50);
+    .filter((x) => typeof x === 'string' && x.length <= WECHSEL_SCHLUESSEL_LAENGE).slice(-50);
   // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
   // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
   frisch.standardMittel = mittelEindeutig(frisch.standardMittel

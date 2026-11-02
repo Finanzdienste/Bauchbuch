@@ -419,7 +419,7 @@ const unsinn = JSON.stringify({
   adhsAn: 'ja',
   spannungAn: 1,
   v28Gesagt: 'ja',
-  wechselGelesen: [3, null, 'W1|a|b', 'x'.repeat(121), ...Array.from({ length: 60 }, (_, i) => `W3|m${i}|p`)],
+  wechselGelesen: [3, null, 'W1|a|b', 'x'.repeat(171), ...Array.from({ length: 60 }, (_, i) => `W3|m${i}|p`)],
 });
 await page.locator('[data-act="alles-weg"]').click();
 await page.waitForTimeout(300);
@@ -448,10 +448,58 @@ check(
 check(zu.adhsAn === null && zu.spannungAn === null && zu.v28Gesagt === false,
   `Schalter mit falschem Wert gelten als nicht entschieden (${zu.adhsAn}, ${zu.spannungAn}, ${zu.v28Gesagt})`);
 check(
-  zu.wechselGelesen.length === 50 && zu.wechselGelesen.every((x) => typeof x === 'string' && x.length <= 120)
+  zu.wechselGelesen.length === 50 && zu.wechselGelesen.every((x) => typeof x === 'string' && x.length <= 170)
     && zu.wechselGelesen[49] === 'W3|m59|p',
-  `gelesene Hinweise: nur Zeichenketten bis 120 Zeichen, die jüngsten fünfzig (${zu.wechselGelesen.length})`,
+  `gelesene Hinweise: nur Zeichenketten bis 170 Zeichen, die jüngsten fünfzig (${zu.wechselGelesen.length})`,
 );
+
+/*
+ * Gelesen bleibt gelesen – auch bei langen Namen. Der Schlüssel eines Paars
+ * trägt beide Namen; unter „Meine Mittel" sind 80 Zeichen erlaubt, im
+ * Eintrag beliebig viele. Nach Sichern, Löschen und Einlesen darf keine
+ * gelesene Karte wiederkommen.
+ */
+const lang = (anfang) => `${anfang} ${'x'.repeat(200)}`.slice(0, 80);
+const LANG_KAPSEL = lang('Medikinet adult 20 mg Hartkapseln mit veränderter Wirkstofffreisetzung');
+const LANG_SAEURE = lang('Rennie Kautabletten gegen Sodbrennen, Packung mit Lutschtabletten');
+const LAENGER = `Medikinet retard 10 mg Hartkapseln mit veränderter Wirkstofffreisetzung ${'y'.repeat(40)}`;
+await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, {
+  begruesst: true,
+  tab: 'heute',
+  eintraege: [{ id: 'l1', am: vorTagen(0), um: '07:30', art: 'medikament', mittel: LAENGER, dosis: '20 mg', form: 'pellet' }],
+  tage: {},
+  standardMittel: [
+    { id: 'l2', mittel: LANG_KAPSEL, dosis: '20 mg', tageszeit: 'morgens', bezug: 'beim', form: 'pellet' },
+    { id: 'l3', mittel: LANG_SAEURE, dosis: '', tageszeit: 'abends', bezug: null, form: null },
+  ],
+}]);
+await page.reload({ waitUntil: 'networkidle' });
+const karten = page.locator('.wechsel-karte');
+const vorher = await karten.count();
+for (let i = 0; i < vorher; i++) {
+  await karten.first().locator('[data-act="wechsel-gelesen"]').click();
+  await page.waitForTimeout(200);
+}
+const gelesen = (await zustand()).wechselGelesen;
+check(LANG_KAPSEL.length === 80 && LANG_SAEURE.length === 80 && LAENGER.length > 80 && vorher === 2
+  && (await karten.count()) === 0 && gelesen.length === 2 && gelesen.every((x) => x.length <= 165)
+  && new Set(gelesen).size === 2,
+`zwei Karten zu langen Namen gelesen, ihre Schlüssel höchstens 165 Zeichen (${vorher} Karten, ${gelesen.map((x) => x.length).join(', ')} Zeichen)`);
+await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+await page.waitForTimeout(200);
+await page.locator('[data-act="sicherung-text"]').click();
+await page.waitForTimeout(250);
+const textLang = await page.locator('.bericht').inputValue();
+await page.locator('[data-act="sicherung-zu"]').click();
+await page.locator('[data-act="alles-weg"]').click();
+await page.waitForTimeout(300);
+check((await zustand()).wechselGelesen.length === 0, 'gesichert und gelöscht – auch die gelesenen Hinweise');
+await einfuegen(textLang);
+check(JSON.stringify((await zustand()).wechselGelesen) === JSON.stringify(gelesen),
+  'nach dem Einlesen sind beide wieder als gelesen vermerkt');
+await page.locator('[data-act="tab"][data-tab="heute"]').click();
+await page.waitForTimeout(250);
+check((await karten.count()) === 0, 'und auf „Tag“ erscheint keine der beiden Karten wieder');
 
 /*
  * Ausschalten gewinnt. Wer ein Angebot abgelehnt oder einen Schalter

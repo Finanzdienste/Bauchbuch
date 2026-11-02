@@ -360,14 +360,56 @@ function adhsVorbereiten({ eintraege, tage, heute, standardMittel }) {
 /** Die Einträge des Tages – schneller als die ganze Liste. */
 const adhsTagListe = (p, iso) => p.nachTag.get(iso) || [];
 
+/** Ist dieser Schlüssel ein Stimulans? ('mph:pellet', 'lisdex', 'dex') */
+const adhsStimSchluessel = (k) => STIMULANZIEN.includes(String(k).split(':')[0]);
+
 /**
- * Der aktuelle Abschnitt: seit wann das Mittel genommen wird, das heute
+ * Ab wie vielen Tagen ohne Stimulans ein neues Mittel ohne Stimulans als
+ * Wechsel zählt. Ein Wochenende ohne Stimulans ist keiner – auch dann nicht,
+ * wenn an so einem Tag ein Zusatzmittel zum ersten Mal genommen wird.
+ */
+const ADHS_WEG_TAGE = 3;
+
+/**
+ * Der Wechselpunkt nach der bisherigen Regel: der erste Tag nach dem
+ * letzten, an dem keiner der Bezugsschlüssel stand.
+ */
+function adhsAbschnittVon(isos, schluesselAm, bezug) {
+  for (let i = isos.length - 1; i >= 0; i--) {
+    if (!schluesselAm(isos[i]).some((k) => bezug.has(k))) return isos[i + 1];
+  }
+  return isos[0];
+}
+
+/**
+ * Der aktuelle Abschnitt: seit wann das Mittel genommen wird, das jetzt
  * genommen wird.
  *
- * Er beginnt am ersten Einnahmetag nach dem letzten Einnahmetag, an dem
- * keines der heutigen Mittel stand. Ein zusätzliches Mittel setzt also nicht
- * zurück, ein Wechsel schon: Wer im Sommer von einer Form auf eine andere
- * gewechselt hat, vergleicht seine Tage nicht mit denen davor.
+ * Ein zusätzliches Mittel setzt nicht zurück, ein Wechsel schon: Wer im
+ * Sommer von einer Form auf eine andere gewechselt hat, vergleicht seine
+ * Tage nicht mit denen davor.
+ *
+ * Gibt es ein Stimulans, bestimmt es den Abschnitt – nur darum geht es in A2
+ * und A3. Bezug sind die Stimulans-Schlüssel des letzten Tages mit einem
+ * Stimulans; der Abschnitt beginnt am ersten Tag mit einem davon nach dem
+ * letzten Tag, an dem ein anderes Stimulans stand. Tage nur mit einem Mittel
+ * ohne Stimulans setzen nie zurück. Der Bezug darf nicht einfach der letzte
+ * Einnahmetag sein: Wer morgens ein Stimulans nimmt und abends ein zweites
+ * Mittel, hätte mittags nur das Stimulans eingetragen – jeder frühere Tag
+ * nur mit dem Abendmittel (ein Tag ohne Stimulans, genau die Tage, die A2
+ * vergleicht) sähe dann wie ein Wechsel aus, und Karte und Bericht sprängen
+ * im Lauf des Tages. Umgekehrt setzte ein Wechsel des Stimulans nie zurück,
+ * solange das zweite Mittel durchläuft.
+ *
+ * Vom Stimulans weg gewechselt hat, wer seit mindestens ADHS_WEG_TAGE Tagen
+ * keines eingetragen hat und seither ein Mittel nimmt, das es davor nicht
+ * gab. Dann – und ohne jedes Stimulans – gilt die Regel über alle Mittel,
+ * über die Tage nach dem letzten Stimulans: Bezug sind die Mittel des
+ * letzten Einnahmetags.
+ *
+ * `schluessel` sind die Mittel des Abschnitts in der Kopfzeile: der Bezug und
+ * was in den letzten sieben Tagen bis zum letzten Einnahmetag dazukam – damit
+ * mittags dieselben Namen dastehen wie abends.
  */
 export function adhsAbschnitt(einnahmen, heute) {
   const tageKeys = new Map();
@@ -378,15 +420,32 @@ export function adhsAbschnitt(einnahmen, heute) {
   });
   const isos = [...tageKeys.keys()].sort();
   if (!isos.length) return null;
-  const heutige = tageKeys.get(isos[isos.length - 1]);
-  let von = isos[0];
-  for (let i = isos.length - 1; i >= 0; i--) {
-    if (![...tageKeys.get(isos[i])].some((k) => heutige.has(k))) {
-      von = isos[i + 1];
-      break;
-    }
+  const letzter = isos[isos.length - 1];
+  const alleAm = (iso) => [...tageKeys.get(iso)];
+  const stimAm = (iso) => alleAm(iso).filter(adhsStimSchluessel);
+  const stimTage = isos.filter((iso) => stimAm(iso).length);
+  const letzterStim = stimTage.length ? stimTage[stimTage.length - 1] : null;
+  // Ein Mittel ohne Stimulans, das erst nach dem letzten Stimulans-Tag
+  // zum ersten Mal dasteht – nach mindestens ADHS_WEG_TAGE Tagen ohne.
+  const erstesMal = new Map();
+  isos.forEach((iso) => tageKeys.get(iso).forEach((k) => { if (!erstesMal.has(k)) erstesMal.set(k, iso); }));
+  const neuDanach = letzterStim !== null && letzterStim <= plusTage(letzter, -ADHS_WEG_TAGE)
+    && [...erstesMal].some(([k, iso]) => !adhsStimSchluessel(k) && iso > letzterStim);
+  let von;
+  let bezug;
+  if (letzterStim !== null && !neuDanach) {
+    bezug = new Set(stimAm(letzterStim));
+    von = adhsAbschnittVon(stimTage, stimAm, bezug);
+  } else {
+    const nachher = letzterStim !== null ? isos.filter((iso) => iso > letzterStim) : isos;
+    bezug = new Set(alleAm(letzter));
+    von = adhsAbschnittVon(nachher, alleAm, bezug);
   }
-  return { von, schluessel: [...heutige].sort(), tage: isos.filter((iso) => iso >= von) };
+  const tage = isos.filter((iso) => iso >= von);
+  const ab = plusTage(letzter, -6);
+  const schluessel = new Set(bezug);
+  tage.filter((iso) => iso >= ab).forEach((iso) => tageKeys.get(iso).forEach((k) => schluessel.add(k)));
+  return { von, schluessel: [...schluessel].sort(), tage };
 }
 
 /** Die Tage ohne Mittel (R2): nur angegebene, und nur ohne Stimulans-Einnahme. */

@@ -294,7 +294,9 @@ und wäre doch nur der Anlass. Unter „Was du gemacht hast“ stehen sie deshal
 nur mit der Kopfzeile, sie zählen in keinen Bauch-Vergleich der übrigen
 Aktivitäten (auch nicht als Tag „mit irgendeiner Aktivität“), und beim Kopf
 steht dabei, dass massiert oder gewärmt wird, wenn sich etwas anbahnt – ein
-Kopfschmerz danach kann schon unterwegs gewesen sein. Wer eine eigene
+Kopfschmerz danach kann schon unterwegs gewesen sein. Derselbe Satz steht im
+Bericht unter „NACH AKTIVITÄTEN“, sobald dort eine von ihnen eine Kopfzeile
+hat – mit und ohne „Kiefer, Nacken, Schiene“. Wer eine eigene
 Aktivität gleichen Namens hat, behält sie mit allen Einträgen; zusammengelegt
 wird nichts. Unter „Mehr“ › „Eigene Aktivitäten“ steht bei ihr: „„Massagepistole“
 gibt es jetzt auch fest eingebaut. Deine eigene bleibt mit allen Einträgen.“
@@ -1053,7 +1055,14 @@ Wirkdauer:
 Gerechnet wird ab dem Tag, seit dem das heutige Mittel genommen wird: Ein
 Wechsel von Präparat oder Form fängt neu an, ein zusätzliches Mittel nicht –
 und eine nachgetragene Form auch nicht: „Weiß ich nicht“ ist keine eigene
-Form, und wer sie später angibt, nimmt dasselbe Mittel weiter.
+Form, und wer sie später angibt, nimmt dasselbe Mittel weiter. Gibt es ein
+Stimulans, bestimmt es diesen Abschnitt: Ein Tag nur mit einem Mittel ohne
+Stimulans (etwa ein Tag ohne Stimulans, an dem das Abendmittel weiterläuft)
+ist kein Wechsel, ein Wechsel des Stimulans dagegen schon, auch wenn ein
+zweites Mittel durchläuft. Sonst stünde mittags, bevor ein Abendmittel
+eingetragen ist, ein anderer Abschnitt da als abends. Wer seit mindestens
+drei Tagen kein Stimulans eingetragen hat und seither ein Mittel nimmt, das
+es davor nicht gab, hat gewechselt; dann zählen die Tage seither.
 Fragen für die Sprechstunde gibt es nur bei einem Urteil, höchstens drei.
 
 #### Kiefer, Nacken, Schiene (eingeschaltet)
@@ -2279,8 +2288,8 @@ den Rückgabewert.
 | `test-aendern.mjs` | als iPhone mit 320 Pixeln: jede Zeile zeigt, dass sie sich öffnen lässt, der Bogen heißt „… ändern", Löschen braucht zwei Tipps und lässt sich rückgängig machen, kein leeres oder künftiges Datum, „Dazu genommen?" beim Ändern ohne Doppelte, die Mittel rücken mit dem Kopfschmerz mit – und alte Stände laden weiter |
 | `test-muster.mjs` | ein gepflanzter Zusammenhang wird gefunden, ein zu dünner nicht |
 | `test-verlauf.mjs` | Kacheln, Balken, Kalender – und die Lücke bleibt eine Lücke |
-| `test-bericht.mjs` | die Zahlen im Arztbericht – keine Zeile mit 80 Zeichen, auch mit einem 80 Zeichen langen Mittelnamen und allen Abschnitten an; die Abschnitte zum Einschalten nur mit ihrem Schalter, auch wenn sonst nichts eingetragen ist; Form, Paare samt Frage, Vorher-Nachher ohne Urteil beim ADHS-Mittel und W1 oben in IN KÜRZE |
-| `test-sicherung.mjs` | sichern, alles löschen, wieder einlesen – über echte Dateien |
+| `test-bericht.mjs` | die Zahlen im Arztbericht – keine Zeile mit 80 Zeichen, auch mit einem 80 Zeichen langen Mittelnamen und allen Abschnitten an; die Abschnitte zum Einschalten nur mit ihrem Schalter, auch wenn sonst nichts eingetragen ist; Form, Paare samt Frage, Vorher-Nachher ohne Urteil beim ADHS-Mittel und W1 oben in IN KÜRZE; der Vorbehalt an Massage, Massagepistole und Wärme unter NACH AKTIVITÄTEN mit jedem Schalterstand |
+| `test-sicherung.mjs` | sichern, alles löschen, wieder einlesen – über echte Dateien; gelesene Hinweise zu zwei langen Mittelnamen bleiben gelesen |
 | `test-persist.mjs` | die Ein-Datei-Fassung übersteht Neuladen und Neustart |
 | `test-offline.mjs` | Service Worker, offline eintragen, offline auswerten – ohne Netz auch für den Service Worker, keine einzige Anfrage am Server |
 | `test-ideen.mjs` | eintragen, abhaken, kopieren, die Erinnerung ans Verschicken – und Ideen bleiben aus der Auswertung heraus |
@@ -2342,8 +2351,8 @@ den Rückgabewert.
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; alte Kopfmerkmale lassen sich abwählen und wieder wählen; der Massagetext auch ohne Schalter und bei einer eigenen „Massagepistole“, die unter „Mehr“ als fest eingebaut vermerkt ist und ihre Einträge behält; kein Angebot durch Nackenschmerz |
 | `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
 | `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste |
-| `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge |
-| `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend macht keinen Kopfschmerz am Nachmittag zu einem am Morgen, der laufende Morgen zählt noch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
+| `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, ein Fenster, das noch läuft, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge; der Abschnitt liegt mittags wie abends, ein Wechsel des Stimulans setzt ihn auch bei durchlaufendem Zweitmittel; die Schwelle des Zeitprofil-Vorbehalts |
+| `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend macht keinen Kopfschmerz am Nachmittag zu einem am Morgen, der laufende Morgen zählt noch nicht, ein Folgetag, der heute ist, auch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
 | `test-nulltagebuch.mjs` | 300 Tagebücher ohne Zusammenhang, aber mit Störwegen: je Rechnung höchstens 6 %, je Karte höchstens 10 % mit Urteil |
 | `test-adhs-gegenprobe.mjs` | R0: Rechnungen, Rat-Karte und Bericht mit jedem Stand der Schalter gleich – ohne Schalter fehlen nur die neuen Abschnitte und Karten |
 | `test-adhs-karte.mjs` | als iPhone: nach einem Wechsel trägt der Befund zum Bauch den Namen des früheren Mittels und seinen letzten Einnahmetag, die Zahl der Tage ohne Mittel ist die Summe ihrer Gründe, und Tage, an denen nur „ohne Mittel“ steht, ergeben „zu wenige“ ohne Zielzahl |

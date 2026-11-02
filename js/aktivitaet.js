@@ -74,6 +74,15 @@ export function istGegenmittel(id) {
 }
 
 /*
+ * Der Vorbehalt neben jeder Kopfzahl zu Massage, Massagepistole und Wärme –
+ * auf „Muster“, in der Karte „Kiefer, Nacken, Schiene“ und im Bericht unter
+ * NACH AKTIVITÄTEN wie unter KIEFER, NACKEN, SCHIENE. Einmal hier, damit er
+ * überall gleich lautet.
+ */
+export const GEGENMITTEL_VORBEHALT = 'Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein '
+  + 'Kopfschmerz danach kann schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.';
+
+/*
  * Was Hersteller von Massagepistolen dazu schreiben – gezeigt im Bogen,
  * sobald „Massagepistole" gewählt ist, auch ohne jeden Schalter.
  *
@@ -655,10 +664,7 @@ export function aktivKopfSatz(z) {
    * danach war womöglich schon unterwegs –, und danach wird vieles ohnehin
    * besser. Beides gehört neben die Zahl.
    */
-  const vorbehalt = istGegenmittel(z.id)
-    ? ' Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach '
-      + 'kann schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.'
-    : '';
+  const vorbehalt = istGegenmittel(z.id) ? ` ${GEGENMITTEL_VORBEHALT}` : '';
   return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach an ${k.mitTreffer} von ${k.faelle} Tagen `
     + `Kopfschmerz (${prozentVon(k.quoteMit)}) – an Tagen ohne ${k.ohneTreffer} von `
     + `${k.gegenFaelle} (${prozentVon(k.quoteOhne)}).${vorbehalt}`;

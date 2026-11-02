@@ -225,6 +225,20 @@ const verteilt = (n, ab = 0, schritt = 3) => Array.from({ length: n }, (_, k) =>
     `V2: ein hineinreichender Kopfschmerz vom Vorabend schließt den verspannten Tag aus (${mit.mit.n} gezählt, ${mit.kopfAmTag} ausgeschlossen)`);
 }
 {
+  // Der Folgetag zählt erst, wenn er vorbei ist: Ist er heute, kann ein
+  // Kopfschmerz noch kommen, und bis dahin stünde er als „keiner“ da – auch
+  // wenn heute schon etwas eingetragen ist.
+  const gestern = tagN(200);
+  const heute = tagN(201);
+  const eintraege = [stuhl(gestern), stuhl(heute, '07:00')];
+  const tage = { [gestern]: { verspannt: 4 } };
+  const am = (h) => spannungAuswertung({ eintraege, tage, heute: h, jetzt: Date.parse(`${h}T09:00:00Z`) }).v2;
+  const laufend = am(heute);
+  const vorbei = am(tagN(202));
+  check(laufend.mit.n === 0 && vorbei.mit.n === 1,
+    `V2: ist der Folgetag heute, zählt der verspannte Tag noch nicht – am Tag danach schon (${laufend.mit.n}, dann ${vorbei.mit.n})`);
+}
+{
   // R6b: 16 stark verspannte Tage am Stück, lockere über das ganze Tagebuch
   // verteilt. Geprüft wird die kleinere Seite – hier die verspannte –, und
   // der Satz nennt genau sie mit ihrer Zahl von Blöcken.

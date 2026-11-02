@@ -45,7 +45,8 @@ import { kriterien } from './kriterien.js';
 import { stuhlZahlen, wasserSatz, wasserVergleich } from './stuhl.js';
 import { glasName, literText, wasserZahlen } from './wasser.js';
 import {
-  AKTIV_KOPF_STUNDEN, aktivitaetBilanz, aktivitaetName, aktivitaetenVon, bewegungSatz,
+  AKTIV_KOPF_STUNDEN, GEGENMITTEL_VORBEHALT, aktivitaetBilanz, aktivitaetName, aktivitaetenVon, bewegungSatz,
+  istGegenmittel,
 } from './aktivitaet.js';
 import { befund, mittelBilanz } from './ansprechen.js';
 import { ergebnis } from './versuch.js';
@@ -465,8 +466,7 @@ function berSpannung(sp) {
       absatz(`Nach mindestens mittel verspanntem Vortag bisher: ${wenig.map((x) => `${x.name} `
         + `${mehrzahl(x.vergleich.mit.n, 'Tag', 'Tage')}`).join(', ')} – zu wenige für einen Vergleich.`);
     }
-    absatz('Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach kann schon '
-      + 'unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.', '    ', '    ');
+    absatz(GEGENMITTEL_VORBEHALT, '    ', '    ');
   }
 
   sp.v4.forEach((x) => absatz(x.satz));
@@ -1055,7 +1055,8 @@ export function arztBericht(zustand, von, bis) {
         + 'Eine Häufigkeit, keine Ursache.)', 66).forEach((zl) => sag(`  ${zl}`));
     }
     const wort = (art) => ({ auffaellig: ' – auffällig', moeglich: ' – möglicherweise auffällig' }[art] || '');
-    aktiv.slice(0, 8).forEach((x) => {
+    const gezeigt = aktiv.slice(0, 8);
+    gezeigt.forEach((x) => {
       sag(`  ${aktivitaetName(x.id, zustand.eigeneAktivitaeten)}`);
       if (x.bauch.genug) {
         sag(`    Bauch ${x.bauch.mitTreffer} von ${x.bauch.faelle} (${prozent(x.bauch.quoteMit)}), `
@@ -1069,6 +1070,13 @@ export function arztBericht(zustand, von, bis) {
           + `${x.kopf.art === 'auffaellig' ? ' – öfter' : ''}`);
       }
     });
+    // Bei Massage, Massagepistole und Wärme gehört der Vorbehalt neben die
+    // Kopfzahl, wie auf „Muster“ (aktivKopfSatz) – auch wenn „Kiefer, Nacken,
+    // Schiene“ aus ist. Mit beiden Schalterständen gleich, denn der Bericht
+    // ohne Schalter ist der mit, nur ohne die neuen Abschnitte (R0).
+    if (gezeigt.some((x) => istGegenmittel(x.id) && x.kopf.genug)) {
+      umbrochen(`(${GEGENMITTEL_VORBEHALT})`, 66).forEach((zl) => sag(`  ${zl}`));
+    }
     if (bewegung) umbrochen(bewegung, 66).forEach((zl) => sag(`  ${zl}`));
     sag();
   }

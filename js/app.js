@@ -97,8 +97,8 @@ import {
 } from './kueche.js';
 import { BEFUNDE, BEFUND_VON, geklaert, kriterienVorbehalt } from './befunde.js';
 import {
-  AKTIVITAETEN, AKTIV_KOPF_MINDEST, AKTIV_KOPF_STUNDEN, INTENSITAETEN, MASSAGE_HINWEIS, aktivBauchSatz,
-  aktivKopfSatz, aktivitaetBilanz, aktivitaetHaeufigkeit, aktivitaetText, aktivitaetVon,
+  AKTIVITAETEN, AKTIV_KOPF_MINDEST, AKTIV_KOPF_STUNDEN, GEGENMITTEL_VORBEHALT, INTENSITAETEN, MASSAGE_HINWEIS,
+  aktivBauchSatz, aktivKopfSatz, aktivitaetBilanz, aktivitaetHaeufigkeit, aktivitaetText, aktivitaetVon,
   aktivitaetName, bewegungSatz, eingebauteGleichnamig, freieAktivitaetId, intensitaetName, sichtbareEigene,
   zuletztAktivitaeten,
 } from './aktivitaet.js';
@@ -3548,8 +3548,7 @@ function spannungKarte(s, d) {
       ${ohneUrteil.length ? `<ul class="wartend">${ohneUrteil.map((z) => zeile(z.name,
     `${mehrzahl(z.vergleich.mit.n, 'Tag', 'Tage')} damit, ${z.vergleich.ohne.n} ohne`)).join('')}</ul>` : ''}
       ${kleinSaetze(ohneUrteil.filter((z) => z.vergleich.genug).map((z) => z.satz))}
-      <p class="klein">Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach kann
-      schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.</p>`);
+      <p class="klein">${esc(GEGENMITTEL_VORBEHALT)}</p>`);
   }
 
   /* R7: am selben Tag */

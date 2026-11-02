@@ -361,6 +361,44 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   check(!abschnitt(text, 'ADHS-MITTEL'), 'aber ohne Schalter kein Abschnitt ADHS-MITTEL');
 }
 
+/* ---------- Ebene 0: der Vorbehalt an Massage, Massagepistole und Wärme ---------- */
+
+{
+  // Massage an jedem vierten Abend, Kopfschmerz an etwa jedem dritten Tag,
+  // jeder Tag durch einen Stuhlgang notiert. Unter NACH AKTIVITÄTEN steht die
+  // Kopfzeile – und neben ihr gehört derselbe Vorbehalt wie auf „Muster“,
+  // ob „Kiefer, Nacken, Schiene“ an ist oder nicht.
+  const tagebuch = (aktivitaet) => {
+    const eintraege = [];
+    let z = 7;
+    const r = () => { z = (z * 48271) % 2147483647; return z / 2147483647; };
+    for (let i = 0; i < 120; i++) {
+      const am = isoPlus(GRUND, -i);
+      eintraege.push({ id: `s${i}`, art: 'stuhl', am, um: '07:00', form: 4 });
+      if (i % 4 === 0) eintraege.push({ id: `g${i}`, art: 'aktivitaet', am, um: '18:00', aktivitaeten: [aktivitaet] });
+      if (r() < 0.35) eintraege.push({ id: `k${i}`, art: 'kopf', am, um: '15:00', staerke: 4, kopfArten: [] });
+    }
+    return eintraege.sort((a, b) => (a.am === b.am ? (a.um < b.um ? -1 : 1) : (a.am < b.am ? -1 : 1)));
+  };
+  const von = isoPlus(GRUND, -119);
+  const massage = tagebuch('massage');
+  const an = arztBericht({ eintraege: massage, tage: {}, adhsAn: null, spannungAn: true }, von, GRUND);
+  const aus = arztBericht({ eintraege: massage, tage: {}, adhsAn: null, spannungAn: false }, von, GRUND);
+  const teil = abschnitt(aus, 'NACH AKTIVITÄTEN');
+  const flach = teil.replace(/\s+/g, ' ');
+  check(teil.includes('Massage/Physio') && /Kopf an \d+ von \d+ Tagen/.test(teil),
+    `unter NACH AKTIVITÄTEN steht die Kopfzeile zur Massage (${teil.split('\n').filter((z) => /Massage\/Physio|Kopf an/.test(z)).map((z) => z.trim()).join(' / ')})`);
+  check(flach.includes('(Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach kann '
+    + 'schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.)')
+    && flach.split('anbahnt').length === 2,
+  'und darunter einmal der Vorbehalt, auch mit „Kiefer, Nacken, Schiene“ aus');
+  check(abschnitt(an, 'NACH AKTIVITÄTEN') === teil, 'mit dem Schalter an steht dort dasselbe, Zeichen für Zeichen');
+  check(!zuLang(teil).length, `keine Zeile mit 80 Zeichen oder mehr${zuLang(teil).length ? `: ${zuLang(teil)[0]}` : ''}`);
+  const yoga = arztBericht({ eintraege: tagebuch('yoga'), tage: {}, adhsAn: null, spannungAn: false }, von, GRUND);
+  check(/Kopf an \d+ von/.test(abschnitt(yoga, 'NACH AKTIVITÄTEN')) && !yoga.includes('anbahnt'),
+    'beim Dehnen steht der Vorbehalt nicht');
+}
+
 /* ---------- Die Aufwach-Frage ---------- */
 
 {

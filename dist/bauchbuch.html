@@ -2456,6 +2456,14 @@ const W_CUMARIN = /phenprocoumon|marcumar|falithrom|warfarin/;
 const W_SAEURE_GRUPPEN = ['ppi', 'h2', 'antazida', 'alginat'];
 
 const wKlein = (name) => String(name || '').toLowerCase().trim();
+
+/**
+ * So viele Zeichen eines Namens stehen im Schlüssel eines Paars – so viele,
+ * wie ein Name unter „Meine Mittel" haben darf. Ein Schlüssel ist damit
+ * höchstens 3 + 1 + 80 + 1 + 80 = 165 Zeichen lang; js/store.js nimmt beim
+ * Einlesen bis 170 an.
+ */
+const W_SCHLUESSEL_NAME = 80;
 const wGruppe = (name) => {
   const g = wissenZu(name);
   return g ? g.id : null;
@@ -2619,7 +2627,12 @@ const W_RANG = { A: 0, B: 1, C: 2 };
  *
  * `schluessel` ist „W1|<a>|<b>" mit kleingeschriebenen Namen – daran merkt
  * sich die App, dass eine Karte gelesen ist (`wechselGelesen`). Ändert sich
- * ein Name, ist es ein neues Paar und wird neu gezeigt.
+ * ein Name, ist es ein neues Paar und wird neu gezeigt. Jeder Name steht mit
+ * höchstens W_SCHLUESSEL_NAME Zeichen darin: Unter „Meine Mittel" sind 80
+ * erlaubt, im Eintrag beliebig viele, und eine Sicherung nimmt nur kurze
+ * Schlüssel mit (sicherungLesen in js/store.js) – sonst erschiene eine
+ * gelesene Karte nach dem Einlesen wieder. Zwei Namen, die sich erst nach
+ * 80 Zeichen unterscheiden, gelten damit als dasselbe Mittel.
  *
  * Methylphenidat mit Retardtablette mit Hülle (Concerta) oder Equasym und
  * einem Säureblocker ergibt keinen Hinweis: Belegt war dazu nichts, und ein
@@ -2637,7 +2650,7 @@ function wechselHinweise(standardMittel, eintraege, heute) {
   const von = (gruppe) => mit.filter((m) => m.gruppe === gruppe);
   const raus = [];
   const dazu = (id, a, b, text, frage) => {
-    const schluessel = `${id}|${a.k}|${b.k}`;
+    const schluessel = `${id}|${a.k.slice(0, W_SCHLUESSEL_NAME)}|${b.k.slice(0, W_SCHLUESSEL_NAME)}`;
     if (raus.some((h) => h.schluessel === schluessel)) return;
     raus.push({ id, stufe: W_STUFE[id], schluessel, namen: [a.name, b.name], text, frage });
   };
@@ -5634,6 +5647,14 @@ const EINSTELLUNGEN = [
 const SCHALTER = ['adhsAn', 'spannungAn'];
 const schalterWert = (v) => (v === true || v === false ? v : null);
 
+/**
+ * Wie lang ein gelesener Hinweis (`wechselGelesen`) beim Einlesen sein darf:
+ * etwas mehr als die 165 Zeichen, die ein Schlüssel aus js/zusammen.js
+ * höchstens hat. tests/test-sicherung.mjs prüft den Weg mit zwei Namen von
+ * je 80 Zeichen.
+ */
+const WECHSEL_SCHLUESSEL_LAENGE = 170;
+
 /*
  * Was zu diesem Gerät gehört und nicht zum Tagebuch. Eine Sicherung trägt
  * diese Felder mit, eingelesen werden sie nicht: Sonst stünde auf einem
@@ -6857,9 +6878,13 @@ function sicherungLesen(text) {
   SCHALTER.forEach((k) => { frisch[k] = schalterWert(gelesen[k]); });
   // Gelesene Hinweise: kurze Zeichenketten, die jüngsten fünfzig. Mehr gibt
   // es bei ein paar eigenen Mitteln nicht, und eine Datei, die hier Unsinn
-  // trägt, soll den Speicher nicht füllen.
+  // trägt, soll den Speicher nicht füllen. Kurz heißt: so lang, wie ein
+  // Schlüssel aus js/zusammen.js werden kann – zwei Namen mit je bis zu 80
+  // Zeichen (W_SCHLUESSEL_NAME) und die Kennung, höchstens 165. Wäre die
+  // Grenze knapper, erschiene eine gelesene Karte zu zwei langen Namen nach
+  // einem Umzug oder Einlesen wieder.
   frisch.wechselGelesen = frisch.wechselGelesen
-    .filter((x) => typeof x === 'string' && x.length <= 120).slice(-50);
+    .filter((x) => typeof x === 'string' && x.length <= WECHSEL_SCHLUESSEL_LAENGE).slice(-50);
   // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
   // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
   frisch.standardMittel = mittelEindeutig(frisch.standardMittel
@@ -8708,6 +8733,15 @@ function istGegenmittel(id) {
 }
 
 /*
+ * Der Vorbehalt neben jeder Kopfzahl zu Massage, Massagepistole und Wärme –
+ * auf „Muster“, in der Karte „Kiefer, Nacken, Schiene“ und im Bericht unter
+ * NACH AKTIVITÄTEN wie unter KIEFER, NACKEN, SCHIENE. Einmal hier, damit er
+ * überall gleich lautet.
+ */
+const GEGENMITTEL_VORBEHALT = 'Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein '
+  + 'Kopfschmerz danach kann schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.';
+
+/*
  * Was Hersteller von Massagepistolen dazu schreiben – gezeigt im Bogen,
  * sobald „Massagepistole" gewählt ist, auch ohne jeden Schalter.
  *
@@ -9289,10 +9323,7 @@ function aktivKopfSatz(z) {
    * danach war womöglich schon unterwegs –, und danach wird vieles ohnehin
    * besser. Beides gehört neben die Zahl.
    */
-  const vorbehalt = istGegenmittel(z.id)
-    ? ' Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach '
-      + 'kann schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.'
-    : '';
+  const vorbehalt = istGegenmittel(z.id) ? ` ${GEGENMITTEL_VORBEHALT}` : '';
   return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach an ${k.mitTreffer} von ${k.faelle} Tagen `
     + `Kopfschmerz (${prozentVon(k.quoteMit)}) – an Tagen ohne ${k.ohneTreffer} von `
     + `${k.gegenFaelle} (${prozentVon(k.quoteOhne)}).${vorbehalt}`;
@@ -9947,14 +9978,56 @@ function adhsVorbereiten({ eintraege, tage, heute, standardMittel }) {
 /** Die Einträge des Tages – schneller als die ganze Liste. */
 const adhsTagListe = (p, iso) => p.nachTag.get(iso) || [];
 
+/** Ist dieser Schlüssel ein Stimulans? ('mph:pellet', 'lisdex', 'dex') */
+const adhsStimSchluessel = (k) => STIMULANZIEN.includes(String(k).split(':')[0]);
+
 /**
- * Der aktuelle Abschnitt: seit wann das Mittel genommen wird, das heute
+ * Ab wie vielen Tagen ohne Stimulans ein neues Mittel ohne Stimulans als
+ * Wechsel zählt. Ein Wochenende ohne Stimulans ist keiner – auch dann nicht,
+ * wenn an so einem Tag ein Zusatzmittel zum ersten Mal genommen wird.
+ */
+const ADHS_WEG_TAGE = 3;
+
+/**
+ * Der Wechselpunkt nach der bisherigen Regel: der erste Tag nach dem
+ * letzten, an dem keiner der Bezugsschlüssel stand.
+ */
+function adhsAbschnittVon(isos, schluesselAm, bezug) {
+  for (let i = isos.length - 1; i >= 0; i--) {
+    if (!schluesselAm(isos[i]).some((k) => bezug.has(k))) return isos[i + 1];
+  }
+  return isos[0];
+}
+
+/**
+ * Der aktuelle Abschnitt: seit wann das Mittel genommen wird, das jetzt
  * genommen wird.
  *
- * Er beginnt am ersten Einnahmetag nach dem letzten Einnahmetag, an dem
- * keines der heutigen Mittel stand. Ein zusätzliches Mittel setzt also nicht
- * zurück, ein Wechsel schon: Wer im Sommer von einer Form auf eine andere
- * gewechselt hat, vergleicht seine Tage nicht mit denen davor.
+ * Ein zusätzliches Mittel setzt nicht zurück, ein Wechsel schon: Wer im
+ * Sommer von einer Form auf eine andere gewechselt hat, vergleicht seine
+ * Tage nicht mit denen davor.
+ *
+ * Gibt es ein Stimulans, bestimmt es den Abschnitt – nur darum geht es in A2
+ * und A3. Bezug sind die Stimulans-Schlüssel des letzten Tages mit einem
+ * Stimulans; der Abschnitt beginnt am ersten Tag mit einem davon nach dem
+ * letzten Tag, an dem ein anderes Stimulans stand. Tage nur mit einem Mittel
+ * ohne Stimulans setzen nie zurück. Der Bezug darf nicht einfach der letzte
+ * Einnahmetag sein: Wer morgens ein Stimulans nimmt und abends ein zweites
+ * Mittel, hätte mittags nur das Stimulans eingetragen – jeder frühere Tag
+ * nur mit dem Abendmittel (ein Tag ohne Stimulans, genau die Tage, die A2
+ * vergleicht) sähe dann wie ein Wechsel aus, und Karte und Bericht sprängen
+ * im Lauf des Tages. Umgekehrt setzte ein Wechsel des Stimulans nie zurück,
+ * solange das zweite Mittel durchläuft.
+ *
+ * Vom Stimulans weg gewechselt hat, wer seit mindestens ADHS_WEG_TAGE Tagen
+ * keines eingetragen hat und seither ein Mittel nimmt, das es davor nicht
+ * gab. Dann – und ohne jedes Stimulans – gilt die Regel über alle Mittel,
+ * über die Tage nach dem letzten Stimulans: Bezug sind die Mittel des
+ * letzten Einnahmetags.
+ *
+ * `schluessel` sind die Mittel des Abschnitts in der Kopfzeile: der Bezug und
+ * was in den letzten sieben Tagen bis zum letzten Einnahmetag dazukam – damit
+ * mittags dieselben Namen dastehen wie abends.
  */
 function adhsAbschnitt(einnahmen, heute) {
   const tageKeys = new Map();
@@ -9965,15 +10038,32 @@ function adhsAbschnitt(einnahmen, heute) {
   });
   const isos = [...tageKeys.keys()].sort();
   if (!isos.length) return null;
-  const heutige = tageKeys.get(isos[isos.length - 1]);
-  let von = isos[0];
-  for (let i = isos.length - 1; i >= 0; i--) {
-    if (![...tageKeys.get(isos[i])].some((k) => heutige.has(k))) {
-      von = isos[i + 1];
-      break;
-    }
+  const letzter = isos[isos.length - 1];
+  const alleAm = (iso) => [...tageKeys.get(iso)];
+  const stimAm = (iso) => alleAm(iso).filter(adhsStimSchluessel);
+  const stimTage = isos.filter((iso) => stimAm(iso).length);
+  const letzterStim = stimTage.length ? stimTage[stimTage.length - 1] : null;
+  // Ein Mittel ohne Stimulans, das erst nach dem letzten Stimulans-Tag
+  // zum ersten Mal dasteht – nach mindestens ADHS_WEG_TAGE Tagen ohne.
+  const erstesMal = new Map();
+  isos.forEach((iso) => tageKeys.get(iso).forEach((k) => { if (!erstesMal.has(k)) erstesMal.set(k, iso); }));
+  const neuDanach = letzterStim !== null && letzterStim <= plusTage(letzter, -ADHS_WEG_TAGE)
+    && [...erstesMal].some(([k, iso]) => !adhsStimSchluessel(k) && iso > letzterStim);
+  let von;
+  let bezug;
+  if (letzterStim !== null && !neuDanach) {
+    bezug = new Set(stimAm(letzterStim));
+    von = adhsAbschnittVon(stimTage, stimAm, bezug);
+  } else {
+    const nachher = letzterStim !== null ? isos.filter((iso) => iso > letzterStim) : isos;
+    bezug = new Set(alleAm(letzter));
+    von = adhsAbschnittVon(nachher, alleAm, bezug);
   }
-  return { von, schluessel: [...heutige].sort(), tage: isos.filter((iso) => iso >= von) };
+  const tage = isos.filter((iso) => iso >= von);
+  const ab = plusTage(letzter, -6);
+  const schluessel = new Set(bezug);
+  tage.filter((iso) => iso >= ab).forEach((iso) => tageKeys.get(iso).forEach((k) => schluessel.add(k)));
+  return { von, schluessel: [...schluessel].sort(), tage };
 }
 
 /** Die Tage ohne Mittel (R2): nur angegebene, und nur ohne Stimulans-Einnahme. */
@@ -17798,8 +17888,7 @@ function berSpannung(sp) {
       absatz(`Nach mindestens mittel verspanntem Vortag bisher: ${wenig.map((x) => `${x.name} `
         + `${mehrzahl(x.vergleich.mit.n, 'Tag', 'Tage')}`).join(', ')} – zu wenige für einen Vergleich.`);
     }
-    absatz('Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach kann schon '
-      + 'unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.', '    ', '    ');
+    absatz(GEGENMITTEL_VORBEHALT, '    ', '    ');
   }
 
   sp.v4.forEach((x) => absatz(x.satz));
@@ -18388,7 +18477,8 @@ function arztBericht(zustand, von, bis) {
         + 'Eine Häufigkeit, keine Ursache.)', 66).forEach((zl) => sag(`  ${zl}`));
     }
     const wort = (art) => ({ auffaellig: ' – auffällig', moeglich: ' – möglicherweise auffällig' }[art] || '');
-    aktiv.slice(0, 8).forEach((x) => {
+    const gezeigt = aktiv.slice(0, 8);
+    gezeigt.forEach((x) => {
       sag(`  ${aktivitaetName(x.id, zustand.eigeneAktivitaeten)}`);
       if (x.bauch.genug) {
         sag(`    Bauch ${x.bauch.mitTreffer} von ${x.bauch.faelle} (${prozent(x.bauch.quoteMit)}), `
@@ -18402,6 +18492,13 @@ function arztBericht(zustand, von, bis) {
           + `${x.kopf.art === 'auffaellig' ? ' – öfter' : ''}`);
       }
     });
+    // Bei Massage, Massagepistole und Wärme gehört der Vorbehalt neben die
+    // Kopfzahl, wie auf „Muster“ (aktivKopfSatz) – auch wenn „Kiefer, Nacken,
+    // Schiene“ aus ist. Mit beiden Schalterständen gleich, denn der Bericht
+    // ohne Schalter ist der mit, nur ohne die neuen Abschnitte (R0).
+    if (gezeigt.some((x) => istGegenmittel(x.id) && x.kopf.genug)) {
+      umbrochen(`(${GEGENMITTEL_VORBEHALT})`, 66).forEach((zl) => sag(`  ${zl}`));
+    }
     if (bewegung) umbrochen(bewegung, 66).forEach((zl) => sag(`  ${zl}`));
     sag();
   }
@@ -22304,8 +22401,7 @@ function spannungKarte(s, d) {
       ${ohneUrteil.length ? `<ul class="wartend">${ohneUrteil.map((z) => zeile(z.name,
     `${mehrzahl(z.vergleich.mit.n, 'Tag', 'Tage')} damit, ${z.vergleich.ohne.n} ohne`)).join('')}</ul>` : ''}
       ${kleinSaetze(ohneUrteil.filter((z) => z.vergleich.genug).map((z) => z.satz))}
-      <p class="klein">Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach kann
-      schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.</p>`);
+      <p class="klein">${esc(GEGENMITTEL_VORBEHALT)}</p>`);
   }
 
   /* R7: am selben Tag */

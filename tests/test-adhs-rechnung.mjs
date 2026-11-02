@@ -14,8 +14,11 @@
  *   * eine Reihenfolge, die niemand kennt (R3), und ungefähre Einnahmen,
  *   * die zweite Einnahme eines Tages, und in A3 Tage mit einer anderen
  *     Gabenzahl (R8),
+ *   * ein Fenster, das noch läuft – bis dahin stünde der Morgen als 0 da,
  *   * ein Tag ohne Mittel „wegen Beschwerden",
- *   * eine nachgetragene Form, die wie ein Wechsel des Mittels aussähe,
+ *   * eine nachgetragene Form, die wie ein Wechsel des Mittels aussähe, und
+ *     ein Tag nur mit einem Mittel ohne Stimulans, der mittags – bevor das
+ *     Abendmittel eingetragen ist – wie ein Wechsel aussähe,
  *   * Seiten, die verschieden in der Woche, in Blöcken oder verschieden dicht
  *     eingetragen sind (R6 auch an seiner Grenze, R6b, R6c),
  *   * eine Zielzahl auf der Seite „ohne" (R9), in jeder Reihenfolge.
@@ -252,6 +255,19 @@ const zaehl = (liste) => auswerten(liste).a1.haupt;
   });
   check(zaehl(l2).zaehl.davor === 1, '„vor dem Essen“ an derselben Mahlzeit liegt vor der Einnahme „beim Essen“');
 }
+{
+  // Nur abgelaufene Fenster: Um 9:30 ist das Fenster einer Einnahme um 7:30
+  // noch offen – eine Beschwerde kann noch kommen, und bis dahin stünde der
+  // Morgen als 0 in der Rechnung. Um 12 Uhr ist es vorbei.
+  const d = tagN(100);
+  const liste = [...a1Grund(), mittel(d, '07:30', angabe(d, '07:30', 'ohne'))];
+  const tage = { [d]: { stimmung: 1 } };
+  const um = (uhr) => adhsAuswertung({ eintraege: liste, tage, heute: d, jetzt: msAm(d, uhr), mindestFaelle: 5 }).a1.haupt;
+  const frueh = um('09:30');
+  const mittag = um('12:00');
+  check(frueh.vergleich.ohne.n === 20 && mittag.vergleich.ohne.n === 21,
+    `A1: ein Fenster, das noch läuft, ist kein Fall – erst wenn es vorbei ist (9:30: ${frueh.vergleich.ohne.n}, 12:00: ${mittag.vergleich.ohne.n} ohne Essen)`);
+}
 
 /* ---------- 3. A1 findet einen eingebauten Unterschied ---------- */
 
@@ -345,6 +361,70 @@ function a1NullTagebuch(saat) {
   const l2 = [...l];
   for (let i = 40; i < 60; i++) l2.push(mittel(tagN(i), '19:00', { mittel: 'Intuniv' }));
   check(adhsAbschnitt(adhsEinnahmen(l2), ENDE).von === tagN(30), 'ein zusätzliches Mittel setzt nicht zurück');
+}
+{
+  // Ein Stimulans am Morgen, ein Mittel ohne Stimulans jeden Abend; sonntags
+  // und an jedem neunten Tag steht nur das abendliche (Tag ohne Stimulans).
+  // Mittags ist das Abendmittel von heute noch nicht eingetragen – der
+  // Abschnitt darf deshalb mittags nicht anders liegen als abends, sonst
+  // springen Karte und Bericht im Lauf des Tages.
+  const l = [];
+  const tage = {};
+  const N = 93;
+  for (let i = 0; i < N; i++) {
+    const d = tagN(i);
+    const pause = i % 7 === 6 || i % 9 === 4;
+    if (pause) tage[d] = { adhsPause: 'geplant', stress: 1 };
+    else l.push(mittel(d, '07:30', { mittel: 'Ritalin Adult' }));
+    l.push(essen(d, '07:10'), essen(d, '12:30'), stuhl(d));
+    if (i < N - 1) l.push(mittel(d, '20:00', { mittel: 'Intuniv' }));
+  }
+  const heute = tagN(N - 1);
+  const abends = [...l, mittel(heute, '20:00', { mittel: 'Intuniv' })];
+  const am = (liste, um) => adhsAuswertung({ eintraege: liste, tage, heute, jetzt: msAm(heute, um), mindestFaelle: 5 });
+  const mittags = am(l, '12:00');
+  const spaet = am(abends, '21:00');
+  check(mittags.abschnitt.von === tagN(0) && spaet.abschnitt.von === tagN(0)
+    && mittags.abschnitt.tage === spaet.abschnitt.tage,
+  `ein Zusatzmittel erst am Abend: mittags derselbe Abschnitt wie abends (ab ${mittags.abschnitt.von} mit ${mittags.abschnitt.tage} Tagen, abends ab ${spaet.abschnitt.von} mit ${spaet.abschnitt.tage})`);
+  check(mittags.abschnitt.schluessel.join() === spaet.abschnitt.schluessel.join()
+    && mittags.abschnitt.namen.join() === 'Intuniv,Ritalin Adult' && spaet.abschnitt.namen.join() === 'Intuniv,Ritalin Adult',
+  `und dieselben Mittel in der Kopfzeile, beide (${mittags.abschnitt.namen.join(', ')} – abends ${spaet.abschnitt.namen.join(', ')})`);
+  const abend = mittags.a1.alle.find((x) => x.schluessel === 'guanf');
+  check(abend && abend.imAbschnitt, 'das Abendmittel gilt mittags als laufend – sein Befund trägt kein „Einnahmen bis“');
+  check(mittags.a2.mitTage === spaet.a2.mitTage && mittags.a2.ohneTage === spaet.a2.ohneTage && mittags.a2.ohneTage > 20,
+    `A2 mittags wie abends (${mittags.a2.mitTage}/${mittags.a2.ohneTage} gegen ${spaet.a2.mitTage}/${spaet.a2.ohneTage} Tage)`);
+}
+{
+  // Wechsel des Stimulans, das Mittel ohne Stimulans läuft durch: Das ist ein
+  // Wechsel, auch wenn jeden Tag ein Schlüssel gleich bleibt.
+  const l = [];
+  for (let i = 0; i < 60; i++) {
+    l.push(mittel(tagN(i), '07:30', { mittel: i < 30 ? 'Elvanse' : 'Concerta' }),
+      mittel(tagN(i), '20:00', { mittel: 'Intuniv' }));
+  }
+  const a = adhsAbschnitt(adhsEinnahmen(l), ENDE);
+  check(a.von === tagN(30), `ein Wechsel des Stimulans setzt den Abschnitt, auch wenn ein zweites Mittel durchläuft (ab ${a.von})`);
+  // Vom Stimulans auf ein Mittel ohne Stimulans: ebenso ein Wechsel – auch
+  // wenn das zweite Mittel durchläuft.
+  const l2 = [];
+  for (let i = 0; i < 60; i++) {
+    l2.push(mittel(tagN(i), '07:30', { mittel: i < 30 ? 'Ritalin Adult' : 'Strattera' }),
+      mittel(tagN(i), '20:00', { mittel: 'Intuniv' }));
+  }
+  const b = adhsAuswertung({ eintraege: l2, tage: {}, heute: ENDE, jetzt: jetztSpaet });
+  check(b.abschnitt.von === tagN(30) && b.a2 === null && b.a3 === null,
+    `vom Stimulans auf eines ohne: der Abschnitt beginnt mit dem neuen, A2 und A3 fallen weg (ab ${b.abschnitt.von})`);
+  // Ein Zusatzmittel, zum ersten Mal an einem Tag ohne Stimulans genommen:
+  // kein Wechsel – weder an diesem Tag noch danach.
+  const l3 = [];
+  for (let i = 0; i < 30; i++) l3.push(mittel(tagN(i), '07:30', { mittel: 'Medikinet adult' }));
+  l3.push(mittel(tagN(30), '20:00', { mittel: 'Intuniv' }));
+  const c = adhsAbschnitt(adhsEinnahmen(l3), tagN(30));
+  l3.push(mittel(tagN(31), '07:30', { mittel: 'Medikinet adult' }), mittel(tagN(31), '20:00', { mittel: 'Intuniv' }));
+  const c2 = adhsAbschnitt(adhsEinnahmen(l3), tagN(31));
+  check(c.von === tagN(0) && c2.von === tagN(0),
+    `ein Zusatzmittel, zum ersten Mal an einem Tag ohne Stimulans: kein Neubeginn (ab ${c.von}, am Tag danach ab ${c2.von})`);
 }
 {
   // „Weiß ich nicht“ ist keine Form, sondern eine fehlende: Wird die Form
@@ -860,6 +940,29 @@ function a3Tagebuch({ spaetAm, schlafSpaet = 2, schlafFrueh = 1, vorNacht = [1, 
   const teil = zeit.teile.find((t) => t.id === zeit.schwerpunkt);
   check(zeit.schwerpunkt === 'frueh' && r.m === teil.anzahl && r.n === 15 && r.zeigen,
     `Vorbehalt am Zeitprofil: dieselben ${teil.anzahl} Beschwerden wie im Profil, ${r.n} davon nach einem ADHS-Mittel`);
+}
+{
+  // Die Schwelle des Vorbehalts: mindestens sechs Beschwerden nach dem Mittel
+  // und mindestens die Hälfte. Jeder Tag hat eine Beschwerde eine Stunde nach
+  // dem Frühstück; an den ersten `nah` Tagen liegt das Mittel eine Viertelstunde
+  // davor.
+  const fall = (nah, alle) => {
+    const liste = [];
+    for (let i = 0; i < alle; i++) {
+      const d = tagN(i);
+      liste.push(essen(d, '07:00'), beschwerde(d, '08:00', 4), essen(d, '13:00'));
+      if (i < nah) liste.push(mittel(d, '07:15'));
+    }
+    return zeitprofilNahAmMittel(liste, { schwerpunkt: 'frueh' }, FENSTER);
+  };
+  const r56 = fall(5, 6);
+  const r613 = fall(6, 13);
+  const r612 = fall(6, 12);
+  check(r56.n === 5 && r56.m === 6 && !r56.zeigen && r56.satz === '',
+    `Vorbehalt am Zeitprofil: 5 von 6 Beschwerden nach dem Mittel sind zu wenige (${r56.n} von ${r56.m}, ${r56.zeigen})`);
+  check(r613.n === 6 && r613.m === 13 && !r613.zeigen,
+    `6 von 13 sind weniger als die Hälfte – kein Vorbehalt (${r613.n} von ${r613.m}, ${r613.zeigen})`);
+  check(r612.n === 6 && r612.m === 12 && r612.zeigen, `6 von 12 reichen (${r612.n} von ${r612.m}, ${r612.zeigen})`);
 }
 
 /* ---------- 13. Kein Satz rät, keiner nennt ein Ziel ---------- */
