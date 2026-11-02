@@ -30,9 +30,10 @@ export const MITTEL_WISSEN = [
     // Mit den Handelsnamen aus der Packung: Wer „Pantozol“ einträgt, nimmt
     // einen Säureblocker, und ohne den Namen fehlte er bei jeder Frage, die
     // nach einem Säureblocker fragt – auch bei der nach dem Methylphenidat
-    // in js/zusammen.js.
+    // in js/zusammen.js. Rifun ist Pantoprazol, Omep Omeprazol; „Omep" trifft
+    // als Teilwort auch Esomep (Esomeprazol).
     beispiele: ['Pantoprazol', 'Omeprazol', 'Esomeprazol', 'Lansoprazol', 'Rabeprazol',
-      'Pantozol', 'Nexium', 'Antra', 'Agopton'],
+      'Pantozol', 'Nexium', 'Antra', 'Agopton', 'Rifun', 'Omep'],
     kurz: 'Drosselt die Säurebildung, damit die Schleimhaut zur Ruhe kommt.',
     wirkung: 'Blockiert die Pumpen in der Magenwand, an denen die Säure entsteht. '
       + 'Es wird also nicht neutralisiert, was schon da ist – es kommt weniger nach. '
@@ -195,21 +196,26 @@ export const REIZSTOFFE = [
    * „Koffein" steht hier nicht mehr als Beispiel: Allein ist es kein
    * Schmerzmittel (siehe SONSTIGE_MITTEL), und mit ASS oder Paracetamol im
    * Namen sortiert es wissenZu() nach dem Schmerzmittel ein.
+   *
+   * Hierher kommt jedes NSAR mit Koffein, nicht nur ASS: auch Ibuprofen mit
+   * Koffein (etwa Thomapyrin Tension Duo). Deshalb nennen Gruppe und Text
+   * beide – wer Ibuprofen mit Koffein einträgt, soll nicht lesen, sein Mittel
+   * enthalte ASS.
    */
   {
     id: 'kombi',
-    gruppe: 'Kombinationsmittel mit ASS und Koffein',
+    gruppe: 'Kombinationsmittel mit ASS oder Ibuprofen und Koffein',
     beispiele: ['Thomapyrin', 'Neuralgin'],
     kurz: 'Für den Magen ein NSAR – für den Kopf ein Mittel mit der niedrigsten Übergebrauchsgrenze.',
-    wirkung: 'ASS, meist zusammen mit Paracetamol, und dazu Koffein, das die Wirkung '
-      + 'verstärkt und beschleunigt. Für die Magenschleimhaut gilt, was für jedes '
-      + 'ASS gilt: Der Schutzfilm wird mit abgeschaltet.',
+    wirkung: 'ASS (meist zusammen mit Paracetamol) oder Ibuprofen, dazu Koffein, das die '
+      + 'Wirkung verstärkt und beschleunigt. Für die Magenschleimhaut gilt, was für jedes '
+      + 'NSAR gilt: Der Schutzfilm wird mit abgeschaltet.',
     einnahme: '–',
     hinweis: 'Die meistgekauften rezeptfreien Kopfschmerzmittel – und gerade deshalb '
       + 'die, die am ehesten zu oft genommen werden. Ab etwa zehn Tagen im Monat '
       + 'kann ein Kombinationsmittel den Kopfschmerz selbst unterhalten, früher als '
       + 'ein einzelnes Schmerzmittel. Für den Magen zählt es wie ein NSAR. Auch ein '
-      + 'einzelnes ASS-Präparat mit Koffein zählt hier.',
+      + 'Präparat mit nur ASS oder nur Ibuprofen und Koffein zählt hier.',
   },
   {
     id: 'kortison',
@@ -405,7 +411,9 @@ export const WEITERE_MITTEL = [
  * Stünde Dexamfetamin vorn, wäre Lisdexamfetamin Dexamfetamin – ein anderer
  * Wirkstoff mit anderer Einnahme. Erkannt wird über ADHS_MITTEL unten (siehe
  * wissenZu); dort stehen die Gruppen in derselben Reihenfolge, und
- * tests/test-adhs-wissen.mjs prüft das.
+ * tests/test-adhs-wissen.mjs prüft das. Die Schreibweise mit „ph" ist im
+ * Deutschen ebenso verbreitet und steht deshalb dabei – ohne sie wäre ein Tag
+ * nur mit „Lisdexamphetamin" wieder ein notierter.
  *
  * Bupropion steht dabei, damit es erkannt wird – gezählt wird es wie bisher,
  * wie jedes andere Mittel: Es gehört nicht zu ADHS_GRUPPEN, und ein Tag, an
@@ -414,8 +422,8 @@ export const WEITERE_MITTEL = [
  */
 export const ADHS_NAMEN = [
   { id: 'mph', beispiele: ['Methylphenidat', 'Ritalin', 'Medikinet', 'Concerta', 'Kinecteen', 'Equasym', 'MPH'] },
-  { id: 'lisdex', beispiele: ['Lisdexamfetamin', 'Elvanse'] },
-  { id: 'dex', beispiele: ['Dexamfetamin', 'Attentin'] },
+  { id: 'lisdex', beispiele: ['Lisdexamfetamin', 'Elvanse', 'Lisdexamphetamin'] },
+  { id: 'dex', beispiele: ['Dexamfetamin', 'Attentin', 'Dexamphetamin'] },
   { id: 'atomox', beispiele: ['Atomoxetin', 'Strattera'] },
   { id: 'guanf', beispiele: ['Guanfacin', 'Intuniv'] },
   { id: 'bupro', beispiele: ['Bupropion', 'Elontril', 'Zyban'] },
@@ -588,7 +596,7 @@ export const ADHS_MITTEL = [
     wirkung: 'Kein Stimulans; es kann Puls und Blutdruck senken, und viele werden davon schläfrig.',
     einnahme: 'Laut US-Produktinformation nicht zu einer fettreichen Mahlzeit – das erhöht '
       + 'den Spiegel.',
-    nebenwirkung: 'Laut EMA bei etwa jeder zweiten Person Schläfrigkeit, bei mehr als einer '
+    nebenwirkung: 'Laut EMA bei fast jeder zweiten Person Schläfrigkeit, bei mehr als einer '
       + 'von vier Kopfschmerzen, bei etwa einer von fünf Müdigkeit und bei etwa einer von '
       + 'zehn Oberbauchschmerzen. Niedriger Blutdruck betrifft etwa eine von dreißig '
       + 'Personen, ein langsamer Puls etwa eine von sechzig, Ohnmacht weniger als eine von '
@@ -663,6 +671,15 @@ const NSAR = gruppeMit('nsar');
 const KOMBI = gruppeMit('kombi');
 const NICHTNSAR = gruppeMit('nichtnsar');
 const KOMBIPARA = gruppeMit('kombipara');
+const KOFFEINMITTEL = gruppeMit('koffeinmittel');
+
+/*
+ * Die allgemeine Suche kennt „Koffein als Tablette" nicht: Dorthin kommt ein
+ * Name nur über die Koffein-Regel in wissenZu(), wenn er außer Koffein nichts
+ * trägt. Sonst landete jeder Name mit Koffein darin – auch ein
+ * Kombinationsschmerzmittel unter seiner Marke.
+ */
+const SUCHE = ALLE.filter((g) => g !== KOFFEINMITTEL);
 
 /** Ein eingetragener Name, so wie er verglichen wird. */
 const suchform = (name) => String(name || '').toLowerCase().trim();
@@ -690,6 +707,37 @@ function beispielPasst(gesucht, beispiel) {
 /** „Koffein" oder „Coffein" irgendwo im Namen. */
 const MIT_KOFFEIN = /koffein|coffein/;
 
+/*
+ * Marken, unter denen ein Schmerzmittel mit Koffein verkauft wird – nur
+ * innerhalb der Koffein-Regel und nur mit belegter Zusammensetzung (Quellen in
+ * den Gebrauchsinformationen, Nachweis außerhalb des Repositorys):
+ *
+ *   Spalt plus Coffein N   ASS, Paracetamol und Coffein   → kombi
+ *   Vivimed mit Coffein    Paracetamol und Coffein        → kombipara
+ *
+ * Als allgemeine Beispiele taugen die Marken nicht: Unter „Spalt" gibt es auch
+ * Mittel ohne Koffein und solche mit Ibuprofen, unter „Vivimed" Paracetamol
+ * allein. „Acetylsalicylsäure" ist ASS, ausgeschrieben – das Kürzel trifft es
+ * nicht, weil es nur am Wortanfang zählt.
+ */
+const KOFFEIN_MIT_NSAR = /acetylsalicyl|spalt/;
+const KOFFEIN_MIT_PARACETAMOL = /vivimed/;
+
+/*
+ * Nur Koffein und nichts sonst: „Koffein", „Koffeintabletten", „Koffein
+ * 200 mg", „Coffeinum N 0,2 g". Weg fallen das Koffein, die Form und die
+ * Stärke; bleibt danach noch ein Buchstabe, ist es ein weiterer Bestandteil
+ * oder eine Marke – womöglich ein Schmerzmittel.
+ */
+function nurKoffein(gesucht) {
+  return gesucht
+    .replace(/koffein|coffein(um)?/g, ' ')
+    .replace(/(kau|brause|film)?tabletten?|tabs?|kapseln?|dragees?|purum/g, ' ')
+    .replace(/\d+([.,]\d+)?\s*(mg|g)?/g, ' ')
+    .replace(/(^|[^a-zäöüß])(n|mg|g)(?=$|[^a-zäöüß])/g, ' ')
+    .replace(/[^a-zäöüß]+/g, '') === '';
+}
+
 /**
  * Zu einem eingetragenen Namen die passende Gruppe finden.
  *
@@ -702,10 +750,19 @@ const MIT_KOFFEIN = /koffein|coffein/;
  * Kombinationsmittel (ICHD-3 8.2.5). Für den Magen zählt dabei nur, ob ASS
  * oder ein anderes NSAR darin steckt:
  *
- *   * mit einem NSAR („ASS Koffein", „Ibuprofen + Coffein")      → kombi
- *   * mit Paracetamol oder Metamizol („Paracetamol + Coffein")  → kombipara
- *   * sonst die allgemeine Suche – und die endet für eine reine
- *     Koffeintablette bei koffeinmittel, das ganz hinten steht.
+ *   * mit einem NSAR („ASS Koffein", „Ibuprofen + Coffein",
+ *     „Spalt plus Coffein N")                                    → kombi
+ *   * mit Paracetamol oder Metamizol („Paracetamol + Coffein",
+ *     „Vivimed mit Coffein")                                     → kombipara
+ *   * nur Koffein, Form und Stärke („Koffeintabletten")         → koffeinmittel
+ *   * sonst die allgemeine Suche ohne koffeinmittel – und ohne Treffer null.
+ *
+ * Das Letzte ist Absicht: Ein Name mit Koffein und einem Rest, den die App
+ * nicht kennt („Kopfschmerztablette mit Koffein"), ist womöglich ein
+ * Kombinationsmittel – das mit der niedrigsten Übergebrauchsgrenze. Als
+ * „Koffein als Tablette" stünde dort „Kein Schmerzmittel", und er fiele still
+ * aus der Zählung. Ohne Gruppe steht er unter „nicht zugeordnet" und am
+ * Kopfschmerztag mit Namen da (siehe kopfMittel in js/kopf.js).
  *
  * Ohne die Regel stand „ASS Koffein" unter nsar (Grenze fünfzehn statt zehn)
  * und „Paracetamol Koffein" unter kombi (für den Magen ein NSAR). Ein Opioid
@@ -718,11 +775,12 @@ export function wissenZu(name) {
   if (aufDerHaut(gesucht)) return null;
   const passt = (b) => beispielPasst(gesucht, b);
   if (MIT_KOFFEIN.test(gesucht)) {
-    if ([...NSAR.beispiele, ...KOMBI.beispiele].some(passt)) return KOMBI;
-    if (NICHTNSAR.beispiele.some(passt)) return KOMBIPARA;
+    if ([...NSAR.beispiele, ...KOMBI.beispiele].some(passt) || KOFFEIN_MIT_NSAR.test(gesucht)) return KOMBI;
+    if (NICHTNSAR.beispiele.some(passt) || KOFFEIN_MIT_PARACETAMOL.test(gesucht)) return KOMBIPARA;
+    if (nurKoffein(gesucht)) return KOFFEINMITTEL;
   }
-  return ALLE.find((g) => g.beispiele.some(passt))
-    || ALLE.find((g) => gesucht.includes(g.gruppe.toLowerCase()))
+  return SUCHE.find((g) => g.beispiele.some(passt))
+    || SUCHE.find((g) => gesucht.includes(g.gruppe.toLowerCase()))
     || null;
 }
 
@@ -787,7 +845,10 @@ export const KLAER_SATZ = 'Ob ein Säureblocker zu deinem Präparat passt, häng
  *   sodas     GI Ritalin Adult, PatientenInfo-Service
  *             (www.patienteninfo-service.de/a-z-liste/r/ritalinR-adult-10-20-30-40-mg-hartkapseln-mit-veraenderter-wirkstofffreisetzung)
  *   oros      GI Concerta (Wiedergabe medikamio, 18 und 54 mg; Stand 08/2020) – Essen, Ganzschlucken,
- *             Hülle im Stuhl, Verengung als Gegenanzeige
+ *             Hülle im Stuhl; Concerta FI (Janssen),
+ *             static.janssen-emea.com/sites/default/files/Germany/SMPC/DE-PL-0005.pdf (02/2026)
+ *             und …/DE-PL-0003.pdf, 4.4 „Möglichkeit einer gastrointestinalen Obstruktion“
+ *             – bei schwerer Verengung normalerweise nicht (ein Warnhinweis, keine Gegenanzeige)
  *   retardtab GI Kinecteen, www.patienteninfo-service.de/gi/14910/ – nur Verweis
  *   equasym   Equasym Retard FI, www.fachinfo.de/fi/pdf/012100 (Apfelmus);
  *             GI-Wiedergabe Apotheken Umschau (morgens vor der Mahlzeit)
@@ -829,8 +890,9 @@ export const MPH_FORMEN = [
     einnahme: 'Laut Packungsbeilage mit oder ohne Essen; die Tablette wird im Ganzen '
       + 'geschluckt, nicht gekaut, gebrochen oder zerkleinert.',
     extra: 'Die leere Tablettenhülle kann im Stuhl zu sehen sein – laut Packungsbeilage '
-      + 'normal. Eine Verengung oder Blockade in Speiseröhre oder Darm steht dort unter '
-      + 'den Gegenanzeigen.',
+      + 'normal. Bei einer schweren Verengung in Speiseröhre, Magen oder Darm soll diese '
+      + 'Tablette laut Fachinformation normalerweise nicht genommen werden, weil sie ihre '
+      + 'Form nicht verändert. Fragen dazu: Ärztin oder Apotheke.',
   },
   {
     id: 'retardtab',
@@ -876,10 +938,16 @@ const FORM_NACH_NAME = [
   [/equasym/, 'equasym'],
 ];
 
-/** Die Form, die der Name eindeutig nennt – oder null. */
+/**
+ * Die Form, die der Name eindeutig nennt – oder null.
+ *
+ * Bindestrich, ® und Punkt zählen wie ein Leerzeichen: „Medikinet® retard"
+ * steht so auf der Packung, „Ritalin-Adult" so in mancher Apotheke – und beide
+ * nennen ihre Form so eindeutig wie ohne.
+ */
 export function formAusName(name) {
-  const gesucht = suchform(name);
-  if (!gesucht) return null;
+  const gesucht = suchform(name).replace(/[^a-zäöüß0-9]+/g, ' ');
+  if (!gesucht.trim()) return null;
   const treffer = FORM_NACH_NAME.find(([muster]) => muster.test(gesucht));
   return treffer ? treffer[1] : null;
 }

@@ -49,6 +49,9 @@ const NAMEN = [
   ['Elvanse', 'lisdex'], ['Lisdexamfetamin', 'lisdex'], ['Attentin', 'dex'], ['Dexamfetamin', 'dex'],
   ['Strattera', 'atomox'], ['Intuniv', 'guanf'], ['Elontril', 'bupro'], ['Zyban', 'bupro'],
   ['Atomoxetin-Gel', null],
+  // Die Schreibweise mit „ph" ist im Deutschen ebenso verbreitet – und auch
+  // dort steht Lisdexamfetamin vor Dexamfetamin.
+  ['Lisdexamphetamin', 'lisdex'], ['Dexamphetamin', 'dex'],
 ];
 let falsch = liste(NAMEN);
 check(falsch.length === 0, `Namen → Gruppe${falsch.length ? ` – falsch: ${falsch.join(', ')}` : ''}`);
@@ -63,6 +66,8 @@ check(NAMEN.every(([n, g]) => adhsGruppe(n) === g),
   'adhsGruppe() sagt dasselbe wie wissenZu() – eine Erkennung für alles');
 check(istAdhsMittel('Elvanse') && !istAdhsMittel('Elontril') && !istAdhsMittel('Koffein'),
   'Bupropion und Koffein zählen nicht als ADHS-Mittel');
+check(istAdhsMittel('Lisdexamphetamin') && istAdhsMittel('Dexamphetamin 5 mg'),
+  'auch in der Schreibweise mit „ph" ein ADHS-Mittel – sonst wäre ein Tag nur mit ihm wieder ein notierter');
 
 /* ---------- 2. Formen ---------- */
 
@@ -70,6 +75,9 @@ const FORMEN = [
   ['Medikinet adult', 'pellet'], ['Medikinet retard 20 mg', 'pellet'], ['Medikinet', null],
   ['Ritalin LA', 'sodas'], ['Ritalin Adult', 'sodas'], ['Ritalin', null], ['Concerta', 'oros'],
   ['Kinecteen', 'retardtab'], ['Equasym Retard', 'equasym'], ['Methylphenidat', null], ['MPH retard', null],
+  // So, wie es auf Packungen und in Apotheken steht: mit Bindestrich oder ®.
+  ['Medikinet-retard', 'pellet'], ['Medikinet® retard', 'pellet'], ['Medikinet®adult', 'pellet'],
+  ['Ritalin-Adult', 'sodas'], ['Ritalin® LA', 'sodas'], ['Ritalin-LA', 'sodas'], ['Medikinet®', null],
 ];
 falsch = FORMEN.filter(([n, f]) => formAusName(n) !== f).map(([n]) => `${n} → ${formAusName(n)}`);
 check(falsch.length === 0, `Form aus dem Namen nur, wo sie eindeutig ist${falsch.length ? ` – falsch: ${falsch.join(', ')}` : ''}`);
@@ -92,6 +100,15 @@ check(!mphForm('oros').saeure && !mphForm('equasym').saeure,
   'bei Concerta und Equasym kein Satz zum Säureblocker – auch kein beruhigender');
 check(/Protonenpumpenhemmern/.test(mphForm('pellet').saeure) && /Gegenanzeige/.test(mphForm('pellet').saeure),
   'bei der Kapsel mit zweierlei Kügelchen der Satz aus der Fachinformation');
+/*
+ * Concerta: Die Verengung im Magen-Darm-Trakt steht in der Fachinformation
+ * unter den Warnhinweisen („normalerweise nicht"), nicht unter den
+ * Gegenanzeigen. Ein Satz, der eine Quelle falsch wiedergibt, ist schlimmer
+ * als keiner.
+ */
+check(!/Gegenanzeige/.test(mphForm('oros').extra) && /normalerweise nicht/.test(mphForm('oros').extra)
+  && /Ärztin oder Apotheke/.test(mphForm('oros').extra),
+  `bei der Retardtablette mit Hülle die Verengung so, wie die Fachinformation sie nennt (${mphForm('oros').extra.slice(70, 140)}…)`);
 
 /* ---------- 3. Koffein: K2 und K2b ---------- */
 
@@ -104,9 +121,41 @@ const KOFFEIN = [
   // fiele es aus der Zählung der Akutmittel.
   ['Tramadol Koffein', 'opioid'],
   ['Paracetamol', 'nichtnsar'], ['ASS 100', 'nsar'], ['Koffein-Shampoo-Creme', null],
+  // Koffein als Tablette ist nur, was außer Koffein, Form und Stärke nichts trägt.
+  ['Coffeinum N 0,2 g', 'koffeinmittel'], ['Coffein 200 mg', 'koffeinmittel'], ['Koffein 200 mg', 'koffeinmittel'],
+  ['Koffein-Tabletten', 'koffeinmittel'], ['Koffein Tabletten', 'koffeinmittel'], ['Coffeinum purum', 'koffeinmittel'],
+  // Schmerzmittel mit Koffein unter ihrer Marke oder mit dem ausgeschriebenen
+  // Wirkstoff: nie „Koffein als Tablette – kein Schmerzmittel". Die beiden
+  // Marken mit belegter Zusammensetzung (ASS, Paracetamol und Coffein bzw.
+  // Paracetamol und Coffein) haben ihre Gruppe.
+  ['Spalt plus Coffein N', 'kombi'], ['Spalt plus Koffein', 'kombi'],
+  ['Vivimed mit Coffein', 'kombipara'], ['Vivimed mit Koffein', 'kombipara'],
+  ['Acetylsalicylsäure + Coffein', 'kombi'], ['Ibuprofen + Coffein', 'kombi'],
+  // Alles andere mit Koffein und einem unbekannten Rest: keine Gruppe – dann
+  // steht es unter „nicht zugeordnet" und fällt nicht still aus der Zählung.
+  ['Kopfweg mit Coffein', null], ['Kopfschmerztablette mit Koffein', null], ['Schmerzmittel + Koffein', null],
+  ['Ergotamin Coffein', null], ['Propyphenazon Coffein', null],
+  // Ohne Koffein bleibt eine Marke, was sie war: nicht zugeordnet.
+  ['Spalt Schmerztabletten', null], ['Vivimed', null],
 ];
 falsch = liste(KOFFEIN);
 check(falsch.length === 0, `die Koffein-Regel${falsch.length ? ` – falsch: ${falsch.join(', ')}` : ''}`);
+const mitWort = ['Kopfweg', 'Taurin', 'Ergotamin', 'plus Guarana', 'Kombi', 'Migräne']
+  .flatMap((w) => [`Koffein ${w}`, `${w} Coffein`, `Coffeinum ${w} N`]);
+falsch = mitWort.filter((n) => gruppe(n) === 'koffeinmittel');
+check(falsch.length === 0, `kein Name mit einem weiteren Wort ist „Koffein als Tablette“${falsch.length ? ` – doch: ${falsch.join(', ')}` : ''}`);
+check(KOFFEIN.filter(([n]) => /koffein|coffein/i.test(n) && gruppe(n) !== 'koffeinmittel')
+  .every(([n]) => !/Kein Schmerzmittel/.test((wissenZu(n) || {}).kurz || '')),
+  'ein Schmerzmittel mit Koffein liest nirgends „Kein Schmerzmittel"');
+/*
+ * Ibuprofen mit Koffein (etwa Thomapyrin Tension Duo) ist ein
+ * Kombinationsmittel – aber keines mit ASS. Die Gruppe darf das nicht
+ * behaupten.
+ */
+const kombi = wissenZu('Ibuprofen + Coffein');
+check(/Ibuprofen/.test(kombi.gruppe) && /Ibuprofen/.test(kombi.wirkung) && !/jedes ASS gilt/.test(kombi.wirkung)
+  && /Ibuprofen/.test(kombi.hinweis),
+  `Kombinationsmittel mit Koffein nennen ASS und Ibuprofen („${kombi.gruppe}")`);
 check(WEITERE_MITTEL.findIndex((g) => g.id === 'kombipara') === WEITERE_MITTEL.findIndex((g) => g.id === 'nichtnsar') + 1,
   'kombipara steht direkt nach den Schmerzmitteln ohne Entzündungshemmung');
 check(SONSTIGE_MITTEL.length === 1 && SONSTIGE_MITTEL[0].id === 'koffeinmittel', 'SONSTIGE_MITTEL ist das Koffein');
@@ -116,6 +165,8 @@ check(SONSTIGE_MITTEL.length === 1 && SONSTIGE_MITTEL[0].id === 'koffeinmittel',
 const SAEURE = [
   ['Pantozol', 'ppi'], ['Nexium', 'ppi'], ['Antra', 'ppi'], ['Agopton', 'ppi'], ['Maaloxan', 'antazida'],
   ['Kaiser Natron', null], ['Bullrich Salz', null],
+  // Rifun (Pantoprazol), Omep und Esomep (Omeprazol, Esomeprazol).
+  ['Rifun 40', 'ppi'], ['Omep 20', 'ppi'], ['Esomep 20', 'ppi'], ['Omeprazol', 'ppi'],
 ];
 falsch = liste(SAEURE);
 check(falsch.length === 0, `Handelsnamen der Säureblocker${falsch.length ? ` – falsch: ${falsch.join(', ')}` : ''}`);
@@ -180,6 +231,32 @@ check(formZu('Medikinet', std, [ein('Medikinet', 5, { form: 'oros' }), ein('medi
   'die zuletzt eingetragene Form geht vor – auch anders geschrieben');
 check(formZu('Medikinet retard', [], []) === 'pellet' && formZu('Medikinet', [], []) === 'unbekannt',
   'sonst die Form aus dem Namen, sonst „unbekannt"');
+/*
+ * „Weiß ich nicht" bei einer Einnahme ist keine Auskunft über die Form. Es
+ * darf weder die Wahl unter „Meine Mittel" überdecken – die Karte W1u
+ * schickt genau dorthin – noch einen Namen, der die Form eindeutig nennt.
+ */
+const weissNicht = ein('Medikinet', 1, { form: 'unbekannt' });
+const stdSodas = meine({ mittel: 'Medikinet', form: 'sodas' }, 'Pantoprazol');
+check(formZu('Medikinet', stdSodas, [weissNicht]) === 'sodas',
+  `„Weiß ich nicht" im Eintrag überdeckt die Form unter „Meine Mittel" nicht (${formZu('Medikinet', stdSodas, [weissNicht])})`);
+check(gleich(wechselHinweise(stdSodas, [weissNicht], heute).map((h) => `${h.id}/${h.stufe}`), ['W3/B']),
+  'Medikinet mit Form unter „Meine Mittel", Pantoprazol und ein Eintrag „Weiß ich nicht" → W3, nicht W1u');
+check(formZu('Medikinet adult', [], [ein('Medikinet adult', 1, { form: 'unbekannt' })]) === 'pellet'
+  && gleich(ergibt(meine('Pantoprazol'), [ein('Medikinet adult', 1, { form: 'unbekannt' })]), ['W1']),
+  'ein eindeutiger Name bleibt eindeutig, auch wenn ein Eintrag „Weiß ich nicht" trägt → W1');
+check(formZu('Medikinet', [], [ein('Medikinet', 3, { form: 'pellet' }), ein('Medikinet', 1, { form: 'unbekannt' })]) === 'pellet'
+  && formZu('Medikinet', [], [weissNicht]) === 'unbekannt',
+  'eine früher eingetragene Form bleibt stehen; ohne jede Angabe „unbekannt"');
+
+// Packungsschreibweisen und weitere Säureblocker-Namen ergeben dieselben Paare.
+check(gleich(ergibt(meine('Medikinet-retard', 'Nexium')), ['W1']) && gleich(ergibt(meine('Medikinet® adult', 'Omep 20')), ['W1'])
+  && gleich(ergibt(meine('Medikinet adult', 'Rifun 40')), ['W1']),
+  'Medikinet-retard mit Nexium, Medikinet® adult mit Omep, Medikinet adult mit Rifun → W1');
+check(gleich(wechselHinweise(meine('Ritalin-Adult', 'Nexium'), [], heute).map((h) => `${h.id}/${h.stufe}`), ['W3/B']),
+  'Ritalin-Adult mit Nexium → W3 (Stufe B), nicht W1u');
+check(gleich(ergibt(meine('Lisdexamphetamin', 'Vitamin C')), ['W6']) && gleich(ergibt(meine('Dexamphetamin', 'Kaiser Natron')), ['W5']),
+  'die Schreibweise mit „ph" bekommt dieselben Paare');
 
 // Stufe A zuerst, jedes Paar einmal.
 const viele = wechselHinweise(meine('Strattera', 'Fluoxetin', 'Methylphenidat', 'Rennie', 'Rennie'), [], heute);
@@ -210,6 +287,13 @@ check(/Praxis oder Physiotherapie/.test(MASSAGE_HINWEIS.satz) && /112/.test(MASS
   'der Massagehinweis verweist auf Praxis oder Physiotherapie und nennt den Notruf');
 check(!texte.some((t) => /\b(absetzen|weglassen)\b/i.test(t) && !/(nicht|nichts|nur nach)/i.test(t)),
   'absetzen oder weglassen nur verneint');
+
+// Was eine Quelle sagt, steht so da – nicht ungefährer und nicht anders.
+check(/^Laut EMA bei fast jeder zweiten Person Schläfrigkeit/.test(ADHS_MITTEL.find((g) => g.id === 'guanf').nebenwirkung),
+  'Guanfacin: Schläfrigkeit bei „fast" jeder zweiten Person, wie die EMA schreibt – nicht „etwa"');
+const w6 = wechselHinweise(meine('Elvanse', 'Vitamin C'), [], heute)[0].text;
+check(!/Spiegel von Lisdexamfetamin/.test(w6) && /Spiegel des Wirkstoffs, der im Körper aus Lisdexamfetamin entsteht/.test(w6),
+  'W6: Der Urin verändert den Spiegel des Wirkstoffs, der aus Lisdexamfetamin entsteht – nicht den der Vorstufe');
 
 /* ---------- 7. Der Wächter für die Sicherheitstexte ---------- */
 

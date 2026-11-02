@@ -207,6 +207,13 @@ const speicher = (page) => page.evaluate(async (k) => {
       { id: 'c1', art: 'medikament', am: '2026-05-27', um: '15:00', mittel: 'Koffein', dosis: '' },
       { id: 'c2', art: 'medikament', am: '2026-05-26', um: '15:00', mittel: 'Paracetamol Koffein', dosis: '' },
       { id: 'p1', art: 'medikament', am: '2026-05-25', um: '07:00', mittel: 'Agopton', dosis: '15 mg' },
+      // Ein Name mit Coffein, den die App nicht kennt, ist keine
+      // Koffeintablette; eine Marke mit ASS und Koffein ein Kombinationsmittel.
+      { id: 'c3', art: 'medikament', am: '2026-05-23', um: '15:00', mittel: 'Kopfweg mit Coffein', dosis: '' },
+      { id: 'c4', art: 'medikament', am: '2026-05-22', um: '15:00', mittel: 'Spalt plus Koffein', dosis: '' },
+      // „Omep" ist neu, „Omeprazol" kannte schon die Fassung 27.
+      { id: 'p2', art: 'medikament', am: '2026-05-21', um: '07:00', mittel: 'Omep 20', dosis: '' },
+      { id: 'p3', art: 'medikament', am: '2026-05-20', um: '07:00', mittel: 'Omeprazol', dosis: '20 mg' },
       { id: 'k1', art: 'kopf', am: '2026-05-25', um: '10:00', staerke: 4, kopfArten: ['licht'] },
       { id: 'f1', art: 'essen', am: '2026-05-25', um: '08:00', was: 'Brot', zutaten: [], portion: 'normal' },
     ],
@@ -216,10 +223,14 @@ const speicher = (page) => page.evaluate(async (k) => {
   check((await page.locator('#view > .karte').first().getAttribute('class')).includes('v28-karte'), 'ganz oben');
   check(karte.includes('2 Tage, an denen nur ein ADHS-Mittel steht, zählen jetzt als Lücke'), `mit der Zahl der Tage (${karte})`);
   check(karte.includes('Koffein als Tablette zählt nicht mehr als Schmerzmittel') && karte.includes('(1 Eintrag)'),
-    'mit Koffein als Tablette');
+    'mit Koffein als Tablette – nur der eine Eintrag, der nichts außer Koffein trägt');
   check(karte.includes('Kombinationsmittel') && karte.includes('Paracetamol mit Koffein zählt für den Magen nicht mehr als NSAR')
-    && karte.includes('Paracetamol Koffein'), 'mit den Schmerzmitteln mit Koffein');
-  check(karte.includes('Agopton wird jetzt als Säureblocker erkannt.'), 'mit dem neu erkannten Säureblocker');
+    && karte.includes('Paracetamol Koffein') && karte.includes('Spalt plus Koffein') && !karte.includes('Kopfweg'),
+  'mit den Schmerzmitteln mit Koffein');
+  const saeureSatz = (karte.match(/[^.]*Säureblocker erkannt\./) || [''])[0].trim();
+  check(/^(Agopton und Omep 20|Omep 20 und Agopton) werden jetzt als Säureblocker erkannt\.$/.test(saeureSatz)
+    && !karte.includes('Omeprazol'),
+  `mit den neu erkannten Säureblockern – ohne den, den schon die Fassung 27 kannte (${saeureSatz})`);
   check(karte.includes('„Licht“ und „Lärm“ jetzt getrennt'), 'und mit Licht und Lärm');
   await tipp(page, '[data-act="v28-gelesen"]');
   check(await page.locator('.v28-karte').count() === 0, '„Gelesen" nimmt sie weg');

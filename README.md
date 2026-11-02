@@ -903,7 +903,10 @@ Adult, Retardtablette mit Hülle, andere Retardtablette, Equasym Retard, „Wei�
 ich nicht“), denn wie Methylphenidat freigesetzt wird, hängt an der Form – und
 damit, wie es sich zum Essen und zu einem Säureblocker verhält. Die Form fragt
 der Medikamenten-Bogen (vorgewählt nach dem Namen, wo der Name sie eindeutig
-nennt) und „Meine Mittel“; ältere Einträge gelten als „Form nicht angegeben“.
+nennt, auch mit Bindestrich oder ® geschrieben) und „Meine Mittel“; ältere
+Einträge gelten als „Form nicht angegeben“. „Weiß ich nicht“ bei einer
+Einnahme ist keine Auskunft: Es überdeckt weder die Form unter „Meine Mittel“
+noch einen eindeutigen Namen.
 Die Form gehört zum Mittel, nicht zum Bogen: Wer im Bogen ein anderes eigenes
 Mittel wählt oder eins unter „Mehr“ umbenennt, nimmt die alte Form nicht mit –
 nur eine geänderte Dosis lässt sie stehen.
@@ -1081,8 +1084,9 @@ hat“ mit genau den Punkten, die auf das eigene Tagebuch zutreffen, bis
 „Gelesen“.
 
 * **K1 – ein Tag nur mit einem ADHS-Mittel ist eine Lücke.** Ein Mittel bei
-  ADHS (Methylphenidat, Lisdexamfetamin, Dexamfetamin, Atomoxetin, Guanfacin)
-  sagt so wenig über den Bauch wie ein Glas Wasser. Ein Tag, an dem nur ein
+  ADHS (Methylphenidat, Lisdexamfetamin, Dexamfetamin, Atomoxetin, Guanfacin –
+  auch in der Schreibweise mit „ph“) sagt so wenig über den Bauch wie ein Glas
+  Wasser. Ein Tag, an dem nur ein
   solches Mittel steht, zählt für Bauch und Kopf nicht mehr als notiert und
   damit nicht mehr als beschwerdefrei. Ebenso wenig die neuen Tagesangaben (Tag ohne Mittel,
   Nacken, Kiefer, Pressen, Schiene). Bupropion zählt wie bisher: Es ist für
@@ -1095,12 +1099,22 @@ hat“ mit genau den Punkten, die auf das eigene Tagebuch zutreffen, bis
   als Kombinationsmittel mit Paracetamol: für den Kopf mit der Grenze zehn, für
   den Magen nicht mehr als entzündungshemmend (bisher je nach Schreibweise als
   Kombinationsmittel, das für den Magen wie ein entzündungshemmendes zählte,
-  oder als einfaches Schmerzmittel mit der Grenze fünfzehn). „Koffein“,
-  „Koffeintabletten“ und „Coffein“ sind Koffein als Tablette – kein
-  Schmerzmittel und für den Magen kein entzündungshemmendes Mittel (bisher als
-  Kombinationsmittel bzw. gar nicht erkannt). Thomapyrin und Neuralgin bleiben Kombinationsmittel.
-* **Säureblocker-Namen.** Pantozol, Nexium, Antra und Agopton werden jetzt als
-  Protonenpumpenhemmer erkannt, Maaloxan als Mittel, das Säure bindet.
+  oder als einfaches Schmerzmittel mit der Grenze fünfzehn). Ibuprofen mit
+  Koffein zählt wie ASS mit Koffein. „Koffein“, „Koffeintabletten“, „Coffein“
+  oder „Koffein 200 mg“ sind Koffein als Tablette – kein Schmerzmittel und für
+  den Magen kein entzündungshemmendes Mittel (bisher als Kombinationsmittel bzw.
+  gar nicht erkannt). Das gilt nur für einen Namen, der außer Koffein, Form und
+  Stärke nichts trägt: Steht noch etwas da, das die App nicht kennt
+  („Kopfschmerztablette mit Koffein“), bekommt der Name keine Gruppe und steht
+  unter „nicht zugeordnet“ – er ist womöglich ein Kombinationsmittel und darf
+  nicht still aus der Zählung fallen. Zwei Marken mit belegter Zusammensetzung
+  kennt die App: „Spalt plus Coffein N“ (ASS, Paracetamol und Coffein) und
+  „Vivimed mit Coffein“ (Paracetamol und Coffein). Thomapyrin und Neuralgin
+  bleiben Kombinationsmittel. Am Kopfschmerztag stehen Kombinationsmittel in der
+  Aufschlüsselung „Akutmittel am selben Tag“ für sich, wie in den Fenstern.
+* **Säureblocker-Namen.** Pantozol, Nexium, Antra, Agopton, Rifun und Omep
+  (damit auch Esomep) werden jetzt als Protonenpumpenhemmer erkannt, Maaloxan
+  als Mittel, das Säure bindet.
   Natron bleibt ohne Gruppe; es zählt nur bei den Paaren.
 * **Licht und Lärm getrennt**, dazu „Beidseitig“ und „Schon beim Aufwachen
   da“ im Kopfbogen; frühere Einträge behalten „Licht oder Lärm“.
@@ -1133,7 +1147,9 @@ steht seine Quelle mit Abschnitt und Stand. Benutzt wurden:
   Ritalin, Ritalin LA, Ritalin Adult, Concerta, Equasym Retard, Kinecteen,
   Methylphenidat-Generika, Elvanse und Elvanse Adult, Attentin, Intuniv,
   Elontril, Zyban, dazu die US-Fachinformationen von Vyvanse, Strattera,
-  Intuniv und Ritalin LA;
+  Intuniv und Ritalin LA; für die Erkennung der Namen die
+  Gebrauchsinformationen von Spalt plus Coffein N, Vivimed mit Coffein,
+  Thomapyrin Tension Duo, Rifun, Omep und Esomep;
 * EMA: die Schlussfolgerungen der CMDh zu Methylphenidat (Zähneknirschen in den
   Produktinformationen) und zu Metamizol (Bupropion-Spiegel), die
   Zusammenfassung zu Intuniv;

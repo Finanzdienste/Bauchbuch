@@ -39,7 +39,8 @@ check(
  * wäre „dasselbe Ergebnis" kein Versprechen, sondern ein Fehler: Ein
  * ADHS-Mittel soll ja anders zählen als vorher.
  */
-const NEU = /methylphenidat|ritalin|medikinet|concerta|kinecteen|equasym|\bmph\b|lisdex|elvanse|dexamfetamin|attentin|atomoxetin|strattera|guanfacin|intuniv|bupropion|elontril|zyban|koffein|coffein|pantozol|nexium|antra|agopton|maaloxan|massagepistole|"massage"|"waerme"|adhsPause|verspannt|"kiefer"|gepresst|"schiene"|essenGesetzt/i;
+// „Omep" nur, wo es nicht zu „Omeprazol" gehört – das kannte schon die Fassung 27.
+const NEU = /methylphenidat|ritalin|medikinet|concerta|kinecteen|equasym|\bmph\b|lisdex|elvanse|dexamfetamin|dexamphetamin|attentin|atomoxetin|strattera|guanfacin|intuniv|bupropion|elontril|zyban|koffein|coffein|pantozol|nexium|antra|agopton|maaloxan|rifun|omep(?!razol)|massagepistole|"massage"|"waerme"|adhsPause|verspannt|"kiefer"|gepresst|"schiene"|essenGesetzt/i;
 for (const saat of GOLD_SAATEN) {
   const d = tagebuch(saat);
   const text = JSON.stringify(d);

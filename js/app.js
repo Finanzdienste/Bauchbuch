@@ -1914,7 +1914,7 @@ function schichtBlock(stand) {
  */
 function musterDaten(s) {
   const heute = heuteISO();
-  // Für den Magen zählt ein Kombinationsmittel mit ASS wie ein NSAR.
+  // Für den Magen zählt ein Kombinationsmittel mit ASS oder Ibuprofen wie ein NSAR.
   const istNsar = (name) => {
     const g = wissenZu(name);
     return !!g && (g.id === 'nsar' || g.id === 'kombi');
@@ -2955,7 +2955,8 @@ function artAnteilVon(s, arten) {
  * sich eine Zahl still verschoben hat – und traut danach keiner mehr. Jeder
  * Punkt steht nur, wenn er dieses Tagebuch betrifft, und mit seiner Zahl.
  */
-const NEUE_SAEURE_NAMEN = /pantozol|nexium|antra|agopton|maaloxan/;
+// „Omep" nicht, wo „Omeprazol" steht – das war schon immer ein Säureblocker.
+const NEUE_SAEURE_NAMEN = /pantozol|nexium|antra|agopton|maaloxan|rifun|omep(?!razol)/;
 
 function v28Punkte(s) {
   const klein = (x) => String(x || '').toLowerCase();
@@ -3677,8 +3678,11 @@ function kopfTeil(s, d) {
   const kopfZeile = z.fenster.length
     ? `${z.fenster[0].kopfTage} (${z.fenster[0].notiert} notiert) · davor ${z.fenster[1].kopfTage} · davor ${z.fenster[2].kopfTage}`
     : '';
+  // Kombinationsmittel stehen für sich, wie in den Fenstern (sortenText): eines
+  // mit ASS zugleich unter „entzündungshemmend", eines mit Paracetamol nur hier.
   const sortenAmTag = [
     m.mitNsar ? `${m.mitNsar} entzündungshemmend` : '',
+    m.mitKombi ? `${m.mitKombi} Kombinationsmittel` : '',
     m.mitTriptan ? `${m.mitTriptan} Triptan` : '',
     m.mitNichtNsar ? `${m.mitNichtNsar} ohne Entzündungshemmung` : '',
     m.mitOpioid ? `${m.mitOpioid} Opioid` : '',
@@ -5779,8 +5783,8 @@ function wissenTeil(s, b) {
  * gewirkt. Er steht im Stuhl-Bogen, wenn so ein Mittel unter „Meine Mittel"
  * steht oder in den letzten Wochen eingetragen ist – ohne Schalter.
  *
- * Nur der erste Satz von `extra` der Form: Der zweite (Verengungen als
- * Gegenanzeige) gehört zum Mittel, nicht zum Stuhlgang.
+ * Nur der erste Satz von `extra` der Form: Der Rest (schwere Verengungen im
+ * Magen-Darm-Trakt) gehört zum Mittel, nicht zum Stuhlgang.
  */
 function huellenSatz() {
   const text = mphForm('oros').extra;

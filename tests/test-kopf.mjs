@@ -487,7 +487,10 @@ const koffein = await page.evaluate(async () => {
   }).flat();
   const lauf = (eintraege) => {
     const r = k.kopfMittel(eintraege, gruppeVon, heute);
-    return { f: r.fenster[0], text: k.sortenText(r.fenster[0]), mitNsar: r.mitNsar, mitAkut: r.mitAkut, unbekannt: r.unbekannt.length };
+    return {
+      f: r.fenster[0], text: k.sortenText(r.fenster[0]), mitNsar: r.mitNsar, mitAkut: r.mitAkut, mitKombi: r.mitKombi,
+      unbekannt: r.unbekannt.length, unbekanntListe: r.unbekannt,
+    };
   };
   return {
     assKoffein: lauf(tage('ASS Koffein', 10)),
@@ -499,6 +502,12 @@ const koffein = await page.evaluate(async () => {
     paraKoffeinKopf: lauf(tage('Paracetamol Koffein', 4, 1, true)),
     assKoffeinKopf: lauf(tage('ASS Koffein', 4, 1, true)),
     monat: k.kopfMonate(tage('Paracetamol Koffein', 4, 1, true), {}, gruppeVon, heute).map((x) => x.nsar),
+    // Schmerzmittel mit Koffein unter ihrer Marke – und eines, das die App
+    // nicht kennt.
+    vivimed: lauf(tage('Vivimed mit Coffein', 10)),
+    spalt: lauf(tage('Spalt plus Coffein N', 12, 1, true)),
+    fremd: lauf(tage('Kopfweg mit Coffein', 12, 1, true)),
+    reinKoffein: lauf(tage('Coffeinum N 0,2 g', 12, 1, true)),
   };
 });
 check(koffein.assKoffein.f.uebergebrauch && koffein.assKoffein.f.tage.kombi === 10,
@@ -516,6 +525,22 @@ check(koffein.gemischt.f.akut === 11 && koffein.gemischt.f.uebergebrauch,
 check(koffein.paraKoffeinKopf.mitNsar === 0 && koffein.paraKoffeinKopf.mitAkut === 4 && koffein.assKoffeinKopf.mitNsar === 4,
   '„Paracetamol Koffein" steht nicht in den NSAR-Mengen für den Magen, „ASS Koffein" schon');
 check(koffein.monat.every((n) => n === 0), 'auch im Kopfschmerzkalender nicht unter den NSAR');
+check(koffein.paraKoffeinKopf.mitKombi === 4 && koffein.assKoffeinKopf.mitKombi === 4,
+  `am Kopfschmerztag zählen beide als Kombinationsmittel (${koffein.paraKoffeinKopf.mitKombi}, ${koffein.assKoffeinKopf.mitKombi})`);
+check(koffein.vivimed.f.uebergebrauch && koffein.vivimed.f.tage.kombi === 10 && koffein.vivimed.f.nsarKombi === 0,
+  'zehn Tage „Vivimed mit Coffein" (Paracetamol und Coffein) erreichen die Grenze der Kombinationsmittel');
+check(koffein.spalt.mitAkut === 12 && koffein.spalt.mitNsar === 12 && koffein.spalt.f.uebergebrauch,
+  '„Spalt plus Coffein N" (mit ASS) zählt als Akutmittel, für den Magen als NSAR und über der Grenze');
+/*
+ * Ein Name mit Koffein, den die App sonst nicht kennt, ist womöglich ein
+ * Schmerzmittel. Er darf nicht still als „kein Schmerzmittel" aus der Zählung
+ * fallen, sondern steht mit Namen unter „nicht zugeordnet".
+ */
+check(koffein.fremd.mitAkut === 0 && koffein.fremd.unbekannt === 1
+  && koffein.fremd.unbekanntListe[0].name === 'Kopfweg mit Coffein' && koffein.fremd.unbekanntListe[0].tage === 12,
+  `ein unbekannter Name mit Coffein steht unter „nicht zugeordnet" (${JSON.stringify(koffein.fremd.unbekanntListe)})`);
+check(koffein.reinKoffein.mitAkut === 0 && koffein.reinKoffein.unbekannt === 0 && !koffein.reinKoffein.f.uebergebrauch,
+  '„Coffeinum N 0,2 g" ist Koffein als Tablette: kein Akutmittel, nicht unter „nicht zugeordnet"');
 
 // Ein tägliches Vorbeugungsmittel bewegt die Akutmittel-Zählung nicht; ein
 // unbekannter Name an Kopfschmerztagen steht mit Namen da – ein unbekanntes
@@ -534,6 +559,30 @@ k = await karte();
 check(!k.includes('Akutmittel-Tage je 30 Tage') && !k.includes('Akutmittel am selben Tag'), 'Metoprolol zählt nirgends als Akutmittel');
 check(k.includes('nicht als Akutmittel erkannt') && k.includes('Zaubertrank (3 Tage)'), 'was an Kopfschmerztagen steht und die App nicht kennt, steht mit Namen da');
 check(!k.includes('L-Thyroxin'), 'das tägliche Schilddrüsenmittel nicht – es steht an keinem Kopfschmerztag');
+
+/*
+ * Paracetamol mit Koffein am Kopfschmerztag: In der Aufschlüsselung „am
+ * selben Tag" steht es als Kombinationsmittel, wie in den 30-Tage-Fenstern.
+ * Sonst ergäben die Teile die Gesamtzahl nicht, und ausgerechnet das Mittel
+ * mit der niedrigsten Grenze bliebe ungenannt. Daneben ein Name mit Coffein,
+ * den die App nicht kennt: Er steht mit Namen da.
+ */
+const kombiAmTag = [];
+for (let t = 1; t <= 6; t++) {
+  kombiAmTag.push({ id: `kk${t}`, am: vorTagen(t * 2), um: '10:00', art: 'kopf', staerke: 5 });
+  kombiAmTag.push({
+    id: `kp${t}`, am: vorTagen(t * 2), um: '10:10', art: 'medikament', mittel: t <= 4 ? 'Paracetamol + Coffein' : 'Kopfweg mit Coffein', dosis: '',
+  });
+}
+await setze(muster(kombiAmTag));
+k = await karte();
+check(/Akutmittel am selben Tag\s*an 4 von 6 Tagen \(4 Kombinationsmittel\)/.test(k),
+  `Paracetamol mit Koffein steht am selben Tag als Kombinationsmittel (${(k.match(/Akutmittel am selben Tag[^·]{0,60}/) || [''])[0]})`);
+check(k.includes('Kopfweg mit Coffein (2 Tage)'), 'der unbekannte Name mit Coffein steht unter „nicht als Akutmittel erkannt"');
+const kombiBericht = await bericht(muster(kombiAmTag));
+check(/Akutmittel am selben Tag\s+an 4 von 6 Tagen, 4 Kombinationsmittel/.test(kombiBericht),
+  `ebenso im Bericht (${(kombiBericht.match(/Akutmittel am selben Tag.*/) || [''])[0].trim()})`);
+check(/Nicht zugeordnet\s+Kopfweg mit Coffein \(2\)/.test(kombiBericht), 'und dort unter „Nicht zugeordnet"');
 
 /* ---------- 9. Der Bauch an Kopfschmerztagen ---------- */
 

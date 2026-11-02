@@ -355,7 +355,7 @@ export function kopfZahlen(eintraege, tage, heute) {
  * Die Klassen von Akutmitteln, die hier auseinandergehalten werden.
  *
  *   nsar       greift den Magen an – die Verbindung zum Bauch
- *   kombi      ASS (oder ein anderes NSAR) plus Koffein – für den Magen ein
+ *   kombi      ASS oder Ibuprofen (ein NSAR) plus Koffein – für den Magen ein
  *              NSAR, für den Kopf die niedrige Übergebrauchsgrenze der
  *              Kombinationsmittel
  *   triptan    das Migränemittel – schont den Magen, Grenze zehn Tage
@@ -499,8 +499,18 @@ export function kopfMittel(eintraege, gruppeVon, heute) {
     amKopfTag.akut.add(e.am);
     amKopfTag[klasse].add(e.am);
   });
-  // Für den Magen zählt ein Kombinationsmittel mit ASS wie ein NSAR.
+  // Für den Magen zählt ein Kombinationsmittel mit ASS oder Ibuprofen wie ein NSAR.
   const nsarKopfTage = new Set([...amKopfTag.nsar, ...amKopfTag.kombi]);
+  /*
+   * Für den Kopf jedes Kombinationsmittel, ob mit ASS oder mit Paracetamol –
+   * wie `tage.kombi` in den Fenstern. Sonst stünde Paracetamol mit Koffein am
+   * selben Tag in keiner Teilzahl, und das Mittel mit der niedrigsten Grenze
+   * bliebe in Karte und Bericht ungenannt. Ein eigenes neues Feld wäre
+   * sauberer zu lesen, änderte aber das Ergebnis jedes Tagebuchs der Fassung
+   * 27 (tests/test-gold.mjs); `mitKombi` stand dort schon und wurde nirgends
+   * gezeigt.
+   */
+  const kombiKopfTage = new Set([...amKopfTag.kombi, ...amKopfTag.kombipara]);
   const kopfTageOhneNsar = [...kopfTage].filter((iso) => !nsarKopfTage.has(iso)).sort();
 
   const fenster = heute
@@ -516,7 +526,7 @@ export function kopfMittel(eintraege, gruppeVon, heute) {
     mitNsar: nsarKopfTage.size,
     mitTriptan: amKopfTag.triptan.size,
     mitNichtNsar: amKopfTag.nichtnsar.size,
-    mitKombi: amKopfTag.kombi.size,
+    mitKombi: kombiKopfTage.size,
     mitOpioid: amKopfTag.opioid.size,
     mitGepant: amKopfTag.gepant.size,
     nsarTage: [...nsarKopfTage].sort(),

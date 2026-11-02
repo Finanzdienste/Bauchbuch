@@ -952,6 +952,9 @@ export function arztBericht(zustand, von, bis) {
     if (km.mitAkut) {
       sag(`  Akutmittel am selben Tag   an ${km.mitAkut} von ${kz.tage} Tagen`
         + (km.mitNsar ? `, davon ${km.mitNsar} entzündungshemmend` : '')
+        // Kombinationsmittel für sich, wie in der Karte – auch die mit
+        // Paracetamol, die in keiner anderen Teilzahl stehen.
+        + (km.mitKombi ? `, ${km.mitKombi} Kombinationsmittel` : '')
         + (km.mitTriptan ? `, ${km.mitTriptan} mit Triptan` : '')
         + (km.mitNichtNsar ? `, ${km.mitNichtNsar} ohne Entzündungshemmung` : ''));
     }

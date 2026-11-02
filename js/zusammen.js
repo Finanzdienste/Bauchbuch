@@ -83,15 +83,21 @@ const wMinuten = (um) => {
  * („Medikinet adult"), sonst 'unbekannt'. Ein Eintrag geht vor „Meine
  * Mittel": Wer die Packung wechselt, trägt die neue Form zuerst beim Mittel
  * ein, und die gemerkte bleibt oft stehen.
+ *
+ * „Weiß ich nicht" ist dabei auf jeder Stufe keine Auskunft, sondern zählt wie
+ * eine fehlende Angabe. Sonst überdeckte ein Eintrag mit „Weiß ich nicht" die
+ * Form, die man danach unter „Meine Mittel" wählt – genau dorthin schickt die
+ * Karte W1u – und sogar einen Namen, der die Form eindeutig nennt.
  */
 export function formZu(name, standardMittel = [], eintraege = []) {
   const k = wKlein(name);
   if (!k) return 'unbekannt';
+  const bekannt = (form) => !!form && form !== 'unbekannt';
   const mitForm = (eintraege || [])
-    .filter((e) => e && e.art === 'medikament' && wKlein(e.mittel) === k && e.form)
+    .filter((e) => e && e.art === 'medikament' && wKlein(e.mittel) === k && bekannt(e.form))
     .sort((a, b) => (a.am === b.am ? wMinuten(a.um) - wMinuten(b.um) : (a.am < b.am ? -1 : 1)));
   if (mitForm.length) return mitForm[mitForm.length - 1].form;
-  const gemerkt = (standardMittel || []).find((m) => m && wKlein(m.mittel) === k && m.form);
+  const gemerkt = (standardMittel || []).find((m) => m && wKlein(m.mittel) === k && bekannt(m.form));
   if (gemerkt) return gemerkt.form;
   return formAusName(name) || 'unbekannt';
 }
@@ -150,10 +156,14 @@ const wTextW5 = 'Laut Fachinformation erhöhen basische Mittel wie Natron die Au
  * W6 und W7 – Quelle: US-Fachinformation Vyvanse,
  * www.accessdata.fda.gov/drugsatfda_docs/label/2025/021977s054%2C208510s011lbl.pdf
  * (Urin-pH: Ascorbinsäure, Natriumhydrogencarbonat; Serotoninsyndrom mit Triptanen).
+ * Gemeint ist dort der Blutspiegel des Amfetamins, das aus der Vorstufe
+ * entsteht – Lisdexamfetamin selbst wird im Blut gespalten, sein Spiegel
+ * hängt nicht am Urin.
  */
 const wTextW6 = 'Laut US-Fachinformation senken Mittel, die den Urin saurer machen, etwa '
-  + 'Vitamin C, den Spiegel von Lisdexamfetamin; basische wie Natron erhöhen ihn – ob das '
-  + 'bei dir eine Rolle spielt, klären Ärztin oder Apotheke.';
+  + 'Vitamin C, den Spiegel des Wirkstoffs, der im Körper aus Lisdexamfetamin entsteht; '
+  + 'basische wie Natron erhöhen ihn – ob das bei dir eine Rolle spielt, klären Ärztin oder '
+  + 'Apotheke.';
 const wTextW7 = 'Die US-Fachinformation von Lisdexamfetamin nennt Triptane unter den Mitteln, '
   + 'mit denen ein Serotoninsyndrom möglich ist. Wenn du beides nimmst: in Praxis oder '
   + 'Apotheke ansprechen.';
