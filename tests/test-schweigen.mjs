@@ -205,6 +205,99 @@ if (await uebung.count()) {
   await page.waitForTimeout(200);
 }
 
+/* ---------- Die Teile der Fassung 28 ---------- */
+
+/*
+ * Die Schalter, Angebote und Zeilen für ADHS-Mittel sowie Kiefer, Nacken und
+ * Schiene – jeder Knopf wird mindestens einmal angetippt, und keiner darf
+ * etwas hinausschicken. Zwei getrennte Tagebücher, je 90 Tage mit den neuen
+ * Angaben: eins mit einem ADHS-Mittel und einem Säureblocker, eins mit
+ * Massagepistole und Schiene.
+ */
+const gefunden = new Map();
+async function tippeNeu(sel, n = 1) {
+  const el = page.locator(sel);
+  const da = await el.count();
+  gefunden.set(sel, (gefunden.get(sel) || 0) + da);
+  for (let i = 0; i < Math.min(n, da); i++) {
+    await el.first().click();
+    await page.waitForTimeout(150);
+  }
+}
+const reiter = async (id) => {
+  await page.locator(`[data-act="tab"][data-tab="${id}"]`).click();
+  await page.waitForTimeout(200);
+};
+async function stand(z) {
+  await page.evaluate(([k, x]) => localStorage.setItem(k, JSON.stringify(x)), [KEY, z]);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+}
+
+{
+  const e = [];
+  const t = {};
+  for (let i = 1; i <= 90; i++) {
+    const am = vorTagen(i);
+    e.push({ id: `ae${i}`, am, um: '08:00', art: 'essen', was: 'Brot', portion: 'normal', zutaten: [] });
+    e.push({
+      id: `am${i}`, am, um: '07:30', art: 'medikament', mittel: 'Methylphenidat', dosis: '10 mg',
+      ...(i % 3 === 0 ? { essen: 'mit', essenGesetzt: Date.now() - i * 86400000 } : {}),
+    });
+    if (i % 5 === 0) e.push({ id: `ar${i}`, am, um: '21:00', art: 'medikament', mittel: 'Rennie', dosis: '' });
+    if (i % 7 === 0) t[am] = { adhsPause: 'geplant' };
+  }
+  await stand({
+    begruesst: true, tab: 'heute', eintraege: e, tage: t, adhsAn: null, spannungAn: null,
+    standardMittel: [{ id: 'q1', mittel: 'Methylphenidat', dosis: '10 mg', tageszeit: null, bezug: null }],
+  });
+  await tippeNeu('[data-act="adhs-angebot-ja"]');
+  await tippeNeu('[data-act="wechsel-gelesen"]');
+  await tippeNeu('[data-act="adhs-pause"]');
+  await tippeNeu('[data-act="adhs-pause-grund"]');
+  await tippeNeu('[data-act="adhs-pause-weg"]');
+  await tippeNeu('[data-act="standard-eintragen"]');
+  await tippeNeu('[data-act="adhs-essen"]');
+  await tippeNeu('[data-act="neu"][data-art="medikament"]');
+  await tippeNeu('[data-act="standard-waehlen"]');
+  await tippeNeu('[data-act="bogen-form"]');
+  await tippeNeu('[data-act="bogen-essen"]');
+  await tippeNeu('[data-act="bogen-speichern"]');
+  await reiter('mehr');
+  await tippeNeu('[data-act="mph-form"]');
+  await tippeNeu('[data-act="adhs-schalter"]', 2);
+  await reiter('muster');
+  await tippeNeu('[data-act="v28-gelesen"]');
+}
+{
+  const e = [];
+  const t = {};
+  for (let i = 1; i <= 90; i++) {
+    const am = vorTagen(i);
+    e.push({ id: `se${i}`, am, um: '12:00', art: 'essen', was: 'Salat', portion: 'normal', zutaten: [] });
+    if (i % 4 === 0) e.push({ id: `sa${i}`, am, um: '19:00', art: 'aktivitaet', aktivitaeten: ['massagepistole'] });
+    if (i % 6 === 0) e.push({ id: `sk${i}`, am, um: '10:00', art: 'kopf', staerke: 5, kopfArten: ['beidseitig', 'kauen'] });
+    t[am] = { verspannt: i % 5, kiefer: i % 4, gepresst: i % 2, ...(i % 3 ? { schiene: i % 2 } : {}) };
+  }
+  await stand({ begruesst: true, tab: 'heute', eintraege: e, tage: t, adhsAn: false, spannungAn: null });
+  await tippeNeu('[data-act="spannung-angebot-ja"]');
+  await tippeNeu('[data-act="tagfrage"][data-id="verspannt"]');
+  await tippeNeu('[data-act="tagfrage"][data-id="schiene"]');
+  await tippeNeu('[data-act="neu"][data-art="kopf"]');
+  await tippeNeu('[data-act="kopfart"][data-id="beidseitig"]');
+  await tippeNeu('[data-act="kopfart"][data-id="kauen"]');
+  await tippeNeu('button.bogen-zu');
+  await tippeNeu('[data-act="neu"][data-art="aktivitaet"]');
+  await tippeNeu('[data-act="aktiv-wahl"][data-id="massagepistole"]');
+  await tippeNeu('[data-act="bogen-speichern"]');
+  await reiter('mehr');
+  await tippeNeu('[data-act="spannung-schalter"]', 2);
+  for (const t2 of ['verlauf', 'muster', 'heute']) await reiter(t2);
+}
+const fehlen = [...gefunden.entries()].filter(([, n]) => !n).map(([sel]) => sel);
+check(!fehlen.length, `jeder neue Knopf war da und wurde angetippt (${gefunden.size} Selektoren)${fehlen.length ? ` – fehlt: ${fehlen.join(', ')}` : ''}`);
+check(fremd.length === 0, `auch dabei null Anfragen${fremd.length ? `: ${fremd.slice(0, 3).join(' | ')}` : ''}`);
+
 // Neu laden – auch der Start darf nichts melden.
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);

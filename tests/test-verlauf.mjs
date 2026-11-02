@@ -64,6 +64,15 @@ check(
 
 /* ---------- Der Monatskalender ---------- */
 
+// Seit der Fassung 28 ist ein Tag mit nur einem ADHS-Mittel oder einer
+// Aktivität für den Bauch eine Lücke – in derselben Farbe wie ein leerer Tag.
+// Die Legende sagt deshalb beides.
+check(
+  (await page.locator('.legende').innerText()).includes('nichts eingetragen oder zum Bauch nichts'),
+  'die Legende nennt neben „nichts eingetragen" auch „zum Bauch nichts"',
+);
+check(await page.locator('.legende span').count() === 6, 'mit derselben Zahl an Feldern wie bisher');
+
 const heuteFeld = page.locator(`.rfeld[data-iso="${heute}"]`);
 check(await heuteFeld.count() === 1, 'der heutige Tag steht im Kalender');
 check((await heuteFeld.getAttribute('class')).includes('f-gut'), 'als guter Tag');

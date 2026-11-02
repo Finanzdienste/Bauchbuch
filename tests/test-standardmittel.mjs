@@ -372,6 +372,59 @@ check(e1.mittel === 'Pantoprazol' && e1.form === null && e1.essen === null && e1
   `umbenannt in einen Säureblocker: Form und Essensangabe sind weg (${e1.form}, ${e1.essen}, ${e1.essenGesetzt})`);
 check(await formVon('r1') === 'sodas', 'das eigene Mittel behält dabei seine Form');
 
+/* ---------- 9. Die Form und der Hinweis zum Paar ---------- */
+
+/*
+ * Eine Kapsel mit zweierlei Kügelchen und ein Säureblocker unter „Meine
+ * Mittel": Die Karte auf „Tag" (Stufe A) muss bleiben, wenn unter „Mehr" nur
+ * die Dosis geändert wird. Und wer im Bogen eine andere Form wählt, kann sie
+ * beim eigenen Mittel übernehmen.
+ */
+await page.evaluate(([k, h]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true,
+  tab: 'mehr',
+  eintraege: [{ id: 'fq', art: 'essen', am: h, um: '07:30', was: 'Toast', zutaten: [], portion: 'normal' }],
+  tage: {},
+  standardMittel: [
+    { id: 'p1', mittel: 'Medikinet', dosis: '10 mg', tageszeit: 'morgens', bezug: null, form: 'pellet' },
+    { id: 'p2', mittel: 'Esomeprazol', dosis: '20 mg', tageszeit: 'morgens', bezug: 'vor', form: null },
+  ],
+})), [KEY, heute]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.locator('[data-act="meinmittel-aendern"][data-id="p1"]').click();
+await kurz();
+await page.locator('#mmDosis').fill('20 mg');
+await page.locator('[data-act="mm-speichern"]').click();
+await page.waitForTimeout(250);
+check(await formVon('p1') === 'pellet', 'die Dosis unter „Mehr" ändern lässt die Kapsel-Form stehen');
+await page.locator('[data-act="tab"][data-tab="heute"]').click();
+await kurz();
+check((await page.locator('.wechsel-karte').count()) === 1
+  && (await page.locator('.wechsel-karte').innerText()).includes('Kapsel mit zweierlei Kügelchen und Esomeprazol'),
+  'und die Karte auf „Tag" bleibt – der Hinweis hängt an der Form, nicht an der Dosis');
+// Im Bogen eine andere Form wählen und dort übernehmen.
+await page.locator('[data-act="neu"][data-art="medikament"]').click();
+await kurz();
+await page.locator('[data-act="standard-waehlen"][data-id="p1"]').click();
+await kurz();
+check(await page.locator('[data-act="bogen-form"][data-id="pellet"]').getAttribute('aria-pressed') === 'true',
+  'im Bogen ist die Form des eigenen Mittels vorgewählt');
+check(await page.locator('[data-act="standard-form"]').count() === 0, 'solange sie gleich ist, gibt es nichts zu übernehmen');
+await page.locator('[data-act="bogen-form"][data-id="sofort"]').click();
+await kurz();
+check(await page.locator('[data-act="standard-form"]').count() === 1, 'eine andere Form: „Form dort übernehmen"');
+await page.locator('[data-act="standard-form"]').click();
+await kurz();
+check(await formVon('p1') === 'sofort', '„Form dort übernehmen" ändert die Form beim eigenen Mittel');
+s = await speicher();
+const p1 = s.standardMittel.find((x) => x.id === 'p1');
+check(p1.dosis === '20 mg' && p1.tageszeit === 'morgens', 'und sonst nichts daran');
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(250);
+s = await speicher();
+check(s.eintraege.some((e) => e.mittel === 'Medikinet' && e.form === 'sofort'), 'der Eintrag trägt die gewählte Form');
+check(await page.locator('.wechsel-karte').count() === 0, 'mit der nicht retardierten Tablette keine Karte der Stufe A mehr');
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();
 await kopie.zu();

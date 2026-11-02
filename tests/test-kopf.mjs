@@ -56,7 +56,32 @@ await page.locator('[data-act="neu"][data-art="kopf"]').click();
 await page.waitForTimeout(150);
 check(await page.locator('.bogen .skala .stufe').count() === 11, 'die Skala von 0 bis 10');
 check(await page.locator('.bogen .skala .stufe.an').count() === 0, 'ohne vorbelegte Stufe – eine 4 wäre die bequemste Antwort');
-check(await page.locator('[data-act="kopfart"]').count() === 9, 'neun Merkmale, wie er sich anfühlt – mit Erbrechen und Aura');
+/*
+ * Seit der Fassung 28 zwölf: dazu „Beidseitig", Licht und Lärm getrennt statt
+ * zusammen, und „Schon beim Aufwachen da". Das alte „Licht oder Lärm stören"
+ * steht nur bei einem Eintrag, der es trägt; drei Merkmale zu Kiefer und
+ * Nacken nur mit dem Schalter (weiter unten, Abschnitt 15).
+ */
+const kopfIds = await ids('[data-act="kopfart"]');
+check(kopfIds.length === 12, `zwölf Merkmale, wie er sich anfühlt – mit Erbrechen und Aura (${kopfIds.length})`);
+check(kopfIds.join() === 'pochend,drueckend,einseitig,beidseitig,kopfuebel,kopferbrechen,lichtscheu,laermscheu,bewegung,nacken,aufwachen,aura',
+  `in der Reihenfolge der Sprechstunde (${kopfIds.join()})`);
+check(!kopfIds.includes('licht') && !kopfIds.includes('kauen'), 'ohne das alte „Licht oder Lärm" und ohne die Kiefer-Merkmale');
+// „Einseitig" und „Beidseitig" schließen sich aus.
+await page.locator('[data-act="kopfart"][data-id="einseitig"]').click();
+await page.waitForTimeout(80);
+await page.locator('[data-act="kopfart"][data-id="beidseitig"]').click();
+await page.waitForTimeout(80);
+check(await page.locator('[data-act="kopfart"][data-id="einseitig"]').getAttribute('aria-pressed') === 'false'
+  && await page.locator('[data-act="kopfart"][data-id="beidseitig"]').getAttribute('aria-pressed') === 'true',
+  '„Beidseitig" nimmt „Einseitig" zurück');
+await page.locator('[data-act="kopfart"][data-id="einseitig"]').click();
+await page.waitForTimeout(80);
+check(await page.locator('[data-act="kopfart"][data-id="beidseitig"]').getAttribute('aria-pressed') === 'false',
+  'und umgekehrt');
+await page.locator('[data-act="kopfart"][data-id="einseitig"]').click();
+await page.waitForTimeout(80);
+check(await page.locator('[data-act="kopfart"][aria-pressed="true"]').count() === 0, 'ein zweiter Tipp nimmt es zurück');
 check(await page.locator('[data-act="kopfdauer"]').count() === 4, 'vier Stufen für die Dauer, bis „länger als 3 Tage"');
 check(await page.locator('[data-act="kopf-verlauf"]').count() === 3, 'drei Stufen, wie der Tag weiterging');
 check(await page.locator('[data-act="kopf-wirkung"]').count() === 3, 'drei Antworten, ob das Mittel geholfen hat');
@@ -609,6 +634,53 @@ await setze(muster([{ id: 's1', am: vorTagen(40), um: '09:00', art: 'kopf', stae
 check(!(await karte()).includes('in der Praxis anzurufen'), 'sechs Wochen später nicht mehr');
 
 await page.screenshot({ path: `${SHOT}/97-kopf.png`, fullPage: true });
+
+/* ---------- 15. Licht und Lärm, alt und neu; Kiefer und Nacken ---------- */
+
+/*
+ * Das alte „Licht oder Lärm stören" wird nie umgedeutet: Ein Eintrag, der es
+ * trägt, zeigt es im Bogen und wird weiter gezählt. Neue Einträge bekommen
+ * „Licht stört" und „Lärm stört" getrennt.
+ */
+const altNeu = [];
+for (let t = 1; t <= 6; t++) {
+  altNeu.push(mahl(t));
+  altNeu.push({
+    id: `ln${t}`, am: vorTagen(t), um: '10:00', art: 'kopf', staerke: 5,
+    kopfArten: t <= 3 ? ['licht'] : ['lichtscheu', 'laermscheu', 'beidseitig'],
+  });
+}
+const b4 = await bericht(muster(altNeu));
+check(/Licht oder Lärm stören\s+3 Mal/.test(b4), 'das alte Merkmal wird weiter gezählt');
+check(/Licht stört\s+3 Mal/.test(b4) && /Lärm stört\s+3 Mal/.test(b4) && /Beidseitig\s+3 Mal/.test(b4), 'die neuen ebenso');
+await setze({ ...muster(altNeu), tab: 'heute' });
+await page.locator('[data-act="tag-blaettern"][data-d="-1"]').click();
+await page.waitForTimeout(150);
+await page.locator('[data-act="bearbeiten"][data-id="ln1"]').click();
+await page.waitForTimeout(150);
+check((await ids('[data-act="kopfart"]')).includes('licht')
+  && await page.locator('[data-act="kopfart"][data-id="licht"]').getAttribute('aria-pressed') === 'true',
+  'ein alter Eintrag zeigt sein „Licht oder Lärm stören" – gewählt, nicht umgedeutet');
+check((await ids('[data-act="kopfart"]')).length === 13, 'neben den zwölf neuen');
+await page.locator('button.bogen-zu').click();
+await page.waitForTimeout(100);
+// Mit „Kiefer, Nacken, Schiene": fünfzehn.
+await setze({ begruesst: true, tab: 'heute', eintraege: [], tage: {}, spannungAn: true });
+await page.locator('[data-act="neu"][data-art="kopf"]').click();
+await page.waitForTimeout(150);
+const mitSchalter = await ids('[data-act="kopfart"]');
+check(mitSchalter.length === 15 && mitSchalter.slice(12).join() === 'kauen,nackenbewegung,schlaefe',
+  `mit eingeschaltetem „Kiefer, Nacken, Schiene" fünfzehn Merkmale, die drei zuletzt (${mitSchalter.length})`);
+await page.locator('[data-act="staerke"][data-n="5"]').click();
+await page.locator('[data-act="kopfart"][data-id="kauen"]').click();
+await page.waitForTimeout(80);
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(200);
+check((await lies()).eintraege[0].kopfArten.join() === 'kauen', 'gespeichert wie jedes andere Merkmal');
+// Ausgeschaltet: der Eintrag bleibt lesbar.
+await setze({ ...(await lies()), spannungAn: false });
+check(eng(await page.locator('.strang-zeile').textContent()).includes('Schlimmer beim Kauen oder Kieferbewegen'),
+  'ausgeschaltet bleibt ein gespeichertes Merkmal lesbar');
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

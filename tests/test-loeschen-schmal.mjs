@@ -141,6 +141,67 @@ check((await speicher()).eintraege.some((e) => e.id === 'n0'), 'Enter holt den E
 check(await page.evaluate(() => document.activeElement && document.activeElement.dataset.act === 'bearbeiten'
   && document.activeElement.dataset.id === 'n0'), 'und der Fokus steht auf der zurückgeholten Zeile');
 
+/* ---------- 3. Mit allem an: nichts ragt über den Rand ---------- */
+
+/*
+ * Beide Schalter an, ein Tag mit Jetzt-Zeile, Tag ohne Mittel samt Grund,
+ * „Zum Essen?" und der Karte zu zwei Mitteln; dazu der Kopfbogen mit
+ * fünfzehn Merkmalen, der Medikamenten-Bogen mit der Formwahl und „Mehr" mit
+ * der Formwahl unter „Meine Mittel". Lange Namen mit Absicht.
+ */
+await page.clock.setFixedTime(new Date('2026-03-10T09:00:00+01:00'));
+await page.goto(kopie.adresse, { waitUntil: 'networkidle' });
+const [tagJetzt, uhrVorhin] = await page.evaluate(() => {
+  const p = (n) => String(n).padStart(2, '0');
+  const d = new Date();
+  const v = new Date(d.getTime() - 10 * 60000);
+  return [`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`, `${p(v.getHours())}:${p(v.getMinutes())}`];
+});
+await page.evaluate(([k, h, u]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true, tab: 'heute', alterName: null, startbildschirmWeg: true, sicherungSpaeter: '2999-01-01',
+  adhsAn: true, spannungAn: true, v28Gesagt: false,
+  tagesfragen: ['stimmung', 'stress', 'verspannt', 'gepresst', 'schlaf', 'schiene', 'kiefer'],
+  tage: { [h]: { adhsPause: 'vergessen' } },
+  standardMittel: [
+    { id: 'sm1', mittel: 'Medikinet retard Kapseln mit veränderter Wirkstofffreisetzung', dosis: '20 mg', tageszeit: 'morgens', bezug: null },
+    { id: 'sm2', mittel: 'Pantoprazol-ratiopharm magensaftresistent', dosis: '40 mg', tageszeit: 'morgens', bezug: 'vor' },
+  ],
+  eintraege: [
+    { id: 'st1', art: 'medikament', am: h, um: u, mittel: 'Atomoxetin-Hartkapseln Generikum', dosis: '40 mg' },
+    { id: 'kk1', art: 'kopf', am: h, um: '07:00', staerke: 4, kopfArten: ['beidseitig', 'kauen', 'nackenbewegung'] },
+  ],
+})), [KEY, tagJetzt, uhrVorhin]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.waitForTimeout(250);
+const passt = async (wo) => {
+  const m = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+  check(m[0] <= m[1], `${wo}: nichts ragt über den Rand (${m[0]} ≤ ${m[1]})`);
+};
+check(await page.locator('.jetzt-zeile').count() === 1 && await page.locator('.adhs-pause').count() === 1
+  && await page.locator('.adhs-essen').count() === 1 && await page.locator('.wechsel-karte').count() === 1,
+  'Tag zeigt Jetzt-Zeile, Tag ohne Mittel, „Zum Essen?" und die Karte zu zwei Mitteln');
+await passt('Tag mit allem an');
+await page.screenshot({ path: `${SHOT}/schmal-alles-an.png`, fullPage: true });
+await page.locator('[data-act="neu"][data-art="kopf"]').click();
+await page.waitForTimeout(200);
+check(await page.locator('[data-act="kopfart"]').count() === 15, 'der Kopfbogen mit fünfzehn Merkmalen');
+await passt('Kopfbogen');
+await page.locator('button.bogen-zu').click();
+await page.waitForTimeout(150);
+await page.locator('[data-act="neu"][data-art="medikament"]').click();
+await page.waitForTimeout(150);
+await page.locator('[data-act="standard-waehlen"][data-id="sm1"]').click();
+await page.waitForTimeout(200);
+check(await page.locator('[data-act="bogen-form"]').count() === 7, 'der Medikamenten-Bogen mit der Formwahl');
+await passt('Medikamenten-Bogen');
+await page.locator('button.bogen-zu').click();
+await page.waitForTimeout(150);
+for (const t of ['mehr', 'muster', 'verlauf']) {
+  await page.locator(`[data-act="tab"][data-tab="${t}"]`).click();
+  await page.waitForTimeout(250);
+  await passt(t === 'mehr' ? '„Mehr" mit Formwahl und Hinweisen' : `„${t}"`);
+}
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();
 await kopie.zu();
