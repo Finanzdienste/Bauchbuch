@@ -2,6 +2,7 @@
 """Prueft, dass das oeffentliche Repository allgemein bleibt.
 
     python3 tools/pruefung/allgemein.py
+    python3 tools/pruefung/allgemein.py --commits HEAD
     python3 tools/pruefung/allgemein.py --commits origin/main..HEAD
 
 WARUM
@@ -15,8 +16,9 @@ Commit-Text, gerade wenn eine Funktion aus einem echten Anlass entsteht.
 
 WAS GEPRUEFT WIRD
 
-Jede Zeile in js/, tests/, tools/, README.md und .github/ - mit --commits
-auch jede Zeile der Commit-Texte im angegebenen Bereich:
+Jede Zeile in js/, css/, tests/, tools/, .github/, README.md, index.html,
+sw.js, manifest.webmanifest und package.json - mit --commits auch jede
+Zeile der Commit-Texte im angegebenen Bereich:
 
   1. "hat ADHS" - ueberall ein Treffer. Allgemein heisst es "fuer alle mit
      ADHS" oder "wer ein ADHS-Mittel nimmt".
@@ -37,6 +39,21 @@ eigenen Rechner liegt.
 Gemeldet werden Datei und Zeile, nie der Text - CI-Protokolle eines
 oeffentlichen Repositorys sind selbst oeffentlich.
 
+WELCHE DATEIEN, WELCHE COMMITS
+
+css/, index.html, sw.js und das Manifest stecken in dist/bauchbuch.html, der
+Datei, die weitergegeben wird, und haben eigene Kommentare - sie gehoeren
+genauso dazu wie js/. dist/ selbst fehlt, weil es nur aus diesen Quellen
+erzeugt wird; vorschlaege/ fehlt, weil dort Text aus dem Briefkasten steht,
+den der Ablauf schreibt und nicht der Mensch am Code.
+
+In CI laeuft --commits HEAD, also ueber alle Commit-Texte, die HEAD erreicht.
+Ein Bereich wie origin/main..HEAD waere dort leer: Jede Fassung geht direkt
+auf main, und nach dem Checkout zeigt origin/main auf genau den gepushten
+Stand. Die ganze Vorgeschichte ist ohnehin oeffentlich. Die Meldung nennt
+deshalb die Zahl der gelesenen Commit-Texte - ein leerer Bereich soll nicht
+nach Erfolg klingen.
+
 Diese Datei selbst wird nicht durchsucht: Ihre Muster und ihr Selbsttest
 bestehen genau aus den Woertern, nach denen sie sucht. Der Selbsttest baut
 seine Saetze deshalb erst zur Laufzeit zusammen.
@@ -49,7 +66,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 SELBST = pathlib.Path(__file__).resolve()
 
-ORTE = ['js', 'tests', 'tools', '.github', 'README.md']
+ORTE = ['js', 'css', 'tests', 'tools', '.github', 'README.md', 'index.html', 'sw.js',
+        'manifest.webmanifest', 'package.json']
 ENDUNGEN = {'.js', '.mjs', '.py', '.yml', '.yaml', '.md', '.json', '.html', '.css', '.txt', ''}
 
 THEMA = ['adhs', 'methylphenidat', 'medikinet', 'ritalin', 'concerta', 'elvanse',
@@ -120,19 +138,20 @@ def dateien():
             yield d
 
 
-def commit_zeilen(bereich):
+def commit_texte(bereich):
+    """(Kennung, Zeilen) je Commit im Bereich."""
     try:
         text = subprocess.run(['git', 'log', '--format=%H%n%B%n\x1e', bereich], cwd=ROOT,
                               capture_output=True, text=True, check=True).stdout
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         sys.exit(f'Commit-Texte aus {bereich} nicht lesbar: {e}')
+    texte = []
     for block in text.split('\x1e'):
         zeilen = block.strip('\n').split('\n')
         if not zeilen or not zeilen[0]:
             continue
-        kennung = zeilen[0][:12]
-        for nr, z in enumerate(zeilen[1:], 1):
-            yield f'Commit {kennung}', nr, z
+        texte.append((zeilen[0][:12], zeilen[1:]))
+    return texte
 
 
 def main(argv):
@@ -157,14 +176,19 @@ def main(argv):
             if regel:
                 treffer.append(f'{d.relative_to(ROOT)}:{nr} ({regel})')
 
+    commits = None
     if '--commits' in argv:
         i = argv.index('--commits')
         if i + 1 >= len(argv):
-            sys.exit('--commits braucht einen Bereich, etwa origin/main..HEAD')
-        for wo, nr, z in commit_zeilen(argv[i + 1]):
-            regel = befund(z)
-            if regel:
-                treffer.append(f'{wo}, Zeile {nr} ({regel})')
+            sys.exit('--commits braucht einen Bereich, etwa HEAD oder origin/main..HEAD')
+        bereich = argv[i + 1]
+        texte = commit_texte(bereich)
+        commits = len(texte)
+        for kennung, zeilen in texte:
+            for nr, z in enumerate(zeilen, 1):
+                regel = befund(z)
+                if regel:
+                    treffer.append(f'Commit {kennung}, Zeile {nr} ({regel})')
 
     if treffer:
         print('Allgemein: FEHLER - Zeilen, die nach einem bestimmten Menschen klingen')
@@ -172,8 +196,15 @@ def main(argv):
             print('  ' + t)
         print('Bitte allgemein fassen ("fuer alle, die ...", "wer ... nimmt").')
         return 1
-    print(f'{gezaehlt} Dateien' + (' und die Commit-Texte' if '--commits' in argv else '')
-          + ' ohne Personenbezug.')
+    if commits:
+        print(f'{gezaehlt} Dateien und {commits} '
+              + ('Commit-Text' if commits == 1 else 'Commit-Texte') + ' ohne Personenbezug.')
+    else:
+        print(f'{gezaehlt} Dateien ohne Personenbezug.')
+        if commits == 0:
+            # Ein leerer Bereich ist kein Fehler (lokal: noch nichts Neues),
+            # darf aber nicht so klingen, als waeren Commit-Texte geprueft.
+            print(f'Dabei keine Commit-Texte gelesen: Der Bereich {bereich} ist leer.')
     return 0
 
 

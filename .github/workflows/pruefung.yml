@@ -36,9 +36,13 @@ jobs:
       # anfassen. Das steht hier und nicht im Ablauf des Bots: Was er selbst
       # ausführt, kann er auch umgehen – diese Stelle entscheidet dagegen
       # darüber, ob zusammengeführt werden darf.
+      #
+      # Ohne --depth: Der Checkout hat die volle Vorgeschichte, und ein
+      # flacher Fetch schnitte sie an der Spitze von main ab. Danach sähe der
+      # Schritt „Allgemein“ nur noch einen Commit-Text statt aller.
       - name: Grenzen für Entwürfe aus dem Briefkasten
         run: |
-          git fetch origin main --depth=1 2>/dev/null || true
+          git fetch origin main 2>/dev/null || true
           python3 tools/pruefung/bot-grenzen.py origin/main
 
       # Die Zusage der App: genau ein Versandweg, an genau eine Adresse, und
@@ -50,11 +54,17 @@ jobs:
         run: python3 tools/pruefung/keine-leitung.py
 
       # Das Repository ist öffentlich, die App für alle gebaut. Kein
-      # Kommentar, kein Test und kein Commit-Text dieses Zweiges darf nach
-      # einem bestimmten Menschen klingen – wer was nimmt, wer was trägt.
-      # Ohne Namensliste: Die prüft nur der lokale Haken (tools/haken/).
+      # Kommentar, kein Test und kein Commit-Text darf nach einem bestimmten
+      # Menschen klingen – wer was nimmt, wer was trägt. Ohne Namensliste:
+      # Die prüft nur der lokale Haken (tools/haken/).
+      #
+      # Alle Commit-Texte, die HEAD erreicht, nicht die seit origin/main:
+      # Jede Fassung geht hier direkt auf main, und nach dem Checkout zeigt
+      # origin/main auf genau den gepushten Stand – der Bereich wäre leer, und
+      # die Prüfung liefe ins Leere. Öffentlich ist ohnehin die ganze
+      # Vorgeschichte.
       - name: Allgemein, ohne Personenbezug
-        run: python3 tools/pruefung/allgemein.py --commits origin/main..HEAD
+        run: python3 tools/pruefung/allgemein.py --commits HEAD
 
       # Die Rechnung darf nicht an der Anzeige hängen, und ein neues Modul muss
       # in beiden Listen stehen: im Bündel und im Offline-Vorrat. Beides geht

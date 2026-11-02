@@ -11,16 +11,35 @@ Dieselbe Sperrliste wie tools/haken/pre-commit (dort steht das Warum):
     ~/.config/bodycheck/verboten.txt
     (anderer Ort: Umgebungsvariable BODYCHECK_VERBOTEN)
 
+Dazu die beiden Regeln aus tools/pruefung/allgemein.py (dort beschrieben) -
+dieselben, die CI ueber alle Commit-Texte legt.
+Hier greifen sie, bevor der Text oeffentlich wird; in CI erst danach. Sie
+gelten auch ohne Sperrliste, denn sie stehen ohnehin im Repository.
+
 Ein Commit-Text ist schwerer loszuwerden als eine Zeile Code: Er steht in der
 Vorgeschichte, und die laesst sich auf einem oeffentlichen Repository nur mit
-Gewalt umschreiben. Geprueft wird jede Zeile ausser denen, die git ohnehin
-entfernt (sie beginnen mit #). Gemeldet wird die Zeilennummer, nie das
-Muster und nie der Text.
+Gewalt umschreiben. Geprueft wird deshalb jede Zeile, auch die mit #: Git
+entfernt sie nur, wenn die Nachricht im Editor entsteht. Bei -m und -F
+bleiben sie stehen. Ein Fehlalarm auf einer Vorlagenzeile im Editor ist
+harmlos, ein durchgerutschter Name nicht.
+
+Ausgenommen ist nur, was unter der Scherenzeile steht (git commit -v): Dort
+haengt git den Diff an und schneidet ihn vor dem Commit wieder ab. Die
+hinzugefuegten Zeilen darin hat pre-commit schon gesehen; die alten gehoeren
+zu dem, was schon im Repository steht.
+
+Gemeldet wird die Zeilennummer, nie das Muster und nie der Text.
 """
+import importlib.util
 import os
 import pathlib
 import re
+import subprocess
 import sys
+
+# Die Zeile, unter der git bei -v den Diff anhaengt. Das Kommentarzeichen
+# davor ist meist #, laesst sich aber umstellen (core.commentChar).
+SCHERE = re.compile(r'^\S ------------------------ >8 ------------------------$')
 
 
 def sperrliste():
@@ -45,19 +64,69 @@ def sperrliste():
     return muster
 
 
+def allgemeine_regeln():
+    """befund() aus tools/pruefung/allgemein.py - oder None, wenn es fehlt.
+
+    Gesucht neben diesem Haken (falls er direkt aus tools/haken/ laeuft) und
+    in der Arbeitskopie (falls er nach .git/hooks/ kopiert wurde). Geladen
+    statt abgeschrieben: Zwei Fassungen derselben Regeln liefen auseinander.
+    """
+    orte = [pathlib.Path(__file__).resolve().parent.parent / 'pruefung' / 'allgemein.py']
+    try:
+        oben = subprocess.run(['git', 'rev-parse', '--show-toplevel'],
+                              capture_output=True, text=True, check=True).stdout.strip()
+        if oben:
+            orte.append(pathlib.Path(oben) / 'tools' / 'pruefung' / 'allgemein.py')
+    except (subprocess.CalledProcessError, OSError):
+        pass
+    for ort in orte:
+        if not ort.is_file():
+            continue
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location('allgemein_regeln', ort)
+        modul = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modul)
+        return modul.befund
+    print('Hinweis: tools/pruefung/allgemein.py nicht gefunden - nur die Sperrliste '
+          'wird geprueft.', file=sys.stderr)
+    return None
+
+
+def bis_zur_schere(text):
+    """Die Zeilen, die im Commit landen koennen."""
+    zeilen = text.splitlines()
+    for i, zeile in enumerate(zeilen):
+        if SCHERE.match(zeile):
+            return zeilen[:i]
+    return zeilen
+
+
 def main():
     if len(sys.argv) < 2:
         return 0
-    muster = sperrliste()
-    if not muster:
-        return 0
     text = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8', errors='replace')
-    treffer = [nr for nr, zeile in enumerate(text.splitlines(), 1)
-               if not zeile.startswith('#') and any(m.search(zeile) for m in muster)]
-    if not treffer:
+    zeilen = bis_zur_schere(text)
+
+    muster = sperrliste()
+    liste = [nr for nr, zeile in enumerate(zeilen, 1)
+             if any(m.search(zeile) for m in muster)]
+
+    befund = allgemeine_regeln()
+    regeln = []
+    if befund:
+        for nr, zeile in enumerate(zeilen, 1):
+            regel = befund(zeile)
+            if regel:
+                regeln.append(f'Zeile {nr} ({regel})')
+
+    if not liste and not regeln:
         return 0
-    print('Commit abgebrochen: Der Commit-Text trifft die lokale Sperrliste '
-          f'(Zeile {", ".join(map(str, treffer))}).', file=sys.stderr)
+    if liste:
+        print('Commit abgebrochen: Der Commit-Text trifft die lokale Sperrliste '
+              f'(Zeile {", ".join(map(str, liste))}).', file=sys.stderr)
+    if regeln:
+        print('Commit abgebrochen: Der Commit-Text klingt nach einem bestimmten Menschen '
+              f'({"; ".join(regeln)}).', file=sys.stderr)
     print('Bitte allgemein fassen - ohne Bezug auf einen bestimmten Menschen.',
           file=sys.stderr)
     return 1

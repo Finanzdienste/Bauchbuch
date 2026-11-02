@@ -2221,10 +2221,11 @@ tools/vorschlaege-holen.mjs  holt ihn aus dem Briefkasten (läuft in der
 tools/pruefung/bot-grenzen.py  was ein Entwurf aus dem Briefkasten nicht
                              anfassen darf
 tools/pruefung/allgemein.py  das öffentliche Repository bleibt allgemein: kein
-                             Satz darüber, wer was nimmt oder trägt
-tools/haken/        lokale Git-Haken gegen persönliche Angaben in Code
-                    und Commit-Texten, mit einer Liste, die nur auf dem
-                    eigenen Rechner liegt
+                             Satz darüber, wer was nimmt oder trägt – in den
+                             Quellen und in allen Commit-Texten
+tools/haken/        lokale Git-Haken gegen persönliche Angaben in Code,
+                    Dateinamen und Commit-Texten, mit einer Liste, die nur
+                    auf dem eigenen Rechner liegt
 js/unterleib.js     Schmerz beim Sex, Regelschmerz, der Zusammenhang
                     mit Bauch und Stuhlgang
 js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten; die

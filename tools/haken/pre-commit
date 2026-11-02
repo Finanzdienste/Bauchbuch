@@ -26,6 +26,12 @@ die Namen der beteiligten Dateien). Was schon im Repository steht, hat
 jemand anders zu entscheiden; ein Haken, der wegen einer alten Zeile jeden
 Commit verweigert, wird abgeschaltet.
 
+Die Namen kommen aus einer eigenen Abfrage, nicht aus der "+++"-Zeile des
+Diffs: Die fehlt bei Binaerdateien (ein Bildschirmfoto), leeren Dateien und
+reinen Umbenennungen - und gerade ein Name rutscht so leicht in einen
+Dateinamen. Umlaute stehen in Diffs sonst als Oktalfolge da und treffen
+kein Muster; deshalb core.quotePath=false und -z.
+
 Die Meldung nennt Datei und Zeile, aber nie das getroffene Muster und nie
 den Text: Die Sperrliste soll auch im Terminal, in Protokollen und in
 Bildschirmfotos nicht auftauchen.
@@ -61,6 +67,52 @@ def sperrliste():
     return muster
 
 
+# Was git in einem Namen in Anfuehrungszeichen hinter \ schreibt.
+ESCAPES = {ord('n'): 10, ord('t'): 9, ord('"'): 34, ord('\\'): 92, ord('a'): 7,
+           ord('b'): 8, ord('f'): 12, ord('r'): 13, ord('v'): 11}
+
+
+def entquoten(name):
+    """Einen Namen aus dem Diff so, wie er auf der Platte heisst.
+
+    Mit core.quotePath=false bleiben Umlaute stehen; Anfuehrungszeichen und
+    Escapes setzt git aber weiter, sobald ein Name etwa einen Tabulator oder
+    ein Anfuehrungszeichen enthaelt - dann auch fuer Oktalfolgen.
+    """
+    if not (len(name) >= 2 and name[0] == '"' and name[-1] == '"'):
+        return name
+    roh = name[1:-1].encode('utf-8')
+    aus = bytearray()
+    i = 0
+    while i < len(roh):
+        if roh[i] == 0x5c and i + 1 < len(roh):
+            folge = roh[i + 1:i + 4]
+            if len(folge) == 3 and all(0x30 <= b <= 0x37 for b in folge):
+                aus.append(int(folge, 8))
+                i += 4
+                continue
+            if roh[i + 1] in ESCAPES:
+                aus.append(ESCAPES[roh[i + 1]])
+                i += 2
+                continue
+        aus.append(roh[i])
+        i += 1
+    return aus.decode('utf-8', errors='replace')
+
+
+def neue_namen():
+    """Jeder Name, den der Commit anlegt, aendert, kopiert oder umbenennt.
+
+    Bei einer Umbenennung das Ziel. -z liefert die Namen roh, ohne
+    Anfuehrungszeichen und Oktalfolgen.
+    """
+    roh = subprocess.run(
+        ['git', 'diff', '--cached', '--name-only', '-z', '--diff-filter=ACMRT'],
+        capture_output=True, check=True,
+    ).stdout
+    return [n.decode('utf-8', errors='replace') for n in roh.split(b'\0') if n]
+
+
 def hinzugefuegt(diff):
     """(Datei, Zeilennummer, Text) fuer jede hinzugefuegte Zeile eines Diffs."""
     datei = None
@@ -72,9 +124,8 @@ def hinzugefuegt(diff):
             continue
         if kopf:
             if zeile.startswith('+++ '):
-                datei = zeile[4:]
+                datei = entquoten(zeile[4:])
                 datei = datei[2:] if datei.startswith('b/') else datei
-                yield (datei, 0, datei)
             if zeile.startswith('@@'):
                 kopf = False
             else:
@@ -94,18 +145,24 @@ def main():
     muster = sperrliste()
     if not muster:
         return 0
+    treffer = []
+    for name in neue_namen():
+        if any(m.search(name) for m in muster) and '  ein Dateiname' not in treffer:
+            treffer.append('  ein Dateiname')
+    # Die Praefixe fest, damit eine eigene Einstellung (diff.noprefix,
+    # diff.mnemonicPrefix) die Namen nicht verschiebt.
     diff = subprocess.run(
-        ['git', 'diff', '--cached', '--no-color', '--no-ext-diff', '--unified=0'],
+        ['git', '-c', 'core.quotePath=false', 'diff', '--cached', '--no-color',
+         '--no-ext-diff', '--unified=0', '--src-prefix=a/', '--dst-prefix=b/'],
         capture_output=True, check=True,
     ).stdout.decode('utf-8', errors='replace')
-    treffer = []
     for datei, nr, text in hinzugefuegt(diff):
         if not any(m.search(text) for m in muster):
             continue
         # Trifft schon der Dateiname, wird auch er nicht ausgegeben - sonst
         # stuende das Getroffene doch in der Meldung.
         if any(m.search(datei or '') for m in muster):
-            ort = '  ein Dateiname' + (f', Zeile {nr}' if nr else '')
+            ort = f'  ein Dateiname, Zeile {nr}'
         else:
             ort = f'  {datei}, Zeile {nr}'
         if ort not in treffer:
