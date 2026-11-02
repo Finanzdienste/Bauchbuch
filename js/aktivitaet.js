@@ -203,6 +203,22 @@ export function aktivitaetName(id, eigene = []) {
   return aktivitaetVon(id, eigene).name;
 }
 
+/**
+ * Die eingebaute Aktivität, die so heißt wie dieser Name – sonst null.
+ *
+ * Für eigene Aktivitäten aus älteren Fassungen: Wer „Massagepistole" oder
+ * „Wärme" selbst angelegt hat, bevor es sie fest gab, behält seine eigene mit
+ * allen Einträgen – zusammengelegt wird nichts, die Kennungen bleiben. Was
+ * an der eingebauten hängt, ohne eine Rechnung zu sein (der Herstellerhinweis
+ * im Bogen), soll aber nicht davon abhängen, welchen der beiden gleich
+ * beschrifteten Knöpfe man erwischt. Verglichen wird wie beim Anlegen: ohne
+ * Leerzeichen am Rand, ohne Unterschied zwischen groß und klein.
+ */
+export function eingebauteGleichnamig(name) {
+  const n = String(name || '').trim().toLowerCase();
+  return (n && AKTIVITAETEN.find((a) => a.name.toLowerCase() === n)) || null;
+}
+
 /** Gibt es diese Aktivität in der Auswahl – im Katalog oder als eigene? */
 export function aktivitaetBekannt(id, eigene = []) {
   return !!AKTIV_MAP[id] || sichtbareEigene(eigene).some((a) => a.id === id);

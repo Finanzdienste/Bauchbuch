@@ -99,7 +99,8 @@ import { BEFUNDE, BEFUND_VON, geklaert, kriterienVorbehalt } from './befunde.js'
 import {
   AKTIVITAETEN, AKTIV_KOPF_MINDEST, AKTIV_KOPF_STUNDEN, INTENSITAETEN, MASSAGE_HINWEIS, aktivBauchSatz,
   aktivKopfSatz, aktivitaetBilanz, aktivitaetHaeufigkeit, aktivitaetText, aktivitaetVon,
-  aktivitaetName, bewegungSatz, freieAktivitaetId, intensitaetName, sichtbareEigene, zuletztAktivitaeten,
+  aktivitaetName, bewegungSatz, eingebauteGleichnamig, freieAktivitaetId, intensitaetName, sichtbareEigene,
+  zuletztAktivitaeten,
 } from './aktivitaet.js';
 
 const viewEl = document.getElementById('view');
@@ -5057,10 +5058,19 @@ function mitdenkenKarte(s) {
  *
  * Wie die eigenen Auslöser darüber. Entfernen nimmt nur aus der Auswahl; die
  * Einträge damit bleiben, wie sie sind, und behalten ihren Namen.
+ *
+ * Heißt eine eigene wie eine, die es inzwischen fest gibt („Massagepistole"
+ * aus einer älteren Fassung), steht das darunter – sonst stünden im Bogen
+ * zwei gleich beschriftete Knöpfe, ohne dass man wüsste, warum.
  */
 function eigeneAktivKarte(s) {
   const liste = sichtbareEigene(s.eigeneAktivitaeten);
   const voll = liste.length >= store.AKTIV_HOECHSTENS;
+  const fest = (a) => {
+    const da = eingebauteGleichnamig(a.name);
+    return da ? `<span class="klein eigen-fest">„${esc(da.name)}“ gibt es jetzt auch fest eingebaut.
+      Deine eigene bleibt mit allen Einträgen.</span>` : '';
+  };
   // Die Eingabereihe wie im Bogen (.aktiv-eigen): Das Feld nimmt, was der
   // Knopf übrig lässt, statt bei 320 Pixeln über den Kartenrand zu ragen.
   return `<div class="karte" id="eigeneAktivitaeten">
@@ -5068,7 +5078,7 @@ function eigeneAktivKarte(s) {
     <p class="klein">Was unter „Aktivität“ in der Auswahl fehlt – ein Sport, ein Ort,
     eine Gewohnheit. Entfernst du eine, bleiben die Einträge damit.</p>
     ${liste.length ? `<ul class="wartend">${liste.map((a) => `<li>
-      <span>${esc(a.name)}</span>
+      <span>${esc(a.name)}${fest(a)}</span>
       <span class="strang-weg-platz">${loeschKnopf('aktiv-weg', a.id, {
     normal: '×', frage: 'Entfernen?', sagt: `${a.name} aus der Auswahl nehmen`, klasse: 'strang-weg',
   })}</span>
@@ -6124,8 +6134,15 @@ function bogenHTML(s) {
      * der es trägt (siehe KOPF_ARTEN); die drei zu Kiefer und Nacken als
      * eigene Gruppe, nur mit eingeschaltetem Schalter – oder wenn dieser
      * Eintrag eines davon schon trägt, damit es sich abwählen lässt.
+     *
+     * „Trägt" heißt: der gespeicherte Eintrag oder der Entwurf. Nur am
+     * Entwurf gemessen, verschwände der Knopf mit dem ersten Tipp – ein
+     * Fehltipp neben „Lärm stört" löschte dann eine frühere Angabe, die sich
+     * im Bogen nicht wieder wählen ließe. So bleibt er stehen, bis abgewählt
+     * gespeichert ist; erst beim nächsten Öffnen fehlt er.
      */
-    const traegt = (a) => (e.kopfArten || []).includes(a.id);
+    const traegt = (a) => (e.kopfArten || []).includes(a.id)
+      || !!(alt && (alt.kopfArten || []).includes(a.id));
     const grundArten = KOPF_ARTEN.filter((a) => !a.nurMit && (!a.alt || traegt(a)));
     const spannungArten = KOPF_ARTEN.filter((a) => a.nurMit === 'spannung' && (s.spannungAn === true || traegt(a)));
     // Mit „ADHS": wann an diesem Tag ein ADHS-Mittel steht – nur, wenn eins steht.
@@ -6278,10 +6295,21 @@ function bogenHTML(s) {
     const fremd = gewaehlt.filter((id) => !auswahl.some((m) => m.id === id))
       .map((id) => aktivitaetVon(id, s.eigeneAktivitaeten));
     const voll = sichtbareEigene(s.eigeneAktivitaeten).length >= store.AKTIV_HOECHSTENS;
+    /*
+     * Der Herstellerhinweis auch bei einer eigenen „Massagepistole" aus einer
+     * älteren Fassung: Sie steht im Bogen neben der eingebauten, oft sogar
+     * zuerst – welcher der beiden Knöpfe es war, darf über den Hinweis nicht
+     * entscheiden. Gerechnet wird weiter nur mit der eingebauten.
+     */
+    const pistole = gewaehlt.some((id) => {
+      if (id === 'massagepistole') return true;
+      const da = String(id).startsWith('a:') ? eingebauteGleichnamig(aktivitaetName(id, s.eigeneAktivitaeten)) : null;
+      return !!da && da.id === 'massagepistole';
+    });
     mitte = `
       <p class="feld-name">Was hast du gemacht, wo warst du?</p>
       ${marken([...auswahl, ...fremd], gewaehlt, 'aktiv-wahl')}
-      ${gewaehlt.includes('massagepistole') ? `<div class="massage-hinweis">
+      ${pistole ? `<div class="massage-hinweis">
         <p class="klein">${esc(MASSAGE_HINWEIS.satz)}</p>
         <details><summary>Mehr dazu</summary>
           <p class="klein">${esc(MASSAGE_HINWEIS.details)}</p>

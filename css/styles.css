@@ -549,6 +549,9 @@ p { margin: 0 0 8px; }
 /* Ein langes Wort – ein eigener Name ohne Leerzeichen – bricht um, statt die
    Seite bei 320 Pixeln seitlich schieben zu lassen. */
 .wartend li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+/* Unter einer eigenen Aktivität, die es inzwischen fest gibt: ein Satz in
+   eigener Zeile unter dem Namen, der neben dem × umbricht. */
+.eigen-fest { display: block; margin-top: 2px; overflow-wrap: normal; }
 
 .bericht {
   width: 100%; background: var(--bg); color: var(--text);

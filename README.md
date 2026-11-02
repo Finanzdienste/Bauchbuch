@@ -296,8 +296,11 @@ Aktivitäten (auch nicht als Tag „mit irgendeiner Aktivität“), und beim Kop
 steht dabei, dass massiert oder gewärmt wird, wenn sich etwas anbahnt – ein
 Kopfschmerz danach kann schon unterwegs gewesen sein. Wer eine eigene
 Aktivität gleichen Namens hat, behält sie mit allen Einträgen; zusammengelegt
-wird nichts. Im Bogen steht, sobald die Massagepistole gewählt ist, was
-Hersteller dazu schreiben – nicht an Kopf, Gesicht, Kehle, Hals oder Nacken
+wird nichts. Unter „Mehr“ › „Eigene Aktivitäten“ steht bei ihr: „„Massagepistole“
+gibt es jetzt auch fest eingebaut. Deine eigene bleibt mit allen Einträgen.“
+Gerechnet wird weiter nur mit der eingebauten. Im Bogen steht, sobald eine
+Massagepistole gewählt ist (die eingebaute oder eine eigene gleichen Namens),
+was Hersteller dazu schreiben – nicht an Kopf, Gesicht, Kehle, Hals oder Nacken
 und nicht direkt auf Knochen –, und unter „Mehr dazu“, in welchen Lagen sie
 eine ärztliche Rückfrage vorab nennen und welche Zeichen danach ein Notfall
 sind. Das gilt für alle, ohne Schalter.
@@ -1146,7 +1149,11 @@ Sicherung ältere Einträge dazu, deren Karte dort noch nicht gelesen war.
   als Mittel, das Säure bindet.
   Natron bleibt ohne Gruppe; es zählt nur bei den Paaren.
 * **Licht und Lärm getrennt**, dazu „Beidseitig“ und „Schon beim Aufwachen
-  da“ im Kopfbogen; frühere Einträge behalten „Licht oder Lärm“.
+  da“ im Kopfbogen; frühere Einträge behalten „Licht oder Lärm“. Öffnet man
+  einen solchen Eintrag, bleibt der Knopf stehen, auch abgewählt – ein
+  Fehltipp lässt sich zurücknehmen. Erst wer ihn abgewählt speichert, sieht
+  ihn beim nächsten Öffnen nicht mehr. Dasselbe gilt für die drei Merkmale zu
+  Kiefer und Nacken bei ausgeschaltetem Schalter.
 * **Massage, Massagepistole und Wärme nur auf der Kopfseite** (siehe oben).
 * **Vorher-Nachher ohne Urteil bei ADHS-Mitteln.** Unter „Was die Mittel
   bewirken“ und im Bericht steht für ein ADHS-Mittel nie „besser“, „schlechter“
@@ -2331,7 +2338,7 @@ den Rückgabewert.
 | `test-notiert.mjs` | ein Tag nur mit einem ADHS-Mittel, einer Schiene oder einem Tag ohne Mittel ist eine Lücke, einer nur mit irgendeinem anderen bekannten Mittel nicht; dasselbe Tagebuch mit einem ADHS-Mittel an jedem Tag und allen neuen Angaben ergibt dieselben Zahlen |
 | `test-adhs-wissen.mjs` | Namen zur Gruppe, Formen aus dem Namen, Koffein-Regel, neue Säureblocker-Namen, jedes Paar an und aus – und kein Text mit Dosis oder Empfehlung |
 | `test-adhs-ui.mjs` | als iPhone: ohne Schalter nichts Neues außer dem, was für alle gilt; Angebot einmal, „jetzt genommen“ mit Häkchen auch zu anderer Tageszeit und bei zwei gleichen Mitteln, „Heute keins“ nur bei Stimulanzien, „Zum Essen?“ bis eine Stunde danach, nie ein „noch nicht“ |
-| `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; der Massagetext auch ohne Schalter; kein Angebot durch Nackenschmerz |
+| `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; alte Kopfmerkmale lassen sich abwählen und wieder wählen; der Massagetext auch ohne Schalter und bei einer eigenen „Massagepistole“, die unter „Mehr“ als fest eingebaut vermerkt ist und ihre Einträge behält; kein Angebot durch Nackenschmerz |
 | `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
 | `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste |
 | `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge |

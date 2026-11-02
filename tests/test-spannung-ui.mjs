@@ -7,8 +7,11 @@
  *      wenn ihre Kennungen aus einer Sicherung in den Tagesfragen stehen. Je
  *      ein Tipp, ein zweiter nimmt zurück.
  *   3. Der Kopfbogen: Licht und Lärm getrennt, die Gruppe „Kiefer und
- *      Nacken" nur mit Schalter.
- *   4. Der Herstellerhinweis zur Massagepistole steht auch ohne Schalter.
+ *      Nacken" nur mit Schalter. Was ein gespeicherter Eintrag trägt, bleibt
+ *      im Bogen stehen, auch abgewählt – ein Fehltipp lässt sich zurücknehmen.
+ *   4. Der Herstellerhinweis zur Massagepistole steht auch ohne Schalter –
+ *      und auch bei einer gleichnamigen eigenen Aktivität aus älteren
+ *      Fassungen. Unter „Mehr" steht bei ihr, dass es sie jetzt fest gibt.
  *   5. Das Angebot kommt über eine Massagepistole oder eine Notiz zu Kiefer
  *      oder Schiene – nie über „Nackenschmerz dabei" beim Kopfschmerz.
  */
@@ -190,6 +193,52 @@ const text = async (page, sel) => ((await page.locator(sel).count())
   await ctx.close();
 }
 {
+  /*
+   * Abwählen, wieder wählen, speichern: Ein altes Merkmal verschwindet nicht
+   * beim ersten Tipp. Sonst löschte ein Fehltipp neben „Lärm stört" eine
+   * frühere Angabe, die sich im Bogen nicht mehr wählen ließe. Erst wer es
+   * abgewählt speichert, sieht es beim nächsten Öffnen nicht mehr.
+   */
+  const { ctx, page } = await iphone({
+    spannungAn: false,
+    eintraege: [{ id: 'k3', art: 'kopf', am: vor(1), um: '18:30', staerke: 4, kopfArten: ['pochend', 'licht', 'kauen'] }],
+  });
+  const knopf = (id) => page.locator(`.bogen [data-act="kopfart"][data-id="${id}"]`);
+  const gedrueckt = async (id) => ((await knopf(id).count()) ? knopf(id).first().getAttribute('aria-pressed') : 'fehlt');
+  const gruppe = async () => (await page.locator('.bogen').innerText()).includes('Kiefer und Nacken');
+  const arten = async () => (await speicher(page)).eintraege.find((x) => x.id === 'k3').kopfArten || [];
+  await tipp(page, '[data-act="tag-blaettern"][data-d="-1"]');
+  await tipp(page, '[data-act="bearbeiten"][data-id="k3"]');
+  check(await gedrueckt('licht') === 'true' && await gedrueckt('kauen') === 'true', 'geöffnet: „Licht oder Lärm" und „Kauen" gewählt');
+  await tipp(page, '.bogen [data-act="kopfart"][data-id="licht"]');
+  check(await gedrueckt('licht') === 'false', `„Licht oder Lärm stören" bleibt nach einem Tipp stehen, abgewählt (${await gedrueckt('licht')})`);
+  await tipp(page, '.bogen [data-act="kopfart"][data-id="licht"]');
+  check(await gedrueckt('licht') === 'true', 'und lässt sich wieder wählen');
+  await tipp(page, '.bogen [data-act="kopfart"][data-id="kauen"]');
+  check(await gedrueckt('kauen') === 'false' && await gruppe(),
+    `„Schlimmer beim Kauen" bleibt ohne Schalter stehen, abgewählt, samt Überschrift (${await gedrueckt('kauen')})`);
+  await tipp(page, '.bogen [data-act="kopfart"][data-id="kauen"]');
+  check(await gedrueckt('kauen') === 'true', 'und lässt sich ebenso wieder wählen');
+  check(await breitOk(page), 'der Kopfbogen mit altem Merkmal passt in 320 Pixel');
+  await tipp(page, '[data-act="bogen-speichern"]');
+  let a = await arten();
+  check(['pochend', 'licht', 'kauen'].every((id) => a.includes(id)) && a.length === 3,
+    `nach „Ändern" trägt der Eintrag beides weiter (${a.join()})`);
+  // Gegenprobe: abgewählt gespeichert – dann ist es weg, auch beim nächsten Öffnen.
+  await tipp(page, '[data-act="bearbeiten"][data-id="k3"]');
+  await tipp(page, '.bogen [data-act="kopfart"][data-id="licht"]');
+  await tipp(page, '.bogen [data-act="kopfart"][data-id="kauen"]');
+  check(await gedrueckt('licht') === 'false' && await gedrueckt('kauen') === 'false', 'beide abgewählt, beide noch zu sehen');
+  await tipp(page, '[data-act="bogen-speichern"]');
+  a = await arten();
+  check(a.join() === 'pochend', `abgewählt gespeichert bleibt nur „pochend" (${a.join()})`);
+  await tipp(page, '[data-act="bearbeiten"][data-id="k3"]');
+  check(await knopf('licht').count() === 0 && await knopf('kauen').count() === 0 && !(await gruppe()),
+    'beim nächsten Öffnen stehen „Licht oder Lärm" und die Gruppe „Kiefer und Nacken" nicht mehr da');
+  await tipp(page, 'button.bogen-zu');
+  await ctx.close();
+}
+{
   const { ctx, page } = await iphone({ spannungAn: true });
   await tipp(page, '[data-act="neu"][data-art="kopf"]');
   const mit = await page.locator('[data-act="kopfart"]').evaluateAll((els) => els.map((x) => x.dataset.id));
@@ -211,6 +260,57 @@ const text = async (page, sel) => ((await page.locator(sel).count())
   const hinweis = await text(page, '.massage-hinweis');
   check(hinweis.startsWith('Hersteller von Massagepistolen schreiben'), 'mit Massagepistole steht der Herstellerhinweis – auch ausgeschaltet');
   check(await breitOk(page), 'der Aktivitäts-Bogen passt in 320 Pixel');
+  await ctx.close();
+}
+{
+  /*
+   * Eigene Aktivitäten aus einer Zeit, in der es „Massagepistole" und
+   * „Wärme" noch nicht fest gab. Sie bleiben, wie sie sind – mit ihren
+   * Kennungen und Einträgen –, aber unter „Mehr" steht bei ihnen, dass es
+   * sie jetzt auch eingebaut gibt, und der Herstellerhinweis hängt nicht
+   * davon ab, welchen der beiden gleich beschrifteten Knöpfe man antippt.
+   */
+  const EIGENE = [
+    { id: 'a:klettern', name: 'Klettern' },
+    { id: 'a:massagepistole', name: 'Massagepistole' },
+    { id: 'a:waerme', name: 'wärme' },
+  ];
+  const ALTE = [
+    ...[3, 5, 8, 12].map((n, i) => ({ id: `m${i}`, art: 'aktivitaet', am: vor(n), um: '21:00', aktivitaeten: ['a:massagepistole'] })),
+    { id: 'kl', art: 'aktivitaet', am: vor(4), um: '17:30', aktivitaeten: ['a:klettern', 'spazieren'] },
+    { id: 'wa', art: 'aktivitaet', am: vor(6), um: '22:00', aktivitaeten: ['a:waerme'] },
+  ];
+  const { ctx, page } = await iphone({ spannungAn: null, eigeneAktivitaeten: EIGENE, eintraege: ALTE });
+  await tab(page, 'mehr');
+  const zeilen = await page.locator('#eigeneAktivitaeten li')
+    .evaluateAll((els) => els.map((x) => x.innerText.replace(/\s+/g, ' ').trim()));
+  const zeile = (name) => zeilen.find((z) => z.startsWith(name)) || '';
+  check(zeile('Massagepistole').includes('„Massagepistole“ gibt es jetzt auch fest eingebaut. Deine eigene bleibt mit allen Einträgen.'),
+    `unter „Eigene Aktivitäten" steht bei „Massagepistole", dass es sie jetzt fest gibt (${zeile('Massagepistole')})`);
+  check(zeile('wärme').includes('„Wärme“ gibt es jetzt auch fest eingebaut. Deine eigene bleibt mit allen Einträgen.'),
+    `auch bei „wärme" – klein geschrieben, mit dem eingebauten Namen (${zeile('wärme')})`);
+  check(zeile('Klettern') && !zeile('Klettern').includes('eingebaut'), `bei „Klettern" nicht (${zeile('Klettern')})`);
+  check(await breitOk(page), '„Mehr" mit dem Satz passt in 320 Pixel');
+  await page.screenshot({ path: `${SHOT}/spannung-eigene-massage.png`, fullPage: true });
+  await tab(page, 'heute');
+  await tipp(page, '[data-act="neu"][data-art="aktivitaet"]');
+  const wahl = await page.locator('[data-act="aktiv-wahl"]').evaluateAll((els) => els.map((x) => x.dataset.id));
+  check(wahl.includes('a:massagepistole') && wahl.includes('massagepistole'), 'im Bogen stehen beide, nichts ist zusammengelegt');
+  await tipp(page, '[data-act="aktiv-wahl"][data-id="a:klettern"]');
+  check(await page.locator('.massage-hinweis').count() === 0, 'eine andere eigene Aktivität bringt keinen Hinweis');
+  await tipp(page, '[data-act="aktiv-wahl"][data-id="a:klettern"]');
+  await tipp(page, '[data-act="aktiv-wahl"][data-id="a:massagepistole"]');
+  check((await text(page, '.massage-hinweis')).startsWith('Hersteller von Massagepistolen schreiben'),
+    'die eigene „Massagepistole" bringt denselben Herstellerhinweis');
+  check(await breitOk(page), 'der Bogen mit Hinweis passt in 320 Pixel');
+  await tipp(page, '[data-act="bogen-speichern"]');
+  const s = await speicher(page);
+  check(JSON.stringify(s.eigeneAktivitaeten) === JSON.stringify(EIGENE), 'die eigenen Aktivitäten bleiben unverändert');
+  check(ALTE.every((x) => JSON.stringify(s.eintraege.find((y) => y.id === x.id).aktivitaeten) === JSON.stringify(x.aktivitaeten)),
+    'die früheren Einträge behalten ihre Kennungen');
+  const neu = s.eintraege.filter((x) => !ALTE.some((y) => y.id === x.id));
+  check(neu.length === 1 && JSON.stringify(neu[0].aktivitaeten) === '["a:massagepistole"]',
+    `der neue Eintrag trägt die eigene Kennung (${neu.map((x) => JSON.stringify(x.aktivitaeten)).join()})`);
   await ctx.close();
 }
 
