@@ -57,8 +57,10 @@ check(
 check(istAdhsMittel('Concerta') && istAdhsMittel('  intuniv ') && !istAdhsMittel('Elontril') && !istAdhsMittel(null),
   'istAdhsMittel: ja bei Concerta und Intuniv, nein bei Bupropion und ohne Namen');
 check(istAdhsMittel('Ritalin Adult') === istAdhsMittel('RITALIN ADULT'), 'groß oder klein geschrieben ist dasselbe');
-check(['Medikinet', 'Lisdexamfetamin', 'Concerta'].every((n) => wissenZu(n) === null),
-  'die Wissenstexte kennen die Namen noch nicht – erkannt werden sie trotzdem');
+// Seit es zu den ADHS-Mitteln Texte gibt, kennt wissenZu() sie selbst – und
+// adhsGruppe() fragt dort nach: eine Erkennung für alles.
+check(['Medikinet', 'Lisdexamfetamin', 'Concerta'].every((n) => wissenZu(n) && wissenZu(n).id === adhsGruppe(n)),
+  'die Wissenstexte kennen die Namen, mit derselben Gruppe wie adhsGruppe()');
 
 /* ---------- Die Liste der Tagesangaben, die nichts sagen ---------- */
 

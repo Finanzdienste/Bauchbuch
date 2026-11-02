@@ -15,6 +15,7 @@
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, SHOT, vorTagen, pruefer } from './umgebung.mjs';
+import { ADHS_MITTEL, SONSTIGE_MITTEL, WEITERE_MITTEL } from '../js/mittel.js';
 
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
@@ -27,6 +28,11 @@ const eintraege = [
   { id: 'm2', am: vorTagen(1), um: '07:00', art: 'medikament', mittel: 'Pantoprazol 20mg', dosis: '' },
   { id: 'm3', am: vorTagen(1), um: '21:00', art: 'medikament', mittel: 'Riopan', dosis: '' },
   { id: 'm4', am: vorTagen(0), um: '12:00', art: 'medikament', mittel: 'Ibuprofen', dosis: '' },
+  // Methylphenidat einmal mit eingetragener Form, einmal mit einer, die nur
+  // der Name verrät; dazu Paracetamol mit Koffein.
+  { id: 'm5', am: vorTagen(3), um: '07:30', art: 'medikament', mittel: 'Medikinet', dosis: '', form: 'sofort' },
+  { id: 'm6', am: vorTagen(1), um: '08:00', art: 'medikament', mittel: 'Concerta', dosis: '' },
+  { id: 'm7', am: vorTagen(2), um: '15:00', art: 'medikament', mittel: 'Paracetamol + Coffein', dosis: '' },
 ];
 
 await page.goto(URL, { waitUntil: 'networkidle' });
@@ -51,6 +57,14 @@ check(
   meine.includes('gereizte Magenschleimhaut'),
   'und Ibuprofen wird als das ausgewiesen, was den Magen belastet',
 );
+const zeile = async (name) => (await page.locator('.wartend').first().locator('li', { hasText: name }).textContent()) || '';
+check((await zeile('Medikinet')).includes('Form: nicht retardierte Tablette'),
+  'bei Methylphenidat steht die eingetragene Form dabei');
+check((await zeile('Concerta')).includes('Form: Retardtablette mit Hülle'),
+  'ohne eingetragene Form die, die der Name eindeutig nennt');
+check((await zeile('Paracetamol + Coffein')).includes('Kombinationsmittel mit niedrigerer Übergebrauchsgrenze'),
+  'Paracetamol mit Koffein ist ein Kombinationsmittel, für den Magen kein NSAR');
+check(!(await zeile('Ibuprofen')).includes('Form:'), 'andere Mittel haben keine Form');
 
 /* ---------- Die ganze Liste ---------- */
 
@@ -59,8 +73,15 @@ await page.locator('[data-act="mittel"]').click();
 await page.waitForTimeout(250);
 const gruppen = await page.locator('.mittel').count();
 check(
-  gruppen === 17,
-  `siebzehn Gruppen: neun Mittel, drei Reizstoffe, fünf Schmerz- und Migränemittel (${gruppen})`,
+  gruppen === 25,
+  `fünfundzwanzig Gruppen: neun Mittel, drei Reizstoffe, sechs Schmerz- und Migränemittel, `
+    + `sechs bei ADHS, eins sonst (${gruppen})`,
+);
+const ueberschriften = await page.locator('.mittel-liste > .feld-name').allTextContents();
+check(
+  JSON.stringify(ueberschriften) === JSON.stringify(['Was den Magen von der anderen Seite belastet',
+    'Schmerz- und Migränemittel', 'Mittel bei ADHS', 'Sonst noch']),
+  `die Abschnitte in dieser Reihenfolge (${ueberschriften.join(' | ')})`,
 );
 
 const ppi = page.locator('.mittel').first();
@@ -76,6 +97,30 @@ check(
 );
 
 await page.screenshot({ path: `${SHOT}/70-mittel.png` });
+
+/* ---------- Methylphenidat: Fachinformation und „Je nach Form" ---------- */
+
+const mph = page.locator('.mittel', { has: page.locator('summary > b', { hasText: /^Methylphenidat$/ }) });
+await mph.locator('summary').click();
+await page.waitForTimeout(150);
+const mphText = (await mph.textContent()).replace(/\s+/g, ' ');
+const reihe = ['Wie es wirkt', 'Wann man es nimmt', 'Was in der Fachinformation steht', 'Worauf zu achten ist']
+  .map((t) => mphText.indexOf(t));
+check(reihe.every((x, i) => x >= 0 && (i === 0 || x > reihe[i - 1])),
+  `„Was in der Fachinformation steht" zwischen „Wann man es nimmt" und „Worauf zu achten ist" (${reihe.join(', ')})`);
+check(await mph.locator('.mittel-formen').count() === 1 && mphText.includes('Je nach Form'),
+  'unter Methylphenidat der Abschnitt „Je nach Form"');
+check(await mph.locator('.mittel-formen p:not(.feld-name)').count() === 7,
+  'mit allen sieben Formen');
+check(mphText.includes('Kapsel mit zweierlei Kügelchen') && mphText.includes('Protonenpumpenhemmern'),
+  'die Kapsel mit zweierlei Kügelchen samt Säureblocker-Satz');
+check(await page.locator('.mittel', { hasText: 'Lisdexamfetamin' }).locator('.mittel-formen').count() === 0,
+  'die Formen nur bei Methylphenidat');
+const ohneNw = await page.locator('.mittel', { has: page.locator('summary > b', { hasText: /^Dexamfetamin$/ }) }).textContent();
+check(!ohneNw.includes('Was in der Fachinformation steht'),
+  'wo keine Häufigkeit belegt ist, fehlt der Abschnitt (Dexamfetamin)');
+const breit = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+check(breit[0] <= breit[1], `nichts ragt über den Rand (${breit.join('/')})`);
 
 /* ---------- Der Ton: keine Dosierung, keine Empfehlung ---------- */
 
@@ -95,11 +140,22 @@ check(
   eigene.length === 0,
   `nirgends eine Dosierung${eigene.length ? `: ${eigene.join(', ')}` : ''}`,
 );
-const raten = ganz.match(/\b(nimm|nehmen Sie|empfehlen|empfohlen|du solltest)\b/gi) || [];
+const raten = ganz.match(/\b(nimm|nehmen Sie|empfehlen|empfohlen|du solltest|hilft gegen)\b/gi) || [];
 check(
   raten.length === 0,
   `kein Satz, der etwas empfiehlt${raten.length ? `: ${raten.join(', ')}` : ''}`,
 );
+check(ganz.includes('Je nach Form') && ganz.includes('Koffein als Tablette'),
+  'die Prüfung umfasst die ganze Karte samt „Je nach Form" und „Sonst noch"');
+
+/*
+ * Jeder neue Hinweis endet bei Ärztin oder Apotheke: die sechs bei ADHS,
+ * das Koffein und Paracetamol mit Koffein.
+ */
+const neu = [...ADHS_MITTEL, ...SONSTIGE_MITTEL, ...WEITERE_MITTEL.filter((g) => g.id === 'kombipara')];
+const ohneVerweis = neu.filter((g) => !/Ärztin|Apotheke/.test(g.hinweis)).map((g) => g.id);
+check(neu.length === 8 && ohneVerweis.length === 0,
+  `jeder neue Hinweis nennt Ärztin oder Apotheke${ohneVerweis.length ? ` – nicht: ${ohneVerweis.join(', ')}` : ''}`);
 
 /* ---------- Beim Eintragen steht es gleich dabei ---------- */
 

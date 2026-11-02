@@ -54,9 +54,62 @@ export const AKTIVITAETEN = [
   { id: 'unterwegs', name: 'Unterwegs/Reise', icon: '🧳' },
   { id: 'feier', name: 'Feier/Ausgehen', icon: '🎉' },
   { id: 'sauna', name: 'Sauna', icon: '🧖' },
+  /*
+   * Was man gegen Verspannung tut – `gegenmittel`. Sie stehen am Ende, damit
+   * die Reihenfolge der bisherigen gleich bleibt. Gerechnet werden sie nur
+   * auf der Kopfseite (siehe aktivitaetBilanz): Massiert und gewärmt wird,
+   * wenn schon etwas wehtut – Wärme oft gerade wegen Bauchschmerzen –, und
+   * eine Bauch-Zeile darunter sähe aus wie eine Wirkung auf den Bauch.
+   */
+  { id: 'massagepistole', name: 'Massagepistole', icon: '🔨', gegenmittel: true },
+  { id: 'massage', name: 'Massage/Physio', icon: '💆', gegenmittel: true },
+  { id: 'waerme', name: 'Wärme', icon: '♨️', gegenmittel: true },
 ];
 
 const AKTIV_MAP = Object.fromEntries(AKTIVITAETEN.map((a) => [a.id, a]));
+
+/** Ist das etwas, das man gegen Verspannung tut? Nur eingebaute zählen. */
+export function istGegenmittel(id) {
+  return !!(AKTIV_MAP[id] && AKTIV_MAP[id].gegenmittel);
+}
+
+/*
+ * Was Hersteller von Massagepistolen dazu schreiben – gezeigt im Bogen,
+ * sobald „Massagepistole" gewählt ist, auch ohne jeden Schalter.
+ *
+ * Kein Rat, wo und wie: nur, was die Hersteller selbst ausschließen oder
+ * vorher abgeklärt haben wollen, und was in Fallberichten beschrieben ist.
+ * Die Warnzeichen am Ende gehören dazu, weil die schwerste beschriebene
+ * Folge – ein Einriss einer Halsarterie – sich erst Stunden oder Tage später
+ * mit Schwindel oder Lähmung zeigen kann.
+ *
+ * Quellen:
+ *   Therabody, Precautions and Contraindications,
+ *     www.therabody.com/us/en-us/precautions-and-contraindications.html
+ *     („face, head, throat, neck … bony prominences"; Schwangerschaft, veränderte
+ *     Empfindung, frische Verletzung oder Operation)
+ *   Theragun PRO Plus Warnings, content.abt.com/documents/176399/therabody-theragun-pro-plus-TG0003970-1A10-warnings.pdf
+ *     und Relief User Warnings (Therabody) – Schrittmacher/ICD, Embolie,
+ *     Blutungsneigung, Blutverdünner: ärztliche Rückfrage
+ *   Sulkowski u. a. 2022, pubmed.ncbi.nlm.nih.gov/35701359/ – Dissektion
+ *     der Vertebralarterie nach Massagepistole am Hals
+ *   AAN 2024, Abstract 56206 – Dissektion mit Hirnstamminfarkt nach Anwendung am Hals
+ *   Chen u. a. 2021, Phys Ther 101(1):pzaa199 – Rhabdomyolyse nach langer Anwendung
+ *   gesund.bund.de/schlaganfall – Warnzeichen, 112
+ */
+export const MASSAGE_HINWEIS = {
+  satz: 'Hersteller von Massagepistolen schreiben, je nach Gerät: nicht an Kopf, Gesicht, '
+    + 'Kehle, Hals oder Nacken und nicht direkt auf Knochen. Wo am Körper, besprichst du am '
+    + 'besten mit Praxis oder Physiotherapie.',
+  details: 'Mit Herzschrittmacher oder Defibrillator, nach einer Embolie, bei Nervenschäden '
+    + 'mit verändertem Gefühl, bei Blutungsneigung, mit Blutverdünnern, nach frischer '
+    + 'Operation oder Verletzung und in der Schwangerschaft nennen Hersteller eine '
+    + 'ärztliche Rückfrage vorab. In Fallberichten – Einzelfällen, wie oft so etwas '
+    + 'vorkommt, ist unbekannt – sind nach Anwendung am Hals Einrisse einer Halsarterie '
+    + 'mit Schlaganfall beschrieben, außerdem Muskelschäden nach langer Anwendung. '
+    + 'Plötzliche Lähmung, Taubheit, Sprach- oder Sehstörung, starker Schwindel oder '
+    + 'Gangunsicherheit sind ein Notfall: 112.',
+};
 
 /*
  * Wie anstrengend – freiwillig, drei Stufen. Mehr nicht: Wer nach dem
@@ -341,6 +394,16 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
   const zweiTage = (iso) => [...am(iso), ...am(plusTage(iso, 1))];
   const abstand = (t0, e) => (zeitpunkt(e.am, e.um) - t0) / STUNDE_MS;
   const letzterTag = aktiv.reduce((m, e) => (e.am > m ? e.am : m), aktiv[0].am);
+  /*
+   * Für den Bauch zählt das Ende nur aus Aktivitäten, die eine Bauchseite
+   * haben. Sonst verlängerte eine Massage nach dem letzten Training die
+   * Vergleichstage des Trainings – und Wärme oder Massage änderten die
+   * Bauch-Bilanz einer Aktivität, mit der sie nichts zu tun haben.
+   */
+  const mitBauch = aktiv.filter((e) => aktivitaetenVon(e).some((id) => !istGegenmittel(id)));
+  const letzterBauchTag = mitBauch.length
+    ? mitBauch.reduce((m, e) => (e.am > m ? e.am : m), mitBauch[0].am)
+    : '';
 
   const vorkommen = new Map();
   aktiv.forEach((e) => aktivitaetenVon(e).forEach((id) => {
@@ -435,7 +498,8 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
       if (tageMit.has(iso)) continue;
       const t0 = zeitpunkt(iso, uhr);
       const ort = [vergleichszeit(iso)];
-      if (t0 + fenster * STUNDE_MS <= jetzt && bauchNotiert(iso) && frei(t0, fenster)) {
+      if (iso <= letzterBauchTag && t0 + fenster * STUNDE_MS <= jetzt && bauchNotiert(iso)
+        && frei(t0, fenster)) {
         const w = bauchWert(t0, iso, ort);
         bauchOhne.push(w.wert);
         if (w.offen) offenOhne += 1;
@@ -446,12 +510,22 @@ export function aktivitaetBilanz(eintraege, tage, opt = {}) {
       }
     }
 
+    /*
+     * Massage, Massagepistole, Wärme: ohne Bauchseite. Gezählt wird, damit
+     * die Zahlen stimmen, wenn jemand nachsieht – aber nie `genug`. Damit
+     * fehlen sie unter den Bauch-Vergleichen, die den Zufallsspielraum
+     * aller anderen bestimmen, und eine Bauch-Zeile gibt es nirgends.
+     */
+    const gegen = istGegenmittel(id);
+    const bauch = { ...aktivVergleich(bauchMit, bauchOhne, mindest), offen: offenMit, offenOhne };
+    if (gegen) bauch.genug = false;
     zeilen.push({
       id,
       anzahl: liste.length,
       zuletzt: liste[liste.length - 1].am,
       uhr,
-      bauch: { ...aktivVergleich(bauchMit, bauchOhne, mindest), offen: offenMit, offenOhne },
+      ...(gegen ? { gegenmittel: true } : {}),
+      bauch,
       kopf: aktivVergleich(kopfMit, kopfOhne, kopfMindest),
     });
   });
@@ -523,9 +597,19 @@ export function aktivBauchSatz(z, fenster) {
  */
 export function aktivKopfSatz(z) {
   const k = z.kopf;
+  /*
+   * Bei Massage und Wärme ist die Reihenfolge verdächtig, in beide
+   * Richtungen: Man greift dazu, wenn sich etwas anbahnt – ein Kopfschmerz
+   * danach war womöglich schon unterwegs –, und danach wird vieles ohnehin
+   * besser. Beides gehört neben die Zahl.
+   */
+  const vorbehalt = istGegenmittel(z.id)
+    ? ' Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach '
+      + 'kann schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.'
+    : '';
   return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach an ${k.mitTreffer} von ${k.faelle} Tagen `
     + `Kopfschmerz (${prozentVon(k.quoteMit)}) – an Tagen ohne ${k.ohneTreffer} von `
-    + `${k.gegenFaelle} (${prozentVon(k.quoteOhne)}).`;
+    + `${k.gegenFaelle} (${prozentVon(k.quoteOhne)}).${vorbehalt}`;
 }
 
 /**

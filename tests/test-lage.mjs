@@ -21,6 +21,8 @@
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, SHOT, pruefer, vorTagen } from './umgebung.mjs';
+import { wasSacheIst } from '../js/lage.js';
+import { arztBericht } from '../js/bericht.js';
 
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
@@ -193,6 +195,36 @@ check(
   zettel.includes('dort stehen die Fallzahlen'),
   'und dem Verweis darauf, wo die Zahlen dazu stehen',
 );
+
+/* ---------- 6. Ein ADHS-Mittel „hat nichts geändert" nie (B4) ---------- */
+
+/*
+ * „Hat in dieser Zeit nichts geändert" ist für einen Säureblocker ein
+ * Befund. Für ein ADHS-Mittel wäre es ein Urteil über etwas, das niemand
+ * wegen des Bauchs nimmt. Geprüft zweimal: an der Zusammenfassung selbst –
+ * auch wenn ein Aufrufer ein Urteil mitgäbe – und am ganzen Bericht.
+ */
+const nichts = (q) => wasSacheIst(q).saetze.some((x) => x.text.includes('nichts geändert'));
+check(nichts({ mittel: [{ name: 'Pantoprazol', gruppe: 'ppi', urteil: 'unveraendert' }] }),
+  'ein Säureblocker ohne Wirkung steht oben');
+check(!nichts({ mittel: [{ name: 'Concerta', gruppe: 'mph', urteil: 'unveraendert' }] })
+  && !nichts({ mittel: [{ name: 'Strattera', gruppe: 'atomox', urteil: 'unveraendert' }] }),
+'ein ADHS-Mittel nie – auch nicht mit einem Urteil von außen');
+
+const adhsTage = {};
+const adhsEintraege = [];
+for (let t = 70; t >= 1; t--) {
+  const am = vorTagen(t);
+  adhsTage[am] = { stress: 1 };
+  adhsEintraege.push({ id: `b${t}`, am, um: '11:00', art: 'beschwerde', staerke: 4, arten: ['druck'] });
+  if (t <= 35) adhsEintraege.push({ id: `m${t}`, am, um: '07:30', art: 'medikament', mittel: 'Equasym Retard', dosis: '' });
+}
+const adhsZettel = arztBericht({ eintraege: adhsEintraege, tage: adhsTage }, vorTagen(70), vorTagen(1));
+const inKuerze = (adhsZettel.split('IN KÜRZE')[1] || '').split('ÜBERSICHT')[0];
+check(adhsZettel.includes('HAT ES ETWAS BEWIRKT?') && adhsZettel.includes('Seit dem ersten Eintrag'),
+  'der Bericht stellt beim ADHS-Mittel die Zahlen nebeneinander');
+check(!inKuerze.includes('nichts geändert') && !adhsZettel.includes('Kein Unterschied zur Zeit davor'),
+  'und schreibt weder oben noch unten, es habe nichts geändert');
 
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);
 await page.screenshot({ path: `${SHOT}/lage.png`, fullPage: true });

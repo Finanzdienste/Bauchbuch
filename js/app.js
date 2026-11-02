@@ -44,8 +44,10 @@ import { luecken } from './luecken.js';
 import { vergleichBalken, verlaufTafel } from './chart.js';
 import { arztBericht, berichtName } from './bericht.js';
 import {
-  MITTEL_WISSEN, REIZSTOFFE, WEITERE_MITTEL, adhsGruppe, istAdhsMittel, wissenZu,
+  ADHS_MITTEL, MITTEL_WISSEN, MPH_FORMEN, REIZSTOFFE, SONSTIGE_MITTEL, WEITERE_MITTEL,
+  istAdhsMittel, mphForm, wissenZu,
 } from './mittel.js';
+import { formZu } from './zusammen.js';
 import {
   belastbar, heutigerStand, mittlereLaenge, phasenBilanz, phasenName, schwankung,
 } from './zyklus.js';
@@ -88,7 +90,7 @@ import {
 } from './kueche.js';
 import { BEFUNDE, BEFUND_VON, geklaert, kriterienVorbehalt } from './befunde.js';
 import {
-  AKTIVITAETEN, AKTIV_KOPF_MINDEST, AKTIV_KOPF_STUNDEN, INTENSITAETEN, aktivBauchSatz,
+  AKTIVITAETEN, AKTIV_KOPF_MINDEST, AKTIV_KOPF_STUNDEN, INTENSITAETEN, MASSAGE_HINWEIS, aktivBauchSatz,
   aktivKopfSatz, aktivitaetBilanz, aktivitaetHaeufigkeit, aktivitaetText, aktivitaetVon,
   aktivitaetName, bewegungSatz, freieAktivitaetId, intensitaetName, sichtbareEigene, zuletztAktivitaeten,
 } from './aktivitaet.js';
@@ -1620,13 +1622,13 @@ function musterDaten(s) {
     return !!g && (g.id === 'nsar' || g.id === 'kombi');
   };
   // Dieselbe Frage, aber mit der ganzen Antwort: welche Gruppe. Der Kopf
-  // braucht sie, weil er drei Klassen von Akutmitteln auseinanderhält. Ein
-  // ADHS-Mittel hat seine Gruppe auch dann, wenn es dazu noch nichts zu
-  // lesen gibt – sonst stünde es am Kopfschmerztag unter „nicht
-  // zugeordnet", als wäre es ein Schmerzmittel, das die App nicht kennt.
+  // braucht sie, weil er mehrere Klassen von Akutmitteln auseinanderhält.
+  // Auch ein ADHS-Mittel hat hier seine Gruppe – sonst stünde es am
+  // Kopfschmerztag unter „nicht zugeordnet", als wäre es ein Schmerzmittel,
+  // das die App nicht kennt.
   const gruppeVon = (name) => {
     const g = wissenZu(name);
-    return g ? g.id : adhsGruppe(name);
+    return g ? g.id : null;
   };
   const bilanz = ausloeserBilanz(s.eintraege, {
     fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
@@ -2834,9 +2836,12 @@ function aktivTeil(s, nurFertig = false) {
   const fund = (z) => {
     const a = aktivitaetVon(z.id, s.eigeneAktivitaeten);
     const art = [z.bauch.art, z.kopf.art].sort((x, y) => rang.indexOf(x) - rang.indexOf(y))[0];
-    const bauch = z.bauch.genug
-      ? `<b>Bauch, ${esc(AKTIV_BAUCH_WORT[z.bauch.art])}:</b> ${esc(aktivBauchSatz(z, fenster))}`
-      : `<b>Bauch:</b> zählt noch – ${aktivNoch(z.bauch)} auswertbar.`;
+    // Massage, Massagepistole und Wärme haben keine Bauchseite (siehe
+    // aktivitaetBilanz) – eine Zeile „Bauch: zählt noch" verspräche eine.
+    const bauch = z.gegenmittel ? ''
+      : (z.bauch.genug
+        ? `<b>Bauch, ${esc(AKTIV_BAUCH_WORT[z.bauch.art])}:</b> ${esc(aktivBauchSatz(z, fenster))}`
+        : `<b>Bauch:</b> zählt noch – ${aktivNoch(z.bauch)} auswertbar.`);
     const kopf = z.kopf.genug
       ? `<b>Kopf, ${esc(AKTIV_KOPF_WORT[z.kopf.art])}:</b> ${esc(aktivKopfSatz(z))}`
       : `<b>Kopf:</b> zählt noch – ${aktivNoch(z.kopf, true)} auswertbar.`;
@@ -2845,7 +2850,7 @@ function aktivTeil(s, nurFertig = false) {
         <b><span aria-hidden="true">${a.icon}</span> ${mitUmbruch(a.name)}</b>
         <span class="fund-urteil">${mehrzahl(z.anzahl, 'Mal', 'Mal')}</span>
       </div>
-      <p class="klein">${bauch}</p>
+      ${bauch ? `<p class="klein">${bauch}</p>` : ''}
       <p class="klein">${kopf}</p>
     </li>`;
   };
@@ -2859,7 +2864,7 @@ function aktivTeil(s, nurFertig = false) {
     ${!nurFertig && offen.length ? `<p class="feld-name">Zählt noch</p>
       <ul class="wartend">${offen.slice(0, 8).map((z) => `<li>
         <span>${esc(aktivitaetVon(z.id, s.eigeneAktivitaeten).name)}</span>
-        <span class="klein">${aktivNoch(z.bauch).replace(/ Mal$/, '')}</span>
+        <span class="klein">${z.gegenmittel ? aktivNoch(z.kopf, true) : aktivNoch(z.bauch).replace(/ Mal$/, '')}</span>
       </li>`).join('')}</ul>` : ''}
     ${bewegung ? `<p class="klein aktiv-bewegung">${esc(bewegung)} Gezählt am selben Tag –
       an schlechten Tagen bewegt man sich oft weniger.</p>` : ''}
@@ -4396,12 +4401,25 @@ function mittelKarte(s) {
   });
   const meine = [...eigene.values()].sort((a, b) => b.anzahl - a.anzahl);
 
+  /*
+   * Bei Methylphenidat entscheidet die Form, was für den Magen gilt – deshalb
+   * steht sie beim eigenen Mittel dabei und unter der Gruppe ein Abschnitt je
+   * Form. „Form nicht angegeben" ist auch eine Auskunft: Dann fehlt die
+   * Angabe, nach der sich die Hinweise richten.
+   */
+  const formTeil = (f) => `<p><b>${esc(f.name)}.</b> ${esc(f.einnahme)}`
+    + `${f.saeure ? ` ${esc(f.saeure)}` : ''}${f.extra ? ` ${esc(f.extra)}` : ''}</p>`;
   const block = (g) => `<details class="mittel">
     <summary><b>${esc(g.gruppe)}</b>${g.kuerzel ? ` <span class="klein">(${esc(g.kuerzel)})</span>` : ''}
       <span class="zeile-tags">${esc(g.kurz)}</span></summary>
     <p><b>Wie es wirkt.</b> ${esc(g.wirkung)}</p>
     ${g.einnahme && g.einnahme !== '–' ? `<p><b>Wann man es nimmt.</b> ${esc(g.einnahme)}</p>` : ''}
+    ${g.nebenwirkung ? `<p><b>Was in der Fachinformation steht.</b> ${esc(g.nebenwirkung)}</p>` : ''}
     <p><b>Worauf zu achten ist.</b> ${esc(g.hinweis)}</p>
+    ${g.id === 'mph' ? `<div class="mittel-formen">
+      <p class="feld-name">Je nach Form</p>
+      ${MPH_FORMEN.map(formTeil).join('')}
+    </div>` : ''}
     <p class="klein">Zum Beispiel: ${esc(g.beispiele.join(', '))}</p>
   </details>`;
 
@@ -4414,8 +4432,9 @@ function mittelKarte(s) {
     ${meine.length ? `<p class="feld-name">Was du eingetragen hast</p>
       <ul class="wartend">${meine.map((m) => {
         const g = wissenZu(m.name);
+        const form = g && g.id === 'mph' ? mphForm(formZu(m.name, s.standardMittel, s.eintraege)) : null;
         return `<li>
-          <span>${esc(m.name)}<span class="zeile-tags">${g ? esc(g.kurz) : 'nicht in der Übersicht – frag in der Apotheke nach'}</span></span>
+          <span>${esc(m.name)}<span class="zeile-tags">${g ? esc(g.kurz) : 'nicht in der Übersicht – frag in der Apotheke nach'}</span>${form ? `<span class="zeile-tags">Form: ${esc(form.kurzname)}</span>` : ''}</span>
           <span class="klein">${mehrzahl(m.anzahl, 'Mal', 'Mal')}</span>
         </li>`;
       }).join('')}</ul>`
@@ -4432,6 +4451,10 @@ function mittelKarte(s) {
         ${REIZSTOFFE.map(block).join('')}
         <p class="feld-name">Schmerz- und Migränemittel</p>
         ${WEITERE_MITTEL.map(block).join('')}
+        <p class="feld-name">Mittel bei ADHS</p>
+        ${ADHS_MITTEL.map(block).join('')}
+        <p class="feld-name">Sonst noch</p>
+        ${SONSTIGE_MITTEL.map(block).join('')}
       </div>` : ''}
   </div>`;
 }
@@ -4850,7 +4873,7 @@ function dosisAusMeinenMitteln(s, name) {
 // oder bei den eigenen Mitteln gemerkt ist, und davon nur diese Gruppen.
 // Nicht AKUT_KLASSEN wie in js/kopf.js: Dort zählen auch Opioide und
 // Gepante mit, als Tipp angeboten werden sie nicht.
-const DAZU_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar'];
+const DAZU_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar', 'kombipara'];
 const istAkutmittel = (name) => {
   const g = wissenZu(name);
   return !!g && DAZU_KLASSEN.includes(g.id);
@@ -5220,6 +5243,12 @@ function bogenHTML(s) {
     mitte = `
       <p class="feld-name">Was hast du gemacht, wo warst du?</p>
       ${marken([...auswahl, ...fremd], gewaehlt, 'aktiv-wahl')}
+      ${gewaehlt.includes('massagepistole') ? `<div class="massage-hinweis">
+        <p class="klein">${esc(MASSAGE_HINWEIS.satz)}</p>
+        <details><summary>Mehr dazu</summary>
+          <p class="klein">${esc(MASSAGE_HINWEIS.details)}</p>
+        </details>
+      </div>` : ''}
       ${voll ? `<p class="klein">Mehr als ${store.AKTIV_HOECHSTENS} eigene passen nicht. Unter
         „Mehr“ kannst du eine entfernen.</p>` : `<div class="reihe aktiv-eigen">
         <input type="text" class="feld" id="bogenAktivNeu" data-act="aktiv-name"
@@ -5604,7 +5633,8 @@ function bogenSpeichern() {
       if (b.id) e[k] = null;
       else delete e[k];
     });
-    if (adhsGruppe(e.mittel) !== 'mph') weg(['form']);
+    const gruppe = wissenZu(e.mittel);
+    if (!gruppe || gruppe.id !== 'mph') weg(['form']);
     if (!istAdhsMittel(e.mittel)) weg(['essen', 'essenGesetzt']);
   }
   if (b.art === 'medikament') store.mittelMerken(e.mittel);

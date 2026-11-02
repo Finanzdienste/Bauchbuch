@@ -77,7 +77,7 @@ for rechner in ('auswertung.js', 'bericht.js', 'store.js', 'daten.js', 'datum.js
                 'ansprechen.js', 'luecken.js', 'tresor.js', 'briefkasten.js', 'unterleib.js', 'schichten.js',
                 'zeitprofil.js', 'wechselwirkung.js', 'lage.js', 'zufall.js', 'dosis.js', 'gewicht.js',
                 'provokation.js', 'stufenplan.js', 'anfang.js', 'kalender.js', 'wach.js',
-                'kopf.js', 'wasser.js', 'aktivitaet.js'):
+                'kopf.js', 'wasser.js', 'aktivitaet.js', 'zusammen.js'):
     if 'app.js' in graph.get(rechner, []):
         fehler.append(f'{rechner} importiert app.js - die Rechnung haengt dann an der Anzeige')
 

@@ -805,6 +805,21 @@ p { margin: 0 0 8px; }
   padding-left: 10px;
   margin-top: 8px;
 }
+/* „Je nach Form" unter Methylphenidat: eingerückt, damit klar ist, wozu es
+   gehört; lange Präparatnamen dürfen umbrechen (320 px). */
+.mittel-formen {
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+.mittel-formen p { margin: 6px 0; overflow-wrap: anywhere; }
+/* Der Herstellerhinweis zur Massagepistole im Aktivitäts-Bogen. */
+.massage-hinweis {
+  border-left: 2px solid var(--warn);
+  padding-left: 10px;
+  margin-top: 8px;
+}
+.massage-hinweis summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 
 /* ---------- Willkommen ---------- */
 .willkommen { max-width: 480px; margin: 20px auto; }
@@ -1387,7 +1402,12 @@ const MITTEL_WISSEN = [
     id: 'ppi',
     gruppe: 'Protonenpumpenhemmer',
     kuerzel: 'PPI',
-    beispiele: ['Pantoprazol', 'Omeprazol', 'Esomeprazol', 'Lansoprazol', 'Rabeprazol'],
+    // Mit den Handelsnamen aus der Packung: Wer „Pantozol“ einträgt, nimmt
+    // einen Säureblocker, und ohne den Namen fehlte er bei jeder Frage, die
+    // nach einem Säureblocker fragt – auch bei der nach dem Methylphenidat
+    // in js/zusammen.js.
+    beispiele: ['Pantoprazol', 'Omeprazol', 'Esomeprazol', 'Lansoprazol', 'Rabeprazol',
+      'Pantozol', 'Nexium', 'Antra', 'Agopton'],
     kurz: 'Drosselt die Säurebildung, damit die Schleimhaut zur Ruhe kommt.',
     wirkung: 'Blockiert die Pumpen in der Magenwand, an denen die Säure entsteht. '
       + 'Es wird also nicht neutralisiert, was schon da ist – es kommt weniger nach. '
@@ -1418,7 +1438,7 @@ const MITTEL_WISSEN = [
   {
     id: 'antazida',
     gruppe: 'Antazida',
-    beispiele: ['Magaldrat', 'Hydrotalcit', 'Riopan', 'Talcid', 'Rennie', 'Antazidum'],
+    beispiele: ['Magaldrat', 'Hydrotalcit', 'Riopan', 'Talcid', 'Rennie', 'Antazidum', 'Maaloxan'],
     kurz: 'Neutralisiert die Säure, die schon da ist. Wirkt in Minuten.',
     wirkung: 'Eine Base, die die vorhandene Säure abpuffert. Nichts wird gedrosselt '
       + 'und nichts geheilt – es wird das gelöscht, was gerade brennt. Nach ein bis '
@@ -1542,10 +1562,19 @@ const REIZSTOFFE = [
       + 'Risiko weiter. Als Gel oder Pflaster auf der Haut zählt es hier nicht – '
       + 'davon kommt kaum etwas im Magen an.',
   },
+  /*
+   * Quelle: ICHD-3 8.2.5 Combination-analgesic-overuse headache,
+   * ichd-3.org/8-headache-attributed-to-a-substance-or-its-withdrawal/8-2-medication-overuse-headache-moh/8-2-5-combination-analgesic-overuse-headache/
+   * (Koffein als Hilfsstoff macht ein Kombinationsmittel, Grenze zehn Tage).
+   *
+   * „Koffein" steht hier nicht mehr als Beispiel: Allein ist es kein
+   * Schmerzmittel (siehe SONSTIGE_MITTEL), und mit ASS oder Paracetamol im
+   * Namen sortiert es wissenZu() nach dem Schmerzmittel ein.
+   */
   {
     id: 'kombi',
     gruppe: 'Kombinationsmittel mit ASS und Koffein',
-    beispiele: ['Thomapyrin', 'Neuralgin', 'Koffein'],
+    beispiele: ['Thomapyrin', 'Neuralgin'],
     kurz: 'Für den Magen ein NSAR – für den Kopf ein Mittel mit der niedrigsten Übergebrauchsgrenze.',
     wirkung: 'ASS, meist zusammen mit Paracetamol, und dazu Koffein, das die Wirkung '
       + 'verstärkt und beschleunigt. Für die Magenschleimhaut gilt, was für jedes '
@@ -1554,7 +1583,8 @@ const REIZSTOFFE = [
     hinweis: 'Die meistgekauften rezeptfreien Kopfschmerzmittel – und gerade deshalb '
       + 'die, die am ehesten zu oft genommen werden. Ab etwa zehn Tagen im Monat '
       + 'kann ein Kombinationsmittel den Kopfschmerz selbst unterhalten, früher als '
-      + 'ein einzelnes Schmerzmittel. Für den Magen zählt es wie ein NSAR.',
+      + 'ein einzelnes Schmerzmittel. Für den Magen zählt es wie ein NSAR. Auch ein '
+      + 'einzelnes ASS-Präparat mit Koffein zählt hier.',
   },
   {
     id: 'kortison',
@@ -1680,6 +1710,32 @@ const WEITERE_MITTEL = [
       + 'die Frage für die Neurologie.',
   },
   /*
+   * Paracetamol mit Koffein – für den Kopf ein Kombinationsmittel, für den
+   * Magen kein NSAR. Bis zur Fassung 27 stand „Paracetamol Koffein" unter
+   * kombi und zählte damit für den Magen als ASS; „Paracetamol + Coffein"
+   * dagegen als einfaches Schmerzmittel mit der Grenze von fünfzehn Tagen.
+   * Beides war falsch. Erkannt wird die Gruppe nur über die Koffein-Regel in
+   * wissenZu(); das Beispiel steht für die Übersicht da.
+   *
+   * Quelle: ICHD-3 8.2.5 (wie bei kombi), Stand der Seite 2018: Koffein als
+   * Hilfsstoff macht ein Kombinationsmittel, Übergebrauch ab zehn Tagen im
+   * Monat über mehr als drei Monate.
+   */
+  {
+    id: 'kombipara',
+    gruppe: 'Kombinationsmittel mit Paracetamol und Koffein',
+    beispiele: ['Paracetamol + Koffein'],
+    kurz: 'Für den Kopf ein Kombinationsmittel mit niedrigerer Übergebrauchsgrenze; für den Magen kein NSAR.',
+    wirkung: 'Paracetamol zusammen mit Koffein, das die Wirkung verstärken soll. Ohne '
+      + 'ASS greift es die Schleimschicht des Magens nicht an; für die Leber gilt, '
+      + 'was für Paracetamol gilt.',
+    einnahme: '–',
+    hinweis: 'Nach der Kopfschmerzklassifikation zählt jedes Schmerzmittel mit Koffein '
+      + 'als Kombinationsmittel: Ab etwa zehn Tagen im Monat kann es den Kopfschmerz '
+      + 'selbst unterhalten, früher als ein einzelnes Schmerzmittel. Die Grenze für '
+      + 'Paracetamol pro Tag steht auf der Packung. Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
    * Vorbeugende Mittel stehen hier, damit die App sie kennt und *nicht* als
    * Akutmittel zählt: Ein tägliches Metoprolol würde sonst die Übergebrauchs-
    * zählung sprengen. Manche davon sind zugleich Blutdruck- oder
@@ -1710,21 +1766,21 @@ const WEITERE_MITTEL = [
   },
 ];
 
-const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL];
-
 /*
- * Die Mittel bei ADHS – vorerst nur zum Erkennen, ohne Texte.
+ * Die Mittel bei ADHS – zuerst zum Erkennen.
  *
- * Die Namen stehen hier, weil die Zählung sie braucht, bevor es etwas über
- * sie zu lesen gibt: Ein Tag, an dem nur „Medikinet" steht, sagt über Bauch
- * und Kopf so wenig wie ein Glas Wasser (siehe eintragZaehlt in
- * js/wasser.js). Ohne die Namen wäre er ein notierter Tag und ohne Beschwerde
- * ein beschwerdefreier – und das Mittel, das man jeden Morgen nimmt, machte
- * aus jeder Lücke im Tagebuch einen guten Tag.
+ * Die Namen stehen hier, weil die Zählung sie braucht: Ein Tag, an dem nur
+ * „Medikinet" steht, sagt über Bauch und Kopf so wenig wie ein Glas Wasser
+ * (siehe eintragZaehlt in js/wasser.js). Ohne die Namen wäre er ein
+ * notierter Tag und ohne Beschwerde ein beschwerdefreier – und das Mittel,
+ * das man jeden Morgen nimmt, machte aus jeder Lücke im Tagebuch einen guten
+ * Tag.
  *
  * Die Reihenfolge ist Absicht: „Lisdexamfetamin" enthält „dexamfetamin".
  * Stünde Dexamfetamin vorn, wäre Lisdexamfetamin Dexamfetamin – ein anderer
- * Wirkstoff mit anderer Einnahme.
+ * Wirkstoff mit anderer Einnahme. Erkannt wird über ADHS_MITTEL unten (siehe
+ * wissenZu); dort stehen die Gruppen in derselben Reihenfolge, und
+ * tests/test-adhs-wissen.mjs prüft das.
  *
  * Bupropion steht dabei, damit es erkannt wird – gezählt wird es wie bisher,
  * wie jedes andere Mittel: Es gehört nicht zu ADHS_GRUPPEN, und ein Tag, an
@@ -1745,6 +1801,243 @@ const ADHS_GRUPPEN = ['mph', 'lisdex', 'dex', 'atomox', 'guanf'];
 
 /** Die Stimulanzien darunter. */
 const STIMULANZIEN = ['mph', 'lisdex', 'dex'];
+
+const namenVon = (id) => ADHS_NAMEN.find((x) => x.id === id).beispiele;
+
+/*
+ * Was dazu in den Fach- und Gebrauchsinformationen steht.
+ *
+ * Strenger als oben, weil diese Mittel nicht für den Magen verordnet werden
+ * und jemand, der hier liest, sie womöglich jeden Tag nimmt:
+ *
+ *   * Jeder Satz mit „laut Fachinformation", „laut Packungsbeilage" oder
+ *     „laut EMA" ist an einer amtlichen oder Hersteller-Quelle geprüft. Die
+ *     Quelle steht über jedem Eintrag. Was sich nicht belegen ließ, steht
+ *     nicht da – auch nicht vorsichtiger formuliert.
+ *   * Gilt ein Satz nur für ein Präparat, nennt er das Präparat. „Laut
+ *     Fachinformation von Medikinet adult sehr häufig: …" ist eine Auskunft;
+ *     „bei Methylphenidat sehr häufig" wäre für Ritalin falsch.
+ *   * Keine Dosis, keine Empfehlung, kein Rat zum Absetzen. Jeder Hinweis
+ *     endet bei Ärztin oder Apotheke.
+ *
+ * Die Quellen stehen als Adresse ohne „https://" da: In js/ darf keine
+ * vollständige Adresse stehen, auch nicht in einem Kommentar (siehe
+ * tools/pruefung/keine-leitung.py) – so bleibt die eine Tür nach draußen
+ * die einzige, die eine Suche findet.
+ *
+ * `nebenwirkung` ist neu und freiwillig: Die Karte zeigt es als „Was in der
+ * Fachinformation steht." Wo sich keine Häufigkeit belegen ließ, fehlt es.
+ */
+const ADHS_MITTEL = [
+  /*
+   * Quellen (Stand, soweit genannt):
+   *   Medikinet Tabletten FI, fachinfo.de/pdf/002039 (06/2023), 4.2 – Schlaf
+   *   Medikinet adult, Rote Liste www.rote-liste.de/rle/detail/23061/ , 4.8 – sehr häufig
+   *   Ritalin LA FI, fachinfo.de/fi/pdf/010445/ritalin-la (09/2025), 4.2/4.8 – häufig, Essen
+   *   EMA CMDh, PSUSA 00002024 (2019), www.ema.europa.eu/documents/psusa/methylphenidate-cmdh-scientific-conclusions-grounds-variation-amendments-product-information/00002024/201910_hu.pdf – Bruxismus häufig
+   *   MIMS-Wiedergabe der Medikinet-Produktinformation,
+   *     prdmimsweb.azurewebsites.net/singapore/drug/info/medikinet/special-precautions – Alkohol und ZNS
+   *   US-Label Ritalin LA (Wiedergabe www.rxlist.com/ritalin-la-drug.htm) – Alkohol im Laborversuch
+   *   GI Ritalin (BASG), medikamente.basg.gv.at/documents/1-22028__DOTC_GEBR_INFO.pdf,
+   *     Gelbe Liste www.gelbe-liste.de/wirkstoffe/Methylphenidat_1306 – MAO-Hemmer, Blutdrucksenker
+   *   GI Methylphenidat AL, beipackzettel.apocdn.net/medien/39fb9f1aac92a8eb24dff85248f0317104b4c45223aaea5cb26e4555f8d7d7e0.pdf
+   *     – Serotoninsyndrom
+   *   GI Ritalin, www.patienteninfo-service.de/gi/19260/pdf – Lactose, Abschnitt 6
+   */
+  {
+    id: 'mph',
+    gruppe: 'Methylphenidat',
+    kuerzel: 'MPH',
+    beispiele: namenVon('mph'),
+    kurz: 'Stimulans bei ADHS. Für den Magen zählt auch, wie die Tablette oder Kapsel den Wirkstoff freisetzt.',
+    wirkung: 'Wie schnell es ins Blut geht und wie lange es anhält, hängt vor allem an '
+      + 'der Form: sofort freisetzend oder retardiert, und retardiert auf verschiedene '
+      + 'Weise. Darum fragt Body Check nach der Form.',
+    einnahme: 'Je nach Form verschieden – siehe „Je nach Form“. Spät am Tag genommen kann '
+      + 'es laut Fachinformation den Schlaf stören.',
+    nebenwirkung: 'Laut Fachinformation von Medikinet adult sehr häufig: weniger Appetit, '
+      + 'Schlaflosigkeit, Nervosität, Kopfschmerzen, Übelkeit und Mundtrockenheit. Laut '
+      + 'Fachinformation von Ritalin LA häufig: Bauchschmerzen, Durchfall, '
+      + 'Magenbeschwerden, Erbrechen und Verdauungsbeschwerden. Seit einer Bewertung der '
+      + 'EU-Arzneimittelbehörden steht auch Zähneknirschen als häufig in den '
+      + 'Fachinformationen von Methylphenidat. Laut Fachinformation von Ritalin LA kann '
+      + 'Essen zur selben Zeit helfen, Bauchschmerzen, Übelkeit oder Erbrechen zu verhindern.',
+    hinweis: 'Alkohol verstärkt laut Fachinformation Nebenwirkungen auf das Nervensystem. '
+      + 'Laut US-Fachinformation von Ritalin LA setzte sehr hochprozentiger Alkohol im '
+      + 'Laborversuch fast den ganzen Wirkstoff schon in der ersten Stunde frei. Zusammen '
+      + 'mit MAO-Hemmern droht eine Blutdruckkrise; mit Mitteln, die auf Serotonin '
+      + 'wirken, ist ein Serotoninsyndrom beschrieben – ob eines deiner Mittel dazugehört, '
+      + 'weiß die Apotheke. Blutdrucksenker können schwächer wirken. Welche Hilfsstoffe '
+      + 'drin sind (etwa Lactose oder Zucker), steht in Abschnitt 2 und 6 der '
+      + 'Packungsbeilage. Nicht eigenmächtig ändern oder absetzen – Fragen dazu '
+      + 'beantworten Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   Elvanse FI, fachinfo.de/pdf/020737, 4.2 – mit oder ohne Essen, Nachmittag
+   *   UK-SmPC (Wiedergabe findmeds.uk), 5.2 – Essen verschiebt Tmax um etwa eine Stunde
+   *   G-BA-Dossier des Herstellers, Modul 2 (2019) – Umwandlung in den Erythrozyten
+   *   UK-Packungsbeilage Elvanse Adult, www.medicines.org.uk/emc/files/pil.15433.pdf – häufigste Nebenwirkungen
+   *   US-FI Vyvanse, www.accessdata.fda.gov/drugsatfda_docs/label/2025/021977s054%2C208510s011lbl.pdf
+   *     – Urin-pH (Ascorbinsäure, Natriumhydrogencarbonat), Triptane, MAO-Hemmer
+   */
+  {
+    id: 'lisdex',
+    gruppe: 'Lisdexamfetamin',
+    beispiele: namenVon('lisdex'),
+    kurz: 'Stimulans bei ADHS, wird erst im Körper zum Wirkstoff.',
+    wirkung: 'Eine Vorstufe, die erst im Blut zu Dexamfetamin umgewandelt wird.',
+    einnahme: 'Laut Fachinformation mit oder ohne Essen; Essen verschiebt den höchsten '
+      + 'Spiegel um etwa eine Stunde nach hinten. Am Nachmittag genommen kann es laut '
+      + 'Fachinformation den Schlaf stören.',
+    nebenwirkung: 'Laut Packungsbeilage von Elvanse Adult sind bei Erwachsenen die '
+      + 'häufigsten Nebenwirkungen weniger Appetit, Schlaflosigkeit, Mundtrockenheit und '
+      + 'Kopfschmerzen.',
+    hinweis: 'Mittel, die den Urin saurer machen, etwa Vitamin C (Ascorbinsäure), senken '
+      + 'laut US-Fachinformation den Spiegel; basische Mittel wie Natron erhöhen ihn. '
+      + 'Dieselbe Fachinformation nennt Triptane unter den Mitteln, mit denen ein '
+      + 'Serotoninsyndrom möglich ist. Nicht zusammen mit MAO-Hemmern. Nicht eigenmächtig '
+      + 'ändern oder absetzen – Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   Attentin 5 mg FI, www.fachinfo.de/fi/pdf/013378/attentin-5-mg-tablette (08/2022),
+   *     4.2 – Nahrungseinfluss nicht untersucht, gleich zu den Mahlzeiten; 4.3 – MAO-Hemmer; 5.2 – rasch resorbiert
+   *   Attentin 10/20 mg FI, www.fachinfo.de/fi/pdf/020945 (08/2024), 4.5 – Natriumhydrogencarbonat
+   *   GI Attentin – Fruchtsäfte
+   * Kein `nebenwirkung`: Häufigkeiten ließen sich nicht belegen.
+   */
+  {
+    id: 'dex',
+    gruppe: 'Dexamfetamin',
+    beispiele: namenVon('dex'),
+    kurz: 'Stimulans bei ADHS.',
+    wirkung: 'Wird laut Fachinformation schnell aus Magen und Darm aufgenommen.',
+    einnahme: 'Wie Essen die Aufnahme beeinflusst, ist laut Fachinformation nicht '
+      + 'untersucht; dort steht deshalb, es immer auf dieselbe Weise zu den Mahlzeiten zu '
+      + 'nehmen, vorzugsweise zu oder direkt nach dem Essen.',
+    hinweis: 'Laut Packungsbeilage können Fruchtsäfte die Wirkung abschwächen; laut '
+      + 'Fachinformation erhöht Basisches wie Natron (Natriumhydrogencarbonat) die '
+      + 'Aufnahme. Nicht zusammen mit MAO-Hemmern. Nicht eigenmächtig ändern oder '
+      + 'absetzen – Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   US-Label Strattera (Wiedergabe medlibrary.org) – mit oder ohne Essen; Fluoxetin,
+   *     Paroxetin, Chinidin erhöhen die Exposition deutlich
+   *   SAHPRA-PI Strattera (2018), www.sahpra.org.za/wp-content/uploads/2020/02/Strattera_PI_Eli-Lilly_MCC-format-20-March-2018.pdf
+   *     – CYP2D6, langsame Metabolisierer; Leberzeichen (dunkler Urin, Gelbsucht, rechter Oberbauch)
+   *   DE-Packungsbeilagen Atomoxetin – „Selten: Leberschädigungen"
+   * Kein `nebenwirkung`: Häufigkeiten ließen sich nicht belegen.
+   */
+  {
+    id: 'atomox',
+    gruppe: 'Atomoxetin',
+    beispiele: namenVon('atomox'),
+    kurz: 'ADHS-Mittel, kein Stimulans.',
+    wirkung: 'Kein Stimulans. Abgebaut wird es über ein Leberenzym (CYP2D6), das bei '
+      + 'manchen Menschen deutlich langsamer arbeitet.',
+    einnahme: 'Laut US-Fachinformation mit oder ohne Essen. Wie die Einnahme über den Tag '
+      + 'verteilt wird, legt die Ärztin fest.',
+    hinweis: 'Einige Mittel gegen Depression – etwa Fluoxetin oder Paroxetin – erhöhen laut '
+      + 'Fachinformation den Spiegel deutlich. Selten sind Leberschäden beschrieben; gelbe '
+      + 'Haut oder Augen, dunkler Urin oder Schmerzen im rechten Oberbauch gehören laut '
+      + 'Fachinformation sofort ärztlich abgeklärt. Nicht eigenmächtig ändern oder '
+      + 'absetzen – Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   EMA, EPAR-Zusammenfassung Intuniv, www.ema.europa.eu/de/documents/overview/intuniv-epar-summary-public_de.pdf
+   *     und www.ema.europa.eu/sv/medicines/human/EPAR/intuniv – Häufigkeiten, 6 bis 17 Jahre
+   *   Intuniv FI, www.fachinfo.de/fi/pdf/020868 – Zielgruppe
+   *   US-Label Intuniv, www.accessdata.fda.gov/drugsatfda_docs/label/2009/022037lbl.pdf
+   *     – fettreiche Mahlzeit, CYP3A4
+   *   AkdÄ Drug Safety Mail 2021-61, www.akdae.de/arzneimittelsicherheit/drug-safety-mail/newsdetail/drug-safety-mail-2021-61
+   *     – abruptes Absetzen, Rebound-Hypertonie, laut FI ausschleichen
+   */
+  {
+    id: 'guanf',
+    gruppe: 'Guanfacin',
+    beispiele: namenVon('guanf'),
+    kurz: 'ADHS-Mittel, kein Stimulans; in der EU für 6- bis 17-Jährige zugelassen.',
+    wirkung: 'Kein Stimulans; es kann Puls und Blutdruck senken, und viele werden davon schläfrig.',
+    einnahme: 'Laut US-Produktinformation nicht zu einer fettreichen Mahlzeit – das erhöht '
+      + 'den Spiegel.',
+    nebenwirkung: 'Laut EMA bei etwa jeder zweiten Person Schläfrigkeit, bei mehr als einer '
+      + 'von vier Kopfschmerzen, bei etwa einer von fünf Müdigkeit und bei etwa einer von '
+      + 'zehn Oberbauchschmerzen. Niedriger Blutdruck betrifft etwa eine von dreißig '
+      + 'Personen, ein langsamer Puls etwa eine von sechzig, Ohnmacht weniger als eine von '
+      + 'hundert.',
+    hinweis: 'Plötzliches Absetzen kann laut Fachinformation den Blutdruck stark ansteigen '
+      + 'lassen; absetzen oder ändern nur nach Rücksprache mit der Ärztin. Mittel, die das '
+      + 'Leberenzym CYP3A4 hemmen oder anregen, verändern den Spiegel. Schwindel oder '
+      + 'Ohnmacht gehören angesprochen. Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   Elontril FI, www.fachinfo.de/fi/pdf/010164/elontril-150-mg-300-mg-tabletten (03/2026)
+   *     – Anwendungsgebiet Depression; Krampfanfälle
+   *   GI Zyban, medikamio.com/de-de/medikamente/zyban-150-mg-retardtabletten/pil – Raucherentwöhnung
+   *   FI Bupropion-neuraxpharm (12/2025) – Gegenanzeige: abrupter Alkoholentzug
+   *   EMA CMDh, PSUSA 00001997 (2020), Metamizol: senkt Plasmaspiegel u. a. von Bupropion
+   * Kein `nebenwirkung`: nicht belegt.
+   */
+  {
+    id: 'bupro',
+    gruppe: 'Bupropion',
+    beispiele: namenVon('bupro'),
+    kurz: 'Mittel gegen Depression und zur Rauchentwöhnung; für ADHS nicht zugelassen.',
+    wirkung: 'In Deutschland für Depression (Elontril) und zur Rauchentwöhnung (Zyban) '
+      + 'zugelassen; für ADHS ist es nicht zugelassen.',
+    einnahme: '–',
+    hinweis: 'Laut Fachinformation besteht ein Risiko für Krampfanfälle; ein plötzlicher '
+      + 'Alkoholentzug steht dort unter den Gegenanzeigen. Metamizol (Novalgin, '
+      + 'Novaminsulfon) kann laut seiner Fachinformation den Bupropion-Spiegel senken. '
+      + 'Nicht eigenmächtig ändern oder absetzen – Fragen dazu: Ärztin oder Apotheke.',
+  },
+];
+
+/*
+ * Was sonst noch im Schrank steht und erkannt werden muss, damit es nicht
+ * falsch zählt.
+ *
+ * Koffein als Tablette ist kein Schmerzmittel. Bis zur Fassung 27 stand
+ * „Koffein" als Beispiel bei kombi und zählte damit als ASS-Kombination: für
+ * den Magen als NSAR, für den Kopf mit der Grenze von zehn Tagen. Beides
+ * stimmt für eine Koffeintablette nicht.
+ *
+ * Quelle: ICHD-3 8.3.1 Caffeine-withdrawal headache,
+ * ichd-3.org/8-headache-attributed-to-a-substance-or-its-withdrawal/8-3-headache-attributed-to-substance-withdrawal/8-3-1-caffeine-withdrawal-headache
+ * (Beginn innerhalb von 24 Stunden nach dem letzten Koffein, nach mehr als
+ * zwei Wochen regelmäßiger Einnahme).
+ */
+const SONSTIGE_MITTEL = [
+  {
+    id: 'koffeinmittel',
+    gruppe: 'Koffein als Tablette',
+    beispiele: ['Koffein', 'Coffein'],
+    kurz: 'Kein Schmerzmittel und für den Magen kein NSAR.',
+    wirkung: 'Ein anregender Stoff, derselbe wie im Kaffee.',
+    einnahme: '–',
+    hinweis: 'Wer über Wochen regelmäßig Koffein nimmt und dann aussetzt, kann davon '
+      + 'Kopfschmerz bekommen; die Kopfschmerzklassifikation beschreibt ihn mit Beginn '
+      + 'innerhalb eines Tages nach dem letzten Koffein. Fragen dazu: Apotheke.',
+  },
+];
+
+/*
+ * Die Reihenfolge entscheidet, wenn ein Name zu zwei Gruppen passt: Die
+ * Magenmittel und Schmerzmittel stehen vorn, wie bisher. Die ADHS-Mittel und
+ * das Koffein stehen hinten, damit sie keinem bisherigen Namen eine neue
+ * Gruppe geben – ein Tagebuch ohne sie rechnet wie in der Fassung 27.
+ */
+const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL, ...ADHS_MITTEL, ...SONSTIGE_MITTEL];
+
+const gruppeMit = (id) => ALLE.find((g) => g.id === id);
+const NSAR = gruppeMit('nsar');
+const KOMBI = gruppeMit('kombi');
+const NICHTNSAR = gruppeMit('nichtnsar');
+const KOMBIPARA = gruppeMit('kombipara');
 
 /** Ein eingetragener Name, so wie er verglichen wird. */
 const suchform = (name) => String(name || '').toLowerCase().trim();
@@ -1769,35 +2062,58 @@ function beispielPasst(gesucht, beispiel) {
   return new RegExp(`(^|[^a-zäöüß])${k}`).test(gesucht);
 }
 
+/** „Koffein" oder „Coffein" irgendwo im Namen. */
+const MIT_KOFFEIN = /koffein|coffein/;
+
 /**
  * Zu einem eingetragenen Namen die passende Gruppe finden.
  *
  * Eingetragen wird frei: „Pantoprazol 20mg", „pantoprazol", „Panto". Deshalb
  * wird kleingeschrieben verglichen und geprüft, ob eines der Beispiele im
  * Eingetragenen vorkommt – nicht auf Gleichheit.
+ *
+ * DIE KOFFEIN-REGEL kommt vor der allgemeinen Suche. Nach der
+ * Kopfschmerzklassifikation ist jedes Schmerzmittel mit Koffein ein
+ * Kombinationsmittel (ICHD-3 8.2.5). Für den Magen zählt dabei nur, ob ASS
+ * oder ein anderes NSAR darin steckt:
+ *
+ *   * mit einem NSAR („ASS Koffein", „Ibuprofen + Coffein")      → kombi
+ *   * mit Paracetamol oder Metamizol („Paracetamol + Coffein")  → kombipara
+ *   * sonst die allgemeine Suche – und die endet für eine reine
+ *     Koffeintablette bei koffeinmittel, das ganz hinten steht.
+ *
+ * Ohne die Regel stand „ASS Koffein" unter nsar (Grenze fünfzehn statt zehn)
+ * und „Paracetamol Koffein" unter kombi (für den Magen ein NSAR). Ein Opioid
+ * oder Triptan mit Koffein im Namen behält über die allgemeine Suche seine
+ * Gruppe und damit seine Zählung als Akutmittel.
  */
 function wissenZu(name) {
   const gesucht = suchform(name);
   if (!gesucht) return null;
   if (aufDerHaut(gesucht)) return null;
   const passt = (b) => beispielPasst(gesucht, b);
+  if (MIT_KOFFEIN.test(gesucht)) {
+    if ([...NSAR.beispiele, ...KOMBI.beispiele].some(passt)) return KOMBI;
+    if (NICHTNSAR.beispiele.some(passt)) return KOMBIPARA;
+  }
   return ALLE.find((g) => g.beispiele.some(passt))
     || ALLE.find((g) => gesucht.includes(g.gruppe.toLowerCase()))
     || null;
 }
 
+const ADHS_IDS = ADHS_NAMEN.map((x) => x.id);
+
 /**
  * Die ADHS-Gruppe eines eingetragenen Namens – 'mph', 'lisdex', 'dex',
  * 'atomox', 'guanf', 'bupro' – oder null.
  *
- * Mit denselben Regeln wie wissenZu(): Kürzel nur am Wortanfang, und was auf
- * der Haut bleibt, ist keines.
+ * Seit es zu den ADHS-Mitteln etwas zu lesen gibt, über wissenZu(): eine
+ * Erkennung für alles, mit denselben Regeln (Kürzel am Wortanfang, nichts
+ * auf der Haut, die Reihenfolge von ALLE).
  */
 function adhsGruppe(name) {
-  const gesucht = suchform(name);
-  if (!gesucht || aufDerHaut(gesucht)) return null;
-  const g = ADHS_NAMEN.find((x) => x.beispiele.some((b) => beispielPasst(gesucht, b)));
-  return g ? g.id : null;
+  const g = wissenZu(name);
+  return g && ADHS_IDS.includes(g.id) ? g.id : null;
 }
 
 /*
@@ -1812,6 +2128,385 @@ function istAdhsMittel(name) {
   const k = suchform(name);
   if (!adhsSchon.has(k)) adhsSchon.set(k, ADHS_GRUPPEN.includes(adhsGruppe(k)));
   return adhsSchon.get(k);
+}
+
+/* ---------- Die Formen von Methylphenidat ---------- */
+
+/**
+ * Wo sich nichts Genaueres belegen lässt, steht dieser Satz: Ob ein
+ * Säureblocker zum Präparat passt, hängt an der Form, und die kennt die
+ * Apotheke.
+ */
+const KLAER_SATZ = 'Ob ein Säureblocker zu deinem Präparat passt, hängt bei '
+  + 'Methylphenidat an der Form – das klären Apotheke oder Praxis.';
+
+/*
+ * Methylphenidat gibt es in Formen, die sich beim Essen und bei
+ * Säureblockern verschieden verhalten. Für den Magen ist das der wichtigste
+ * Unterschied zwischen zwei Packungen mit demselben Wirkstoff: Bei der Kapsel
+ * mit zweierlei Kügelchen hält ein Teil nur so lange dicht, wie der Magen
+ * sauer ist – mit einem Säureblocker kann alles auf einmal frei werden.
+ *
+ * Die Kennungen stehen als FORM_IDS noch einmal in js/store.js (der Speicher
+ * weiß nichts von den Texten); tests/test-adhs-wissen.mjs prüft, dass beide
+ * Listen gleich sind.
+ *
+ * `saeure` ist der Satz zum Säureblocker, `extra` alles, was sonst zur Form
+ * gehört. Wo nichts steht, ist nichts belegt – auch kein beruhigender Satz.
+ * Wirkdauern stehen nicht hier: Belegt war keine.
+ *
+ * Quellen:
+ *   sofort    Medikinet Tabletten FI, fachinfo.de/pdf/002039 (06/2023), 4.2
+ *   pellet    Medikinet retard FI, www.fachinfo.de/fi/pdf/009621 (12/2025), 4.3/4.5;
+ *             Medikinet adult FI, fachinfo.de/pdf/013066 (04/2023; 50/60 mg 12/2014), 4.2
+ *   sodas     GI Ritalin Adult, PatientenInfo-Service
+ *             (www.patienteninfo-service.de/a-z-liste/r/ritalinR-adult-10-20-30-40-mg-hartkapseln-mit-veraenderter-wirkstofffreisetzung)
+ *   oros      GI Concerta (Wiedergabe medikamio, 18 und 54 mg; Stand 08/2020) – Essen, Ganzschlucken,
+ *             Hülle im Stuhl, Verengung als Gegenanzeige
+ *   retardtab GI Kinecteen, www.patienteninfo-service.de/gi/14910/ – nur Verweis
+ *   equasym   Equasym Retard FI, www.fachinfo.de/fi/pdf/012100 (Apfelmus);
+ *             GI-Wiedergabe Apotheken Umschau (morgens vor der Mahlzeit)
+ *   unbekannt aus den obigen abgeleitet
+ */
+const MPH_FORMEN = [
+  {
+    id: 'sofort',
+    name: 'Tablette, nicht retardiert (z. B. Ritalin, Medikinet Tabletten)',
+    kurzname: 'nicht retardierte Tablette',
+    einnahme: 'Medikinet-Tabletten laut Fachinformation zu oder direkt nach den Mahlzeiten; '
+      + 'für andere Präparate steht es in der Packungsbeilage.',
+    saeure: KLAER_SATZ,
+  },
+  {
+    id: 'pellet',
+    name: 'Kapsel mit zweierlei Kügelchen (Medikinet retard, Medikinet adult)',
+    kurzname: 'Kapsel mit zweierlei Kügelchen',
+    einnahme: 'Laut Fachinformation von Medikinet adult und Medikinet retard mit oder nach '
+      + 'einer Mahlzeit. Laut Fachinformation von Medikinet adult wird der Wirkstoff '
+      + 'nüchtern deutlich schneller aufgenommen; die Wirkung hält dann nicht wie '
+      + 'vorgesehen an, und es entstehen hohe Spitzen im Blut.',
+    saeure: 'Laut Fachinformation nicht zusammen mit Protonenpumpenhemmern (etwa '
+      + 'Pantoprazol), H2-Blockern oder säurebindenden Mitteln (Antazida) vorgesehen: In '
+      + 'einem weniger sauren Magen kann der ganze Wirkstoff früher frei werden. Ein '
+      + 'Magen, der von sich aus kaum Säure bildet, steht dort als Gegenanzeige.',
+  },
+  {
+    id: 'sodas',
+    name: 'Ritalin LA / Ritalin Adult',
+    kurzname: 'Ritalin LA / Ritalin Adult',
+    einnahme: 'Ritalin Adult laut Packungsbeilage mit oder ohne Essen.',
+    saeure: KLAER_SATZ,
+  },
+  {
+    id: 'oros',
+    name: 'Retardtablette mit Hülle (Concerta)',
+    kurzname: 'Retardtablette mit Hülle',
+    einnahme: 'Laut Packungsbeilage mit oder ohne Essen; die Tablette wird im Ganzen '
+      + 'geschluckt, nicht gekaut, gebrochen oder zerkleinert.',
+    extra: 'Die leere Tablettenhülle kann im Stuhl zu sehen sein – laut Packungsbeilage '
+      + 'normal. Eine Verengung oder Blockade in Speiseröhre oder Darm steht dort unter '
+      + 'den Gegenanzeigen.',
+  },
+  {
+    id: 'retardtab',
+    name: 'Andere Retardtablette (z. B. Kinecteen, Generika)',
+    kurzname: 'andere Retardtablette',
+    einnahme: 'Wie sie zum Essen genommen wird, steht in der Packungsbeilage.',
+    saeure: KLAER_SATZ,
+  },
+  {
+    id: 'equasym',
+    name: 'Equasym Retard',
+    kurzname: 'Equasym Retard',
+    einnahme: 'Laut Packungsbeilage morgens vor der Mahlzeit; laut Fachinformation darf die '
+      + 'Kapsel geöffnet und der Inhalt auf etwas Apfelmus gegeben werden.',
+  },
+  {
+    id: 'unbekannt',
+    name: 'Weiß ich nicht',
+    kurzname: 'Form nicht angegeben',
+    einnahme: 'Methylphenidat gibt es in Formen, die sich beim Essen und bei Säureblockern '
+      + 'verschieden verhalten. Welche du hast, steht auf der Packung oder weiß die '
+      + 'Apotheke.',
+    saeure: KLAER_SATZ,
+  },
+];
+
+/** Die Form zu ihrer Kennung – oder null. */
+function mphForm(id) {
+  return MPH_FORMEN.find((f) => f.id === id) || null;
+}
+
+/*
+ * Nur Namen, die eine Form eindeutig festlegen. „Medikinet" allein gibt es
+ * als Tablette und als Kapsel, „Methylphenidat" in jeder Form – dort wird
+ * gefragt statt geraten. Kinecteen ist eine Retardtablette, aber keine mit
+ * der Hülle von Concerta: Belegt war das nicht, also eine eigene Form.
+ */
+const FORM_NACH_NAME = [
+  [/medikinet\s*(retard|adult)/, 'pellet'],
+  [/ritalin\s*(la|adult)\b/, 'sodas'],
+  [/concerta/, 'oros'],
+  [/kinecteen/, 'retardtab'],
+  [/equasym/, 'equasym'],
+];
+
+/** Die Form, die der Name eindeutig nennt – oder null. */
+function formAusName(name) {
+  const gesucht = suchform(name);
+  if (!gesucht) return null;
+  const treffer = FORM_NACH_NAME.find(([muster]) => muster.test(gesucht));
+  return treffer ? treffer[1] : null;
+}
+
+/* ===== js/zusammen.js ===== */
+/*
+ * Mittel, die zusammen eine Frage aufwerfen.
+ *
+ * Kein Wechselwirkungsprüfer – den gibt es in jeder Apotheke, und er kennt
+ * jedes Präparat. Hier stehen nur die wenigen Paare, bei denen ein ADHS-Mittel
+ * auf etwas trifft, das in diesem Tagebuch ohnehin oft steht: Säureblocker,
+ * Natron, Vitamin C, Schmerz- und Migränemittel, einige Mittel gegen
+ * Depression. Und nur, was eine Fach- oder Gebrauchsinformation dazu sagt
+ * (Quellen bei jedem Satz unten; der Nachweis je Satz liegt außerhalb des
+ * Repositorys).
+ *
+ * Der eine Fall, um den es vor allem geht: Methylphenidat als Kapsel mit
+ * zweierlei Kügelchen (Medikinet retard, Medikinet adult) und ein
+ * Säureblocker. Die Fachinformation sieht beides nicht zusammen vor – in
+ * einem weniger sauren Magen kann der ganze Wirkstoff auf einmal frei
+ * werden. Säureblocker und Methylphenidat werden oft von zwei verschiedenen
+ * Praxen verordnet, und auf keiner der beiden Packungen steht der Name der
+ * anderen.
+ *
+ * DIE STUFEN
+ *
+ *   A  ein Paar, das die Fachinformation nicht zusammen vorsieht (W1), oder
+ *      eines, bei dem es so sein könnte, weil die Form fehlt (W1u). Die Karte
+ *      auf „Tag" zeigt es, bis es gelesen ist.
+ *   B  ein Paar, bei dem die Fachinformation eine Veränderung beschreibt.
+ *   C  ein Paar, das in der Fachinformation steht, aber selten ist oder nur
+ *      in der US-Fassung.
+ *
+ * Jeder Text endet bei Praxis oder Apotheke, und keiner sagt, eines der
+ * Mittel wegzulassen – auch nicht den Säureblocker: Wer ihn von sich aus
+ * absetzt, hat womöglich ein anderes Problem als vorher.
+ *
+ * Rein: alles kommt als Argument herein, importiert wird nur mittel.js.
+ */
+
+/** Wie weit zurück ein eingenommenes Mittel als „eingetragen" gilt. */
+const WECHSEL_TAGE = 30;
+
+/*
+ * Muster für Mittel, die keine eigene Gruppe in mittel.js haben. Klein
+ * geschrieben verglichen, wie alle Namen.
+ *
+ * Natron ist bewusst keine Gruppe: Als Mittel gegen Sodbrennen zählt es
+ * dort nirgends mit, und eine neue Gruppe änderte Zahlen, die bisher
+ * stimmten. Hier zählt es nur für die Paare.
+ */
+const W_NATRON = /natron|natriumhydrogencarbonat|natriumbicarbonat|bullrich/;
+const W_VITC = /vitamin[\s-]*c\b|ascorbin/;
+const W_METAMIZOL = /metamizol|novalgin|novaminsulfon/;
+// Nur, was die Fachinformation von Atomoxetin nennt. Bupropion war dort nicht
+// zu belegen und steht deshalb nicht dabei.
+const W_CYP2D6 = /fluoxetin|paroxetin|chinidin/;
+const W_TRIZ_SSRI = /amitriptylin|nortriptylin|imipramin|clomipramin|doxepin|trimipramin|citalopram|sertralin|fluoxetin|paroxetin/;
+const W_CUMARIN = /phenprocoumon|marcumar|falithrom|warfarin/;
+
+const W_SAEURE_GRUPPEN = ['ppi', 'h2', 'antazida', 'alginat'];
+
+const wKlein = (name) => String(name || '').toLowerCase().trim();
+const wGruppe = (name) => {
+  const g = wissenZu(name);
+  return g ? g.id : null;
+};
+const wIstSaeure = (name) => W_SAEURE_GRUPPEN.includes(wGruppe(name)) || W_NATRON.test(wKlein(name));
+
+/** Ein ISO-Datum minus n Tage – in UTC gerechnet, ohne Uhrzeit. */
+function wVorTagen(iso, n) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d - n)).toISOString().slice(0, 10);
+}
+
+/** Minuten nach Mitternacht – für die Reihenfolge am selben Tag. */
+const wMinuten = (um) => {
+  const [h, m] = String(um || '00:00').split(':').map(Number);
+  return (Number(h) || 0) * 60 + (Number(m) || 0);
+};
+
+/**
+ * Die Form eines Methylphenidat-Namens.
+ *
+ * In dieser Reihenfolge: die zuletzt eingetragene Form bei diesem Namen, die
+ * Form unter „Meine Mittel", die Form, die der Name eindeutig nennt
+ * („Medikinet adult"), sonst 'unbekannt'. Ein Eintrag geht vor „Meine
+ * Mittel": Wer die Packung wechselt, trägt die neue Form zuerst beim Mittel
+ * ein, und die gemerkte bleibt oft stehen.
+ */
+function formZu(name, standardMittel = [], eintraege = []) {
+  const k = wKlein(name);
+  if (!k) return 'unbekannt';
+  const mitForm = (eintraege || [])
+    .filter((e) => e && e.art === 'medikament' && wKlein(e.mittel) === k && e.form)
+    .sort((a, b) => (a.am === b.am ? wMinuten(a.um) - wMinuten(b.um) : (a.am < b.am ? -1 : 1)));
+  if (mitForm.length) return mitForm[mitForm.length - 1].form;
+  const gemerkt = (standardMittel || []).find((m) => m && wKlein(m.mittel) === k && m.form);
+  if (gemerkt) return gemerkt.form;
+  return formAusName(name) || 'unbekannt';
+}
+
+/**
+ * Was als „eingetragen" gilt: alles unter „Meine Mittel" und alles, was in
+ * den letzten WECHSEL_TAGE Tagen eingenommen wurde. Je Name einmal, in der
+ * Schreibweise des jüngsten Eintrags.
+ */
+function wEingetragen(standardMittel, eintraege, heute) {
+  const namen = new Map();
+  const merke = (name) => {
+    const k = wKlein(name);
+    if (k) namen.set(k, String(name).trim());
+  };
+  (standardMittel || []).forEach((m) => m && merke(m.mittel));
+  const ab = heute ? wVorTagen(heute, WECHSEL_TAGE - 1) : '';
+  (eintraege || [])
+    .filter((e) => e && e.art === 'medikament' && (!heute || (e.am >= ab && e.am <= heute)))
+    .sort((a, b) => (a.am === b.am ? wMinuten(a.um) - wMinuten(b.um) : (a.am < b.am ? -1 : 1)))
+    .forEach((e) => merke(e.mittel));
+  return [...namen.values()];
+}
+
+/*
+ * Die Texte. Jeder hat seine Quelle; was sich nicht belegen ließ, fehlt –
+ * auch als Bedingung: Antazida, Alginat und Vitamin C bei Dexamfetamin
+ * (W5) und Bupropion bei Atomoxetin (W9) sind deshalb nicht dabei.
+ */
+
+/*
+ * W1 und W1u – Quellen: Medikinet retard FI, www.fachinfo.de/fi/pdf/009621
+ * (12/2025), 4.3/4.5; Gebrauchsinformation Medikinet adult (Wiedergabe apomio.de).
+ */
+const wKarteW1 = (b) => 'Zum Nachfragen: In deinen Mitteln stehen Methylphenidat als Kapsel '
+  + `mit zweierlei Kügelchen und ${b}, ein Mittel gegen oder gegen zu viel Magensäure. Die `
+  + 'Fachinformation solcher Kapseln sieht beides nicht zusammen vor: In einem weniger '
+  + `sauren Magen kann der Wirkstoff früher frei werden. Bitte nichts davon eigenmächtig `
+  + `weglassen – auch ${b} nicht – und es zeitnah in der Praxis oder Apotheke ansprechen.`;
+
+const wKarteW1u = (a, b) => `Zum Nachfragen: In deinen Mitteln stehen Methylphenidat (${a}) `
+  + `und ${b}, ein Mittel gegen oder gegen zu viel Magensäure. Bei manchen `
+  + 'Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) sieht die Fachinformation '
+  + 'das nicht zusammen vor. Welche Form du hast, steht auf der Packung; du kannst sie bei '
+  + 'deinem Mittel unter „Meine Mittel“ angeben. Bitte nichts eigenmächtig weglassen – '
+  + `auch ${b} nicht – und es in Praxis oder Apotheke klären.`;
+
+/*
+ * W5 – Quelle: Attentin 10/20 mg FI, www.fachinfo.de/fi/pdf/020945 (08/2024),
+ * 4.5 (Natriumhydrogencarbonat erhöht die Resorption).
+ */
+const wTextW5 = 'Laut Fachinformation erhöhen basische Mittel wie Natron die Aufnahme von '
+  + 'Dexamfetamin – ob das bei dir eine Rolle spielt, klären Ärztin oder Apotheke.';
+
+/*
+ * W6 und W7 – Quelle: US-Fachinformation Vyvanse,
+ * www.accessdata.fda.gov/drugsatfda_docs/label/2025/021977s054%2C208510s011lbl.pdf
+ * (Urin-pH: Ascorbinsäure, Natriumhydrogencarbonat; Serotoninsyndrom mit Triptanen).
+ */
+const wTextW6 = 'Laut US-Fachinformation senken Mittel, die den Urin saurer machen, etwa '
+  + 'Vitamin C, den Spiegel von Lisdexamfetamin; basische wie Natron erhöhen ihn – ob das '
+  + 'bei dir eine Rolle spielt, klären Ärztin oder Apotheke.';
+const wTextW7 = 'Die US-Fachinformation von Lisdexamfetamin nennt Triptane unter den Mitteln, '
+  + 'mit denen ein Serotoninsyndrom möglich ist. Wenn du beides nimmst: in Praxis oder '
+  + 'Apotheke ansprechen.';
+
+/*
+ * W8 – Quelle: EMA, CMDh-Schlussfolgerungen PSUSA 00001997 (2020) zu Metamizol,
+ * www.ema.europa.eu/de/documents/psusa/metamizole-cmdh-scientific-conclusions-and-grounds-variation-amendments-product-information-and-timetable-implementation-psusa-00001997-202003_de.pdf
+ */
+const wTextW8 = 'Laut Fachinformation von Metamizol kann damit der Bupropion-Spiegel sinken – '
+  + 'in Praxis oder Apotheke ansprechen.';
+
+/*
+ * W9 – Quelle: US-Label Strattera (Wiedergabe medlibrary.org): Fluoxetin, Paroxetin
+ * und Chinidin erhöhen die Atomoxetin-Exposition deutlich.
+ */
+const wTextW9 = (b) => `Laut Fachinformation erhöht ${b} den Atomoxetin-Spiegel deutlich – `
+  + 'in Praxis oder Apotheke ansprechen.';
+
+/*
+ * W10 und W11 – Quelle: Gebrauchsinformation Methylphenidat-ratiopharm 10 mg
+ * (Wiedergabe medikamio.com/de-de/medikamente/methylphenidat-ratiopharm-10-mg-tabletten/pil):
+ * Cumarin-Antikoagulanzien und Mittel gegen Depressionen, deren Abbau gehemmt werden kann.
+ */
+const wTextW10 = 'Laut Packungsbeilage kann Methylphenidat den Abbau mancher Mittel gegen '
+  + 'Depression hemmen – in Praxis oder Apotheke ansprechen.';
+const wTextW11 = 'Laut Packungsbeilage kann Methylphenidat den Abbau von Blutverdünnern dieser '
+  + 'Art hemmen – in Praxis oder Apotheke ansprechen.';
+
+/* Die Fragen für die Sprechstunde, in Ich-Form wie überall im Bericht. */
+const W_FRAGE_A = 'Passt mein Säureblocker zu meinem Methylphenidat?';
+const W_FRAGE_B = 'Ich nehme Methylphenidat und ein säurebindendes oder säurehemmendes Mittel. '
+  + 'Passt das zu meiner Freisetzungsform?';
+const wFrageZwei = (a, b) => `Passen ${a} und ${b} zusammen?`;
+
+const W_STUFE = {
+  W1: 'A', W1u: 'A', W3: 'B', W4: 'B', W5: 'B', W6: 'B', W7: 'C', W8: 'C', W9: 'C', W10: 'C', W11: 'C',
+};
+const W_RANG = { A: 0, B: 1, C: 2 };
+
+/**
+ * Die Hinweise zu den eingetragenen Mitteln.
+ *
+ * Eingetragen ist, was unter „Meine Mittel" steht oder in den letzten
+ * WECHSEL_TAGE Tagen eingenommen wurde. Jedes Paar höchstens einmal; Stufe A
+ * zuerst.
+ *
+ * `schluessel` ist „W1|<a>|<b>" mit kleingeschriebenen Namen – daran merkt
+ * sich die App, dass eine Karte gelesen ist (`wechselGelesen`). Ändert sich
+ * ein Name, ist es ein neues Paar und wird neu gezeigt.
+ *
+ * Methylphenidat mit Retardtablette mit Hülle (Concerta) oder Equasym und
+ * einem Säureblocker ergibt keinen Hinweis: Belegt war dazu nichts, und ein
+ * beruhigender Satz wäre genauso unbelegt.
+ *
+ * @param {object[]} standardMittel  „Meine Mittel"
+ * @param {object[]} eintraege
+ * @param {string} heute  ISO-Datum
+ * @returns {{id: string, stufe: string, schluessel: string, namen: string[],
+ *   text: string, frage: string}[]}
+ */
+function wechselHinweise(standardMittel, eintraege, heute) {
+  const namen = wEingetragen(standardMittel, eintraege, heute);
+  const mit = namen.map((name) => ({ name, k: wKlein(name), gruppe: wGruppe(name) }));
+  const von = (gruppe) => mit.filter((m) => m.gruppe === gruppe);
+  const raus = [];
+  const dazu = (id, a, b, text, frage) => {
+    const schluessel = `${id}|${a.k}|${b.k}`;
+    if (raus.some((h) => h.schluessel === schluessel)) return;
+    raus.push({ id, stufe: W_STUFE[id], schluessel, namen: [a.name, b.name], text, frage });
+  };
+  const paare = (gruppe, passt, tu) => von(gruppe).forEach((a) => mit
+    .filter((b) => b.k !== a.k && passt(b))
+    .forEach((b) => tu(a, b)));
+
+  // Methylphenidat und Säureblocker – je nach Form.
+  paare('mph', (b) => wIstSaeure(b.name), (a, b) => {
+    const form = formZu(a.name, standardMittel, eintraege);
+    if (form === 'pellet') dazu('W1', a, b, wKarteW1(b.name), W_FRAGE_A);
+    else if (form === 'unbekannt') dazu('W1u', a, b, wKarteW1u(a.name, b.name), W_FRAGE_A);
+    else if (form === 'sodas') dazu('W3', a, b, KLAER_SATZ, W_FRAGE_B);
+    else if (form === 'sofort' || form === 'retardtab') dazu('W4', a, b, KLAER_SATZ, W_FRAGE_B);
+  });
+  paare('dex', (b) => W_NATRON.test(b.k), (a, b) => dazu('W5', a, b, wTextW5, wFrageZwei(a.name, b.name)));
+  paare('lisdex', (b) => W_NATRON.test(b.k) || W_VITC.test(b.k),
+    (a, b) => dazu('W6', a, b, wTextW6, wFrageZwei(a.name, b.name)));
+  paare('lisdex', (b) => b.gruppe === 'triptan', (a, b) => dazu('W7', a, b, wTextW7, wFrageZwei(a.name, b.name)));
+  paare('bupro', (b) => W_METAMIZOL.test(b.k), (a, b) => dazu('W8', a, b, wTextW8, wFrageZwei(a.name, b.name)));
+  paare('atomox', (b) => W_CYP2D6.test(b.k), (a, b) => dazu('W9', a, b, wTextW9(b.name), wFrageZwei(a.name, b.name)));
+  paare('mph', (b) => W_TRIZ_SSRI.test(b.k), (a, b) => dazu('W10', a, b, wTextW10, wFrageZwei(a.name, b.name)));
+  paare('mph', (b) => W_CUMARIN.test(b.k), (a, b) => dazu('W11', a, b, wTextW11, wFrageZwei(a.name, b.name)));
+
+  return raus.sort((x, y) => W_RANG[x.stufe] - W_RANG[y.stufe]);
 }
 
 /* ===== js/wasser.js ===== */
@@ -3436,24 +4131,39 @@ function kopfZahlen(eintraege, tage, heute) {
  * Die Klassen von Akutmitteln, die hier auseinandergehalten werden.
  *
  *   nsar       greift den Magen an – die Verbindung zum Bauch
- *   kombi      ASS plus Koffein – für den Magen ein NSAR, für den Kopf die
- *              niedrige Übergebrauchsgrenze der Kombinationsmittel
+ *   kombi      ASS (oder ein anderes NSAR) plus Koffein – für den Magen ein
+ *              NSAR, für den Kopf die niedrige Übergebrauchsgrenze der
+ *              Kombinationsmittel
  *   triptan    das Migränemittel – schont den Magen, Grenze zehn Tage
  *   nichtnsar  Paracetamol, Metamizol – ohne Entzündungshemmung
  *   opioid     Tramadol, Tilidin, Codein – Grenze zehn Tage
  *   gepant     die neuen Anfallsmittel – zählen als Akuttag, ohne eigene Grenze
+ *   kombipara  Paracetamol plus Koffein – für den Kopf ein Kombinationsmittel
+ *              wie kombi (ICHD-3 8.2.5), für den Magen kein NSAR
  *
  * Für die Übergebrauchsregel gelten nsar und nichtnsar als EINE Klasse: die
  * einfachen Schmerzmittel, Grenze fünfzehn Tage – auch mehrere zusammen.
- * „Verschiedene durcheinander" meint Triptan, Kombination, Opioid und
- * einfache Schmerzmittel untereinander, Grenze zehn.
+ * Ebenso kombi und kombipara: die Kombinationsmittel, Grenze zehn. Getrennt
+ * sind die beiden nur für den Magen. „Verschiedene durcheinander" meint
+ * Triptan, Kombination, Opioid und einfache Schmerzmittel untereinander,
+ * Grenze zehn.
  *
- * Vorbeugende Mittel (Gruppe 'prophylaxe') und Magenmittel sind keine Klasse:
- * Sie zählen nirgends als Akutmittel. Welche Gruppe ein Name hat, weiß
- * mittel.js; hierher kommt nur die Kennung.
+ * Vorbeugende Mittel (Gruppe 'prophylaxe'), Koffein als Tablette
+ * ('koffeinmittel'), ADHS-Mittel und Magenmittel sind keine Klasse: Sie
+ * zählen nirgends als Akutmittel. Welche Gruppe ein Name hat, weiß mittel.js;
+ * hierher kommt nur die Kennung.
  */
-const AKUT_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar', 'opioid', 'gepant'];
+const AKUT_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar', 'opioid', 'gepant', 'kombipara'];
 const KLASSE_VON_GRUPPE = Object.fromEntries(AKUT_KLASSEN.map((k) => [k, k]));
+
+/*
+ * Die Sorten, die ein Fenster als Tage je Klasse ausweist (`tage`). kombipara
+ * hat dort keinen eigenen Platz: Für den Kopf ist es ein Kombinationsmittel
+ * und zählt unter kombi mit. So bleibt jede Zahl, die ein Tagebuch ohne
+ * Paracetamol-Koffein-Mittel ergibt, Zeichen für Zeichen die alte (siehe
+ * tests/test-gold.mjs).
+ */
+const SORTEN = AKUT_KLASSEN.filter((k) => k !== 'kombipara');
 
 /**
  * Schwellen für den Übergebrauch, Tage je 30 Tage – nach der internationalen
@@ -3466,17 +4176,20 @@ const UEBERGEBRAUCH = { triptan: 10, kombi: 10, opioid: 10, einfach: 15, gemisch
 
 function fensterMittel(alle, kopfTage, grenzen) {
   const drin = (menge) => [...menge].filter((iso) => iso >= grenzen.von && iso <= grenzen.bis);
-  const tage = Object.fromEntries(AKUT_KLASSEN.map((k) => [k, drin(alle[k]).length]));
+  // Für den Kopf jedes Kombinationsmittel, ob mit ASS oder mit Paracetamol.
+  const kombiAlle = new Set([...drin(alle.kombi), ...drin(alle.kombipara)]);
+  const tage = Object.fromEntries(SORTEN.map((k) => [k, k === 'kombi' ? kombiAlle.size : drin(alle[k]).length]));
   const einfach = new Set([...drin(alle.nsar), ...drin(alle.nichtnsar)]);
+  // Für den Magen nur, was ein NSAR enthält – kombipara nicht.
   const nsarKombi = new Set([...drin(alle.nsar), ...drin(alle.kombi)]);
   const akut = new Set();
   AKUT_KLASSEN.forEach((k) => drin(alle[k]).forEach((iso) => akut.add(iso)));
   // Die Klassen, zwischen denen „durcheinander" zählt.
   const gruppen = [
-    einfach.size > 0, tage.kombi > 0, tage.triptan > 0, tage.opioid > 0,
+    einfach.size > 0, kombiAlle.size > 0, tage.triptan > 0, tage.opioid > 0,
   ].filter(Boolean).length;
   const uebergebrauch = tage.triptan >= UEBERGEBRAUCH.triptan
-    || tage.kombi >= UEBERGEBRAUCH.kombi
+    || kombiAlle.size >= UEBERGEBRAUCH.kombi
     || tage.opioid >= UEBERGEBRAUCH.opioid
     || einfach.size >= UEBERGEBRAUCH.einfach
     || (akut.size >= UEBERGEBRAUCH.gemischt && gruppen >= 2);
@@ -3495,12 +4208,19 @@ function fensterMittel(alle, kopfTage, grenzen) {
   };
 }
 
-/** Die Sorten eines Fensters als Text: „4 Triptan, 5 entzündungshemmend, …". */
+/**
+ * Die Sorten eines Fensters als Text: „4 Triptan, 5 entzündungshemmend, …".
+ *
+ * Kombinationsmittel stehen für sich, ob mit ASS oder mit Paracetamol: Für
+ * den Kopf ist das die Sorte mit der Grenze von zehn Tagen. Eines mit ASS
+ * steht zugleich unter „entzündungshemmend" – für den Magen ist es das auch.
+ */
 function sortenText(f) {
   if (!f) return '';
   return [
     f.tage.triptan ? `${f.tage.triptan} Triptan` : '',
     f.nsarKombi ? `${f.nsarKombi} entzündungshemmend` : '',
+    f.tage.kombi ? `${f.tage.kombi} Kombinationsmittel` : '',
     f.tage.nichtnsar ? `${f.tage.nichtnsar} ohne Entzündungshemmung` : '',
     f.tage.opioid ? `${f.tage.opioid} Opioid` : '',
     f.tage.gepant ? `${f.tage.gepant} Gepant` : '',
@@ -3562,7 +4282,7 @@ function kopfMittel(eintraege, gruppeVon, heute) {
   const fenster = heute
     ? Array.from({ length: KOPF_FENSTER }, (_, i) => fensterMittel(alle, kopfTage, fensterGrenzen(heute, i)))
     : [];
-  const leer = { akut: 0, tage: Object.fromEntries(AKUT_KLASSEN.map((k) => [k, 0])), nsarKombi: 0, einfach: 0, kopfTage: 0, uebergebrauch: false, moh: false };
+  const leer = { akut: 0, tage: Object.fromEntries(SORTEN.map((k) => [k, 0])), nsarKombi: 0, einfach: 0, kopfTage: 0, uebergebrauch: false, moh: false };
   const juengst = fenster[0] || leer;
   const einnahmeFenster = fenster.filter((f) => f.uebergebrauch).length;
   const mohFenster = fenster.filter((f) => f.moh).length;
@@ -7133,9 +7853,62 @@ const AKTIVITAETEN = [
   { id: 'unterwegs', name: 'Unterwegs/Reise', icon: '🧳' },
   { id: 'feier', name: 'Feier/Ausgehen', icon: '🎉' },
   { id: 'sauna', name: 'Sauna', icon: '🧖' },
+  /*
+   * Was man gegen Verspannung tut – `gegenmittel`. Sie stehen am Ende, damit
+   * die Reihenfolge der bisherigen gleich bleibt. Gerechnet werden sie nur
+   * auf der Kopfseite (siehe aktivitaetBilanz): Massiert und gewärmt wird,
+   * wenn schon etwas wehtut – Wärme oft gerade wegen Bauchschmerzen –, und
+   * eine Bauch-Zeile darunter sähe aus wie eine Wirkung auf den Bauch.
+   */
+  { id: 'massagepistole', name: 'Massagepistole', icon: '🔨', gegenmittel: true },
+  { id: 'massage', name: 'Massage/Physio', icon: '💆', gegenmittel: true },
+  { id: 'waerme', name: 'Wärme', icon: '♨️', gegenmittel: true },
 ];
 
 const AKTIV_MAP = Object.fromEntries(AKTIVITAETEN.map((a) => [a.id, a]));
+
+/** Ist das etwas, das man gegen Verspannung tut? Nur eingebaute zählen. */
+function istGegenmittel(id) {
+  return !!(AKTIV_MAP[id] && AKTIV_MAP[id].gegenmittel);
+}
+
+/*
+ * Was Hersteller von Massagepistolen dazu schreiben – gezeigt im Bogen,
+ * sobald „Massagepistole" gewählt ist, auch ohne jeden Schalter.
+ *
+ * Kein Rat, wo und wie: nur, was die Hersteller selbst ausschließen oder
+ * vorher abgeklärt haben wollen, und was in Fallberichten beschrieben ist.
+ * Die Warnzeichen am Ende gehören dazu, weil die schwerste beschriebene
+ * Folge – ein Einriss einer Halsarterie – sich erst Stunden oder Tage später
+ * mit Schwindel oder Lähmung zeigen kann.
+ *
+ * Quellen:
+ *   Therabody, Precautions and Contraindications,
+ *     www.therabody.com/us/en-us/precautions-and-contraindications.html
+ *     („face, head, throat, neck … bony prominences"; Schwangerschaft, veränderte
+ *     Empfindung, frische Verletzung oder Operation)
+ *   Theragun PRO Plus Warnings, content.abt.com/documents/176399/therabody-theragun-pro-plus-TG0003970-1A10-warnings.pdf
+ *     und Relief User Warnings (Therabody) – Schrittmacher/ICD, Embolie,
+ *     Blutungsneigung, Blutverdünner: ärztliche Rückfrage
+ *   Sulkowski u. a. 2022, pubmed.ncbi.nlm.nih.gov/35701359/ – Dissektion
+ *     der Vertebralarterie nach Massagepistole am Hals
+ *   AAN 2024, Abstract 56206 – Dissektion mit Hirnstamminfarkt nach Anwendung am Hals
+ *   Chen u. a. 2021, Phys Ther 101(1):pzaa199 – Rhabdomyolyse nach langer Anwendung
+ *   gesund.bund.de/schlaganfall – Warnzeichen, 112
+ */
+const MASSAGE_HINWEIS = {
+  satz: 'Hersteller von Massagepistolen schreiben, je nach Gerät: nicht an Kopf, Gesicht, '
+    + 'Kehle, Hals oder Nacken und nicht direkt auf Knochen. Wo am Körper, besprichst du am '
+    + 'besten mit Praxis oder Physiotherapie.',
+  details: 'Mit Herzschrittmacher oder Defibrillator, nach einer Embolie, bei Nervenschäden '
+    + 'mit verändertem Gefühl, bei Blutungsneigung, mit Blutverdünnern, nach frischer '
+    + 'Operation oder Verletzung und in der Schwangerschaft nennen Hersteller eine '
+    + 'ärztliche Rückfrage vorab. In Fallberichten – Einzelfällen, wie oft so etwas '
+    + 'vorkommt, ist unbekannt – sind nach Anwendung am Hals Einrisse einer Halsarterie '
+    + 'mit Schlaganfall beschrieben, außerdem Muskelschäden nach langer Anwendung. '
+    + 'Plötzliche Lähmung, Taubheit, Sprach- oder Sehstörung, starker Schwindel oder '
+    + 'Gangunsicherheit sind ein Notfall: 112.',
+};
 
 /*
  * Wie anstrengend – freiwillig, drei Stufen. Mehr nicht: Wer nach dem
@@ -7420,6 +8193,16 @@ function aktivitaetBilanz(eintraege, tage, opt = {}) {
   const zweiTage = (iso) => [...am(iso), ...am(plusTage(iso, 1))];
   const abstand = (t0, e) => (zeitpunkt(e.am, e.um) - t0) / STUNDE_MS;
   const letzterTag = aktiv.reduce((m, e) => (e.am > m ? e.am : m), aktiv[0].am);
+  /*
+   * Für den Bauch zählt das Ende nur aus Aktivitäten, die eine Bauchseite
+   * haben. Sonst verlängerte eine Massage nach dem letzten Training die
+   * Vergleichstage des Trainings – und Wärme oder Massage änderten die
+   * Bauch-Bilanz einer Aktivität, mit der sie nichts zu tun haben.
+   */
+  const mitBauch = aktiv.filter((e) => aktivitaetenVon(e).some((id) => !istGegenmittel(id)));
+  const letzterBauchTag = mitBauch.length
+    ? mitBauch.reduce((m, e) => (e.am > m ? e.am : m), mitBauch[0].am)
+    : '';
 
   const vorkommen = new Map();
   aktiv.forEach((e) => aktivitaetenVon(e).forEach((id) => {
@@ -7514,7 +8297,8 @@ function aktivitaetBilanz(eintraege, tage, opt = {}) {
       if (tageMit.has(iso)) continue;
       const t0 = zeitpunkt(iso, uhr);
       const ort = [vergleichszeit(iso)];
-      if (t0 + fenster * STUNDE_MS <= jetzt && bauchNotiert(iso) && frei(t0, fenster)) {
+      if (iso <= letzterBauchTag && t0 + fenster * STUNDE_MS <= jetzt && bauchNotiert(iso)
+        && frei(t0, fenster)) {
         const w = bauchWert(t0, iso, ort);
         bauchOhne.push(w.wert);
         if (w.offen) offenOhne += 1;
@@ -7525,12 +8309,22 @@ function aktivitaetBilanz(eintraege, tage, opt = {}) {
       }
     }
 
+    /*
+     * Massage, Massagepistole, Wärme: ohne Bauchseite. Gezählt wird, damit
+     * die Zahlen stimmen, wenn jemand nachsieht – aber nie `genug`. Damit
+     * fehlen sie unter den Bauch-Vergleichen, die den Zufallsspielraum
+     * aller anderen bestimmen, und eine Bauch-Zeile gibt es nirgends.
+     */
+    const gegen = istGegenmittel(id);
+    const bauch = { ...aktivVergleich(bauchMit, bauchOhne, mindest), offen: offenMit, offenOhne };
+    if (gegen) bauch.genug = false;
     zeilen.push({
       id,
       anzahl: liste.length,
       zuletzt: liste[liste.length - 1].am,
       uhr,
-      bauch: { ...aktivVergleich(bauchMit, bauchOhne, mindest), offen: offenMit, offenOhne },
+      ...(gegen ? { gegenmittel: true } : {}),
+      bauch,
       kopf: aktivVergleich(kopfMit, kopfOhne, kopfMindest),
     });
   });
@@ -7602,9 +8396,19 @@ function aktivBauchSatz(z, fenster) {
  */
 function aktivKopfSatz(z) {
   const k = z.kopf;
+  /*
+   * Bei Massage und Wärme ist die Reihenfolge verdächtig, in beide
+   * Richtungen: Man greift dazu, wenn sich etwas anbahnt – ein Kopfschmerz
+   * danach war womöglich schon unterwegs –, und danach wird vieles ohnehin
+   * besser. Beides gehört neben die Zahl.
+   */
+  const vorbehalt = istGegenmittel(z.id)
+    ? ' Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach '
+      + 'kann schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.'
+    : '';
   return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach an ${k.mitTreffer} von ${k.faelle} Tagen `
     + `Kopfschmerz (${prozentVon(k.quoteMit)}) – an Tagen ohne ${k.ohneTreffer} von `
-    + `${k.gegenFaelle} (${prozentVon(k.quoteOhne)}).`;
+    + `${k.gegenFaelle} (${prozentVon(k.quoteOhne)}).${vorbehalt}`;
 }
 
 /**
@@ -8532,8 +9336,17 @@ function vorschlaege(nachKlassen, nachAusloesern, anzahl = 4) {
  * von einem Tag auf den anderen weggelassen – der Magen antwortet dann mit mehr
  * Säure als vorher. Was hier steht, ist die Zahl und die Frage dazu.
  *
+ * EIN ADHS-MITTEL BEKOMMT KEIN URTEIL. Für den Säureblocker ist das
+ * Vorher-Nachher die eine ehrliche Rechnung; für ein ADHS-Mittel ist es
+ * keine. Es wird nicht wegen des Bauchs angefangen, also fehlt der Grund,
+ * aus dem „danach wurde es besser" überhaupt etwas hieße – und ob es vorher
+ * schon genommen und nur nicht eingetragen wurde, weiß niemand. Ein
+ * „darunter schlechter" läse sich trotzdem wie ein Befund über das Mittel.
+ * Deshalb stehen dort nur die beiden Zahlen nebeneinander (`urteil` 'offen').
+ *
  * Reine Rechnung, alles kommt als Argument herein.
  */
+
 
 
 /** Ab so vielen Einnahmetagen lohnt der Vergleich überhaupt. */
@@ -8620,6 +9433,7 @@ function mittelBilanz(eintraege, tage, opt = {}) {
 
     let urteil = 'offen';
     if (!vergleichbar) urteil = 'zuwenig';
+    else if (ADHS_GRUPPEN.includes(gruppe)) urteil = 'offen';
     else if (differenz >= 1) urteil = 'besser';
     else if (differenz <= -1) urteil = 'schlechter';
     else urteil = 'unveraendert';
@@ -8654,7 +9468,8 @@ const ANSPRECHEN_URTEIL = {
   schlechter: 'darunter schlechter',
   unveraendert: 'kein Unterschied',
   zuwenig: 'zu wenige notierte Tage',
-  offen: 'noch offen',
+  // Nur bei ADHS-Mitteln: Zahlen nebeneinander, kein Urteil (siehe oben).
+  offen: 'ohne Urteil',
 };
 
 /**
@@ -8670,6 +9485,15 @@ function befund(m) {
   }
   if (!m.vergleichbar) {
     return 'Vor der Einnahme sind zu wenige Tage notiert, um zu vergleichen.';
+  }
+  const komma = (x) => x.toFixed(1).replace('.', ',');
+  if (ADHS_GRUPPEN.includes(m.gruppe)) {
+    const datum = String(m.seit).split('-').reverse().join('.');
+    return `Seit dem ersten Eintrag (${datum}) im Mittel ${komma(m.unter.schnitt)}, in der `
+      + `Zeit davor ${komma(m.davor.schnitt)} (${m.unter.notierte} gegen `
+      + `${m.davor.notierte} notierte Tage). Ob das Mittel vorher schon genommen und nur `
+      + 'nicht eingetragen wurde, weiß Body Check nicht; ein ADHS-Mittel fängt man auch '
+      + 'nicht wegen des Bauchs an.';
   }
   const zahlen = `${m.davor.schnitt.toFixed(1).replace('.', ',')} davor gegen `
     + `${m.unter.schnitt.toFixed(1).replace('.', ',')} darunter `
@@ -12198,7 +13022,7 @@ const HOECHSTENS = 5;
  * @param {object[]} [q.spaet]      { name, fensterName, ort }
  * @param {object[]} [q.wechsel]    { name, phase }
  * @param {object} [q.zeit]         aus zeitBild()
- * @param {object[]} [q.mittel]     { name, urteil, satz }
+ * @param {object[]} [q.mittel]     { name, gruppe, urteil, satz }
  * @param {object} [q.versuch]      { was, wort }
  * @param {object} [q.gewicht]      aus gewichtsBild(): { warnung, satz }
  * @param {object} [q.luecke]       { satz }
@@ -12331,7 +13155,12 @@ function wasSacheIst(q = {}) {
    * Säureblocker, der nach Wochen nichts tut, spricht gegen die Säure als
    * Ursache – und niemand rechnet das im Kopf nach.
    */
-  const ohneWirkung = (q.mittel || []).find((m) => m.urteil === 'unveraendert');
+  // Nie für ein ADHS-Mittel: Es wird nicht wegen des Bauchs genommen, und
+  // „hat nichts geändert" läse sich wie ein Urteil über das Mittel (siehe
+  // js/ansprechen.js). Dort hat es ohnehin kein Urteil – die Bedingung hält
+  // das auch, falls ein Aufrufer die Zeilen anders zusammenstellt.
+  const ohneWirkung = (q.mittel || []).find((m) => m.urteil === 'unveraendert'
+    && !ADHS_GRUPPEN.includes(m.gruppe));
   if (ohneWirkung && saetze.length < HOECHSTENS) {
     sag('mittel', `${ohneWirkung.name} hat in dieser Zeit nichts geändert. Das `
       + 'ist selbst ein Befund und gehört in die Sprechstunde – nicht als Grund, '
@@ -14290,11 +15119,11 @@ function arztBericht(zustand, von, bis) {
    * was der Bauch an den Tagen danach gemacht hat.
    */
   if (kz.anzahl) {
-    // Ein ADHS-Mittel hat seine Gruppe, auch ohne Wissenstext – unter
-    // „Nicht zugeordnet" stehen nur Mittel, die die App nicht kennt.
+    // Auch ein ADHS-Mittel hat seine Gruppe – unter „Nicht zugeordnet"
+    // stehen nur Mittel, die die App nicht kennt.
     const gruppeVon = (name) => {
       const g = wissenZu(name);
-      return g ? g.id : adhsGruppe(name);
+      return g ? g.id : null;
     };
     /*
      * Zwei Blickwinkel: Was im Berichtszeitraum eingetragen wurde (kz, km),
@@ -16317,13 +17146,13 @@ function musterDaten(s) {
     return !!g && (g.id === 'nsar' || g.id === 'kombi');
   };
   // Dieselbe Frage, aber mit der ganzen Antwort: welche Gruppe. Der Kopf
-  // braucht sie, weil er drei Klassen von Akutmitteln auseinanderhält. Ein
-  // ADHS-Mittel hat seine Gruppe auch dann, wenn es dazu noch nichts zu
-  // lesen gibt – sonst stünde es am Kopfschmerztag unter „nicht
-  // zugeordnet", als wäre es ein Schmerzmittel, das die App nicht kennt.
+  // braucht sie, weil er mehrere Klassen von Akutmitteln auseinanderhält.
+  // Auch ein ADHS-Mittel hat hier seine Gruppe – sonst stünde es am
+  // Kopfschmerztag unter „nicht zugeordnet", als wäre es ein Schmerzmittel,
+  // das die App nicht kennt.
   const gruppeVon = (name) => {
     const g = wissenZu(name);
-    return g ? g.id : adhsGruppe(name);
+    return g ? g.id : null;
   };
   const bilanz = ausloeserBilanz(s.eintraege, {
     fenster: s.fenster, mindestFaelle: s.mindestFaelle, eigene: s.eigeneAusloeser,
@@ -17531,9 +18360,12 @@ function aktivTeil(s, nurFertig = false) {
   const fund = (z) => {
     const a = aktivitaetVon(z.id, s.eigeneAktivitaeten);
     const art = [z.bauch.art, z.kopf.art].sort((x, y) => rang.indexOf(x) - rang.indexOf(y))[0];
-    const bauch = z.bauch.genug
-      ? `<b>Bauch, ${esc(AKTIV_BAUCH_WORT[z.bauch.art])}:</b> ${esc(aktivBauchSatz(z, fenster))}`
-      : `<b>Bauch:</b> zählt noch – ${aktivNoch(z.bauch)} auswertbar.`;
+    // Massage, Massagepistole und Wärme haben keine Bauchseite (siehe
+    // aktivitaetBilanz) – eine Zeile „Bauch: zählt noch" verspräche eine.
+    const bauch = z.gegenmittel ? ''
+      : (z.bauch.genug
+        ? `<b>Bauch, ${esc(AKTIV_BAUCH_WORT[z.bauch.art])}:</b> ${esc(aktivBauchSatz(z, fenster))}`
+        : `<b>Bauch:</b> zählt noch – ${aktivNoch(z.bauch)} auswertbar.`);
     const kopf = z.kopf.genug
       ? `<b>Kopf, ${esc(AKTIV_KOPF_WORT[z.kopf.art])}:</b> ${esc(aktivKopfSatz(z))}`
       : `<b>Kopf:</b> zählt noch – ${aktivNoch(z.kopf, true)} auswertbar.`;
@@ -17542,7 +18374,7 @@ function aktivTeil(s, nurFertig = false) {
         <b><span aria-hidden="true">${a.icon}</span> ${mitUmbruch(a.name)}</b>
         <span class="fund-urteil">${mehrzahl(z.anzahl, 'Mal', 'Mal')}</span>
       </div>
-      <p class="klein">${bauch}</p>
+      ${bauch ? `<p class="klein">${bauch}</p>` : ''}
       <p class="klein">${kopf}</p>
     </li>`;
   };
@@ -17556,7 +18388,7 @@ function aktivTeil(s, nurFertig = false) {
     ${!nurFertig && offen.length ? `<p class="feld-name">Zählt noch</p>
       <ul class="wartend">${offen.slice(0, 8).map((z) => `<li>
         <span>${esc(aktivitaetVon(z.id, s.eigeneAktivitaeten).name)}</span>
-        <span class="klein">${aktivNoch(z.bauch).replace(/ Mal$/, '')}</span>
+        <span class="klein">${z.gegenmittel ? aktivNoch(z.kopf, true) : aktivNoch(z.bauch).replace(/ Mal$/, '')}</span>
       </li>`).join('')}</ul>` : ''}
     ${bewegung ? `<p class="klein aktiv-bewegung">${esc(bewegung)} Gezählt am selben Tag –
       an schlechten Tagen bewegt man sich oft weniger.</p>` : ''}
@@ -19093,12 +19925,25 @@ function mittelKarte(s) {
   });
   const meine = [...eigene.values()].sort((a, b) => b.anzahl - a.anzahl);
 
+  /*
+   * Bei Methylphenidat entscheidet die Form, was für den Magen gilt – deshalb
+   * steht sie beim eigenen Mittel dabei und unter der Gruppe ein Abschnitt je
+   * Form. „Form nicht angegeben" ist auch eine Auskunft: Dann fehlt die
+   * Angabe, nach der sich die Hinweise richten.
+   */
+  const formTeil = (f) => `<p><b>${esc(f.name)}.</b> ${esc(f.einnahme)}`
+    + `${f.saeure ? ` ${esc(f.saeure)}` : ''}${f.extra ? ` ${esc(f.extra)}` : ''}</p>`;
   const block = (g) => `<details class="mittel">
     <summary><b>${esc(g.gruppe)}</b>${g.kuerzel ? ` <span class="klein">(${esc(g.kuerzel)})</span>` : ''}
       <span class="zeile-tags">${esc(g.kurz)}</span></summary>
     <p><b>Wie es wirkt.</b> ${esc(g.wirkung)}</p>
     ${g.einnahme && g.einnahme !== '–' ? `<p><b>Wann man es nimmt.</b> ${esc(g.einnahme)}</p>` : ''}
+    ${g.nebenwirkung ? `<p><b>Was in der Fachinformation steht.</b> ${esc(g.nebenwirkung)}</p>` : ''}
     <p><b>Worauf zu achten ist.</b> ${esc(g.hinweis)}</p>
+    ${g.id === 'mph' ? `<div class="mittel-formen">
+      <p class="feld-name">Je nach Form</p>
+      ${MPH_FORMEN.map(formTeil).join('')}
+    </div>` : ''}
     <p class="klein">Zum Beispiel: ${esc(g.beispiele.join(', '))}</p>
   </details>`;
 
@@ -19111,8 +19956,9 @@ function mittelKarte(s) {
     ${meine.length ? `<p class="feld-name">Was du eingetragen hast</p>
       <ul class="wartend">${meine.map((m) => {
         const g = wissenZu(m.name);
+        const form = g && g.id === 'mph' ? mphForm(formZu(m.name, s.standardMittel, s.eintraege)) : null;
         return `<li>
-          <span>${esc(m.name)}<span class="zeile-tags">${g ? esc(g.kurz) : 'nicht in der Übersicht – frag in der Apotheke nach'}</span></span>
+          <span>${esc(m.name)}<span class="zeile-tags">${g ? esc(g.kurz) : 'nicht in der Übersicht – frag in der Apotheke nach'}</span>${form ? `<span class="zeile-tags">Form: ${esc(form.kurzname)}</span>` : ''}</span>
           <span class="klein">${mehrzahl(m.anzahl, 'Mal', 'Mal')}</span>
         </li>`;
       }).join('')}</ul>`
@@ -19129,6 +19975,10 @@ function mittelKarte(s) {
         ${REIZSTOFFE.map(block).join('')}
         <p class="feld-name">Schmerz- und Migränemittel</p>
         ${WEITERE_MITTEL.map(block).join('')}
+        <p class="feld-name">Mittel bei ADHS</p>
+        ${ADHS_MITTEL.map(block).join('')}
+        <p class="feld-name">Sonst noch</p>
+        ${SONSTIGE_MITTEL.map(block).join('')}
       </div>` : ''}
   </div>`;
 }
@@ -19547,7 +20397,7 @@ function dosisAusMeinenMitteln(s, name) {
 // oder bei den eigenen Mitteln gemerkt ist, und davon nur diese Gruppen.
 // Nicht AKUT_KLASSEN wie in js/kopf.js: Dort zählen auch Opioide und
 // Gepante mit, als Tipp angeboten werden sie nicht.
-const DAZU_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar'];
+const DAZU_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar', 'kombipara'];
 const istAkutmittel = (name) => {
   const g = wissenZu(name);
   return !!g && DAZU_KLASSEN.includes(g.id);
@@ -19917,6 +20767,12 @@ function bogenHTML(s) {
     mitte = `
       <p class="feld-name">Was hast du gemacht, wo warst du?</p>
       ${marken([...auswahl, ...fremd], gewaehlt, 'aktiv-wahl')}
+      ${gewaehlt.includes('massagepistole') ? `<div class="massage-hinweis">
+        <p class="klein">${esc(MASSAGE_HINWEIS.satz)}</p>
+        <details><summary>Mehr dazu</summary>
+          <p class="klein">${esc(MASSAGE_HINWEIS.details)}</p>
+        </details>
+      </div>` : ''}
       ${voll ? `<p class="klein">Mehr als ${store.AKTIV_HOECHSTENS} eigene passen nicht. Unter
         „Mehr“ kannst du eine entfernen.</p>` : `<div class="reihe aktiv-eigen">
         <input type="text" class="feld" id="bogenAktivNeu" data-act="aktiv-name"
@@ -20301,7 +21157,8 @@ function bogenSpeichern() {
       if (b.id) e[k] = null;
       else delete e[k];
     });
-    if (adhsGruppe(e.mittel) !== 'mph') weg(['form']);
+    const gruppe = wissenZu(e.mittel);
+    if (!gruppe || gruppe.id !== 'mph') weg(['form']);
     if (!istAdhsMittel(e.mittel)) weg(['essen', 'essenGesetzt']);
   }
   if (b.art === 'medikament') store.mittelMerken(e.mittel);

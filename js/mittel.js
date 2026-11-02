@@ -27,7 +27,12 @@ export const MITTEL_WISSEN = [
     id: 'ppi',
     gruppe: 'Protonenpumpenhemmer',
     kuerzel: 'PPI',
-    beispiele: ['Pantoprazol', 'Omeprazol', 'Esomeprazol', 'Lansoprazol', 'Rabeprazol'],
+    // Mit den Handelsnamen aus der Packung: Wer „Pantozol“ einträgt, nimmt
+    // einen Säureblocker, und ohne den Namen fehlte er bei jeder Frage, die
+    // nach einem Säureblocker fragt – auch bei der nach dem Methylphenidat
+    // in js/zusammen.js.
+    beispiele: ['Pantoprazol', 'Omeprazol', 'Esomeprazol', 'Lansoprazol', 'Rabeprazol',
+      'Pantozol', 'Nexium', 'Antra', 'Agopton'],
     kurz: 'Drosselt die Säurebildung, damit die Schleimhaut zur Ruhe kommt.',
     wirkung: 'Blockiert die Pumpen in der Magenwand, an denen die Säure entsteht. '
       + 'Es wird also nicht neutralisiert, was schon da ist – es kommt weniger nach. '
@@ -58,7 +63,7 @@ export const MITTEL_WISSEN = [
   {
     id: 'antazida',
     gruppe: 'Antazida',
-    beispiele: ['Magaldrat', 'Hydrotalcit', 'Riopan', 'Talcid', 'Rennie', 'Antazidum'],
+    beispiele: ['Magaldrat', 'Hydrotalcit', 'Riopan', 'Talcid', 'Rennie', 'Antazidum', 'Maaloxan'],
     kurz: 'Neutralisiert die Säure, die schon da ist. Wirkt in Minuten.',
     wirkung: 'Eine Base, die die vorhandene Säure abpuffert. Nichts wird gedrosselt '
       + 'und nichts geheilt – es wird das gelöscht, was gerade brennt. Nach ein bis '
@@ -182,10 +187,19 @@ export const REIZSTOFFE = [
       + 'Risiko weiter. Als Gel oder Pflaster auf der Haut zählt es hier nicht – '
       + 'davon kommt kaum etwas im Magen an.',
   },
+  /*
+   * Quelle: ICHD-3 8.2.5 Combination-analgesic-overuse headache,
+   * ichd-3.org/8-headache-attributed-to-a-substance-or-its-withdrawal/8-2-medication-overuse-headache-moh/8-2-5-combination-analgesic-overuse-headache/
+   * (Koffein als Hilfsstoff macht ein Kombinationsmittel, Grenze zehn Tage).
+   *
+   * „Koffein" steht hier nicht mehr als Beispiel: Allein ist es kein
+   * Schmerzmittel (siehe SONSTIGE_MITTEL), und mit ASS oder Paracetamol im
+   * Namen sortiert es wissenZu() nach dem Schmerzmittel ein.
+   */
   {
     id: 'kombi',
     gruppe: 'Kombinationsmittel mit ASS und Koffein',
-    beispiele: ['Thomapyrin', 'Neuralgin', 'Koffein'],
+    beispiele: ['Thomapyrin', 'Neuralgin'],
     kurz: 'Für den Magen ein NSAR – für den Kopf ein Mittel mit der niedrigsten Übergebrauchsgrenze.',
     wirkung: 'ASS, meist zusammen mit Paracetamol, und dazu Koffein, das die Wirkung '
       + 'verstärkt und beschleunigt. Für die Magenschleimhaut gilt, was für jedes '
@@ -194,7 +208,8 @@ export const REIZSTOFFE = [
     hinweis: 'Die meistgekauften rezeptfreien Kopfschmerzmittel – und gerade deshalb '
       + 'die, die am ehesten zu oft genommen werden. Ab etwa zehn Tagen im Monat '
       + 'kann ein Kombinationsmittel den Kopfschmerz selbst unterhalten, früher als '
-      + 'ein einzelnes Schmerzmittel. Für den Magen zählt es wie ein NSAR.',
+      + 'ein einzelnes Schmerzmittel. Für den Magen zählt es wie ein NSAR. Auch ein '
+      + 'einzelnes ASS-Präparat mit Koffein zählt hier.',
   },
   {
     id: 'kortison',
@@ -320,6 +335,32 @@ export const WEITERE_MITTEL = [
       + 'die Frage für die Neurologie.',
   },
   /*
+   * Paracetamol mit Koffein – für den Kopf ein Kombinationsmittel, für den
+   * Magen kein NSAR. Bis zur Fassung 27 stand „Paracetamol Koffein" unter
+   * kombi und zählte damit für den Magen als ASS; „Paracetamol + Coffein"
+   * dagegen als einfaches Schmerzmittel mit der Grenze von fünfzehn Tagen.
+   * Beides war falsch. Erkannt wird die Gruppe nur über die Koffein-Regel in
+   * wissenZu(); das Beispiel steht für die Übersicht da.
+   *
+   * Quelle: ICHD-3 8.2.5 (wie bei kombi), Stand der Seite 2018: Koffein als
+   * Hilfsstoff macht ein Kombinationsmittel, Übergebrauch ab zehn Tagen im
+   * Monat über mehr als drei Monate.
+   */
+  {
+    id: 'kombipara',
+    gruppe: 'Kombinationsmittel mit Paracetamol und Koffein',
+    beispiele: ['Paracetamol + Koffein'],
+    kurz: 'Für den Kopf ein Kombinationsmittel mit niedrigerer Übergebrauchsgrenze; für den Magen kein NSAR.',
+    wirkung: 'Paracetamol zusammen mit Koffein, das die Wirkung verstärken soll. Ohne '
+      + 'ASS greift es die Schleimschicht des Magens nicht an; für die Leber gilt, '
+      + 'was für Paracetamol gilt.',
+    einnahme: '–',
+    hinweis: 'Nach der Kopfschmerzklassifikation zählt jedes Schmerzmittel mit Koffein '
+      + 'als Kombinationsmittel: Ab etwa zehn Tagen im Monat kann es den Kopfschmerz '
+      + 'selbst unterhalten, früher als ein einzelnes Schmerzmittel. Die Grenze für '
+      + 'Paracetamol pro Tag steht auf der Packung. Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
    * Vorbeugende Mittel stehen hier, damit die App sie kennt und *nicht* als
    * Akutmittel zählt: Ein tägliches Metoprolol würde sonst die Übergebrauchs-
    * zählung sprengen. Manche davon sind zugleich Blutdruck- oder
@@ -350,21 +391,21 @@ export const WEITERE_MITTEL = [
   },
 ];
 
-const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL];
-
 /*
- * Die Mittel bei ADHS – vorerst nur zum Erkennen, ohne Texte.
+ * Die Mittel bei ADHS – zuerst zum Erkennen.
  *
- * Die Namen stehen hier, weil die Zählung sie braucht, bevor es etwas über
- * sie zu lesen gibt: Ein Tag, an dem nur „Medikinet" steht, sagt über Bauch
- * und Kopf so wenig wie ein Glas Wasser (siehe eintragZaehlt in
- * js/wasser.js). Ohne die Namen wäre er ein notierter Tag und ohne Beschwerde
- * ein beschwerdefreier – und das Mittel, das man jeden Morgen nimmt, machte
- * aus jeder Lücke im Tagebuch einen guten Tag.
+ * Die Namen stehen hier, weil die Zählung sie braucht: Ein Tag, an dem nur
+ * „Medikinet" steht, sagt über Bauch und Kopf so wenig wie ein Glas Wasser
+ * (siehe eintragZaehlt in js/wasser.js). Ohne die Namen wäre er ein
+ * notierter Tag und ohne Beschwerde ein beschwerdefreier – und das Mittel,
+ * das man jeden Morgen nimmt, machte aus jeder Lücke im Tagebuch einen guten
+ * Tag.
  *
  * Die Reihenfolge ist Absicht: „Lisdexamfetamin" enthält „dexamfetamin".
  * Stünde Dexamfetamin vorn, wäre Lisdexamfetamin Dexamfetamin – ein anderer
- * Wirkstoff mit anderer Einnahme.
+ * Wirkstoff mit anderer Einnahme. Erkannt wird über ADHS_MITTEL unten (siehe
+ * wissenZu); dort stehen die Gruppen in derselben Reihenfolge, und
+ * tests/test-adhs-wissen.mjs prüft das.
  *
  * Bupropion steht dabei, damit es erkannt wird – gezählt wird es wie bisher,
  * wie jedes andere Mittel: Es gehört nicht zu ADHS_GRUPPEN, und ein Tag, an
@@ -385,6 +426,243 @@ export const ADHS_GRUPPEN = ['mph', 'lisdex', 'dex', 'atomox', 'guanf'];
 
 /** Die Stimulanzien darunter. */
 export const STIMULANZIEN = ['mph', 'lisdex', 'dex'];
+
+const namenVon = (id) => ADHS_NAMEN.find((x) => x.id === id).beispiele;
+
+/*
+ * Was dazu in den Fach- und Gebrauchsinformationen steht.
+ *
+ * Strenger als oben, weil diese Mittel nicht für den Magen verordnet werden
+ * und jemand, der hier liest, sie womöglich jeden Tag nimmt:
+ *
+ *   * Jeder Satz mit „laut Fachinformation", „laut Packungsbeilage" oder
+ *     „laut EMA" ist an einer amtlichen oder Hersteller-Quelle geprüft. Die
+ *     Quelle steht über jedem Eintrag. Was sich nicht belegen ließ, steht
+ *     nicht da – auch nicht vorsichtiger formuliert.
+ *   * Gilt ein Satz nur für ein Präparat, nennt er das Präparat. „Laut
+ *     Fachinformation von Medikinet adult sehr häufig: …" ist eine Auskunft;
+ *     „bei Methylphenidat sehr häufig" wäre für Ritalin falsch.
+ *   * Keine Dosis, keine Empfehlung, kein Rat zum Absetzen. Jeder Hinweis
+ *     endet bei Ärztin oder Apotheke.
+ *
+ * Die Quellen stehen als Adresse ohne „https://" da: In js/ darf keine
+ * vollständige Adresse stehen, auch nicht in einem Kommentar (siehe
+ * tools/pruefung/keine-leitung.py) – so bleibt die eine Tür nach draußen
+ * die einzige, die eine Suche findet.
+ *
+ * `nebenwirkung` ist neu und freiwillig: Die Karte zeigt es als „Was in der
+ * Fachinformation steht." Wo sich keine Häufigkeit belegen ließ, fehlt es.
+ */
+export const ADHS_MITTEL = [
+  /*
+   * Quellen (Stand, soweit genannt):
+   *   Medikinet Tabletten FI, fachinfo.de/pdf/002039 (06/2023), 4.2 – Schlaf
+   *   Medikinet adult, Rote Liste www.rote-liste.de/rle/detail/23061/ , 4.8 – sehr häufig
+   *   Ritalin LA FI, fachinfo.de/fi/pdf/010445/ritalin-la (09/2025), 4.2/4.8 – häufig, Essen
+   *   EMA CMDh, PSUSA 00002024 (2019), www.ema.europa.eu/documents/psusa/methylphenidate-cmdh-scientific-conclusions-grounds-variation-amendments-product-information/00002024/201910_hu.pdf – Bruxismus häufig
+   *   MIMS-Wiedergabe der Medikinet-Produktinformation,
+   *     prdmimsweb.azurewebsites.net/singapore/drug/info/medikinet/special-precautions – Alkohol und ZNS
+   *   US-Label Ritalin LA (Wiedergabe www.rxlist.com/ritalin-la-drug.htm) – Alkohol im Laborversuch
+   *   GI Ritalin (BASG), medikamente.basg.gv.at/documents/1-22028__DOTC_GEBR_INFO.pdf,
+   *     Gelbe Liste www.gelbe-liste.de/wirkstoffe/Methylphenidat_1306 – MAO-Hemmer, Blutdrucksenker
+   *   GI Methylphenidat AL, beipackzettel.apocdn.net/medien/39fb9f1aac92a8eb24dff85248f0317104b4c45223aaea5cb26e4555f8d7d7e0.pdf
+   *     – Serotoninsyndrom
+   *   GI Ritalin, www.patienteninfo-service.de/gi/19260/pdf – Lactose, Abschnitt 6
+   */
+  {
+    id: 'mph',
+    gruppe: 'Methylphenidat',
+    kuerzel: 'MPH',
+    beispiele: namenVon('mph'),
+    kurz: 'Stimulans bei ADHS. Für den Magen zählt auch, wie die Tablette oder Kapsel den Wirkstoff freisetzt.',
+    wirkung: 'Wie schnell es ins Blut geht und wie lange es anhält, hängt vor allem an '
+      + 'der Form: sofort freisetzend oder retardiert, und retardiert auf verschiedene '
+      + 'Weise. Darum fragt Body Check nach der Form.',
+    einnahme: 'Je nach Form verschieden – siehe „Je nach Form“. Spät am Tag genommen kann '
+      + 'es laut Fachinformation den Schlaf stören.',
+    nebenwirkung: 'Laut Fachinformation von Medikinet adult sehr häufig: weniger Appetit, '
+      + 'Schlaflosigkeit, Nervosität, Kopfschmerzen, Übelkeit und Mundtrockenheit. Laut '
+      + 'Fachinformation von Ritalin LA häufig: Bauchschmerzen, Durchfall, '
+      + 'Magenbeschwerden, Erbrechen und Verdauungsbeschwerden. Seit einer Bewertung der '
+      + 'EU-Arzneimittelbehörden steht auch Zähneknirschen als häufig in den '
+      + 'Fachinformationen von Methylphenidat. Laut Fachinformation von Ritalin LA kann '
+      + 'Essen zur selben Zeit helfen, Bauchschmerzen, Übelkeit oder Erbrechen zu verhindern.',
+    hinweis: 'Alkohol verstärkt laut Fachinformation Nebenwirkungen auf das Nervensystem. '
+      + 'Laut US-Fachinformation von Ritalin LA setzte sehr hochprozentiger Alkohol im '
+      + 'Laborversuch fast den ganzen Wirkstoff schon in der ersten Stunde frei. Zusammen '
+      + 'mit MAO-Hemmern droht eine Blutdruckkrise; mit Mitteln, die auf Serotonin '
+      + 'wirken, ist ein Serotoninsyndrom beschrieben – ob eines deiner Mittel dazugehört, '
+      + 'weiß die Apotheke. Blutdrucksenker können schwächer wirken. Welche Hilfsstoffe '
+      + 'drin sind (etwa Lactose oder Zucker), steht in Abschnitt 2 und 6 der '
+      + 'Packungsbeilage. Nicht eigenmächtig ändern oder absetzen – Fragen dazu '
+      + 'beantworten Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   Elvanse FI, fachinfo.de/pdf/020737, 4.2 – mit oder ohne Essen, Nachmittag
+   *   UK-SmPC (Wiedergabe findmeds.uk), 5.2 – Essen verschiebt Tmax um etwa eine Stunde
+   *   G-BA-Dossier des Herstellers, Modul 2 (2019) – Umwandlung in den Erythrozyten
+   *   UK-Packungsbeilage Elvanse Adult, www.medicines.org.uk/emc/files/pil.15433.pdf – häufigste Nebenwirkungen
+   *   US-FI Vyvanse, www.accessdata.fda.gov/drugsatfda_docs/label/2025/021977s054%2C208510s011lbl.pdf
+   *     – Urin-pH (Ascorbinsäure, Natriumhydrogencarbonat), Triptane, MAO-Hemmer
+   */
+  {
+    id: 'lisdex',
+    gruppe: 'Lisdexamfetamin',
+    beispiele: namenVon('lisdex'),
+    kurz: 'Stimulans bei ADHS, wird erst im Körper zum Wirkstoff.',
+    wirkung: 'Eine Vorstufe, die erst im Blut zu Dexamfetamin umgewandelt wird.',
+    einnahme: 'Laut Fachinformation mit oder ohne Essen; Essen verschiebt den höchsten '
+      + 'Spiegel um etwa eine Stunde nach hinten. Am Nachmittag genommen kann es laut '
+      + 'Fachinformation den Schlaf stören.',
+    nebenwirkung: 'Laut Packungsbeilage von Elvanse Adult sind bei Erwachsenen die '
+      + 'häufigsten Nebenwirkungen weniger Appetit, Schlaflosigkeit, Mundtrockenheit und '
+      + 'Kopfschmerzen.',
+    hinweis: 'Mittel, die den Urin saurer machen, etwa Vitamin C (Ascorbinsäure), senken '
+      + 'laut US-Fachinformation den Spiegel; basische Mittel wie Natron erhöhen ihn. '
+      + 'Dieselbe Fachinformation nennt Triptane unter den Mitteln, mit denen ein '
+      + 'Serotoninsyndrom möglich ist. Nicht zusammen mit MAO-Hemmern. Nicht eigenmächtig '
+      + 'ändern oder absetzen – Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   Attentin 5 mg FI, www.fachinfo.de/fi/pdf/013378/attentin-5-mg-tablette (08/2022),
+   *     4.2 – Nahrungseinfluss nicht untersucht, gleich zu den Mahlzeiten; 4.3 – MAO-Hemmer; 5.2 – rasch resorbiert
+   *   Attentin 10/20 mg FI, www.fachinfo.de/fi/pdf/020945 (08/2024), 4.5 – Natriumhydrogencarbonat
+   *   GI Attentin – Fruchtsäfte
+   * Kein `nebenwirkung`: Häufigkeiten ließen sich nicht belegen.
+   */
+  {
+    id: 'dex',
+    gruppe: 'Dexamfetamin',
+    beispiele: namenVon('dex'),
+    kurz: 'Stimulans bei ADHS.',
+    wirkung: 'Wird laut Fachinformation schnell aus Magen und Darm aufgenommen.',
+    einnahme: 'Wie Essen die Aufnahme beeinflusst, ist laut Fachinformation nicht '
+      + 'untersucht; dort steht deshalb, es immer auf dieselbe Weise zu den Mahlzeiten zu '
+      + 'nehmen, vorzugsweise zu oder direkt nach dem Essen.',
+    hinweis: 'Laut Packungsbeilage können Fruchtsäfte die Wirkung abschwächen; laut '
+      + 'Fachinformation erhöht Basisches wie Natron (Natriumhydrogencarbonat) die '
+      + 'Aufnahme. Nicht zusammen mit MAO-Hemmern. Nicht eigenmächtig ändern oder '
+      + 'absetzen – Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   US-Label Strattera (Wiedergabe medlibrary.org) – mit oder ohne Essen; Fluoxetin,
+   *     Paroxetin, Chinidin erhöhen die Exposition deutlich
+   *   SAHPRA-PI Strattera (2018), www.sahpra.org.za/wp-content/uploads/2020/02/Strattera_PI_Eli-Lilly_MCC-format-20-March-2018.pdf
+   *     – CYP2D6, langsame Metabolisierer; Leberzeichen (dunkler Urin, Gelbsucht, rechter Oberbauch)
+   *   DE-Packungsbeilagen Atomoxetin – „Selten: Leberschädigungen"
+   * Kein `nebenwirkung`: Häufigkeiten ließen sich nicht belegen.
+   */
+  {
+    id: 'atomox',
+    gruppe: 'Atomoxetin',
+    beispiele: namenVon('atomox'),
+    kurz: 'ADHS-Mittel, kein Stimulans.',
+    wirkung: 'Kein Stimulans. Abgebaut wird es über ein Leberenzym (CYP2D6), das bei '
+      + 'manchen Menschen deutlich langsamer arbeitet.',
+    einnahme: 'Laut US-Fachinformation mit oder ohne Essen. Wie die Einnahme über den Tag '
+      + 'verteilt wird, legt die Ärztin fest.',
+    hinweis: 'Einige Mittel gegen Depression – etwa Fluoxetin oder Paroxetin – erhöhen laut '
+      + 'Fachinformation den Spiegel deutlich. Selten sind Leberschäden beschrieben; gelbe '
+      + 'Haut oder Augen, dunkler Urin oder Schmerzen im rechten Oberbauch gehören laut '
+      + 'Fachinformation sofort ärztlich abgeklärt. Nicht eigenmächtig ändern oder '
+      + 'absetzen – Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   EMA, EPAR-Zusammenfassung Intuniv, www.ema.europa.eu/de/documents/overview/intuniv-epar-summary-public_de.pdf
+   *     und www.ema.europa.eu/sv/medicines/human/EPAR/intuniv – Häufigkeiten, 6 bis 17 Jahre
+   *   Intuniv FI, www.fachinfo.de/fi/pdf/020868 – Zielgruppe
+   *   US-Label Intuniv, www.accessdata.fda.gov/drugsatfda_docs/label/2009/022037lbl.pdf
+   *     – fettreiche Mahlzeit, CYP3A4
+   *   AkdÄ Drug Safety Mail 2021-61, www.akdae.de/arzneimittelsicherheit/drug-safety-mail/newsdetail/drug-safety-mail-2021-61
+   *     – abruptes Absetzen, Rebound-Hypertonie, laut FI ausschleichen
+   */
+  {
+    id: 'guanf',
+    gruppe: 'Guanfacin',
+    beispiele: namenVon('guanf'),
+    kurz: 'ADHS-Mittel, kein Stimulans; in der EU für 6- bis 17-Jährige zugelassen.',
+    wirkung: 'Kein Stimulans; es kann Puls und Blutdruck senken, und viele werden davon schläfrig.',
+    einnahme: 'Laut US-Produktinformation nicht zu einer fettreichen Mahlzeit – das erhöht '
+      + 'den Spiegel.',
+    nebenwirkung: 'Laut EMA bei etwa jeder zweiten Person Schläfrigkeit, bei mehr als einer '
+      + 'von vier Kopfschmerzen, bei etwa einer von fünf Müdigkeit und bei etwa einer von '
+      + 'zehn Oberbauchschmerzen. Niedriger Blutdruck betrifft etwa eine von dreißig '
+      + 'Personen, ein langsamer Puls etwa eine von sechzig, Ohnmacht weniger als eine von '
+      + 'hundert.',
+    hinweis: 'Plötzliches Absetzen kann laut Fachinformation den Blutdruck stark ansteigen '
+      + 'lassen; absetzen oder ändern nur nach Rücksprache mit der Ärztin. Mittel, die das '
+      + 'Leberenzym CYP3A4 hemmen oder anregen, verändern den Spiegel. Schwindel oder '
+      + 'Ohnmacht gehören angesprochen. Fragen dazu: Ärztin oder Apotheke.',
+  },
+  /*
+   * Quellen:
+   *   Elontril FI, www.fachinfo.de/fi/pdf/010164/elontril-150-mg-300-mg-tabletten (03/2026)
+   *     – Anwendungsgebiet Depression; Krampfanfälle
+   *   GI Zyban, medikamio.com/de-de/medikamente/zyban-150-mg-retardtabletten/pil – Raucherentwöhnung
+   *   FI Bupropion-neuraxpharm (12/2025) – Gegenanzeige: abrupter Alkoholentzug
+   *   EMA CMDh, PSUSA 00001997 (2020), Metamizol: senkt Plasmaspiegel u. a. von Bupropion
+   * Kein `nebenwirkung`: nicht belegt.
+   */
+  {
+    id: 'bupro',
+    gruppe: 'Bupropion',
+    beispiele: namenVon('bupro'),
+    kurz: 'Mittel gegen Depression und zur Rauchentwöhnung; für ADHS nicht zugelassen.',
+    wirkung: 'In Deutschland für Depression (Elontril) und zur Rauchentwöhnung (Zyban) '
+      + 'zugelassen; für ADHS ist es nicht zugelassen.',
+    einnahme: '–',
+    hinweis: 'Laut Fachinformation besteht ein Risiko für Krampfanfälle; ein plötzlicher '
+      + 'Alkoholentzug steht dort unter den Gegenanzeigen. Metamizol (Novalgin, '
+      + 'Novaminsulfon) kann laut seiner Fachinformation den Bupropion-Spiegel senken. '
+      + 'Nicht eigenmächtig ändern oder absetzen – Fragen dazu: Ärztin oder Apotheke.',
+  },
+];
+
+/*
+ * Was sonst noch im Schrank steht und erkannt werden muss, damit es nicht
+ * falsch zählt.
+ *
+ * Koffein als Tablette ist kein Schmerzmittel. Bis zur Fassung 27 stand
+ * „Koffein" als Beispiel bei kombi und zählte damit als ASS-Kombination: für
+ * den Magen als NSAR, für den Kopf mit der Grenze von zehn Tagen. Beides
+ * stimmt für eine Koffeintablette nicht.
+ *
+ * Quelle: ICHD-3 8.3.1 Caffeine-withdrawal headache,
+ * ichd-3.org/8-headache-attributed-to-a-substance-or-its-withdrawal/8-3-headache-attributed-to-substance-withdrawal/8-3-1-caffeine-withdrawal-headache
+ * (Beginn innerhalb von 24 Stunden nach dem letzten Koffein, nach mehr als
+ * zwei Wochen regelmäßiger Einnahme).
+ */
+export const SONSTIGE_MITTEL = [
+  {
+    id: 'koffeinmittel',
+    gruppe: 'Koffein als Tablette',
+    beispiele: ['Koffein', 'Coffein'],
+    kurz: 'Kein Schmerzmittel und für den Magen kein NSAR.',
+    wirkung: 'Ein anregender Stoff, derselbe wie im Kaffee.',
+    einnahme: '–',
+    hinweis: 'Wer über Wochen regelmäßig Koffein nimmt und dann aussetzt, kann davon '
+      + 'Kopfschmerz bekommen; die Kopfschmerzklassifikation beschreibt ihn mit Beginn '
+      + 'innerhalb eines Tages nach dem letzten Koffein. Fragen dazu: Apotheke.',
+  },
+];
+
+/*
+ * Die Reihenfolge entscheidet, wenn ein Name zu zwei Gruppen passt: Die
+ * Magenmittel und Schmerzmittel stehen vorn, wie bisher. Die ADHS-Mittel und
+ * das Koffein stehen hinten, damit sie keinem bisherigen Namen eine neue
+ * Gruppe geben – ein Tagebuch ohne sie rechnet wie in der Fassung 27.
+ */
+const ALLE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL, ...ADHS_MITTEL, ...SONSTIGE_MITTEL];
+
+const gruppeMit = (id) => ALLE.find((g) => g.id === id);
+const NSAR = gruppeMit('nsar');
+const KOMBI = gruppeMit('kombi');
+const NICHTNSAR = gruppeMit('nichtnsar');
+const KOMBIPARA = gruppeMit('kombipara');
 
 /** Ein eingetragener Name, so wie er verglichen wird. */
 const suchform = (name) => String(name || '').toLowerCase().trim();
@@ -409,35 +687,58 @@ function beispielPasst(gesucht, beispiel) {
   return new RegExp(`(^|[^a-zäöüß])${k}`).test(gesucht);
 }
 
+/** „Koffein" oder „Coffein" irgendwo im Namen. */
+const MIT_KOFFEIN = /koffein|coffein/;
+
 /**
  * Zu einem eingetragenen Namen die passende Gruppe finden.
  *
  * Eingetragen wird frei: „Pantoprazol 20mg", „pantoprazol", „Panto". Deshalb
  * wird kleingeschrieben verglichen und geprüft, ob eines der Beispiele im
  * Eingetragenen vorkommt – nicht auf Gleichheit.
+ *
+ * DIE KOFFEIN-REGEL kommt vor der allgemeinen Suche. Nach der
+ * Kopfschmerzklassifikation ist jedes Schmerzmittel mit Koffein ein
+ * Kombinationsmittel (ICHD-3 8.2.5). Für den Magen zählt dabei nur, ob ASS
+ * oder ein anderes NSAR darin steckt:
+ *
+ *   * mit einem NSAR („ASS Koffein", „Ibuprofen + Coffein")      → kombi
+ *   * mit Paracetamol oder Metamizol („Paracetamol + Coffein")  → kombipara
+ *   * sonst die allgemeine Suche – und die endet für eine reine
+ *     Koffeintablette bei koffeinmittel, das ganz hinten steht.
+ *
+ * Ohne die Regel stand „ASS Koffein" unter nsar (Grenze fünfzehn statt zehn)
+ * und „Paracetamol Koffein" unter kombi (für den Magen ein NSAR). Ein Opioid
+ * oder Triptan mit Koffein im Namen behält über die allgemeine Suche seine
+ * Gruppe und damit seine Zählung als Akutmittel.
  */
 export function wissenZu(name) {
   const gesucht = suchform(name);
   if (!gesucht) return null;
   if (aufDerHaut(gesucht)) return null;
   const passt = (b) => beispielPasst(gesucht, b);
+  if (MIT_KOFFEIN.test(gesucht)) {
+    if ([...NSAR.beispiele, ...KOMBI.beispiele].some(passt)) return KOMBI;
+    if (NICHTNSAR.beispiele.some(passt)) return KOMBIPARA;
+  }
   return ALLE.find((g) => g.beispiele.some(passt))
     || ALLE.find((g) => gesucht.includes(g.gruppe.toLowerCase()))
     || null;
 }
 
+const ADHS_IDS = ADHS_NAMEN.map((x) => x.id);
+
 /**
  * Die ADHS-Gruppe eines eingetragenen Namens – 'mph', 'lisdex', 'dex',
  * 'atomox', 'guanf', 'bupro' – oder null.
  *
- * Mit denselben Regeln wie wissenZu(): Kürzel nur am Wortanfang, und was auf
- * der Haut bleibt, ist keines.
+ * Seit es zu den ADHS-Mitteln etwas zu lesen gibt, über wissenZu(): eine
+ * Erkennung für alles, mit denselben Regeln (Kürzel am Wortanfang, nichts
+ * auf der Haut, die Reihenfolge von ALLE).
  */
 export function adhsGruppe(name) {
-  const gesucht = suchform(name);
-  if (!gesucht || aufDerHaut(gesucht)) return null;
-  const g = ADHS_NAMEN.find((x) => x.beispiele.some((b) => beispielPasst(gesucht, b)));
-  return g ? g.id : null;
+  const g = wissenZu(name);
+  return g && ADHS_IDS.includes(g.id) ? g.id : null;
 }
 
 /*
@@ -452,4 +753,133 @@ export function istAdhsMittel(name) {
   const k = suchform(name);
   if (!adhsSchon.has(k)) adhsSchon.set(k, ADHS_GRUPPEN.includes(adhsGruppe(k)));
   return adhsSchon.get(k);
+}
+
+/* ---------- Die Formen von Methylphenidat ---------- */
+
+/**
+ * Wo sich nichts Genaueres belegen lässt, steht dieser Satz: Ob ein
+ * Säureblocker zum Präparat passt, hängt an der Form, und die kennt die
+ * Apotheke.
+ */
+export const KLAER_SATZ = 'Ob ein Säureblocker zu deinem Präparat passt, hängt bei '
+  + 'Methylphenidat an der Form – das klären Apotheke oder Praxis.';
+
+/*
+ * Methylphenidat gibt es in Formen, die sich beim Essen und bei
+ * Säureblockern verschieden verhalten. Für den Magen ist das der wichtigste
+ * Unterschied zwischen zwei Packungen mit demselben Wirkstoff: Bei der Kapsel
+ * mit zweierlei Kügelchen hält ein Teil nur so lange dicht, wie der Magen
+ * sauer ist – mit einem Säureblocker kann alles auf einmal frei werden.
+ *
+ * Die Kennungen stehen als FORM_IDS noch einmal in js/store.js (der Speicher
+ * weiß nichts von den Texten); tests/test-adhs-wissen.mjs prüft, dass beide
+ * Listen gleich sind.
+ *
+ * `saeure` ist der Satz zum Säureblocker, `extra` alles, was sonst zur Form
+ * gehört. Wo nichts steht, ist nichts belegt – auch kein beruhigender Satz.
+ * Wirkdauern stehen nicht hier: Belegt war keine.
+ *
+ * Quellen:
+ *   sofort    Medikinet Tabletten FI, fachinfo.de/pdf/002039 (06/2023), 4.2
+ *   pellet    Medikinet retard FI, www.fachinfo.de/fi/pdf/009621 (12/2025), 4.3/4.5;
+ *             Medikinet adult FI, fachinfo.de/pdf/013066 (04/2023; 50/60 mg 12/2014), 4.2
+ *   sodas     GI Ritalin Adult, PatientenInfo-Service
+ *             (www.patienteninfo-service.de/a-z-liste/r/ritalinR-adult-10-20-30-40-mg-hartkapseln-mit-veraenderter-wirkstofffreisetzung)
+ *   oros      GI Concerta (Wiedergabe medikamio, 18 und 54 mg; Stand 08/2020) – Essen, Ganzschlucken,
+ *             Hülle im Stuhl, Verengung als Gegenanzeige
+ *   retardtab GI Kinecteen, www.patienteninfo-service.de/gi/14910/ – nur Verweis
+ *   equasym   Equasym Retard FI, www.fachinfo.de/fi/pdf/012100 (Apfelmus);
+ *             GI-Wiedergabe Apotheken Umschau (morgens vor der Mahlzeit)
+ *   unbekannt aus den obigen abgeleitet
+ */
+export const MPH_FORMEN = [
+  {
+    id: 'sofort',
+    name: 'Tablette, nicht retardiert (z. B. Ritalin, Medikinet Tabletten)',
+    kurzname: 'nicht retardierte Tablette',
+    einnahme: 'Medikinet-Tabletten laut Fachinformation zu oder direkt nach den Mahlzeiten; '
+      + 'für andere Präparate steht es in der Packungsbeilage.',
+    saeure: KLAER_SATZ,
+  },
+  {
+    id: 'pellet',
+    name: 'Kapsel mit zweierlei Kügelchen (Medikinet retard, Medikinet adult)',
+    kurzname: 'Kapsel mit zweierlei Kügelchen',
+    einnahme: 'Laut Fachinformation von Medikinet adult und Medikinet retard mit oder nach '
+      + 'einer Mahlzeit. Laut Fachinformation von Medikinet adult wird der Wirkstoff '
+      + 'nüchtern deutlich schneller aufgenommen; die Wirkung hält dann nicht wie '
+      + 'vorgesehen an, und es entstehen hohe Spitzen im Blut.',
+    saeure: 'Laut Fachinformation nicht zusammen mit Protonenpumpenhemmern (etwa '
+      + 'Pantoprazol), H2-Blockern oder säurebindenden Mitteln (Antazida) vorgesehen: In '
+      + 'einem weniger sauren Magen kann der ganze Wirkstoff früher frei werden. Ein '
+      + 'Magen, der von sich aus kaum Säure bildet, steht dort als Gegenanzeige.',
+  },
+  {
+    id: 'sodas',
+    name: 'Ritalin LA / Ritalin Adult',
+    kurzname: 'Ritalin LA / Ritalin Adult',
+    einnahme: 'Ritalin Adult laut Packungsbeilage mit oder ohne Essen.',
+    saeure: KLAER_SATZ,
+  },
+  {
+    id: 'oros',
+    name: 'Retardtablette mit Hülle (Concerta)',
+    kurzname: 'Retardtablette mit Hülle',
+    einnahme: 'Laut Packungsbeilage mit oder ohne Essen; die Tablette wird im Ganzen '
+      + 'geschluckt, nicht gekaut, gebrochen oder zerkleinert.',
+    extra: 'Die leere Tablettenhülle kann im Stuhl zu sehen sein – laut Packungsbeilage '
+      + 'normal. Eine Verengung oder Blockade in Speiseröhre oder Darm steht dort unter '
+      + 'den Gegenanzeigen.',
+  },
+  {
+    id: 'retardtab',
+    name: 'Andere Retardtablette (z. B. Kinecteen, Generika)',
+    kurzname: 'andere Retardtablette',
+    einnahme: 'Wie sie zum Essen genommen wird, steht in der Packungsbeilage.',
+    saeure: KLAER_SATZ,
+  },
+  {
+    id: 'equasym',
+    name: 'Equasym Retard',
+    kurzname: 'Equasym Retard',
+    einnahme: 'Laut Packungsbeilage morgens vor der Mahlzeit; laut Fachinformation darf die '
+      + 'Kapsel geöffnet und der Inhalt auf etwas Apfelmus gegeben werden.',
+  },
+  {
+    id: 'unbekannt',
+    name: 'Weiß ich nicht',
+    kurzname: 'Form nicht angegeben',
+    einnahme: 'Methylphenidat gibt es in Formen, die sich beim Essen und bei Säureblockern '
+      + 'verschieden verhalten. Welche du hast, steht auf der Packung oder weiß die '
+      + 'Apotheke.',
+    saeure: KLAER_SATZ,
+  },
+];
+
+/** Die Form zu ihrer Kennung – oder null. */
+export function mphForm(id) {
+  return MPH_FORMEN.find((f) => f.id === id) || null;
+}
+
+/*
+ * Nur Namen, die eine Form eindeutig festlegen. „Medikinet" allein gibt es
+ * als Tablette und als Kapsel, „Methylphenidat" in jeder Form – dort wird
+ * gefragt statt geraten. Kinecteen ist eine Retardtablette, aber keine mit
+ * der Hülle von Concerta: Belegt war das nicht, also eine eigene Form.
+ */
+const FORM_NACH_NAME = [
+  [/medikinet\s*(retard|adult)/, 'pellet'],
+  [/ritalin\s*(la|adult)\b/, 'sodas'],
+  [/concerta/, 'oros'],
+  [/kinecteen/, 'retardtab'],
+  [/equasym/, 'equasym'],
+];
+
+/** Die Form, die der Name eindeutig nennt – oder null. */
+export function formAusName(name) {
+  const gesucht = suchform(name);
+  if (!gesucht) return null;
+  const treffer = FORM_NACH_NAME.find(([muster]) => muster.test(gesucht));
+  return treffer ? treffer[1] : null;
 }

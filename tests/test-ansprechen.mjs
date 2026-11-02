@@ -17,6 +17,8 @@
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, pruefer, vorTagen } from './umgebung.mjs';
+import { ANSPRECHEN_URTEIL, befund, mittelBilanz } from '../js/ansprechen.js';
+import { wissenZu } from '../js/mittel.js';
 
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
@@ -114,6 +116,47 @@ check(
   await page.locator('.karte', { hasText: 'Ob es etwas bewirkt' }).count() === 0,
   'fünf Einnahmetage tragen kein Urteil – dann steht der Abschnitt gar nicht erst da',
 );
+
+/* ---------- B4: ein ADHS-Mittel bekommt kein Urteil ---------- */
+
+/*
+ * Ein ADHS-Mittel fängt man nicht wegen des Bauchs an, und ob es vorher
+ * schon genommen und nur nicht eingetragen wurde, weiß niemand. Ein
+ * „darunter schlechter" läse sich trotzdem wie ein Befund über das Mittel.
+ * Deshalb: beide Zahlen nebeneinander, kein besser, kein schlechter, kein
+ * unverändert – bei jeder der fünf Gruppen. Bupropion zählt nicht dazu.
+ */
+const gruppeVon = (name) => {
+  const g = wissenZu(name);
+  return g ? g.id : null;
+};
+const verlaufMit = (name, vorher, nachher) => {
+  const e = [];
+  for (let t = 70; t >= 36; t--) e.push(beschwerde(t, vorher));
+  for (let t = 35; t >= 1; t--) {
+    e.push(beschwerde(t, nachher));
+    e.push(mittelEintrag(t, name));
+  }
+  return e;
+};
+const B4 = [['Strattera', 2, 7], ['Medikinet', 7, 2], ['Elvanse', 5, 5], ['Intuniv', 1, 6], ['Attentin', 6, 1]];
+B4.forEach(([name, vorher, nachher]) => {
+  const [m] = mittelBilanz(verlaufMit(name, vorher, nachher), {}, { heute: vorTagen(0), gruppeVon });
+  const satz = befund(m);
+  check(m.urteil === 'offen' && ANSPRECHEN_URTEIL[m.urteil] === 'ohne Urteil'
+    && satz.startsWith(`Seit dem ersten Eintrag (${vorTagen(35).split('-').reverse().join('.')}) im Mittel ${nachher},0, in der Zeit davor ${vorher},0 (35 gegen 35 notierte Tage).`)
+    && satz.includes('ein ADHS-Mittel fängt man auch nicht wegen des Bauchs an')
+    && !/besser|schlechter|Kein Unterschied/.test(satz),
+  `${name} (${vorher} → ${nachher}): kein Urteil, nur die beiden Zahlen (${m.urteil})`);
+});
+const [bupro] = mittelBilanz(verlaufMit('Elontril', 2, 7), {}, { heute: vorTagen(0), gruppeVon });
+check(bupro.urteil === 'schlechter', 'Bupropion bekommt sein Urteil wie jedes andere Mittel');
+
+await setze({ begruesst: true, tab: 'muster', eintraege: verlaufMit('Intuniv', 1, 6), tage: {}, fenster: 4, mindestFaelle: 5 });
+const adhsKarte = await text(page.locator('.karte', { hasText: 'Ob es etwas bewirkt' }));
+check(adhsKarte.includes('Intuniv') && adhsKarte.includes('ohne Urteil') && adhsKarte.includes('Seit dem ersten Eintrag')
+  && !adhsKarte.includes('darunter schlechter'),
+`in der App: „ohne Urteil" und der Satz statt „darunter schlechter" (${adhsKarte.slice(0, 120)})`);
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

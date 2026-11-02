@@ -48,8 +48,9 @@ import { arztBericht } from '../js/bericht.js';
 import { eintragZaehlt } from '../js/wasser.js';
 import {
   AKTIVITAETEN, INTENSITAETEN, aktivBauchSatz, aktivKopfSatz, aktivitaetBilanz, aktivitaetenVon, aktivitaetName,
-  aktivitaetVon, aktivUhrzeit, bewegungSatz, eigeneAktivitaetId, freieAktivitaetId, zuletztAktivitaeten,
+  aktivitaetVon, aktivUhrzeit, bewegungSatz, eigeneAktivitaetId, freieAktivitaetId, istGegenmittel, zuletztAktivitaeten,
 } from '../js/aktivitaet.js';
+import { zeitpunkt } from '../js/datum.js';
 
 const { check, ende } = pruefer();
 
@@ -569,6 +570,103 @@ check(!!feier && !feier.bauch.genug && !feier.kopf.genug && feier.bauch.art === 
     `sechs Aktivitäten ohne Zusammenhang, genug Fälle – und nichts fällt auf (${funde.map((x) => x.id).join(', ') || 'nichts'})`);
 }
 
+/* ---------- 4b. Massage, Massagepistole, Wärme: nur die Kopfseite ---------- */
+
+/*
+ * Massiert und gewärmt wird, wenn schon etwas wehtut – Wärme oft gerade
+ * wegen Bauchschmerzen. Eine Bauch-Zeile sähe dann aus, als machte die
+ * Wärmflasche Beschwerden. Deshalb haben diese drei keine Bauchseite – und
+ * dürfen die Bauch-Bilanz keiner anderen Aktivität verändern: nicht über den
+ * Zufallsspielraum (die Zahl der Vergleiche) und nicht über das Ende des
+ * Vergleichszeitraums.
+ */
+check(JSON.stringify(AKTIVITAETEN.slice(-3).map((a) => a.id)) === '["massagepistole","massage","waerme"]'
+  && AKTIVITAETEN.slice(-3).every((a) => a.gegenmittel === true)
+  && AKTIVITAETEN.slice(0, -3).every((a) => !a.gegenmittel),
+'Massagepistole, Massage/Physio und Wärme stehen am Ende, als einzige mit `gegenmittel`');
+check(istGegenmittel('waerme') && !istGegenmittel('yoga') && !istGegenmittel('a:waerme'),
+  'Dehnen bleibt Yoga; eine eigene „Wärme" ist kein eingebautes Gegenmittel');
+
+{
+  // Wärme an jedem zweiten Abend, danach jedes Mal Bauchschmerzen – stark
+  // genug, dass es mit Bauchseite ein Fund wäre.
+  const e = [];
+  for (let i = 40; i >= 1; i--) {
+    const am = vorTagen(i);
+    e.push({ id: `f${i}`, art: 'essen', am, um: '08:00', was: 'Frühstück', zutaten: [], portion: 'normal' });
+    e.push({ id: `x${i}`, art: 'beschwerde', am, um: '09:00', staerke: 2, arten: ['druck'] });
+    if (i % 2 === 0) {
+      e.push({ id: `w${i}`, art: 'aktivitaet', am, um: '19:00', aktivitaeten: ['waerme'] });
+      e.push({ id: `b${i}`, art: 'beschwerde', am, um: '20:00', staerke: 7, arten: ['krampf'] });
+    }
+  }
+  const z = aktivitaetBilanz(sortiere(e), {}, { fenster: 4, mindestFaelle: 5 }).find((x) => x.id === 'waerme');
+  check(!!z && z.gegenmittel === true && z.bauch.genug === false && z.bauch.art === 'zuwenig' && z.bauch.faelle >= 5,
+    `Wärme mit genug Fällen bekommt trotzdem keine Bauchseite (${z && z.bauch.faelle} Fälle, ${z && z.bauch.art})`);
+  check(z.kopf.faelle > 0, 'die Kopfseite wird gerechnet wie bei jeder Aktivität');
+  const satz = aktivKopfSatz(z);
+  check(satz.includes('wenn sich etwas anbahnt') && satz.includes('von selbst besser'),
+    'der Kopfsatz trägt den Vorbehalt: gewärmt wird, wenn sich etwas anbahnt');
+  check(!aktivKopfSatz({ id: 'yoga', kopf: z.kopf }).includes('anbahnt'), 'Yoga bleibt ohne diesen Satz');
+
+  // Im Verlauf oben endet das Training drei Tage vor heute. Eine Massage von
+  // gestern darf die Vergleichstage des Trainings nicht bis gestern
+  // verlängern – dort stehen Tage mit Beschwerden, die dann „ohne Gym"
+  // zählten.
+  const mitMassage = sortiere([...V.map((x) => ({ ...x })),
+    { id: 'mm1', art: 'aktivitaet', am: vorTagen(1), um: '07:00', aktivitaeten: ['massage'] },
+    { id: 'mm2', art: 'aktivitaet', am: vorTagen(2), um: '07:00', aktivitaeten: ['massagepistole'] }]);
+  const vorher = aktivitaetBilanz(sortiere([...V]), {}, { fenster: 4, mindestFaelle: 5 });
+  const nachher = aktivitaetBilanz(mitMassage, {}, { fenster: 4, mindestFaelle: 5 });
+  const bauchVon = (l, id) => JSON.stringify(l.find((x) => x.id === id).bauch);
+  check(['gym', 'sauna', 'feier'].every((id) => bauchVon(vorher, id) === bauchVon(nachher, id)),
+    'eine Massage nach dem letzten Training verlängert dessen Vergleichstage für den Bauch nicht');
+}
+
+{
+  /*
+   * Die Gegenprobe: ein ganzes Tagebuch (das des Golds) mit und ohne
+   * Massage-Einträge. Ein Teil der Massagen liegt nach der letzten anderen
+   * Aktivität – dort würde sonst der Vergleichszeitraum länger.
+   *
+   * Das Gold ist in UTC gerechnet, und tests/rechnungen.mjs stellt die
+   * Zeitzone beim Laden darauf um. Hier nur für diesen Block: Die Tests im
+   * Browser weiter unten rechnen mit vorTagen() in der Zeitzone des Rechners.
+   */
+  const zoneVorher = process.env.TZ;
+  const {
+    GOLD_SAATEN, GRUNDDATUM, isoPlus, tagebuch,
+  } = await import('./rechnungen.mjs');
+  const jetzt = zeitpunkt(isoPlus(GRUNDDATUM, 1), '12:00');
+  const opt = { fenster: 4, mindestFaelle: 5, jetzt };
+  const gold = JSON.parse(readFileSync(path.join(ROOT, 'tests/gold/v27-rechnungen.json'), 'utf8'));
+  GOLD_SAATEN.forEach((saat) => {
+    const d = tagebuch(saat);
+    const ohne = aktivitaetBilanz(d.eintraege, d.tage, opt);
+    check(JSON.stringify(ohne) === JSON.stringify(gold.rechnungen[saat].aktivitaetBilanz),
+      `Tagebuch ${saat}: aktivitaetBilanz ohne Massage zeichengleich mit dem Gold`);
+    const extra = [];
+    const art = ['massagepistole', 'massage', 'waerme'];
+    for (let i = 0; i < 120; i += 3) {
+      const am = isoPlus(GRUNDDATUM, -i);
+      extra.push({ id: `mx${i}`, art: 'aktivitaet', am, um: i % 2 ? '07:30' : '21:45', aktivitaeten: [art[(i / 3) % 3]] });
+    }
+    // Ein Tag nach dem Tagebuch: nach jeder anderen Aktivität.
+    extra.push({ id: 'mx-spaet', art: 'aktivitaet', am: GRUNDDATUM, um: '23:50', aktivitaeten: ['massage'] });
+    const mit = aktivitaetBilanz(sortiere([...d.eintraege.map((x) => ({ ...x })), ...extra]), d.tage, opt);
+    const bauch = (liste) => Object.fromEntries(liste.filter((x) => !x.gegenmittel).map((x) => [x.id, x.bauch]));
+    const a = bauch(ohne);
+    const b = bauch(mit);
+    const anders = Object.keys(a).filter((k) => JSON.stringify(a[k]) !== JSON.stringify(b[k]));
+    check(Object.keys(a).length >= 4 && anders.length === 0 && Object.keys(b).length === Object.keys(a).length,
+      `Tagebuch ${saat}: Massage-Einträge ändern die Bauch-Bilanz keiner anderen Aktivität${anders.length ? ` – anders: ${anders.join(', ')}` : ''}`);
+    check(mit.filter((x) => x.gegenmittel).length === 3 && mit.filter((x) => x.gegenmittel).every((x) => !x.bauch.genug),
+      `Tagebuch ${saat}: alle drei ohne Bauchseite`);
+  });
+  if (zoneVorher === undefined) delete process.env.TZ;
+  else process.env.TZ = zoneVorher;
+}
+
 /* ---------- 5. Im Browser, als App auf dem iPhone ---------- */
 
 const KENNUNG = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 '
@@ -640,6 +738,20 @@ const ALT = {
   await kurz(page);
   check((await toast(page)).includes('Was hast du gemacht?'), 'ohne Auswahl sagt der Bogen, was fehlt');
   check((await speicher(page)).eintraege.length === 1, 'und speichert nichts');
+
+  /* Massagepistole: der Herstellerhinweis, sobald sie gewählt ist */
+  check(await page.locator('.massage-hinweis').count() === 0, 'ohne Massagepistole kein Herstellerhinweis');
+  await page.locator('[data-act="aktiv-wahl"][data-id="massagepistole"]').click();
+  await kurz(page);
+  const mh = ((await page.locator('.massage-hinweis').textContent()) || '').replace(/\s+/g, ' ');
+  check(mh.includes('nicht an Kopf, Gesicht, Kehle, Hals oder Nacken') && mh.includes('Mehr dazu'),
+    'mit Massagepistole: ein Satz der Hersteller und „Mehr dazu"');
+  check(await page.locator('.massage-hinweis details[open]').count() === 0 && mh.includes('Notfall: 112'),
+    'die Einzelheiten zugeklappt, darin die Notfallzeichen');
+  await breit(page, 'Bogen mit Massagehinweis');
+  await page.locator('[data-act="aktiv-wahl"][data-id="massagepistole"]').click();
+  await kurz(page);
+  check(await page.locator('.massage-hinweis').count() === 0, 'abgewählt verschwindet der Hinweis');
 
   /* Eintragen: Gym, abends, anstrengend, Notiz, und eine eigene, nur getippt */
   await page.locator('[data-act="aktiv-wahl"][data-id="gym"]').click();
@@ -897,6 +1009,19 @@ const ALT = {
   check(!/Feier/.test(bericht.split('NACH AKTIVITÄTEN')[1].split('\n\n')[0]), 'zu wenige Fälle stehen dort nicht');
   await breit(page, '„Mehr" mit Bericht');
   await ctx.close();
+
+  // Wärme: unter „Muster" ohne Bauch-Zeile, auch unter „Zählt noch" mit
+  // der Kopfseite.
+  const warm = [...V];
+  for (let i = 40; i >= 1; i -= 2) warm.push({ id: `wm${i}`, art: 'aktivitaet', am: vorTagen(i), um: '21:00', aktivitaeten: ['waerme'] });
+  const wp = await iphone({ begruesst: true, tab: 'muster', alterName: null, eintraege: sortiere(warm), tage: t });
+  await kurz(wp.page);
+  const wKarte = ((await wp.page.locator('#wasDuGemachtHast').textContent()) || '').replace(/\s+/g, ' ');
+  const wFund = ((await wp.page.locator('#wasDuGemachtHast .fund', { hasText: 'Wärme' }).allTextContents())[0] || '').replace(/\s+/g, ' ');
+  check(wKarte.includes('Wärme') && (wFund ? !wFund.includes('Bauch') && wFund.includes('anbahnt') : /Wärme \d+ von 12 Tagen/.test(wKarte)),
+    `Wärme ohne Bauch-Zeile (${(wFund || wKarte).slice(0, 160)})`);
+  await breit(wp.page, '„Muster" mit Wärme');
+  await wp.ctx.close();
 
   // Zu wenige Fälle überhaupt: keine Funde, nur „Zählt noch".
   const wenig = V.filter((x) => x.art !== 'aktivitaet' || x.aktivitaeten[0] === 'feier');

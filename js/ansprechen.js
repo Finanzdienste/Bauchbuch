@@ -18,10 +18,19 @@
  * von einem Tag auf den anderen weggelassen – der Magen antwortet dann mit mehr
  * Säure als vorher. Was hier steht, ist die Zahl und die Frage dazu.
  *
+ * EIN ADHS-MITTEL BEKOMMT KEIN URTEIL. Für den Säureblocker ist das
+ * Vorher-Nachher die eine ehrliche Rechnung; für ein ADHS-Mittel ist es
+ * keine. Es wird nicht wegen des Bauchs angefangen, also fehlt der Grund,
+ * aus dem „danach wurde es besser" überhaupt etwas hieße – und ob es vorher
+ * schon genommen und nur nicht eingetragen wurde, weiß niemand. Ein
+ * „darunter schlechter" läse sich trotzdem wie ein Befund über das Mittel.
+ * Deshalb stehen dort nur die beiden Zahlen nebeneinander (`urteil` 'offen').
+ *
  * Reine Rechnung, alles kommt als Argument herein.
  */
 import { plusTage, tageDazwischen } from './datum.js';
 import { tagesWert } from './auswertung.js';
+import { ADHS_GRUPPEN } from './mittel.js';
 
 /** Ab so vielen Einnahmetagen lohnt der Vergleich überhaupt. */
 const MINDEST_TAGE = 8;
@@ -107,6 +116,7 @@ export function mittelBilanz(eintraege, tage, opt = {}) {
 
     let urteil = 'offen';
     if (!vergleichbar) urteil = 'zuwenig';
+    else if (ADHS_GRUPPEN.includes(gruppe)) urteil = 'offen';
     else if (differenz >= 1) urteil = 'besser';
     else if (differenz <= -1) urteil = 'schlechter';
     else urteil = 'unveraendert';
@@ -141,7 +151,8 @@ export const ANSPRECHEN_URTEIL = {
   schlechter: 'darunter schlechter',
   unveraendert: 'kein Unterschied',
   zuwenig: 'zu wenige notierte Tage',
-  offen: 'noch offen',
+  // Nur bei ADHS-Mitteln: Zahlen nebeneinander, kein Urteil (siehe oben).
+  offen: 'ohne Urteil',
 };
 
 /**
@@ -157,6 +168,15 @@ export function befund(m) {
   }
   if (!m.vergleichbar) {
     return 'Vor der Einnahme sind zu wenige Tage notiert, um zu vergleichen.';
+  }
+  const komma = (x) => x.toFixed(1).replace('.', ',');
+  if (ADHS_GRUPPEN.includes(m.gruppe)) {
+    const datum = String(m.seit).split('-').reverse().join('.');
+    return `Seit dem ersten Eintrag (${datum}) im Mittel ${komma(m.unter.schnitt)}, in der `
+      + `Zeit davor ${komma(m.davor.schnitt)} (${m.unter.notierte} gegen `
+      + `${m.davor.notierte} notierte Tage). Ob das Mittel vorher schon genommen und nur `
+      + 'nicht eingetragen wurde, weiß Body Check nicht; ein ADHS-Mittel fängt man auch '
+      + 'nicht wegen des Bauchs an.';
   }
   const zahlen = `${m.davor.schnitt.toFixed(1).replace('.', ',')} davor gegen `
     + `${m.unter.schnitt.toFixed(1).replace('.', ',')} darunter `

@@ -439,6 +439,57 @@ check(kennt.ass === 'nsar' && kennt.ibu === 'nsar' && kennt.dolormin === 'nsar',
 check(kennt.thoma === 'kombi' && kennt.para === 'nichtnsar' && kennt.meto === 'prophylaxe', 'Kombinationsmittel, Paracetamol und Vorbeugung haben ihre Gruppen');
 check(kennt.codein === 'opioid' && kennt.tramadol === 'opioid' && kennt.rime === 'gepant' && kennt.ato === 'prophylaxe', 'Opioide und Gepante auch – und das Codein-Kombi schlägt das Paracetamol');
 
+/*
+ * Koffein (Fassung 28). Nach der Kopfschmerzklassifikation ist jedes
+ * Schmerzmittel mit Koffein ein Kombinationsmittel – Grenze zehn Tage, nicht
+ * fünfzehn. Für den Magen zählt dabei nur, was ein NSAR enthält. Und eine
+ * Koffeintablette ist gar kein Schmerzmittel.
+ */
+const koffein = await page.evaluate(async () => {
+  const m = await import('./js/mittel.js');
+  const k = await import('./js/kopf.js');
+  const d = await import('./js/datum.js');
+  const heute = d.heuteISO();
+  const gruppeVon = (n) => { const g = m.wissenZu(n); return g ? g.id : null; };
+  // n Einnahmetage, jeden zweiten Tag, alle im jüngsten 30-Tage-Fenster;
+  // `kopf` legt an dieselben Tage einen Kopfschmerz.
+  const tage = (name, n, versatz = 1, kopf = false) => Array.from({ length: n }, (_, i) => {
+    const am = d.plusTage(heute, -(i * 2 + versatz));
+    return [{ id: `${name}${i}`, art: 'medikament', am, um: '09:00', mittel: name, dosis: '' },
+      ...(kopf ? [{ id: `k${name}${i}`, art: 'kopf', am, um: '08:30', staerke: 5 }] : [])];
+  }).flat();
+  const lauf = (eintraege) => {
+    const r = k.kopfMittel(eintraege, gruppeVon, heute);
+    return { f: r.fenster[0], text: k.sortenText(r.fenster[0]), mitNsar: r.mitNsar, mitAkut: r.mitAkut, unbekannt: r.unbekannt.length };
+  };
+  return {
+    assKoffein: lauf(tage('ASS Koffein', 10)),
+    paraCoffein: lauf(tage('Paracetamol + Coffein', 10)),
+    paraCoffein9: lauf(tage('Paracetamol + Coffein', 9)),
+    para10: lauf(tage('Paracetamol', 10)),
+    koffein: lauf(tage('Koffein', 10, 1, true)),
+    gemischt: lauf([...tage('Paracetamol Koffein', 6), ...tage('Sumatriptan', 5, 2)]),
+    paraKoffeinKopf: lauf(tage('Paracetamol Koffein', 4, 1, true)),
+    assKoffeinKopf: lauf(tage('ASS Koffein', 4, 1, true)),
+    monat: k.kopfMonate(tage('Paracetamol Koffein', 4, 1, true), {}, gruppeVon, heute).map((x) => x.nsar),
+  };
+});
+check(koffein.assKoffein.f.uebergebrauch && koffein.assKoffein.f.tage.kombi === 10,
+  'zehn Tage „ASS Koffein" erreichen die Grenze der Kombinationsmittel (bisher NSAR, Grenze fünfzehn)');
+check(koffein.paraCoffein.f.uebergebrauch && !koffein.paraCoffein9.f.uebergebrauch && !koffein.para10.f.uebergebrauch,
+  'zehn Tage „Paracetamol + Coffein" ebenso – neun nicht, und Paracetamol allein erst ab fünfzehn');
+check(koffein.paraCoffein.text === '10 Kombinationsmittel' && koffein.paraCoffein.f.nsarKombi === 0,
+  `Paracetamol mit Koffein steht als Kombinationsmittel, nicht als entzündungshemmend („${koffein.paraCoffein.text}")`);
+check(koffein.assKoffein.text === '10 entzündungshemmend, 10 Kombinationsmittel',
+  `ASS mit Koffein ist beides („${koffein.assKoffein.text}")`);
+check(koffein.koffein.f.akut === 0 && !koffein.koffein.f.uebergebrauch && koffein.koffein.mitAkut === 0 && koffein.koffein.unbekannt === 0,
+  'zehn Tage „Koffein" zählen nicht als Akutmittel – und stehen auch nicht unter „nicht zugeordnet"');
+check(koffein.gemischt.f.akut === 11 && koffein.gemischt.f.uebergebrauch,
+  'Paracetamol-Koffein und Triptan durcheinander: elf Tage, zwei Sorten – über der Grenze');
+check(koffein.paraKoffeinKopf.mitNsar === 0 && koffein.paraKoffeinKopf.mitAkut === 4 && koffein.assKoffeinKopf.mitNsar === 4,
+  '„Paracetamol Koffein" steht nicht in den NSAR-Mengen für den Magen, „ASS Koffein" schon');
+check(koffein.monat.every((n) => n === 0), 'auch im Kopfschmerzkalender nicht unter den NSAR');
+
 // Ein tägliches Vorbeugungsmittel bewegt die Akutmittel-Zählung nicht; ein
 // unbekannter Name an Kopfschmerztagen steht mit Namen da – ein unbekanntes
 // Dauermittel an anderen Tagen nicht.

@@ -785,6 +785,21 @@ p { margin: 0 0 8px; }
   padding-left: 10px;
   margin-top: 8px;
 }
+/* „Je nach Form" unter Methylphenidat: eingerückt, damit klar ist, wozu es
+   gehört; lange Präparatnamen dürfen umbrechen (320 px). */
+.mittel-formen {
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+.mittel-formen p { margin: 6px 0; overflow-wrap: anywhere; }
+/* Der Herstellerhinweis zur Massagepistole im Aktivitäts-Bogen. */
+.massage-hinweis {
+  border-left: 2px solid var(--warn);
+  padding-left: 10px;
+  margin-top: 8px;
+}
+.massage-hinweis summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 
 /* ---------- Willkommen ---------- */
 .willkommen { max-width: 480px; margin: 20px auto; }

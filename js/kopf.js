@@ -255,24 +255,39 @@ export function kopfZahlen(eintraege, tage, heute) {
  * Die Klassen von Akutmitteln, die hier auseinandergehalten werden.
  *
  *   nsar       greift den Magen an – die Verbindung zum Bauch
- *   kombi      ASS plus Koffein – für den Magen ein NSAR, für den Kopf die
- *              niedrige Übergebrauchsgrenze der Kombinationsmittel
+ *   kombi      ASS (oder ein anderes NSAR) plus Koffein – für den Magen ein
+ *              NSAR, für den Kopf die niedrige Übergebrauchsgrenze der
+ *              Kombinationsmittel
  *   triptan    das Migränemittel – schont den Magen, Grenze zehn Tage
  *   nichtnsar  Paracetamol, Metamizol – ohne Entzündungshemmung
  *   opioid     Tramadol, Tilidin, Codein – Grenze zehn Tage
  *   gepant     die neuen Anfallsmittel – zählen als Akuttag, ohne eigene Grenze
+ *   kombipara  Paracetamol plus Koffein – für den Kopf ein Kombinationsmittel
+ *              wie kombi (ICHD-3 8.2.5), für den Magen kein NSAR
  *
  * Für die Übergebrauchsregel gelten nsar und nichtnsar als EINE Klasse: die
  * einfachen Schmerzmittel, Grenze fünfzehn Tage – auch mehrere zusammen.
- * „Verschiedene durcheinander" meint Triptan, Kombination, Opioid und
- * einfache Schmerzmittel untereinander, Grenze zehn.
+ * Ebenso kombi und kombipara: die Kombinationsmittel, Grenze zehn. Getrennt
+ * sind die beiden nur für den Magen. „Verschiedene durcheinander" meint
+ * Triptan, Kombination, Opioid und einfache Schmerzmittel untereinander,
+ * Grenze zehn.
  *
- * Vorbeugende Mittel (Gruppe 'prophylaxe') und Magenmittel sind keine Klasse:
- * Sie zählen nirgends als Akutmittel. Welche Gruppe ein Name hat, weiß
- * mittel.js; hierher kommt nur die Kennung.
+ * Vorbeugende Mittel (Gruppe 'prophylaxe'), Koffein als Tablette
+ * ('koffeinmittel'), ADHS-Mittel und Magenmittel sind keine Klasse: Sie
+ * zählen nirgends als Akutmittel. Welche Gruppe ein Name hat, weiß mittel.js;
+ * hierher kommt nur die Kennung.
  */
-const AKUT_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar', 'opioid', 'gepant'];
+const AKUT_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar', 'opioid', 'gepant', 'kombipara'];
 const KLASSE_VON_GRUPPE = Object.fromEntries(AKUT_KLASSEN.map((k) => [k, k]));
+
+/*
+ * Die Sorten, die ein Fenster als Tage je Klasse ausweist (`tage`). kombipara
+ * hat dort keinen eigenen Platz: Für den Kopf ist es ein Kombinationsmittel
+ * und zählt unter kombi mit. So bleibt jede Zahl, die ein Tagebuch ohne
+ * Paracetamol-Koffein-Mittel ergibt, Zeichen für Zeichen die alte (siehe
+ * tests/test-gold.mjs).
+ */
+const SORTEN = AKUT_KLASSEN.filter((k) => k !== 'kombipara');
 
 /**
  * Schwellen für den Übergebrauch, Tage je 30 Tage – nach der internationalen
@@ -285,17 +300,20 @@ export const UEBERGEBRAUCH = { triptan: 10, kombi: 10, opioid: 10, einfach: 15, 
 
 function fensterMittel(alle, kopfTage, grenzen) {
   const drin = (menge) => [...menge].filter((iso) => iso >= grenzen.von && iso <= grenzen.bis);
-  const tage = Object.fromEntries(AKUT_KLASSEN.map((k) => [k, drin(alle[k]).length]));
+  // Für den Kopf jedes Kombinationsmittel, ob mit ASS oder mit Paracetamol.
+  const kombiAlle = new Set([...drin(alle.kombi), ...drin(alle.kombipara)]);
+  const tage = Object.fromEntries(SORTEN.map((k) => [k, k === 'kombi' ? kombiAlle.size : drin(alle[k]).length]));
   const einfach = new Set([...drin(alle.nsar), ...drin(alle.nichtnsar)]);
+  // Für den Magen nur, was ein NSAR enthält – kombipara nicht.
   const nsarKombi = new Set([...drin(alle.nsar), ...drin(alle.kombi)]);
   const akut = new Set();
   AKUT_KLASSEN.forEach((k) => drin(alle[k]).forEach((iso) => akut.add(iso)));
   // Die Klassen, zwischen denen „durcheinander" zählt.
   const gruppen = [
-    einfach.size > 0, tage.kombi > 0, tage.triptan > 0, tage.opioid > 0,
+    einfach.size > 0, kombiAlle.size > 0, tage.triptan > 0, tage.opioid > 0,
   ].filter(Boolean).length;
   const uebergebrauch = tage.triptan >= UEBERGEBRAUCH.triptan
-    || tage.kombi >= UEBERGEBRAUCH.kombi
+    || kombiAlle.size >= UEBERGEBRAUCH.kombi
     || tage.opioid >= UEBERGEBRAUCH.opioid
     || einfach.size >= UEBERGEBRAUCH.einfach
     || (akut.size >= UEBERGEBRAUCH.gemischt && gruppen >= 2);
@@ -314,12 +332,19 @@ function fensterMittel(alle, kopfTage, grenzen) {
   };
 }
 
-/** Die Sorten eines Fensters als Text: „4 Triptan, 5 entzündungshemmend, …". */
+/**
+ * Die Sorten eines Fensters als Text: „4 Triptan, 5 entzündungshemmend, …".
+ *
+ * Kombinationsmittel stehen für sich, ob mit ASS oder mit Paracetamol: Für
+ * den Kopf ist das die Sorte mit der Grenze von zehn Tagen. Eines mit ASS
+ * steht zugleich unter „entzündungshemmend" – für den Magen ist es das auch.
+ */
 export function sortenText(f) {
   if (!f) return '';
   return [
     f.tage.triptan ? `${f.tage.triptan} Triptan` : '',
     f.nsarKombi ? `${f.nsarKombi} entzündungshemmend` : '',
+    f.tage.kombi ? `${f.tage.kombi} Kombinationsmittel` : '',
     f.tage.nichtnsar ? `${f.tage.nichtnsar} ohne Entzündungshemmung` : '',
     f.tage.opioid ? `${f.tage.opioid} Opioid` : '',
     f.tage.gepant ? `${f.tage.gepant} Gepant` : '',
@@ -381,7 +406,7 @@ export function kopfMittel(eintraege, gruppeVon, heute) {
   const fenster = heute
     ? Array.from({ length: KOPF_FENSTER }, (_, i) => fensterMittel(alle, kopfTage, fensterGrenzen(heute, i)))
     : [];
-  const leer = { akut: 0, tage: Object.fromEntries(AKUT_KLASSEN.map((k) => [k, 0])), nsarKombi: 0, einfach: 0, kopfTage: 0, uebergebrauch: false, moh: false };
+  const leer = { akut: 0, tage: Object.fromEntries(SORTEN.map((k) => [k, 0])), nsarKombi: 0, einfach: 0, kopfTage: 0, uebergebrauch: false, moh: false };
   const juengst = fenster[0] || leer;
   const einnahmeFenster = fenster.filter((f) => f.uebergebrauch).length;
   const mohFenster = fenster.filter((f) => f.moh).length;

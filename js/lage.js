@@ -34,6 +34,7 @@
  * Fünf Sätze sind das Höchste. Der sechste würde nicht gelesen, und ein Satz,
  * der nicht gelesen wird, verdrängt einen, der gelesen worden wäre.
  */
+import { ADHS_GRUPPEN } from './mittel.js';
 
 /** Mehr als das liest niemand, und mehr braucht auch niemand. */
 const HOECHSTENS = 5;
@@ -54,7 +55,7 @@ const HOECHSTENS = 5;
  * @param {object[]} [q.spaet]      { name, fensterName, ort }
  * @param {object[]} [q.wechsel]    { name, phase }
  * @param {object} [q.zeit]         aus zeitBild()
- * @param {object[]} [q.mittel]     { name, urteil, satz }
+ * @param {object[]} [q.mittel]     { name, gruppe, urteil, satz }
  * @param {object} [q.versuch]      { was, wort }
  * @param {object} [q.gewicht]      aus gewichtsBild(): { warnung, satz }
  * @param {object} [q.luecke]       { satz }
@@ -187,7 +188,12 @@ export function wasSacheIst(q = {}) {
    * Säureblocker, der nach Wochen nichts tut, spricht gegen die Säure als
    * Ursache – und niemand rechnet das im Kopf nach.
    */
-  const ohneWirkung = (q.mittel || []).find((m) => m.urteil === 'unveraendert');
+  // Nie für ein ADHS-Mittel: Es wird nicht wegen des Bauchs genommen, und
+  // „hat nichts geändert" läse sich wie ein Urteil über das Mittel (siehe
+  // js/ansprechen.js). Dort hat es ohnehin kein Urteil – die Bedingung hält
+  // das auch, falls ein Aufrufer die Zeilen anders zusammenstellt.
+  const ohneWirkung = (q.mittel || []).find((m) => m.urteil === 'unveraendert'
+    && !ADHS_GRUPPEN.includes(m.gruppe));
   if (ohneWirkung && saetze.length < HOECHSTENS) {
     sag('mittel', `${ohneWirkung.name} hat in dieser Zeit nichts geändert. Das `
       + 'ist selbst ein Befund und gehört in die Sprechstunde – nicht als Grund, '
