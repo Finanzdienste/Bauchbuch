@@ -366,6 +366,8 @@ await page.locator('[data-act="sicherung-zu"]').click();
 await page.locator('[data-act="alles-weg"]').click();
 await page.waitForTimeout(300);
 check((await zustand()).eintraege.length === 0, 'Fassung 28: gesichert und gelöscht');
+check((await zustand()).v28Gesagt === true,
+  'nach „Alles löschen" ein neuer Anfang: frühere Einträge, die anders zählen könnten, gibt es nicht mehr');
 await einfuegen(text28);
 let z28 = await zustand();
 const mittel28 = z28.eintraege.find((e) => e.id === 'n1') || {};

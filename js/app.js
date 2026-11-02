@@ -13,7 +13,8 @@
 import * as store from './store.js';
 import {
   fmtDatum, fmtMonat, fmtTag, heuteISO, istISO, istUhr, jetztUhr, KNOPF_TAGESZEIT, knopfTageszeit,
-  monatsRaster, monatsStart, plusMonate, plusTage, tageDazwischen, tageszeitVon, WOCHE_KOPF, zeitpunkt,
+  minutenAmTag, monatsRaster, monatsStart, plusMonate, plusTage, tageDazwischen, tageszeitVon, WOCHE_KOPF,
+  zeitpunkt,
 } from './datum.js';
 import { esc, fmtZahl, kuerze, mehrzahl } from './text.js';
 import {
@@ -5544,9 +5545,49 @@ const mittelImBogen = (m, iso) => iso !== heuteISO() && !TAGESZEITEN.some((x) =>
  */
 const jetztModus = (s, m, iso) => !!s && s.adhsAn === true && iso === heuteISO() && istAdhsMittel(m.mittel);
 
-/** Die Einnahmen eines eigenen Mittels in einer Tagesliste – wie schonEingetragen(). */
-const einnahmenVon = (m, liste) => liste.filter((x) => x.art === 'medikament' && gleichText(x.mittel, m.mittel)
-  && gleichText(x.dosis, m.dosis) && (!m.tageszeit || tageszeitVon(x) === m.tageszeit));
+/*
+ * Die Einnahmen, die im Jetzt-Modus zu diesem Knopf gehören.
+ *
+ * Nicht wie schonEingetragen() über die Tageszeit: Der Jetzt-Eintrag trägt
+ * keine, und die Tageszeit seiner Uhrzeit sagt nichts darüber, welcher Knopf
+ * getippt wurde. Die Morgentablette um 11:20 läge sonst „mittags", passte zu
+ * keinem Knopf, und ein genommenes Mittel stünde weiter als offen da – nach
+ * zwei Stunden trüge ein zweiter Tipp ohne Rückfrage noch eine Einnahme ein.
+ *
+ * Darum zählen Name und Dosis. Gibt es dasselbe Mittel in derselben Dosis
+ * mehrmals unter „Meine Mittel" (morgens und mittags), gehen die Einnahmen
+ * des Tages der Reihe nach an die Knöpfe: die früheste an den frühesten
+ * (morgens, mittags, abends, ohne Tageszeit), überzählige an den letzten.
+ * Welcher Knopf getippt wurde, steht nirgends; im Jetzt-Modus sehen die
+ * Knöpfe ohnehin gleich aus, und die Reihenfolge kommt ohne neues Feld aus.
+ * Nur eine ungefähre Einnahme mit gewählter Tageszeit sagt selbst, wohin sie
+ * gehört, und bekommt zuerst einen Knopf dieser Tageszeit.
+ */
+const RANG_TAGESZEIT = { morgens: 0, mittags: 1, abends: 2 };
+function einnahmenJetzt(m, liste, alle) {
+  const gleich = (x) => gleichText(x.mittel, m.mittel) && gleichText(x.dosis, m.dosis);
+  const nachZeit = (a, b) => minutenAmTag(a.um) - minutenAmTag(b.um);
+  const einnahmen = liste.filter((x) => x.art === 'medikament' && gleich(x)).sort(nachZeit);
+  const zwillinge = alle.filter(gleich);
+  if (!zwillinge.some((x) => x.id !== m.id)) return einnahmen;
+  const rang = (v) => (v.tageszeit in RANG_TAGESZEIT ? RANG_TAGESZEIT[v.tageszeit] : 3);
+  const reihe = [...zwillinge].sort((a, b) => rang(a) - rang(b));
+  const zu = new Map(reihe.map((v) => [v.id, []]));
+  const geben = (knoepfe, e) => {
+    const frei = knoepfe.find((v) => !zu.get(v.id).length) || knoepfe[knoepfe.length - 1];
+    zu.get(frei.id).push(e);
+  };
+  const genau = [];
+  einnahmen.forEach((e) => {
+    const eigene = e.ungefaehr && KNOPF_TAGESZEIT[e.tageszeit]
+      ? reihe.filter((v) => v.tageszeit === e.tageszeit) : [];
+    if (eigene.length) geben(eigene, e);
+    else genau.push(e);
+  });
+  genau.forEach((e) => geben(reihe, e));
+  const meine = zu.get(m.id) || [];
+  return einnahmen.filter((e) => meine.includes(e));
+}
 
 /** Die letzte Einnahme eines Mittels (nach Namen, jede Dosis) – oder null. */
 function letzteEinnahme(s, name) {
@@ -5569,7 +5610,7 @@ function einnahmeFrage(s, m) {
 /** Ein Knopf in der Reihe „Meine Mittel" auf dem Tag-Reiter. */
 function standardKnopf(m, liste, iso, alle, s = null) {
   if (jetztModus(s, m, iso)) {
-    const schon = einnahmenVon(m, liste);
+    const schon = einnahmenJetzt(m, liste, alle);
     const zeiten = schon.length > 2 ? `${schon.length}×, zuletzt ${schon[schon.length - 1].um}`
       : schon.map((x) => x.um).join(', ');
     const name = `${kuerze(m.mittel, 18)}${m.dosis ? ` ${m.dosis}` : ''}`;

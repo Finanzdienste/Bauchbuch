@@ -7,9 +7,11 @@
  *   1. Ohne Schalter nichts Neues außer dem, was für alle gilt.
  *   2. Das Angebot kommt einmal; „Nein danke" ist endgültig, „Einschalten"
  *      setzt den Schalter.
- *   3. „jetzt genommen": ein Tipp, genaue Uhrzeit, Häkchen mit Uhrzeit,
- *      Rückfrage nur unter zwei Stunden, „Uhrzeit ändern". Ohne Schalter und
- *      an anderen Tagen der Weg der Fassung 27.
+ *   3. „jetzt genommen": ein Tipp, genaue Uhrzeit, Häkchen mit Uhrzeit – auch
+ *      bei einem Mittel mit üblicher Tageszeit, das zu einer anderen genommen
+ *      wird, und bei demselben Mittel zweimal unter „Meine Mittel". Rückfrage
+ *      nur unter zwei Stunden, „Uhrzeit ändern". Ohne Schalter und an anderen
+ *      Tagen der Weg der Fassung 27.
  *   4. „Heute keins" nur bei Stimulanzien, mit Grund, ×, „Rückgängig" und
  *      Aufhebung durch eine Einnahme.
  *   5. „Zum Essen?" erscheint, verschwindet nach dem Tipp, wenn eine Mahlzeit
@@ -251,6 +253,105 @@ const NEU = ['.jetzt-zeile', '.adhs-tag', '.angebot', '[data-act="adhs-pause"]',
   const e = (await speicher(page)).eintraege[0];
   check(e && e.ungefaehr === true && e.tageszeit === 'morgens' && e.um === '08:00' && e.form === 'pellet',
     `und trägt wie bisher „morgens" ein, mit der Form (${e && `${e.um} ${e.tageszeit} ${e.form}`})`);
+  await ctx.close();
+}
+
+/*
+ * Das Häkchen bei einem Mittel mit üblicher Tageszeit. Der Tipp speichert nur
+ * die Uhrzeit, keine Tageszeit – das Häkchen gehört trotzdem an den Knopf,
+ * auch wenn die Uhr schon in einer anderen Tageszeit steht. Sonst wirkte ein
+ * genommenes Mittel noch offen, und nach zwei Stunden trüge ein zweiter Tipp
+ * ohne Rückfrage noch eine Einnahme ein.
+ */
+const knopfText = async (page, id) => (await page.locator(`[data-act="standard-eintragen"][data-id="${id}"]`).innerText()).trim();
+const knopfSagt = (page, id) => page.locator(`[data-act="standard-eintragen"][data-id="${id}"]`).getAttribute('aria-label');
+{
+  // „morgens", genommen um 11:20 – die Uhr steht schon auf „mittags".
+  const { ctx, page } = await iphone({
+    adhsAn: true,
+    eintraege: [],
+    standardMittel: [{ id: 's1', mittel: 'Ritalin Adult', dosis: '20 mg', tageszeit: 'morgens', bezug: null }],
+  }, um('11:20'));
+  check(await knopfText(page, 's1') === 'Ritalin Adult 20 mg · jetzt', `vorher „· jetzt" (${await knopfText(page, 's1')})`);
+  await tipp(page, '[data-act="standard-eintragen"][data-id="s1"]');
+  const e = (await speicher(page)).eintraege;
+  check(e.length === 1 && e[0].um === '11:20' && !('tageszeit' in e[0]), 'eingetragen um 11:20, ohne Tageszeit');
+  check(await knopfText(page, 's1') === 'Ritalin Adult 20 mg · 11:20 ✓',
+    `„morgens" um 11:20 genommen: das Häkchen steht am Knopf (${await knopfText(page, 's1')})`);
+  check(await knopfSagt(page, 's1') === 'Ritalin Adult 20 mg – heute um 11:20 eingetragen, noch eine Einnahme jetzt eintragen',
+    `und die Ansage sagt es (${await knopfSagt(page, 's1')})`);
+  await ctx.close();
+}
+{
+  // „mittags", genommen um 15:10 – die Uhr steht schon auf „abends".
+  const { ctx, page } = await iphone({
+    adhsAn: true,
+    eintraege: [],
+    standardMittel: [{ id: 's1', mittel: 'Medikinet', dosis: '5 mg', tageszeit: 'mittags', bezug: null }],
+  }, um('15:10'));
+  await tipp(page, '[data-act="standard-eintragen"][data-id="s1"]');
+  check(await knopfText(page, 's1') === 'Medikinet 5 mg · 15:10 ✓',
+    `„mittags" um 15:10 genommen: Häkchen (${await knopfText(page, 's1')})`);
+  await ctx.close();
+}
+{
+  // „abends", genommen nach Mitternacht – eine Uhrzeit ohne Tageszeit.
+  const { ctx, page } = await iphone({
+    adhsAn: true,
+    eintraege: [],
+    standardMittel: [{ id: 's1', mittel: 'Strattera', dosis: '25 mg', tageszeit: 'abends', bezug: null }],
+  }, um('00:40'));
+  await tipp(page, '[data-act="standard-eintragen"][data-id="s1"]');
+  check(await knopfText(page, 's1') === 'Strattera 25 mg · 00:40 ✓',
+    `„abends" um 00:40 genommen: Häkchen (${await knopfText(page, 's1')})`);
+  await ctx.close();
+}
+{
+  // Dasselbe Mittel zweimal unter „Meine Mittel": morgens und mittags. Die
+  // Einnahmen gehen der Reihe nach an die Knöpfe – auch eine Mittagsgabe, die
+  // schon vor elf genommen wird.
+  const { ctx, page } = await iphone({
+    adhsAn: true,
+    eintraege: [],
+    standardMittel: [
+      { id: 's1', mittel: 'Methylphenidat', dosis: '10 mg', tageszeit: 'morgens', bezug: null },
+      { id: 's2', mittel: 'Methylphenidat', dosis: '10 mg', tageszeit: 'mittags', bezug: null },
+    ],
+  }, um('06:50'));
+  await tipp(page, '[data-act="standard-eintragen"][data-id="s1"]');
+  check(await knopfText(page, 's1') === 'Methylphenidat 10 mg · 06:50 ✓' && await knopfText(page, 's2') === 'Methylphenidat 10 mg · jetzt',
+    `nach der ersten Einnahme: Häkchen am ersten Knopf, der zweite offen (${await knopfText(page, 's1')} | ${await knopfText(page, 's2')})`);
+  await page.clock.setFixedTime(um('10:55'));
+  await tab(page, 'heute');
+  await tipp(page, '[data-act="standard-eintragen"][data-id="s2"]');
+  check((await speicher(page)).eintraege.length === 2, 'die zweite Einnahme ist eingetragen');
+  check(await knopfText(page, 's1') === 'Methylphenidat 10 mg · 06:50 ✓',
+    `der erste Knopf behält seine Zeit (${await knopfText(page, 's1')})`);
+  check(await knopfText(page, 's2') === 'Methylphenidat 10 mg · 10:55 ✓',
+    `der zweite bekommt das Häkchen – um 10:55, obwohl die Uhr noch „morgens" sagt (${await knopfText(page, 's2')})`);
+  check(await knopfSagt(page, 's2') === 'Methylphenidat 10 mg – heute um 10:55 eingetragen, noch eine Einnahme jetzt eintragen',
+    `mit passender Ansage (${await knopfSagt(page, 's2')})`);
+  await ctx.close();
+}
+{
+  // Eine ungefähr eingetragene Einnahme („mittags" gewählt, etwa noch ohne
+  // Schalter über den Knopf) bleibt beim Knopf ihrer Tageszeit; eine genaue
+  // danach geht an den freien Morgenknopf.
+  const { ctx, page } = await iphone({
+    adhsAn: true,
+    eintraege: [
+      { id: 'u1', art: 'medikament', am: HEUTE, um: '12:30', ungefaehr: true, tageszeit: 'mittags', mittel: 'Medikinet adult', dosis: '10 mg' },
+    ],
+    standardMittel: [
+      { id: 's1', mittel: 'Medikinet adult', dosis: '10 mg', tageszeit: 'morgens', bezug: null },
+      { id: 's2', mittel: 'Medikinet adult', dosis: '10 mg', tageszeit: 'mittags', bezug: null },
+    ],
+  }, um('14:40'));
+  check(await knopfText(page, 's1') === 'Medikinet adult 10 mg · jetzt' && await knopfText(page, 's2') === 'Medikinet adult 10 mg · 12:30 ✓',
+    `ungefähr „mittags": Häkchen am Mittagsknopf (${await knopfText(page, 's1')} | ${await knopfText(page, 's2')})`);
+  await tipp(page, '[data-act="standard-eintragen"][data-id="s1"]');
+  check(await knopfText(page, 's1') === 'Medikinet adult 10 mg · 14:40 ✓' && await knopfText(page, 's2') === 'Medikinet adult 10 mg · 12:30 ✓',
+    `die genaue danach am freien Knopf (${await knopfText(page, 's1')} | ${await knopfText(page, 's2')})`);
   await ctx.close();
 }
 

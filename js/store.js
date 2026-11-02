@@ -360,6 +360,17 @@ const geraetBehalten = (dazu) => { GERAETEBEZOGEN.forEach((k) => { dazu[k] = zus
 
 const klon = (o) => JSON.parse(JSON.stringify(o));
 
+/*
+ * Ein Stand, der hier neu anfängt. Die Karte „Was sich an deinen Zahlen
+ * geändert hat" erzählt von Zahlen, die sich mit der Fassung 28 verschoben
+ * haben – wer erst jetzt anfängt, hatte nie andere, und für ihn wäre jeder
+ * ihrer Sätze falsch. Darum gilt sie bei einem neuen Stand als gesagt. Ein
+ * älterer Stand im Speicher trägt den Schlüssel nicht und behält die Vorgabe
+ * false; kommen ältere Einträge über eine Sicherung dazu, siehe
+ * zusammenfuehren().
+ */
+const neuerStand = () => ({ ...klon(VORGABE), v28Gesagt: true });
+
 /**
  * Jede Idee bekommt ihr eigenes `geschickt`.
  *
@@ -383,7 +394,7 @@ const hoerer = new Set();
 function laden() {
   try {
     const roh = localStorage.getItem(KEY);
-    if (!roh) return klon(VORGABE);
+    if (!roh) return neuerStand();
     const gelesen = JSON.parse(roh);
     const s = Object.assign(klon(VORGABE), gelesen);
     // Wer schon etwas eingetragen hat, hat die Begrüßung hinter sich – auch
@@ -411,7 +422,8 @@ function laden() {
       ? s.wechselGelesen.filter((x) => typeof x === 'string') : [];
     return s;
   } catch {
-    return klon(VORGABE);
+    // Unlesbar oder gar kein Speicher: Auch das ist ein neuer Anfang.
+    return neuerStand();
   }
 }
 
@@ -1844,6 +1856,17 @@ function zusammenfuehren(hier, dazu) {
   EINSTELLUNGEN.forEach((k) => {
     if (gleichWie(hier[k], VORGABE[k])) neu[k] = dazu[k];
   });
+  /*
+   * Die Karte zur Fassung 28 gilt wieder, wenn von dort Einträge kommen, die
+   * hier noch fehlen, und dort die Karte nicht gelesen ist – eine Sicherung
+   * der Fassung 27 (ohne den Schlüssel, also false) oder ein Stand aus Safari,
+   * auf dem sie noch wartet. Sonst bliebe sie auf einem neu angelegten Stand
+   * (siehe neuerStand) für immer weg, obwohl jetzt frühere Einträge da sind,
+   * die anders zählen als vorher. Wer nur die eigenen Einträge noch einmal
+   * einliest, bekommt sie nicht noch einmal.
+   */
+  const schonHier = new Set(hier.eintraege.map((e) => e.id));
+  if (dazu.v28Gesagt !== true && dazu.eintraege.some((e) => !schonHier.has(e.id))) neu.v28Gesagt = false;
   neu.begruesst = true;
   return neu;
 }
@@ -1924,7 +1947,9 @@ export function umzugGeholtMerken() {
 }
 
 export function allesLoeschen() {
-  zustand = klon(VORGABE);
+  // Ein neuer Anfang, auch für die Karte zur Fassung 28 (siehe neuerStand):
+  // Frühere Einträge, die anders zählen könnten, gibt es danach nicht mehr.
+  zustand = neuerStand();
   // Die Begrüßung nicht noch einmal: Wer gerade bewusst alles gelöscht hat,
   // weiß, was die App ist.
   zustand.begruesst = true;

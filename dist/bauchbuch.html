@@ -5618,6 +5618,17 @@ const geraetBehalten = (dazu) => { GERAETEBEZOGEN.forEach((k) => { dazu[k] = zus
 
 const klon = (o) => JSON.parse(JSON.stringify(o));
 
+/*
+ * Ein Stand, der hier neu anfängt. Die Karte „Was sich an deinen Zahlen
+ * geändert hat" erzählt von Zahlen, die sich mit der Fassung 28 verschoben
+ * haben – wer erst jetzt anfängt, hatte nie andere, und für ihn wäre jeder
+ * ihrer Sätze falsch. Darum gilt sie bei einem neuen Stand als gesagt. Ein
+ * älterer Stand im Speicher trägt den Schlüssel nicht und behält die Vorgabe
+ * false; kommen ältere Einträge über eine Sicherung dazu, siehe
+ * zusammenfuehren().
+ */
+const neuerStand = () => ({ ...klon(VORGABE), v28Gesagt: true });
+
 /**
  * Jede Idee bekommt ihr eigenes `geschickt`.
  *
@@ -5641,7 +5652,7 @@ const hoerer = new Set();
 function laden() {
   try {
     const roh = localStorage.getItem(KEY);
-    if (!roh) return klon(VORGABE);
+    if (!roh) return neuerStand();
     const gelesen = JSON.parse(roh);
     const s = Object.assign(klon(VORGABE), gelesen);
     // Wer schon etwas eingetragen hat, hat die Begrüßung hinter sich – auch
@@ -5669,7 +5680,8 @@ function laden() {
       ? s.wechselGelesen.filter((x) => typeof x === 'string') : [];
     return s;
   } catch {
-    return klon(VORGABE);
+    // Unlesbar oder gar kein Speicher: Auch das ist ein neuer Anfang.
+    return neuerStand();
   }
 }
 
@@ -7102,6 +7114,17 @@ function zusammenfuehren(hier, dazu) {
   EINSTELLUNGEN.forEach((k) => {
     if (gleichWie(hier[k], VORGABE[k])) neu[k] = dazu[k];
   });
+  /*
+   * Die Karte zur Fassung 28 gilt wieder, wenn von dort Einträge kommen, die
+   * hier noch fehlen, und dort die Karte nicht gelesen ist – eine Sicherung
+   * der Fassung 27 (ohne den Schlüssel, also false) oder ein Stand aus Safari,
+   * auf dem sie noch wartet. Sonst bliebe sie auf einem neu angelegten Stand
+   * (siehe neuerStand) für immer weg, obwohl jetzt frühere Einträge da sind,
+   * die anders zählen als vorher. Wer nur die eigenen Einträge noch einmal
+   * einliest, bekommt sie nicht noch einmal.
+   */
+  const schonHier = new Set(hier.eintraege.map((e) => e.id));
+  if (dazu.v28Gesagt !== true && dazu.eintraege.some((e) => !schonHier.has(e.id))) neu.v28Gesagt = false;
   neu.begruesst = true;
   return neu;
 }
@@ -7182,7 +7205,9 @@ function umzugGeholtMerken() {
 }
 
 function allesLoeschen() {
-  zustand = klon(VORGABE);
+  // Ein neuer Anfang, auch für die Karte zur Fassung 28 (siehe neuerStand):
+  // Frühere Einträge, die anders zählen könnten, gibt es danach nicht mehr.
+  zustand = neuerStand();
   // Die Begrüßung nicht noch einmal: Wer gerade bewusst alles gelöscht hat,
   // weiß, was die App ist.
   zustand.begruesst = true;
@@ -24044,9 +24069,49 @@ const mittelImBogen = (m, iso) => iso !== heuteISO() && !TAGESZEITEN.some((x) =>
  */
 const jetztModus = (s, m, iso) => !!s && s.adhsAn === true && iso === heuteISO() && istAdhsMittel(m.mittel);
 
-/** Die Einnahmen eines eigenen Mittels in einer Tagesliste – wie schonEingetragen(). */
-const einnahmenVon = (m, liste) => liste.filter((x) => x.art === 'medikament' && gleichText(x.mittel, m.mittel)
-  && gleichText(x.dosis, m.dosis) && (!m.tageszeit || tageszeitVon(x) === m.tageszeit));
+/*
+ * Die Einnahmen, die im Jetzt-Modus zu diesem Knopf gehören.
+ *
+ * Nicht wie schonEingetragen() über die Tageszeit: Der Jetzt-Eintrag trägt
+ * keine, und die Tageszeit seiner Uhrzeit sagt nichts darüber, welcher Knopf
+ * getippt wurde. Die Morgentablette um 11:20 läge sonst „mittags", passte zu
+ * keinem Knopf, und ein genommenes Mittel stünde weiter als offen da – nach
+ * zwei Stunden trüge ein zweiter Tipp ohne Rückfrage noch eine Einnahme ein.
+ *
+ * Darum zählen Name und Dosis. Gibt es dasselbe Mittel in derselben Dosis
+ * mehrmals unter „Meine Mittel" (morgens und mittags), gehen die Einnahmen
+ * des Tages der Reihe nach an die Knöpfe: die früheste an den frühesten
+ * (morgens, mittags, abends, ohne Tageszeit), überzählige an den letzten.
+ * Welcher Knopf getippt wurde, steht nirgends; im Jetzt-Modus sehen die
+ * Knöpfe ohnehin gleich aus, und die Reihenfolge kommt ohne neues Feld aus.
+ * Nur eine ungefähre Einnahme mit gewählter Tageszeit sagt selbst, wohin sie
+ * gehört, und bekommt zuerst einen Knopf dieser Tageszeit.
+ */
+const RANG_TAGESZEIT = { morgens: 0, mittags: 1, abends: 2 };
+function einnahmenJetzt(m, liste, alle) {
+  const gleich = (x) => gleichText(x.mittel, m.mittel) && gleichText(x.dosis, m.dosis);
+  const nachZeit = (a, b) => minutenAmTag(a.um) - minutenAmTag(b.um);
+  const einnahmen = liste.filter((x) => x.art === 'medikament' && gleich(x)).sort(nachZeit);
+  const zwillinge = alle.filter(gleich);
+  if (!zwillinge.some((x) => x.id !== m.id)) return einnahmen;
+  const rang = (v) => (v.tageszeit in RANG_TAGESZEIT ? RANG_TAGESZEIT[v.tageszeit] : 3);
+  const reihe = [...zwillinge].sort((a, b) => rang(a) - rang(b));
+  const zu = new Map(reihe.map((v) => [v.id, []]));
+  const geben = (knoepfe, e) => {
+    const frei = knoepfe.find((v) => !zu.get(v.id).length) || knoepfe[knoepfe.length - 1];
+    zu.get(frei.id).push(e);
+  };
+  const genau = [];
+  einnahmen.forEach((e) => {
+    const eigene = e.ungefaehr && KNOPF_TAGESZEIT[e.tageszeit]
+      ? reihe.filter((v) => v.tageszeit === e.tageszeit) : [];
+    if (eigene.length) geben(eigene, e);
+    else genau.push(e);
+  });
+  genau.forEach((e) => geben(reihe, e));
+  const meine = zu.get(m.id) || [];
+  return einnahmen.filter((e) => meine.includes(e));
+}
 
 /** Die letzte Einnahme eines Mittels (nach Namen, jede Dosis) – oder null. */
 function letzteEinnahme(s, name) {
@@ -24069,7 +24134,7 @@ function einnahmeFrage(s, m) {
 /** Ein Knopf in der Reihe „Meine Mittel" auf dem Tag-Reiter. */
 function standardKnopf(m, liste, iso, alle, s = null) {
   if (jetztModus(s, m, iso)) {
-    const schon = einnahmenVon(m, liste);
+    const schon = einnahmenJetzt(m, liste, alle);
     const zeiten = schon.length > 2 ? `${schon.length}×, zuletzt ${schon[schon.length - 1].um}`
       : schon.map((x) => x.um).join(', ');
     const name = `${kuerze(m.mittel, 18)}${m.dosis ? ` ${m.dosis}` : ''}`;

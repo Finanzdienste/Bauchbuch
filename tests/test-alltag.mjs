@@ -49,11 +49,12 @@ async function iphone(stand, zeit, { versteckt = false, nachNeuladen = null } = 
     viewport: SCHMAL, userAgent: KENNUNG, serviceWorkers: 'block', hasTouch: true, isMobile: true,
     timezoneId: 'Europe/Berlin', locale: 'de-DE',
   });
+  // stand === null: ein leerer Speicher, wie nach dem ersten Öffnen.
   await ctx.addInitScript(([k, s, v]) => {
     Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true, configurable: true });
     try { if (s && !localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify(s)); } catch { /* about:blank */ }
     if (v) Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
-  }, [KEY, { ...GRUND, ...stand }, versteckt]);
+  }, [KEY, stand === null ? null : { ...GRUND, ...stand }, versteckt]);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
   await page.clock.setFixedTime(zeit);
@@ -237,6 +238,106 @@ const speicher = (page) => page.evaluate(async (k) => {
   check((await speicher(page)).v28Gesagt === true, 'und merkt es sich');
   await page.reload({ waitUntil: 'networkidle' });
   check(await page.locator('.v28-karte').count() === 0, 'sie kommt nicht wieder');
+  await ctx.close();
+}
+
+/*
+ * Wer erst mit der Fassung 28 anfängt, hatte nie andere Zahlen – die Karte
+ * erzählte von einer Änderung, die es für ihn nie gab. Kommen ältere Einträge
+ * über eine Sicherung dazu, gilt sie wieder.
+ */
+const muster = (page) => tipp(page, '[data-act="tab"][data-tab="muster"]');
+const karteDa = async (page) => (await page.locator('.v28-karte').count()) === 1;
+const einlesen = async (page, stand) => {
+  await tipp(page, '[data-act="tab"][data-tab="mehr"]');
+  await tipp(page, '[data-act="einfuegen-auf"]');
+  await page.locator('[data-act="einfuegen-text"]').fill(JSON.stringify(stand));
+  await tipp(page, '[data-act="einfuegen-los"]');
+};
+const kopfAm = (id, am, arten) => ({ id, art: 'kopf', am, um: '10:00', staerke: 4, kopfArten: arten });
+// Eine Sicherung der Fassung 27: ohne den Schlüssel v28Gesagt.
+const sicherung27 = {
+  begruesst: true,
+  eintraege: [
+    kopfAm('alt1', '2026-05-20', ['licht']),
+    { id: 'alt2', art: 'medikament', am: '2026-05-21', um: '07:30', mittel: 'Elvanse', dosis: '30 mg' },
+  ],
+  tage: {},
+};
+/** Neu angefangen: leerer Speicher, „Anfangen", ein Kopfschmerz mit „Licht stört". */
+async function neuMitKopf() {
+  const { ctx, page } = await iphone(null, um('12:00'));
+  await tipp(page, '[data-act="los"]');
+  await tipp(page, '[data-act="neu"][data-art="kopf"]');
+  await tipp(page, '[data-act="staerke"][data-n="4"]');
+  await tipp(page, '[data-act="kopfart"][data-id="lichtscheu"]');
+  await tipp(page, '[data-act="bogen-speichern"]');
+  return { ctx, page };
+}
+{
+  const { ctx, page } = await neuMitKopf();
+  // Dazu ein Tag nur mit einem ADHS-Mittel – auch der wäre ein Punkt der Karte.
+  await page.evaluate(async () => {
+    const st = await import('/js/store.js');
+    st.eintragen({ art: 'medikament', am: '2026-05-30', um: '07:40', mittel: 'Concerta', dosis: '18 mg' });
+  });
+  const s = await speicher(page);
+  check(s.eintraege.length === 2 && s.v28Gesagt === true,
+    `ein neuer Stand gilt als gesagt (${s.eintraege.length} Einträge, v28Gesagt ${s.v28Gesagt})`);
+  await muster(page);
+  check(!(await karteDa(page)), 'neu angefangen: trotz Kopfschmerz und Tag nur mit Mittel keine Hinweiskarte');
+  await page.reload({ waitUntil: 'networkidle' });
+  await muster(page);
+  check(!(await karteDa(page)), 'auch nach dem Neuladen nicht');
+  // Eine ältere Sicherung kommt dazu: Jetzt gibt es frühere Einträge.
+  await einlesen(page, sicherung27);
+  const z = await speicher(page);
+  check(z.eintraege.length === 4 && z.v28Gesagt === false,
+    `eine Sicherung der Fassung 27 zusammengeführt: die Karte gilt wieder (${z.eintraege.length}, ${z.v28Gesagt})`);
+  await muster(page);
+  check(await karteDa(page) && (await page.locator('.v28-karte').innerText()).includes('„Licht“ und „Lärm“ jetzt getrennt'),
+    'die Hinweiskarte steht da, mit Licht und Lärm');
+  await ctx.close();
+}
+{
+  // Ein neues Telefon, die Sicherung vom alten eingelesen: ersetzt, und die
+  // Karte gilt wie dort.
+  const { ctx, page } = await iphone(null, um('12:00'));
+  await tipp(page, '[data-act="los"]');
+  await einlesen(page, sicherung27);
+  check((await speicher(page)).v28Gesagt === false, 'leer, dann eine Sicherung der Fassung 27: die Karte gilt');
+  await muster(page);
+  check(await karteDa(page), 'und steht da');
+  await ctx.close();
+}
+{
+  // Ein Stand der Fassung 27 im Speicher – ohne den Schlüssel.
+  const { ctx, page } = await iphone({
+    v28Gesagt: undefined, tab: 'muster', eintraege: [kopfAm('k1', VORTAG, ['licht'])],
+  }, um('12:00'));
+  check(await karteDa(page) && (await page.locator('.v28-karte').innerText()).includes('„Licht“ und „Lärm“ jetzt getrennt'),
+    'ein Stand der Fassung 27 mit Kopfschmerz: die Hinweiskarte steht da');
+  // Aus dem geladenen Zustand: Geschrieben wird erst, wenn sich etwas ändert.
+  const geladen = await page.evaluate(async () => (await import('/js/store.js')).zustandLesen().v28Gesagt);
+  check(geladen === false, `v28Gesagt ist dort false (${geladen})`);
+  await ctx.close();
+}
+{
+  // Neu angefangen, dann Sicherungen der Fassung 28: gelesen bleibt gelesen,
+  // Einträge, die schon da sind, ändern nichts – eine ungelesene mit neuen
+  // Einträgen bringt die Karte.
+  const { ctx, page } = await neuMitKopf();
+  const hier = (await speicher(page)).eintraege[0];
+  await einlesen(page, { ...sicherung27, v28Gesagt: true });
+  check((await speicher(page)).v28Gesagt === true, 'eine Sicherung, in der die Karte gelesen ist: bleibt gesagt');
+  await einlesen(page, { begruesst: true, eintraege: [hier], tage: {} });
+  check((await speicher(page)).v28Gesagt === true, 'eine Sicherung der Fassung 27 nur mit Einträgen, die schon da sind: bleibt gesagt');
+  await einlesen(page, {
+    begruesst: true, v28Gesagt: false, eintraege: [kopfAm('alt3', '2026-05-18', ['pochend'])], tage: {},
+  });
+  check((await speicher(page)).v28Gesagt === false, 'eine ungelesene mit neuen Einträgen: die Karte gilt wieder');
+  await muster(page);
+  check(await karteDa(page), 'und steht da');
   await ctx.close();
 }
 

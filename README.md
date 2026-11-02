@@ -988,8 +988,11 @@ jedem Methylphenidat seine Form.
   ist. Nie ein Satz, dass ein Mittel noch fehlt; keine Farbe, kein Alarm,
   keine Erinnerung.
 * **„jetzt genommen“** unter „Meine Mittel“: ein Tipp, die genaue Uhrzeit,
-  danach „Elvanse · 07:40 ✓“. Liegt dieselbe Einnahme weniger als zwei Stunden
-  zurück, fragt der Knopf einmal nach.
+  danach „Elvanse · 07:40 ✓“ – auch bei einem Mittel mit „morgens“, das erst
+  um 11:20 genommen wird. Steht dasselbe Mittel in derselben Dosis zweimal da
+  (etwa morgens und mittags), gehen die Einnahmen des Tages der Reihe nach an
+  die Knöpfe, die früheste an den frühesten. Liegt dieselbe Einnahme weniger
+  als zwei Stunden zurück, fragt der Knopf einmal nach.
 * **„Heute keins“** (an vergangenen Tagen „Keins genommen“) nur bei
   Stimulanzien, mit Grund: geplant, vergessen, wegen Beschwerden. Ein Tag
   „wegen Beschwerden“ zählt in keinem Vergleich – sonst sähe das Mittel besser
@@ -1081,7 +1084,9 @@ Die Fassung 28 rechnet an wenigen Stellen anders als die Fassung 27 – auch
 ohne Schalter, weil es um ehrliche Zählung geht. Wer davon betroffen ist,
 sieht oben auf „Muster“ einmal die Karte „Was sich an deinen Zahlen geändert
 hat“ mit genau den Punkten, die auf das eigene Tagebuch zutreffen, bis
-„Gelesen“.
+„Gelesen“. Wer erst mit der Fassung 28 anfängt oder alles gelöscht hat,
+hatte nie andere Zahlen und bekommt sie nicht – außer, es kommen über eine
+Sicherung ältere Einträge dazu, deren Karte dort noch nicht gelesen war.
 
 * **K1 – ein Tag nur mit einem ADHS-Mittel ist eine Lücke.** Ein Mittel bei
   ADHS (Methylphenidat, Lisdexamfetamin, Dexamfetamin, Atomoxetin, Guanfacin –
@@ -2295,9 +2300,9 @@ den Rückgabewert.
 | `test-gold.mjs` | 34 Rechnungen über feste Tagebücher ohne alles Neue ergeben Zeichen für Zeichen, was die Fassung 27 gerechnet hat (`tests/gold/`) – im Bericht nur die langen Zeilen umbrochen |
 | `test-notiert.mjs` | ein Tag nur mit einem ADHS-Mittel, einer Schiene oder einem Tag ohne Mittel ist eine Lücke, einer nur mit irgendeinem anderen bekannten Mittel nicht; dasselbe Tagebuch mit einem ADHS-Mittel an jedem Tag und allen neuen Angaben ergibt dieselben Zahlen |
 | `test-adhs-wissen.mjs` | Namen zur Gruppe, Formen aus dem Namen, Koffein-Regel, neue Säureblocker-Namen, jedes Paar an und aus – und kein Text mit Dosis oder Empfehlung |
-| `test-adhs-ui.mjs` | als iPhone: ohne Schalter nichts Neues außer dem, was für alle gilt; Angebot einmal, „jetzt genommen“, „Heute keins“ nur bei Stimulanzien, „Zum Essen?“ bis eine Stunde danach, nie ein „noch nicht“ |
+| `test-adhs-ui.mjs` | als iPhone: ohne Schalter nichts Neues außer dem, was für alle gilt; Angebot einmal, „jetzt genommen“ mit Häkchen auch zu anderer Tageszeit und bei zwei gleichen Mitteln, „Heute keins“ nur bei Stimulanzien, „Zum Essen?“ bis eine Stunde danach, nie ein „noch nicht“ |
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; der Massagetext auch ohne Schalter; kein Angebot durch Nackenschmerz |
-| `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt |
+| `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
 | `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste |
 | `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll |
 | `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, der Filter fragt den Vortag |
