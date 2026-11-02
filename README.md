@@ -196,7 +196,8 @@ Einlesen nicht als leer.
 
 **Aktivitäten.** Was man gemacht hat oder wo man war – Gym/Krafttraining,
 Laufen, Radfahren, Schwimmen, Spazieren, Yoga/Dehnen, Arbeit, Unterwegs/Reise,
-Feier/Ausgehen, Sauna –, weil das Bauch und Kopf aus dem Gleichgewicht
+Feier/Ausgehen, Sauna, Massagepistole, Massage/Physio, Wärme –, weil das Bauch
+und Kopf aus dem Gleichgewicht
 bringen kann und in keiner Mahlzeit steht. Der Knopf „Aktivität" (🏃) öffnet
 einen Bogen mit diesen Marken, nach Häufigkeit sortiert, mehrere zugleich
 wählbar („Unterwegs" und „Feier" am selben Abend sind ein Eintrag). Was fehlt,
@@ -286,6 +287,21 @@ Listen zusammen, über die Kennung. Ein Tagebuch, in dem bisher nur eigene
 Aktivitäten stehen, gilt beim Einlesen nicht als leer. Ältere Stände und
 Sicherungen laden unverändert.
 
+**Massagepistole, Massage/Physio und Wärme** sind Aktivitäten mit einer
+Besonderheit: Sie zählen **nur für den Kopf**. Wärme legt man oft gerade
+wegen Bauchschmerzen auf – eine Bauch-Zeile danach sähe aus wie eine Wirkung
+und wäre doch nur der Anlass. Unter „Was du gemacht hast“ stehen sie deshalb
+nur mit der Kopfzeile, sie zählen in keinen Bauch-Vergleich der übrigen
+Aktivitäten (auch nicht als Tag „mit irgendeiner Aktivität“), und beim Kopf
+steht dabei, dass massiert oder gewärmt wird, wenn sich etwas anbahnt – ein
+Kopfschmerz danach kann schon unterwegs gewesen sein. Wer eine eigene
+Aktivität gleichen Namens hat, behält sie mit allen Einträgen; zusammengelegt
+wird nichts. Im Bogen steht, sobald die Massagepistole gewählt ist, was
+Hersteller dazu schreiben – nicht an Kopf, Gesicht, Kehle, Hals oder Nacken
+und nicht direkt auf Knochen –, und unter „Mehr dazu“, in welchen Lagen sie
+eine ärztliche Rückfrage vorab nennen und welche Zeichen danach ein Notfall
+sind. Das gilt für alle, ohne Schalter.
+
 **Verlauf.** Ein Balken je Tag über 14, 30 oder 90 Tage, ein Monatskalender
 und vier Zahlen: notierte Tage, Anteil mit Beschwerden, mittlere Stärke,
 beschwerdefreie Tage in Folge. Darüber die **Richtung**: die letzten vierzehn
@@ -308,7 +324,9 @@ Warnzeichen, die Einordnung des Bildes, die
 **Stufenplan**, der **Provokationstest**, die
 Bilanz **nach Wirkweise**, dann die nach einzelnen Zutaten, das **Ansprechen
 auf die Mittel**, Tageszeit, Beschwerdeart, Stuhlgang, **Kopfschmerzen**,
-**was du gemacht hast**, **was noch fehlt** und die Zyklusphase. Wer nur die ersten beiden Karten
+**was du gemacht hast**, die beiden Karten zum Einschalten (**ADHS-Mittel**
+und **Kiefer, Nacken, Schiene**, siehe unten), **was noch fehlt** und die
+Zyklusphase. Wer nur die ersten beiden Karten
 liest, hat trotzdem das Wichtigste.
 
 **Ruhe.** Vier Atemübungen – 4–7–8, Quadrat, Gleichmaß, Bauchatmung – mit Ton,
@@ -350,7 +368,8 @@ verschlüsselt** (siehe unten) –, der Bericht für den Arzttermin, die
 Erinnerung** als Kalendereintrag (siehe unten), die Übersicht „Was die
 Mittel bewirken", seit wann die Beschwerden bestehen, die Einstellungen der
 Auswertung, welche Tagesfragen erscheinen sollen, ob Wasser gezählt wird und
-wie groß ein Glas ist, eigene Auslöser, eigene Aktivitäten, Ton, vier
+wie groß ein Glas ist, **was Body Check mitdenken soll** (zwei Schalter, siehe
+*Zum Einschalten*), eigene Auslöser, eigene Aktivitäten, Ton, vier
 Farbvarianten.
 
 ### Die Sicherung mit Passwort
@@ -414,6 +433,17 @@ rechnet die im Kopf aus. Unter „Mehr" lassen sich Arzttermine eintragen (nur
 das Datum, mehr braucht es nicht); dann deckt der Bericht genau die Zeit seit
 dem jüngsten davon ab und sagt das in seinem Kopf auch. Die Richtung rechnet
 dabei nicht heimlich von davor mit: Sie bleibt im Zeitraum, oder sie fehlt.
+
+Der Zettel wird ausgedruckt oder in eine Mail geklebt, und beides schneidet
+lange Zeilen ab. Deshalb hat **keine Zeile 80 Zeichen oder mehr** – auch nicht
+mit einem 80 Zeichen langen Mittelnamen und einer langen Dosis: Name und Dosis
+stehen in voller Länge da und werden umbrochen, nie gekürzt. Seit der Fassung
+28 gilt das auch für die Zeilen, die vorher schon zu lang waren (die
+Kopfschmerztage mit der Zahl der notierten Tage, ein angefangener Monat im
+Kalender, die Akutmittel nach Sorte); sie stehen jetzt auf zwei Zeilen, mit
+denselben Wörtern. Was die Fassung 28 sonst auf den Zettel bringt – die Form
+unter jedem Methylphenidat, die Paare samt Frage, die Merkmale des Kopfes,
+die Abschnitte zum Einschalten –, steht unten bei den Teilen selbst.
 
 ### Schon geprüft
 
@@ -549,14 +579,29 @@ die eigene Regel, dass eine Lücke kein guter Tag ist.
 
 Pflicht ist nur die Stärke, und die ist nicht vorbelegt – eine vorausgewählte 4
 wäre die bequemste Antwort und zöge jede Statistik in die Mitte. Alles andere
-ist freiwillig und lässt sich nachtragen: Merkmale (pochend, einseitig, mit
-Übelkeit, erbrochen, Licht oder Lärm, Nackenschmerz dabei, Aura vorher), die
+ist freiwillig und lässt sich nachtragen: Merkmale (pochend, drückend,
+einseitig oder beidseitig, mit Übelkeit, erbrochen, Licht stört, Lärm stört,
+schlimmer bei Bewegung, Nackenschmerz dabei, schon beim Aufwachen da, Aura
+vorher), die
 **Dauer** in vier groben Stufen bis „länger als 3 Tage", **wie der Tag
 weiterging** (normal, eingeschränkt, ausgefallen – die drei Stufen, nach denen
 die Sprechstunde graduiert), und ob ein **Mittel nach zwei Stunden** geholfen
 hat. Steht von gestern ein Kopfschmerz ohne Dauer da, fragt die Tageskarte mit
 einem Tipp nach – die Dauer kennt man erst hinterher. „Weiß ich nicht mehr" ist
 dabei eine zulässige Antwort: Sie schließt die Frage, ohne gezählt zu werden.
+
+Seit der Fassung 28 stehen **„Licht stört“ und „Lärm stört“ getrennt**: Die
+Kopfschmerzklassifikation fragt nach beiden zusammen, und wer nur eins davon
+hat, konnte das vorher nicht sagen. Frühere Einträge behalten „Licht oder
+Lärm“ – es wird nie in eines der beiden umgedeutet, und der Bogen zeigt es nur
+bei einem Eintrag, der es trägt. „Einseitig“ und „Beidseitig“ schließen sich
+aus. Der Bericht zählt die Merkmale so, wie die Klassifikation fragt (eine
+Seite oder beide, pochend oder drückend, Licht und Lärm zusammen oder nur
+eins, Übelkeit oder Erbrechen, schon beim Aufwachen) – aber nur, wenn im
+Zeitraum eines der neuen Merkmale steht, damit ein älteres Tagebuch keine
+Zeilen bekommt, die es nicht füllen konnte. Eingeordnet wird nichts; das
+macht die Ärztin. Mit dem Schalter „Kiefer, Nacken, Schiene“ kommen drei
+Merkmale dazu (siehe unten).
 
 **„Dazu genommen?"** legt das Medikament mit an. Während einer Attacke ist ein
 zweiter Bogen genau der Schritt, der wegfällt, und die Tage mit Akutmittel sind
@@ -584,7 +629,8 @@ Tag mit Kopfschmerz und „Dazu genommen: Ibuprofen" bleibt für den Bauch eine
 Lücke und wird kein „Bauch beschwerdefrei" – in Verlauf, Serie, Kriterien,
 Stuhlgang, Zeitprofil und Provokationstest gleich (`zaehltFuerBauch()` in
 `js/wasser.js`). Für den Kopf und bei den Akutmittel-Tagen zählt es weiter. Ein
-frei eingetragenes Mittel macht einen Tag wie bisher zu einem notierten.
+frei eingetragenes Mittel macht einen Tag wie bisher zu einem notierten – außer
+einem ADHS-Mittel (siehe *Was sich an deinen Zahlen ändert*).
 
 Die **Warnzeichen des Kopfes** stehen in derselben Liste wie die des Bauches,
 damit Warnkarte und Bericht sie finden – aber der Bauchbogen bietet sie nicht
@@ -602,10 +648,11 @@ Ein Kopfschmerztagebuch für die Sprechstunde braucht wenige Zahlen, und die
 Karte „Kopfschmerzen" unter Muster stellt sie nach oben: **Kopfschmerztage und
 Tage mit Akutmittel je 30-Tage-Fenster**, drei Fenster nebeneinander, dazu
 Stärke, Dauer, Ausfalltage über 90 Tage, Merkmale – und ein Kalender nach
-Monaten. Die App kennt dafür die Mittel: Triptane, Kombinationsmittel mit ASS
-und Koffein, Schmerzmittel ohne Entzündungshemmung (Paracetamol, Metamizol),
-Opioide, die neuen Gepante – und die vorbeugenden Mittel, die nie als
-Akutmittel zählen (`js/mittel.js`). Ein Gel fürs Knie zählt nicht, ein
+Monaten. Die App kennt dafür die Mittel: Triptane, Kombinationsmittel – jedes
+Schmerzmittel mit Koffein, mit ASS wie mit Paracetamol –, Schmerzmittel ohne
+Entzündungshemmung (Paracetamol, Metamizol), Opioide, die neuen Gepante – und
+was nie als Akutmittel zählt: die vorbeugenden Mittel, Koffein als Tablette
+und die Mittel bei ADHS (`js/mittel.js`). Ein Gel fürs Knie zählt nicht, ein
 Nasenspray schon. Was an einem Kopfschmerztag eingetragen ist und keiner
 Gruppe zuzuordnen, steht mit Namen auf der Karte, statt still in der Zählung
 zu fehlen.
@@ -632,7 +679,12 @@ Aus den Zahlen werden **Fragen für die Sprechstunde**, wie die Muster sie für
 den Bauch stellen: ab vier Kopfschmerztagen im Monat die nach einer
 vorbeugenden Behandlung, bei Erbrechen die nach einer anderen Darreichungsform,
 bei Aura die nach der Verhütung mit Östrogen, bei Gastritis Typ C die nach dem
-passenden Akutmittel. Fragen, keine Empfehlungen.
+passenden Akutmittel. Ab vier Kopfschmerzen „schon beim Aufwachen“ in 30 Tagen
+kommt für alle die Frage, ob Schlaf (Schnarchen, Atemaussetzer), Koffein oder
+die eigenen Schmerzmittel mit auf die Liste gehören. Ist „Kiefer, Nacken,
+Schiene“ eingeschaltet und stehen in denselben 30 Tagen mindestens zehn
+Nächte mit Schiene im Tagebuch, nennt die Frage im ersten Satz die Schiene.
+Fragen, keine Empfehlungen.
 
 Wird die Periode eingetragen, zählt die Karte zusätzlich das **Fenster um die
 Periode** – zwei Tage davor bis zum dritten Blutungstag, in X von Y Zyklen.
@@ -824,8 +876,9 @@ geeignet** – der Eisprung wird hier nicht gemessen, sondern geschätzt.
 Wer Magenbeschwerden hat, hat bald mehrere Schachteln im Schrank, und die
 Beipackzettel beantworten selten die Frage, die man wirklich hat: Was macht das
 eigentlich, und warum ausgerechnet vor dem Frühstück? `js/mittel.js` beschreibt
-neun Wirkstoffgruppen – von Protonenpumpenhemmern über Antazida bis zur
-Helicobacter-Behandlung – in ganzen Sätzen: wie sie arbeiten, wann man sie
+fünfundzwanzig Wirkstoffgruppen – von Protonenpumpenhemmern über Antazida bis zur
+Helicobacter-Behandlung, die Schmerz- und Migränemittel, die Mittel bei ADHS
+und Koffein als Tablette – in ganzen Sätzen: wie sie arbeiten, wann man sie
 üblicherweise nimmt, worauf zu achten ist. Unter „Mehr" stehen zuerst die
 Mittel, die tatsächlich eingetragen wurden, mit Häufigkeit und Erklärung; beim
 Eintragen erscheint die Erklärung gleich im Bogen.
@@ -837,6 +890,258 @@ was den Magen erst reizt, ist die halbe Wahrheit – und die gefährlichere Häl
 Drei Regeln hält der Text ein, und `tests/test-mittel.mjs` zählt sie nach:
 **keine Dosierungen**, **keine Empfehlung** („nimm", „hilft gegen" kommen
 nirgends vor), und der Verweis auf Ärztin oder Apotheke steht sichtbar darüber.
+
+Seit der Fassung 28 stehen die Mittel unter „Mehr“ in zwei Abschnitten,
+**„Mittel bei ADHS“** und **„Sonst noch“**, und manche Gruppen haben einen
+Absatz **„Was in der Fachinformation steht“** – nur mit dem, was sich in einer
+Fach- oder Gebrauchsinformation, bei der EMA oder in der
+Kopfschmerzklassifikation belegen ließ, und mit dem Präparat oder der Quelle
+benannt, wenn der Beleg nur für dieses gilt („laut US-Fachinformation“).
+Unter Methylphenidat steht **„Je nach Form“**: sieben Formen (nicht
+retardierte Tablette, Kapsel mit zweierlei Kügelchen, Ritalin LA / Ritalin
+Adult, Retardtablette mit Hülle, andere Retardtablette, Equasym Retard, „Weiß
+ich nicht“), denn wie Methylphenidat freigesetzt wird, hängt an der Form – und
+damit, wie es sich zum Essen und zu einem Säureblocker verhält. Die Form fragt
+der Medikamenten-Bogen (vorgewählt nach dem Namen, wo der Name sie eindeutig
+nennt) und „Meine Mittel“; ältere Einträge gelten als „Form nicht angegeben“.
+Auf Zweigen aus dem Briefkasten hält `tools/pruefung/unantastbar.py` die Texte
+zu den Formen, die Hinweise der ADHS-Mittel, die Paartexte und den Massagetext
+fest wie die Warnzeichen.
+
+### Zum Einschalten: ADHS sowie Kiefer, Nacken und Schiene
+
+Zwei Teile sind für alle gebaut, die sie brauchen, und für alle anderen
+unsichtbar: **ADHS** – für alle, die ein ADHS-Mittel nehmen oder ADHS im
+Tagebuch mitdenken wollen – und **Kiefer, Nacken, Schiene** – für alle mit
+Verspannung, Pressen oder Knirschen. Beide stehen unter „Mehr“ › „Was Body
+Check mitdenken soll“, je mit einem Absatz „Was dazu bekannt ist“, und beide
+sind unabhängig voneinander.
+
+**Ausgeschaltet ändert sich keine Zahl.** Gerechnet wird immer, sobald Daten
+da sind; die Schalter entscheiden nur, was man eingeben kann und was zu sehen
+ist (R0, unten). Ein Schalter kennt drei Stände: nie entschieden, an, aus.
+Beim Zusammenführen zweier Stände gewinnt wie bei jeder Einstellung, wer von
+der Vorgabe abweicht – ein ausdrückliches Aus übersteht also das Einlesen einer
+älteren Sicherung, in der noch „an“ stand.
+
+**Angebot statt Suchen.** Wer nie entschieden hat, bekommt auf „Tag“ (nur
+heute, zwischen Rat-Karte und „Noch mal wie immer“, höchstens eine Karte) ein
+Angebot: für ADHS, sobald ein Mittel bei ADHS unter „Meine Mittel“ steht oder
+in den letzten 30 Tagen eingetragen ist – genannt wird die Gruppe
+(„Methylphenidat gehört zu den Mitteln bei ADHS …“), nie der eingetippte Name;
+für Kiefer, Nacken, Schiene nach einer Massagepistole, Massage oder Wärme oder
+einer Notiz, in der Kiefer, Schiene oder Knirschen vorkommt. „Nackenschmerz
+dabei“ beim Kopfschmerz löst es nicht aus – den haben die meisten Menschen mit
+Migräne. „Nein danke“ ist endgültig und nur unter „Mehr“ wieder umzustellen.
+
+**Was ohne Schalter für alle gilt**, weil es Wissen, Sicherheit oder ehrliche
+Zählung ist: die Texte zu den Mitteln bei ADHS und die Formwahl, die Hinweise
+zu Paaren von Mitteln (unten), die Rechenkorrekturen (*Was sich an deinen
+Zahlen ändert*), die neuen Kopfmerkmale, der Text zur Massagepistole, die
+Vorbehalte an Auslösern und am Zeitprofil, der Tageswechsel nach Mitternacht,
+die Tageskarte für Tage, an denen nur ein Mittel steht, und der Satz zur Hülle
+im Stuhl-Bogen bei der Retardtablette mit Hülle.
+
+#### Paare von Mitteln
+
+`js/zusammen.js` ist kein Wechselwirkungsprüfer – den hat jede Apotheke. Es
+kennt nur die wenigen Paare, bei denen ein ADHS-Mittel auf etwas trifft, das in
+diesem Tagebuch ohnehin oft steht: Säureblocker, Natron, Vitamin C, Triptane,
+Metamizol, einige Mittel gegen Depression, Blutverdünner der Cumarin-Art. Als
+eingetragen gilt, was unter „Meine Mittel“ steht oder in den letzten 30 Tagen
+genommen wurde. Drei Stufen:
+
+* **A** – die Fachinformation sieht beides nicht zusammen vor: Methylphenidat
+  als Kapsel mit zweierlei Kügelchen und ein Mittel gegen Magensäure (in einem
+  weniger sauren Magen kann der Wirkstoff früher frei werden), und dasselbe
+  mit unbekannter Form, solange keine angegeben ist. Stufe A steht als Karte
+  auf „Tag“, bis sie gelesen ist, in der Meldung beim Speichern, im Bogen,
+  unter „Meine Mittel“, im Bericht und dort oben in IN KÜRZE, gleich nach den
+  Warnzeichen.
+* **B** – eine Frage, die sich in Apotheke oder Praxis klären lässt: die
+  anderen Formen von Methylphenidat mit einem Säureblocker (ob es passt, hängt
+  an der Form), Dexamfetamin mit Natron, Lisdexamfetamin mit Natron oder
+  Vitamin C (die Fachinformation beschreibt dort eine Veränderung).
+* **C** – selten oder nur in der US-Fassung belegt (Triptane bei
+  Lisdexamfetamin, Metamizol bei Bupropion, bestimmte Mittel gegen Depression
+  bei Atomoxetin oder Methylphenidat, Cumarine bei Methylphenidat).
+
+Jeder Text endet bei Praxis oder Apotheke, und keiner sagt, etwas wegzulassen –
+auch den Säureblocker nicht: Wer ihn von sich aus absetzt, hat womöglich ein
+anderes Problem als vorher. Für die Retardtablette mit Hülle und Equasym mit
+einem Säureblocker steht nichts da: Belegt war dazu nichts, und ein
+beruhigender Satz wäre genauso unbelegt. Im Bericht stehen die Paare unter
+EINGENOMMENE MITTEL mit einem Satz aus der Fachinformation und einer Frage für
+die Sprechstunde („Passt mein Säureblocker zu meinem Methylphenidat?“), unter
+jedem Methylphenidat seine Form.
+
+#### ADHS (eingeschaltet)
+
+* **Die Zeile „Stand“** auf „Tag“, nur heute: „Stand 10:55 · Elvanse 07:40
+  (vor 3¼ Std.) · letzte Mahlzeit 07:30 (vor 3½ Std.)“ – nur, was eingetragen
+  ist. Nie ein Satz, dass ein Mittel noch fehlt; keine Farbe, kein Alarm,
+  keine Erinnerung.
+* **„jetzt genommen“** unter „Meine Mittel“: ein Tipp, die genaue Uhrzeit,
+  danach „Elvanse · 07:40 ✓“. Liegt dieselbe Einnahme weniger als zwei Stunden
+  zurück, fragt der Knopf einmal nach.
+* **„Heute keins“** (an vergangenen Tagen „Keins genommen“) nur bei
+  Stimulanzien, mit Grund: geplant, vergessen, wegen Beschwerden. Ein Tag
+  „wegen Beschwerden“ zählt in keinem Vergleich – sonst sähe das Mittel besser
+  aus, als es war. Wird doch eine Einnahme eingetragen, ist der Tag ohne Mittel
+  aufgehoben.
+* **„Zum Essen?“** bis eine Stunde nach der Einnahme: mit/nach Essen, kurz vor
+  dem Essen, ohne Essen. Eine später gemachte Angabe zählt nicht, weil man dann
+  schon weiß, wie es dem Bauch ging (R10). Ergibt sich die Antwort aus den
+  Mahlzeiten, wird nicht gefragt.
+* Im **Kopfbogen** über der Skala, wann an diesem Tag ein ADHS-Mittel stand.
+* Unter **„Muster“** die Karte **„ADHS-Mittel“**, im Bericht der Abschnitt
+  **ADHS-MITTEL** – ohne Einnahme im Zeitraum **ESSENSRHYTHMUS** – und unter
+  NACH ZYKLUSPHASE Stimmung und Anspannung je Phase.
+* Auf der **Rat-Karte** hält sich die App beim Essen zurück, wenn in den
+  letzten 14 Tagen ein ADHS-Mittel eingetragen ist und das Gewicht ungewollt
+  sinkt oder an drei der letzten sieben Bauch-Tage „Kein Appetit“ steht: Dann
+  entfallen „Heute eher ohne …“ und „Die letzte Mahlzeit früher legen“. Sonst
+  bekommt der zweite Vorschlag einen Satz dazu – wenn der Appetit tagsüber
+  fehlt und erst abends kommt, ist die späte Mahlzeit vielleicht nötig, und
+  das wägt die Praxis ab, nicht die Karte.
+
+Gerechnet wird in `js/adhs.js`, alles nur Zählung in festen Fenstern, keine
+Wirkdauer:
+
+* **A1** Bauch in den vier Stunden nach der ersten Einnahme des Tages, ohne
+  gegen mit Essen – je Mittel und bei Methylphenidat je Form, ein Fall je Tag,
+  nur mit genauer oder an eine Mahlzeit gebundener Zeit, ohne Beschwerde in
+  den zwei Stunden davor.
+* **A2** Tage mit gegen Tage ohne Stimulans: Bauch, Kopfschmerz nach der
+  Einnahmezeit, Schlaf in der Nacht danach, mit dem zweiten Schalter auch
+  Kiefer und Pressen; harter Stuhl nur beschrieben. Dazu immer der Satz, dass
+  Tage ohne Mittel keine Zufallsauswahl sind.
+* **A3** Schlaf nach späterer gegen frühere letzte Einnahme, geteilt an der
+  eigenen mittleren Uhrzeit, nur Tage mit der häufigsten Zahl von Gaben, mit
+  der Nacht davor daneben.
+* **A4** wann ein Kopfschmerz nach der ersten Einnahme beginnt – nur
+  beschrieben, in gleich breiten Fächern, ohne Schwerpunkt und ohne Frage.
+* **A5** der Essensrhythmus – erste Mahlzeit nach der Einnahme, Tage ohne
+  Mittagessen, späte Mahlzeiten, „Kein Appetit“, jede Zahl mit ihrem Nenner –,
+  nur im Bericht.
+
+Gerechnet wird ab dem Tag, seit dem das heutige Mittel genommen wird: Ein
+Wechsel von Präparat oder Form fängt neu an, ein zusätzliches Mittel nicht.
+Fragen für die Sprechstunde gibt es nur bei einem Urteil, höchstens drei.
+
+#### Kiefer, Nacken, Schiene (eingeschaltet)
+
+* **Vier Tagesfragen** unter „Wie war der Tag sonst?“: Nacken/Schultern
+  (locker bis sehr stark), tagsüber gepresst oder geknirscht bemerkt, Schiene
+  letzte Nacht (nicht getragen oder getragen) und Kiefer/Zähne beim Aufwachen.
+  Einschalten fügt sie unter „Welche Fragen stellt der Tag?“ ein, Ausschalten
+  nimmt sie heraus; Eingetragenes bleibt. Wer keine Schiene trägt, wählt die
+  Frage ab. Eine fehlende Antwort ist nie eine Nacht ohne Schiene.
+* **Drei Kopfmerkmale mehr**: schlimmer beim Kauen oder Kieferbewegen,
+  schlimmer bei Kopf- oder Nackenbewegung, an Schläfe oder Kiefer.
+* Unter **„Muster“** die Karte **„Kiefer, Nacken, Schiene“**, im Bericht der
+  Abschnitt **KIEFER, NACKEN, SCHIENE**. Massage, Massagepistole und Wärme
+  stehen dann nur noch gefiltert da – nach einem mindestens mittel
+  verspannten Vortag –, in dieser Karte statt unter „Was du gemacht hast“.
+
+Gerechnet wird in `js/spannung.js`:
+
+* **V1** Nächte mit gegen ohne Schiene: Kopfschmerz am Morgen und Kiefer am
+  Morgen. Nächte nach einer Feier, einer Reise oder Alkohol zählen auf keiner
+  Seite – danach wird die Schiene eher vergessen, und der Kopf ist ohnehin
+  schwerer. Immer dabei: Die Schiene ist vor allem zum Schutz der Zähne
+  gedacht, und wer sie regelmäßig trägt, hat keinen Vergleich – das ist so in
+  Ordnung.
+* **V2** nach einem stark gegen nach einem locker verspannten Tag: ein neuer
+  Kopfschmerz am nächsten Tag? Mit dem Satz, dass Nackenschmerz auch ein
+  Vorbote sein kann.
+* **V3** Massage, Massagepistole, Wärme und Dehnen nach einem mindestens
+  mittel verspannten Vortag: Kopfschmerz in den 24 Stunden danach. Gefiltert
+  wird am Vortag, weil die Verspannung vor der Massage feststehen muss.
+* **V4** Kopfschmerztage je 30 notierte Tage vor und seit dem ersten Eintrag
+  einer solchen Aktivität – nur beschrieben, nur im Bericht.
+* **V5** Kiefer am Morgen nach Nächten mit „Nachts davon wach“ – gleiche Nacht,
+  keine Richtung, nur im Bericht.
+
+Was am selben Tag zusammen vorkommt – Nacken an Kopfschmerztagen, die
+Kiefer-Merkmale, wie oft gepresst –, steht nur als Zahl da, nie als Fund
+(R7). Body Check bestätigt oder widerlegt keine ärztliche oder zahnärztliche
+Einschätzung; es zählt, ob Kopfschmerz mit diesen Dingen zusammen öfter oder
+seltener kommt.
+
+### Was sich an deinen Zahlen ändert
+
+Die Fassung 28 rechnet an wenigen Stellen anders als die Fassung 27 – auch
+ohne Schalter, weil es um ehrliche Zählung geht. Wer davon betroffen ist,
+sieht oben auf „Muster“ einmal die Karte „Was sich an deinen Zahlen geändert
+hat“ mit genau den Punkten, die auf das eigene Tagebuch zutreffen, bis
+„Gelesen“.
+
+* **K1 – ein Tag nur mit einem ADHS-Mittel ist eine Lücke.** Ein Mittel bei
+  ADHS (Methylphenidat, Lisdexamfetamin, Dexamfetamin, Atomoxetin, Guanfacin)
+  sagt so wenig über den Bauch wie ein Glas Wasser. Ein Tag, an dem nur ein
+  solches Mittel steht, zählt für Bauch und Kopf nicht mehr als notiert und
+  damit nicht mehr als beschwerdefrei. Ebenso wenig die neuen Tagesangaben (Tag ohne Mittel,
+  Nacken, Kiefer, Pressen, Schiene). Bupropion zählt wie bisher: Es ist für
+  ADHS nicht zugelassen und wird hier nicht als ADHS-Mittel geführt.
+* **K2 und K2b – Koffein.** Nach der Kopfschmerzklassifikation ist jedes
+  Schmerzmittel mit Koffein ein Kombinationsmittel, mit der Grenze von etwa
+  zehn Tagen im Monat. „ASS Koffein“ und „ASS + Coffein“ zählen deshalb als
+  Kombinationsmittel (bisher als einfaches entzündungshemmendes Mittel mit der
+  Grenze fünfzehn). „Paracetamol Koffein“ und „Paracetamol + Coffein“ zählen
+  als Kombinationsmittel mit Paracetamol: für den Kopf mit der Grenze zehn, für
+  den Magen nicht mehr als entzündungshemmend (bisher je nach Schreibweise als
+  Kombinationsmittel, das für den Magen wie ein entzündungshemmendes zählte,
+  oder als einfaches Schmerzmittel mit der Grenze fünfzehn). „Koffein“,
+  „Koffeintabletten“ und „Coffein“ sind Koffein als Tablette – kein
+  Schmerzmittel und für den Magen kein entzündungshemmendes Mittel (bisher als
+  Kombinationsmittel bzw. gar nicht erkannt). Thomapyrin und Neuralgin bleiben Kombinationsmittel.
+* **Säureblocker-Namen.** Pantozol, Nexium, Antra und Agopton werden jetzt als
+  Protonenpumpenhemmer erkannt, Maaloxan als Mittel, das Säure bindet.
+  Natron bleibt ohne Gruppe; es zählt nur bei den Paaren.
+* **Licht und Lärm getrennt**, dazu „Beidseitig“ und „Schon beim Aufwachen
+  da“ im Kopfbogen; frühere Einträge behalten „Licht oder Lärm“.
+* **Massage, Massagepistole und Wärme nur auf der Kopfseite** (siehe oben).
+* **Vorher-Nachher ohne Urteil bei ADHS-Mitteln.** Unter „Was die Mittel
+  bewirken“ und im Bericht steht für ein ADHS-Mittel nie „besser“, „schlechter“
+  oder „hat nichts geändert“, nur die Zahlen seit dem ersten Eintrag und davor
+  – ein ADHS-Mittel fängt man nicht wegen des Bauchs an, und ob es vorher schon
+  genommen und nur nicht eingetragen wurde, weiß niemand.
+
+Wer nichts davon einträgt, merkt davon nichts: `tests/test-gold.mjs` rechnet
+34 Rechnungen über feste Tagebücher und vergleicht sie Zeichen für Zeichen mit
+dem, was die Fassung 27 dazu gerechnet hat (eingecheckt, bevor sich am Code
+etwas änderte) – im Bericht mit der einen Ausnahme der umbrochenen langen
+Zeilen. `tests/test-notiert.mjs` gibt demselben Tagebuch an jedem Tag ein
+ADHS-Mittel und alle neuen Tagesangaben und verlangt dieselben Zahlen bis auf
+die Zählung der Mittel selbst, `tests/test-gleich-v27.mjs` dasselbe für den
+Text der Reiter.
+
+### Quellen der Wissenstexte
+
+Jeder Satz mit „laut Fachinformation“, „laut Packungsbeilage“ oder „laut EMA“
+ist am Wortlaut geprüft; was sich nicht bestätigen ließ, ist ersatzlos
+gestrichen und nicht ins Ungefähre umformuliert. Über jedem Eintrag im Code
+steht seine Quelle mit Abschnitt und Stand. Benutzt wurden:
+
+* Fach- und Gebrauchsinformationen: Medikinet (Tabletten, retard, adult),
+  Ritalin, Ritalin LA, Ritalin Adult, Concerta, Equasym Retard, Kinecteen,
+  Methylphenidat-Generika, Elvanse und Elvanse Adult, Attentin, Intuniv,
+  Elontril, Zyban, dazu die US-Fachinformationen von Vyvanse, Strattera,
+  Intuniv und Ritalin LA;
+* EMA: die Schlussfolgerungen der CMDh zu Methylphenidat (Zähneknirschen in den
+  Produktinformationen) und zu Metamizol (Bupropion-Spiegel), die
+  Zusammenfassung zu Intuniv;
+* die Arzneimittelkommission der deutschen Ärzteschaft zum Absetzen von
+  Guanfacin;
+* die internationale Kopfschmerzklassifikation ICHD-3: 8.2.5
+  (Kombinationsmittel mit Koffein), 8.3.1 (Koffeinentzug) und die Merkmale der
+  Migräne;
+* Herstellerangaben zu Massagepistolen und Fallberichte zu Schäden danach;
+* für die Absätze „Was dazu bekannt ist“ Übersichtsarbeiten und Studien:
+  Magen-Darm-Beschwerden, Migräne, Schlaf und Bruxismus bei ADHS, der
+  internationale Konsens zum Bruxismus, Aufbissschienen und Kopfschmerz,
+  Schienen bei Schlafapnoe, Nackenschmerz bei Migräne, Massagepistolen.
 
 ## Wie die Auswertung rechnet – und was sie nicht behauptet
 
@@ -1433,6 +1738,83 @@ es jemandem zu schlecht ging, um etwas einzutragen – wer sie als gute Tage
 zählt, baut eine App, die genau dann Besserung meldet. Deshalb trägt jeder Tag
 ein `notiert`, und der Verlauf zeigt eine Lücke als Lücke.
 
+### Die Regeln für die Teile zum Einschalten (R0 bis R10)
+
+Die Rechnungen zu ADHS-Mitteln und zu Kiefer, Nacken, Schiene vergleichen
+Tage und Nächte, die sich niemand zufällig aussucht: Ein Mittel lässt man an
+einem freien Tag weg, eine Schiene vergisst man nach einer Feier. Ohne Regeln
+fände jede dieser Rechnungen etwas. Die gemeinsamen Bausteine stehen in
+`js/vergleich.js`:
+
+* **R0 Schalter ändern keine Rechnung.** Gerechnet wird immer, sobald Daten da
+  sind; die Schalter steuern nur Eingabe und Anzeige. `test-adhs-gegenprobe.mjs`
+  verlangt dieselben Ergebnisobjekte mit jedem Stand der Schalter und einen
+  Bericht, der ohne Schalter Zeichen für Zeichen der mit Schaltern ist, nur
+  ohne die neuen Abschnitte.
+* **R1 Nur notierte Tage.** Eine Lücke zählt nie als 0, nie als „ohne“, nie als
+  „gut“.
+* **R2 „Ohne“ nur, wenn angegeben.** „Ohne Essen“, „Tag ohne ADHS-Mittel“ und
+  „Schiene nicht getragen“ zählen nur, wenn sie angetippt sind. Ein fehlendes
+  Frühstück ist kein nüchterner Magen, eine fehlende Antwort keine Nacht ohne
+  Schiene.
+* **R3 Stunden nur mit klarer Reihenfolge.** Gezählt werden genaue Zeiten und
+  Einträge, die an eine Mahlzeit mit genauer Zeit gebunden sind. „Nur morgens“
+  fällt heraus und wird als nicht zuzuordnen gezählt; ist offen, ob die
+  Beschwerde vor oder nach der Einnahme kam, fällt der Fall weg.
+* **R4 Zufallsspielraum je Familie.** „ADHS“ und „Kiefer/Nacken“ sind je eine
+  Familie von Fragen. Erst werden alle Vergleiche gefüllt, dann gezählt, wie
+  viele genug Fälle haben, dann geurteilt – mit dem Spielraum für mindestens
+  neun Vergleiche, also **mindestens 2,5 Standardfehlern**, auch wenn gerade
+  weniger Vergleiche rechnen können. Das ist eine Faustregel in der Währung der
+  App, keine Korrektur im Sinn eines Tests: Es gibt hier keinen p-Wert, und die
+  Schranke wird nicht milder, weil heute nur eine Zeile Fälle hat.
+* **R5 Nachweisgrenze.** Fällt kein Urteil, obwohl genug Fälle da sind, steht
+  da, unter welchem Unterschied keiner zu sehen wäre („Kein Unterschied über
+  dem Zufall – unter 1,4 Stufen wäre hier keiner zu sehen.“).
+* **R6 Wochentag.** Liegen die Wochenendanteile beider Seiten mehr als 30
+  Prozentpunkte auseinander, gibt es kein Urteil, nur Zahlen und den Satz, dass
+  ein Unterschied genauso vom Wochentag kommen kann.
+* **R6b Blöcke.** Liegt mehr als die Hälfte der kleineren Seite in einem
+  zusammenhängenden Zeitraum, oder hat sie weniger als vier getrennte, gibt es
+  kein Urteil – ein Urlaub misst alles mit, was im Urlaub anders war.
+* **R6c Eintragsdichte.** Ist auf einer Seite im Mittel weniger als zwei
+  Drittel so viel eingetragen wie auf der anderen (ohne die Zielgröße), gibt
+  es kein Urteil.
+* **R7 Gleichzeitiges** – Verspannung und Kopfschmerz am selben Tag – steht nur
+  als Zahl, nie als Fund.
+* **R8 Eine Gabe.** Eine Einnahme innerhalb von vier Stunden nach einer
+  vorigen desselben Mittels ist dieselbe Gabe.
+* **R9 Kein Ziel auf der Weglass-Seite.** Für Tage ohne Mittel, Nächte ohne
+  Schiene und Einnahmen ohne Essen steht nirgends, wie viele noch fehlen. Es
+  steht die bisherige Zahl und: „Ein Vergleich entsteht nur, wenn es das
+  ohnehin gibt. Kein Grund, dafür etwas wegzulassen oder anders einzunehmen:
+  Änderungen am Mittel gehören in die Praxis.“ Bei der Schiene: „Wer die
+  Schiene regelmäßig trägt, hat keinen Vergleich – und das ist so in Ordnung.“
+* **R10 Einteilung vor Ergebnis.** Ob ein Fall zählt und auf welche Seite er
+  gehört, hängt nie von der Zielgröße ab: Ob ein Tag notiert ist, wird ohne
+  sie bestimmt; eine Angabe zum Essen zählt nur, wenn sie innerhalb einer
+  Stunde nach der Einnahme gemacht wurde; ein Filter wird vor der Behandlung
+  erhoben (die Verspannung am Vortag der Massage).
+
+Die Schwellen kommen zusätzlich zum Spielraum: beim Bauch die der Auslöser (ab
+einer Stufe „möglich“, ab zwei „auffällig“), bei Anteilen 20 Prozentpunkte, bei
+Skalen von 0 bis 4 eine halbe Stufe. Dazu zwei Vorbehalte für alle, auch ohne
+Schalter: Liegen die Mahlzeiten mit einem auffälligen Auslöser deutlich öfter
+in den vier Stunden nach einem ADHS-Mittel als die übrigen, steht das am Fund;
+liegt der Schwerpunkt von „Wie lange nach dem Essen“ zur Hälfte oder mehr nach
+einem ADHS-Mittel, steht das dort und im Bericht.
+
+Geprüft wird in beide Richtungen. Eingebaute Unterschiede (Bauch nach
+Einnahmen ohne Essen, Kopfschmerz an Tagen mit Mittel, Kopfschmerz nach stark
+verspannten Tagen) werden in mindestens drei von vier erzeugten Tagebüchern
+gefunden (`test-adhs-rechnung.mjs`, `test-spannung-rechnung.mjs`). Und
+`test-nulltagebuch.mjs` erzeugt 300 Tagebücher zu 120 Tagen ohne jeden
+Zusammenhang, aber mit allem, was ein echtes Tagebuch mitbringt – Pausen am
+Wochenende und im Urlaub, dünnere Einträge an Tagen ohne Mittel, „Zum Essen?“
+erst nach der Beschwerde getippt, Alkohol vor Nächten ohne Schiene,
+nachgetragene Uhrzeiten. Je Rechnung darf in höchstens sechs von hundert
+Tagebüchern mit genug Fällen ein Urteil fallen, je Karte in höchstens zehn.
+
 ## Die Zusage
 
 **Gesundheitsdaten verlassen dieses Gerät nie.** Kein Eintrag, kein Tag, keine
@@ -1467,13 +1849,16 @@ Satz in einer README ist keine Eigenschaft, also halten ihn drei Prüfungen:
   Tagebuch anfassen: null. Den Ideenreiter öffnen: immer noch null — **vom
   Hinsehen geht nichts hinaus.** Nach „Eintragen": genau eine Anfrage, an genau
   eine Adresse, mit genau einem Feld, und ihr Rumpf wird gegen das Tagebuch im
-  Speicher gehalten. Taucht daraus auch nur ein Wort auf, ist der Test rot.
+  Speicher gehalten. Taucht daraus auch nur ein Wort auf, ist der Test rot –
+  auch keines aus den Teilen zum Einschalten (ADHS-Mittel, Tage ohne Mittel,
+  Nacken, Kiefer, Pressen, Schiene, Massagepistole), in keiner Schreibweise;
+  dass jedes davon im Speicher steht, prüft die Gegenprobe gleich mit.
   Danach zehn Minuten und viel Herumblättern: kein zweiter Aufruf.
 * **`tests/test-schweigen.mjs`** — dass das Tagebuch nie etwas auslöst. Ein
   volles Tagebuch über 90 Tage *ohne* offene Idee, dann wird alles angefasst,
   was sich anfassen lässt: Reiter, Zeiträume, Monate, Aufklapper, Bericht,
-  Sicherung, Atemübung, Neuladen — und danach werden **sechs Stunden
-  vorgespult**. Erwartet werden null Anfragen. Läuft irgendwo eine Uhr, die von
+  Sicherung, Atemübung, Neuladen, jeder Knopf der Teile zum Einschalten samt
+  ihrem Bericht — und danach werden **sechs Stunden vorgespult**. Erwartet werden null Anfragen. Läuft irgendwo eine Uhr, die von
   selbst etwas hinausschickt, schlägt sie hier an. Zum Schluss dasselbe mit
   Ideen, die schon draußen waren: die gehen kein zweites Mal.
 
@@ -1661,7 +2046,10 @@ merkt: beim Verlassen der App oder gleich nach der Rückkehr, bevor etwas
 angetippt wurde. Nie, solange etwas in Arbeit ist (ein offener Bogen, Text in
 irgendeinem Feld, eine Atemübung, ein laufender Versand, eine offene
 Sicherung) und nie, wenn der Speicher nicht schreiben kann. Danach steht sie
-am selben Tag wie vorher, und ein Satz sagt, was passiert ist. Unter „Mehr"
+am selben Tag wie vorher, und ein Satz sagt, was passiert ist – außer, es ist
+inzwischen nach Mitternacht: Wer beim Verlassen „heute“ offen hatte, sieht
+nach der Rückkehr oder dem Neuladen den neuen Tag, sofern kein Bogen offen
+ist. Ein von Hand gewählter anderer Tag bleibt, wie er ist. Unter „Mehr"
 steht, welche Fassung läuft, wann zuletzt gesucht wurde und ein Knopf zum
 sofortigen Suchen – wer ihn antippt, hat zugestimmt, und es wird gleich neu
 geladen. Die Zustimmung gilt für diese eine Suche, nicht bis zum nächsten
@@ -1769,9 +2157,23 @@ tools/vorschlaege-holen.mjs  holt ihn aus dem Briefkasten (läuft in der
                              Action, nie auf dem Gerät)
 tools/pruefung/bot-grenzen.py  was ein Entwurf aus dem Briefkasten nicht
                              anfassen darf
+tools/pruefung/allgemein.py  das öffentliche Repository bleibt allgemein: kein
+                             Satz darüber, wer was nimmt oder trägt
+tools/haken/        lokale Git-Haken gegen persönliche Angaben in Code
+                    und Commit-Texten, mit einer Liste, die nur auf dem
+                    eigenen Rechner liegt
 js/unterleib.js     Schmerz beim Sex, Regelschmerz, der Zusammenhang
                     mit Bauch und Stuhlgang
-js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten
+js/mittel.js        was die Wirkstoffgruppen bewirken – reine Daten; die
+                    Formen von Methylphenidat
+js/zusammen.js      Paare von Mitteln, zu denen eine Fachinformation etwas
+                    sagt – Stufe A, B, C, nie mit dem Rat, etwas wegzulassen
+js/vergleich.js     die Regeln R1 bis R10 für die Teile zum Einschalten:
+                    notiert ohne Zielgröße, Wochentag, Blöcke, Dichte,
+                    Spielraum je Familie
+js/adhs.js          Einnahmen, „Zum Essen?“ und die Rechnungen A1 bis A5
+js/spannung.js      Kiefer, Nacken, Schiene: V1 bis V5 und was nur als
+                    Zahl dasteht
 js/klang.js         Töne aus einem Oszillator, keine Dateien
 js/atem.js          die Atemübungen – Daten, nicht der Ablauf
 js/zyklus.js        Zyklen und Phasen aus Blutungstagen
@@ -1802,7 +2204,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Einundsechzig Dateien, über 2600 Prüfungen, alle in einem echten Chromium. Kein
+Zweiundsiebzig Dateien, über 3300 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -1813,7 +2215,7 @@ den Rückgabewert.
 | `test-aendern.mjs` | als iPhone mit 320 Pixeln: jede Zeile zeigt, dass sie sich öffnen lässt, der Bogen heißt „… ändern", Löschen braucht zwei Tipps und lässt sich rückgängig machen, kein leeres oder künftiges Datum, „Dazu genommen?" beim Ändern ohne Doppelte, die Mittel rücken mit dem Kopfschmerz mit – und alte Stände laden weiter |
 | `test-muster.mjs` | ein gepflanzter Zusammenhang wird gefunden, ein zu dünner nicht |
 | `test-verlauf.mjs` | Kacheln, Balken, Kalender – und die Lücke bleibt eine Lücke |
-| `test-bericht.mjs` | die Zahlen im Arztbericht |
+| `test-bericht.mjs` | die Zahlen im Arztbericht – keine Zeile mit 80 Zeichen, auch mit einem 80 Zeichen langen Mittelnamen und allen Abschnitten an; die Abschnitte zum Einschalten nur mit ihrem Schalter, auch wenn sonst nichts eingetragen ist; Form, Paare samt Frage, Vorher-Nachher ohne Urteil beim ADHS-Mittel und W1 oben in IN KÜRZE |
 | `test-sicherung.mjs` | sichern, alles löschen, wieder einlesen – über echte Dateien |
 | `test-persist.mjs` | die Ein-Datei-Fassung übersteht Neuladen und Neustart |
 | `test-offline.mjs` | Service Worker, offline eintragen, offline auswerten – ohne Netz auch für den Service Worker, keine einzige Anfrage am Server |
@@ -1835,7 +2237,7 @@ den Rückgabewert.
 | `test-tresor.mjs` | in der Datei steht nichts Lesbares; falsches Passwort und veränderte Datei gehen nicht auf |
 | `test-termin.mjs` | das Fenster fängt am Termin an und die Richtung rechnet nicht von davor mit |
 | `test-schnell.mjs` | ein Tipp legt dieselbe Mahlzeit an, nichts Erfundenes – und die Versuchs-Historie bleibt stehen |
-| `test-still.mjs` | bis zum Tastendruck null Anfragen; danach genau eine, ohne ein Wort aus dem Tagebuch |
+| `test-still.mjs` | bis zum Tastendruck null Anfragen; danach genau eine, ohne ein Wort aus dem Tagebuch – auch keins aus den Teilen zum Einschalten |
 | `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
 | `test-unterleib.mjs` | die Fragen bleiben aus, bis jemand sie einschaltet; und Regelschmerz allein ergibt noch kein Muster |
 | `test-vorschlaege.mjs` | fremder Text bricht nicht aus seinem Block aus, und ein Bot-Zweig kommt nicht an die Wächter |
@@ -1865,6 +2267,21 @@ den Rückgabewert.
 | `test-umstand-muster.mjs` | als iPhone mit 320 Pixeln: große Portion, spät und auswärts als stärkster Fund – „Muster" zeichnet ohne Fehler, „Was Sache ist" nennt den Umstand ohne Mengensatz; bei einer Zutat steht die Menge weiter da |
 | `test-loeschen-schmal.mjs` | als iPhone mit 320 Pixeln und dem Finger: „Löschen?" verschiebt die Zeile nicht, der zweite Tipp an derselben Stelle löscht – auch im oberen Drittel des ×; danach steht der Fokus auf „Rückgängig" und nach dem Zurückholen auf der Zeile |
 | `test-provokation.mjs` | derselbe Schmerz an den Test- *und* an den Leermorgen darf nicht der Milch angelastet werden – und wer im Fenster frühstückt, hat keinen Durchgang gemacht |
+| `test-kopf.mjs` | Kopfschmerz zählt in keine Bauchrechnung; die Zahlen der Neurologie in drei Fenstern, Kombinationsmittel mit Koffein und ihre Grenze, Koffein als Tablette kein Akutmittel, zwölf Merkmale ohne und fünfzehn mit „Kiefer, Nacken, Schiene“ |
+| `test-befunde.mjs` | was schon feststeht, ändert die Lesart der Kriterien, nicht ihre Zahlen – und die Warnzeichen bleiben |
+| `test-kueche.mjs` | „Geht gut“ und „Geht nicht“ werden nicht ausgewertet – und die Zahlen dürfen der Liste widersprechen |
+| `test-spaetphase.mjs` | nach Wochen Tagebuch steht nicht alles gleichzeitig da – der umgekehrte Fehler der ersten Wochen |
+| `test-gold.mjs` | 34 Rechnungen über feste Tagebücher ohne alles Neue ergeben Zeichen für Zeichen, was die Fassung 27 gerechnet hat (`tests/gold/`) – im Bericht nur die langen Zeilen umbrochen |
+| `test-notiert.mjs` | ein Tag nur mit einem ADHS-Mittel, einer Schiene oder einem Tag ohne Mittel ist eine Lücke; dasselbe Tagebuch mit einem ADHS-Mittel an jedem Tag und allen neuen Angaben ergibt dieselben Zahlen |
+| `test-adhs-wissen.mjs` | Namen zur Gruppe, Formen aus dem Namen, Koffein-Regel, neue Säureblocker-Namen, jedes Paar an und aus – und kein Text mit Dosis oder Empfehlung |
+| `test-adhs-ui.mjs` | als iPhone: ohne Schalter nichts Neues außer dem, was für alle gilt; Angebot einmal, „jetzt genommen“, „Heute keins“ nur bei Stimulanzien, „Zum Essen?“ bis eine Stunde danach, nie ein „noch nicht“ |
+| `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; der Massagetext auch ohne Schalter; kein Angebot durch Nackenschmerz |
+| `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt |
+| `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste |
+| `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll |
+| `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, der Filter fragt den Vortag |
+| `test-nulltagebuch.mjs` | 300 Tagebücher ohne Zusammenhang, aber mit Störwegen: je Rechnung höchstens 6 %, je Karte höchstens 10 % mit Urteil |
+| `test-adhs-gegenprobe.mjs` | R0: Rechnungen, Rat-Karte und Bericht mit jedem Stand der Schalter gleich – ohne Schalter fehlen nur die neuen Abschnitte und Karten |
 
 Die Auswertung wird nicht daran geprüft, ob im Browser etwas Grünes steht,
 sondern an Verläufen, deren richtiges Ergebnis vorher feststeht. Der wichtigste
