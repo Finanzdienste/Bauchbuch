@@ -824,12 +824,46 @@ export function kopfMonate(eintraege, tage, gruppeVon, heute, anzahl = 3) {
   return raus;
 }
 
+/** Ab so vielen Kopfschmerzen „schon beim Aufwachen" in 30 Tagen fragt der Zettel nach. */
+export const AUFWACH_AB = 4;
+/** Ab so vielen Nächten mit Schiene in denselben 30 Tagen nennt die Frage die Schiene. */
+export const SCHIENE_NAECHTE_AB = 10;
+
+/**
+ * Für die Aufwach-Frage: wie viele Kopfschmerzen in den letzten 30 Tagen
+ * „schon beim Aufwachen" da waren, und in wie vielen Nächten derselben Zeit
+ * die Schiene getragen wurde.
+ *
+ * Gezählt über dieselben 30 Kalendertage wie `letzte30` in kopfZahlen() –
+ * die Frage gehört zu dem Fenster, nach dem die Sprechstunde fragt, nicht
+ * zum Berichtszeitraum.
+ */
+export function aufwachZahlen(eintraege, tage, heute) {
+  const von = heute ? plusTage(heute, -29) : null;
+  const drin = (iso) => !heute || (iso >= von && iso <= heute);
+  return {
+    aufwachen: kopfEintraege(eintraege, heute)
+      .filter((e) => drin(e.am) && (e.kopfArten || []).includes('aufwachen')).length,
+    schiene: Object.keys(tage || {})
+      .filter((iso) => drin(iso) && tage[iso] && Number(tage[iso].schiene) === 1).length,
+  };
+}
+
 /**
  * Fragen für die Sprechstunde, aus den Kopfzahlen – so, wie die Muster sie
  * für den Bauch stellen. Jede ist eine Frage, keine davon eine Empfehlung,
  * und keine legt eine Diagnose in den Mund; die Antwort hat die Praxis.
+ *
+ * Die Aufwach-Frage gilt für alle (sie hängt an keinem Schalter): Kopfschmerz,
+ * der schon beim Aufwachen da ist, hat Ursachen, an die man beim Kopf nicht
+ * zuerst denkt – Schlaf, Koffein, Schmerzmittel. Wer „Kiefer, Nacken,
+ * Schiene" eingeschaltet hat und die Schiene oft trägt, bekommt sie mit der
+ * Schiene im ersten Satz, damit die Praxis weiß, wovon die Rede ist.
+ * `aufwach` kommt aus aufwachZahlen(); ohne bleibt es bei den alten Fragen.
  */
-export function kopfFragen({ zahlen: z, mittel: m, befundIds = [] } = {}) {
+export function kopfFragen({
+  zahlen: z, mittel: m, befundIds = [], aufwach = null, spannungAn = false,
+} = {}) {
   const fragen = [];
   if (!z || !z.anzahl) return fragen;
   if (z.letzte30 >= 4) {
@@ -853,6 +887,12 @@ export function kopfFragen({ zahlen: z, mittel: m, befundIds = [] } = {}) {
     fragen.push(`Vor dem Kopfschmerz hatte ich ${z.auraAnzahl}-mal Flimmern, Zacken oder `
       + 'wanderndes Kribbeln (eine Aura) – falls Verhütung ein Thema ist: Spielt das '
       + 'für eine Pille mit Östrogen eine Rolle?');
+  }
+  if (aufwach && aufwach.aufwachen >= AUFWACH_AB) {
+    const schiene = spannungAn === true && aufwach.schiene >= SCHIENE_NAECHTE_AB;
+    fragen.push(`${schiene ? 'Ich trage eine Aufbissschiene und habe' : 'Ich habe'} oft schon beim `
+      + 'Aufwachen Kopfschmerzen. Gehören Schlaf (Schnarchen, Atemaussetzer), Koffein oder meine '
+      + 'Schmerzmittel mit auf die Liste?');
   }
   return fragen;
 }

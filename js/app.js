@@ -59,7 +59,7 @@ import {
 } from './zyklus.js';
 import { WARNZEICHEN, bildLesen, genugFuerBild } from './bild.js';
 import {
-  KOPF_ARTEN, KOPF_DAUER, KOPF_SEITE, KOPF_VERLAUF, MITTEL_WIRKUNG, bauchAnKopfTagen,
+  KOPF_ARTEN, KOPF_DAUER, KOPF_SEITE, KOPF_VERLAUF, MITTEL_WIRKUNG, aufwachZahlen, bauchAnKopfTagen,
   bauchAnKopfTagenSatz, chronischSatz, kopfArtName, kopfDauerName, kopfFragen,
   kopfMittel, kopfMonate, kopfNachPhase, kopfTageVon, kopfUmPeriode, kopfUmstaende,
   kopfVerlaufKurz, kopfZahlen, mittelWirkungName, nachwirkungSatz, nsarNachwirkung,
@@ -3645,7 +3645,10 @@ function kopfTeil(s, d) {
   const umstaende = kopfUmstaende(s.eintraege, s.tage, faktorBilanz, zufallsSpielraum);
   const periode = kopfUmPeriode(s.eintraege, s.tage, d.heute);
   const monate = kopfMonate(s.eintraege, s.tage, d.gruppeVon, d.heute);
-  const fragen = kopfFragen({ zahlen: z, mittel: m, befundIds });
+  // Die Aufwach-Frage wie im Bericht – Muster und Zettel fragen dasselbe.
+  const fragen = kopfFragen({
+    zahlen: z, mittel: m, befundIds, aufwach: aufwachZahlen(s.eintraege, s.tage, d.heute), spannungAn: s.spannungAn,
+  });
   const phasen = kopfNachPhase(s.eintraege, s.tage);
   const saetze = [
     { text: statusSatz(z, d.heute), laut: true },

@@ -62,6 +62,45 @@ for (const saat of GOLD_SAATEN) {
 
 /* ---------- G5: zeichengleich ---------- */
 
+/*
+ * Eine Ausnahme gibt es, und nur für den Bericht: Zeilen, die schon in der
+ * Fassung 27 80 Zeichen oder mehr hatten, bricht die Fassung 28 um – der
+ * Zettel wird ausgedruckt, und dort sind sie abgeschnitten. Jede kürzere Zeile
+ * muss Zeichen für Zeichen gleich sein. Eine lange Zeile muss als mehrere
+ * Zeilen unter 80 Zeichen wiederkommen, die mit ihrem Anfang beginnen und
+ * ohne Leerraum gelesen genau ihre Zeichen in derselben Reihenfolge ergeben.
+ * Nichts darf dazukommen, nichts fehlen.
+ *
+ * @returns {{ gleich: boolean, umbrochen: number, wo: string }}
+ */
+function berichtGleich(alt, neu) {
+  const a = alt.split('\n');
+  const b = neu.split('\n');
+  const ohneLeer = (t) => t.replace(/\s+/g, '');
+  let j = 0;
+  let umbrochen = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].length < 80) {
+      if (b[j] !== a[i]) return { gleich: false, umbrochen, wo: `Zeile ${i + 1}: „${a[i]}“ / „${b[j]}“` };
+      j += 1;
+    } else {
+      const ziel = ohneLeer(a[i]);
+      const start = j;
+      let gelesen = '';
+      while (j < b.length && gelesen.length < ziel.length && b[j].length < 80) {
+        gelesen += ohneLeer(b[j]);
+        j += 1;
+      }
+      if (gelesen !== ziel || j - start < 2 || !a[i].startsWith(b[start])) {
+        return { gleich: false, umbrochen, wo: `lange Zeile ${i + 1}: „${a[i]}“` };
+      }
+      umbrochen += 1;
+    }
+  }
+  if (j !== b.length) return { gleich: false, umbrochen, wo: `danach noch „${b[j]}“` };
+  return { gleich: true, umbrochen, wo: '' };
+}
+
 for (const saat of GOLD_SAATEN) {
   // eslint-disable-next-line no-await-in-loop
   const jetzt = await alleRechnungen(ROOT, tagebuch(saat));
@@ -70,10 +109,20 @@ for (const saat of GOLD_SAATEN) {
     JSON.stringify(Object.keys(jetzt)) === JSON.stringify(Object.keys(alt)),
     `Tagebuch ${saat}: dieselben Rechnungen wie im Gold`,
   );
-  const anders = Object.keys(alt).filter((k) => JSON.stringify(jetzt[k]) !== JSON.stringify(alt[k]));
+  // Der Bericht für sich (siehe oben), alle übrigen Rechnungen zeichengleich.
+  const berichte = alt.arztBericht.map((t, i) => berichtGleich(t, jetzt.arztBericht[i] || ''));
+  const umbrochen = berichte.reduce((s, x) => s + x.umbrochen, 0);
+  check(
+    berichte.every((x) => x.gleich) && umbrochen > 0
+      && jetzt.arztBericht.every((t) => !/^.{80,}$/m.test(t)),
+    `Tagebuch ${saat}: der Bericht ist zeilengleich mit der Fassung 27 – nur ${umbrochen} Zeilen, die dort `
+      + `80 Zeichen oder mehr hatten, sind umbrochen${berichte.filter((x) => !x.gleich).map((x) => ` – ${x.wo}`).join('')}`,
+  );
+  const anders = Object.keys(alt).filter((k) => k !== 'arztBericht'
+    && JSON.stringify(jetzt[k]) !== JSON.stringify(alt[k]));
   check(
     anders.length === 0,
-    `Tagebuch ${saat}: alle ${Object.keys(alt).length} Rechnungen zeichengleich mit der Fassung 27`
+    `Tagebuch ${saat}: alle ${Object.keys(alt).length - 1} übrigen Rechnungen zeichengleich mit der Fassung 27`
       + `${anders.length ? ` – anders: ${anders.join(', ')}` : ''}`,
   );
   // Bei einem Unterschied die Stelle zeigen – sonst sucht man im Dunkeln.

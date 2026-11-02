@@ -894,7 +894,8 @@ export function adhsAuswertung({
     if (ohneZahl || pausen.beschwerden.length) {
       saetze.push('Tage ohne Mittel sind keine Zufallsauswahl. Wer an einem schlechten Tag das Mittel '
         + 'weglässt, macht die Tage ohne schlechter, ohne dass das Mittel etwas getan hat – deshalb '
-        + `zählen Tage „wegen Beschwerden“ nicht mit (${pausen.beschwerden.length} solche Tage).`);
+        + `zählen Tage „wegen Beschwerden“ nicht mit (${pausen.beschwerden.length === 1 ? 'ein solcher Tag'
+          : `${pausen.beschwerden.length} solche Tage`}).`);
     }
     a2Raus = {
       mitTage: a2.mitTage,

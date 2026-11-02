@@ -9,7 +9,8 @@
  *   1. adhsAuswertung() und spannungAuswertung() ergeben mit jedem Stand der
  *      Schalter dasselbe Ergebnis, Zeichen für Zeichen.
  *   2. raete() mit derselben Vorsicht beim Essen ergibt dasselbe – gleich,
- *      was sonst im Zustand steht.
+ *      was sonst im Zustand steht. Der Bericht ohne Schalter ist der mit
+ *      Schaltern ohne die neuen Abschnitte, Zeichen für Zeichen.
  *   3. Auf „Muster" ist mit eingeschalteten Schaltern alles gleich bis auf
  *      die beiden neuen Karten; ausgeschaltet fehlen sie.
  *   4. Was für alle gilt (Ebene 0), steht auch ohne Schalter: der Vorbehalt
@@ -17,8 +18,6 @@
  *   5. Mit „Kiefer, Nacken, Schiene" stehen Massage und Wärme nur gefiltert
  *      da – in der neuen Karte, nicht mehr ungefiltert unter „Was du gemacht
  *      hast".
- *
- * Der Bericht folgt mit seinen Abschnitten (Teil 5 des Entwurfs).
  */
 import { chromium } from 'playwright';
 import path from 'node:path';
@@ -64,6 +63,92 @@ for (const saat of [3, 8, 21]) {
     const b = JSON.stringify(raete({ ...grund, essenVorsicht: v, adhsAn: false }));
     check(a === b, `raete() mit essenVorsicht ${v || '(keine)'}: gleich, was sonst im Zustand steht`);
   });
+}
+
+/* ---------- 2b. Der Bericht ---------- */
+
+/*
+ * Mit den Schaltern aus fehlen ADHS-MITTEL, ESSENSRHYTHMUS und KIEFER,
+ * NACKEN, SCHIENE; alles andere ist Zeichen für Zeichen dasselbe wie mit den
+ * Schaltern an. Zwei Stellen hängen laut Entwurf außerdem an einem Schalter
+ * und werden hier ausdrücklich herausgenommen – nur sie:
+ *
+ *   * unter NACH ZYKLUSPHASE Stimmung und Anspannung je Phase („ADHS"),
+ *   * unter KOPFSCHMERZEN die Aufwach-Frage in ihrer Fassung mit der
+ *     Schiene („Kiefer, Nacken, Schiene"); ohne Schalter steht dieselbe
+ *     Frage ohne die Schiene.
+ *
+ * Beide kommen in den Tagebüchern unten wirklich vor – sonst wäre die
+ * Ausnahme blind.
+ */
+const { arztBericht } = await appModul('bericht.js');
+const NEUE_ABSCHNITTE = /^(ADHS-MITTEL|ESSENSRHYTHMUS|KIEFER, NACKEN, SCHIENE)( \(.*)?$/;
+function umbrechen(satz, breite) {
+  const zeilen = [];
+  let zeile = '';
+  satz.split(/\s+/).forEach((w) => {
+    if (zeile && zeile.length + w.length + 1 > breite) { zeilen.push(zeile); zeile = w; } else zeile = zeile ? `${zeile} ${w}` : w;
+  });
+  if (zeile) zeilen.push(zeile);
+  return zeilen;
+}
+function ohneSchalterTeile(text) {
+  const raus = [];
+  const zeilen = text.split('\n');
+  const zaehl = { abschnitte: 0, zyklus: 0, schiene: 0 };
+  for (let i = 0; i < zeilen.length; i++) {
+    const z = zeilen[i];
+    if (NEUE_ABSCHNITTE.test(z)) {
+      zaehl.abschnitte += 1;
+      while (i < zeilen.length && zeilen[i] !== '') i += 1;
+      continue;
+    }
+    if (/^ {2}(Stimmung \(|Anspannung \(|\(Zahlen aus den Tagesfragen)/.test(z)) {
+      zaehl.zyklus += 1;
+      while (i + 1 < zeilen.length && zeilen[i + 1].startsWith('    ')) i += 1;
+      continue;
+    }
+    if (z.startsWith('  - Ich trage eine Aufbissschiene und habe oft')) {
+      zaehl.schiene += 1;
+      let frage = z.slice(4);
+      while (i + 1 < zeilen.length && zeilen[i + 1].startsWith('    ')) { i += 1; frage += ` ${zeilen[i].trim()}`; }
+      umbrechen(frage.replace('Ich trage eine Aufbissschiene und habe oft', 'Ich habe oft'), 64)
+        .forEach((zl, j) => raus.push(`  ${j ? '  ' : '- '}${zl}`));
+      continue;
+    }
+    raus.push(z);
+  }
+  return { text: raus.join('\n'), zaehl };
+}
+
+{
+  const gesehen = { abschnitte: 0, zyklus: 0, schiene: 0 };
+  for (const saat of [3, 8, 21]) {
+    const d = adhsTagebuch(saat);
+    // Blutungstage für die Zyklusphasen und Kopfschmerzen beim Aufwachen in
+    // den letzten Wochen, damit beide Ausnahmen vorkommen.
+    const tage = JSON.parse(JSON.stringify(d.tage));
+    for (let i = 0; i < 120; i++) if (i % 28 < 5) tage[isoPlus(d.heute, -1 - i)] = { ...(tage[isoPlus(d.heute, -1 - i)] || {}), blutung: 2 };
+    const eintraege = [...d.eintraege];
+    for (let i = 1; i <= 4; i++) {
+      eintraege.push({ id: `aw${i}`, art: 'kopf', am: isoPlus(d.heute, -2 * i), um: '06:30', staerke: 4, kopfArten: ['aufwachen'] });
+    }
+    eintraege.sort((a, b) => (a.am === b.am ? (a.um < b.um ? -1 : 1) : (a.am < b.am ? -1 : 1)));
+    const s = { ...d, eintraege, tage };
+    for (const tagezahl of [30, 90]) {
+      const von = isoPlus(GRUNDDATUM, -(tagezahl - 1));
+      const an = ohneSchalterTeile(arztBericht({ ...s, adhsAn: true, spannungAn: true }, von, GRUNDDATUM));
+      Object.keys(gesehen).forEach((k) => { gesehen[k] += an.zaehl[k]; });
+      const aus = [[null, null], [false, false]].map(([a, b]) => arztBericht({ ...s, adhsAn: a, spannungAn: b }, von, GRUNDDATUM));
+      check(aus.every((t) => !t.split('\n').some((z) => NEUE_ABSCHNITTE.test(z))),
+        `Tagebuch ${saat}, ${tagezahl} Tage: ohne Schalter keiner der neuen Abschnitte`);
+      check(an.zaehl.abschnitte >= 2 && aus.every((t) => ohneSchalterTeile(t).text === t && t === an.text),
+        `Tagebuch ${saat}, ${tagezahl} Tage: der Bericht ohne Schalter ist der mit Schaltern ohne die `
+          + `${an.zaehl.abschnitte} neuen Abschnitte – Zeichen für Zeichen`);
+    }
+  }
+  check(gesehen.zyklus >= 1 && gesehen.schiene >= 1,
+    `beide Ausnahmen kommen vor (Zyklus ${gesehen.zyklus}×, Aufwach-Frage mit Schiene ${gesehen.schiene}×)`);
 }
 
 /* ---------- 3. bis 5. Die Anzeige ---------- */

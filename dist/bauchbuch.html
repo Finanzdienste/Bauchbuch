@@ -4844,12 +4844,46 @@ function kopfMonate(eintraege, tage, gruppeVon, heute, anzahl = 3) {
   return raus;
 }
 
+/** Ab so vielen Kopfschmerzen „schon beim Aufwachen" in 30 Tagen fragt der Zettel nach. */
+const AUFWACH_AB = 4;
+/** Ab so vielen Nächten mit Schiene in denselben 30 Tagen nennt die Frage die Schiene. */
+const SCHIENE_NAECHTE_AB = 10;
+
+/**
+ * Für die Aufwach-Frage: wie viele Kopfschmerzen in den letzten 30 Tagen
+ * „schon beim Aufwachen" da waren, und in wie vielen Nächten derselben Zeit
+ * die Schiene getragen wurde.
+ *
+ * Gezählt über dieselben 30 Kalendertage wie `letzte30` in kopfZahlen() –
+ * die Frage gehört zu dem Fenster, nach dem die Sprechstunde fragt, nicht
+ * zum Berichtszeitraum.
+ */
+function aufwachZahlen(eintraege, tage, heute) {
+  const von = heute ? plusTage(heute, -29) : null;
+  const drin = (iso) => !heute || (iso >= von && iso <= heute);
+  return {
+    aufwachen: kopfEintraege(eintraege, heute)
+      .filter((e) => drin(e.am) && (e.kopfArten || []).includes('aufwachen')).length,
+    schiene: Object.keys(tage || {})
+      .filter((iso) => drin(iso) && tage[iso] && Number(tage[iso].schiene) === 1).length,
+  };
+}
+
 /**
  * Fragen für die Sprechstunde, aus den Kopfzahlen – so, wie die Muster sie
  * für den Bauch stellen. Jede ist eine Frage, keine davon eine Empfehlung,
  * und keine legt eine Diagnose in den Mund; die Antwort hat die Praxis.
+ *
+ * Die Aufwach-Frage gilt für alle (sie hängt an keinem Schalter): Kopfschmerz,
+ * der schon beim Aufwachen da ist, hat Ursachen, an die man beim Kopf nicht
+ * zuerst denkt – Schlaf, Koffein, Schmerzmittel. Wer „Kiefer, Nacken,
+ * Schiene" eingeschaltet hat und die Schiene oft trägt, bekommt sie mit der
+ * Schiene im ersten Satz, damit die Praxis weiß, wovon die Rede ist.
+ * `aufwach` kommt aus aufwachZahlen(); ohne bleibt es bei den alten Fragen.
  */
-function kopfFragen({ zahlen: z, mittel: m, befundIds = [] } = {}) {
+function kopfFragen({
+  zahlen: z, mittel: m, befundIds = [], aufwach = null, spannungAn = false,
+} = {}) {
   const fragen = [];
   if (!z || !z.anzahl) return fragen;
   if (z.letzte30 >= 4) {
@@ -4873,6 +4907,12 @@ function kopfFragen({ zahlen: z, mittel: m, befundIds = [] } = {}) {
     fragen.push(`Vor dem Kopfschmerz hatte ich ${z.auraAnzahl}-mal Flimmern, Zacken oder `
       + 'wanderndes Kribbeln (eine Aura) – falls Verhütung ein Thema ist: Spielt das '
       + 'für eine Pille mit Östrogen eine Rolle?');
+  }
+  if (aufwach && aufwach.aufwachen >= AUFWACH_AB) {
+    const schiene = spannungAn === true && aufwach.schiene >= SCHIENE_NAECHTE_AB;
+    fragen.push(`${schiene ? 'Ich trage eine Aufbissschiene und habe' : 'Ich habe'} oft schon beim `
+      + 'Aufwachen Kopfschmerzen. Gehören Schlaf (Schnarchen, Atemaussetzer), Koffein oder meine '
+      + 'Schmerzmittel mit auf die Liste?');
   }
   return fragen;
 }
@@ -8303,7 +8343,8 @@ function nachweisSatz(grenze) {
 function grenzeText(grenze, art) {
   if (!Number.isFinite(grenze)) return '';
   if (art === 'anteil') return `${Math.round(grenze * 100)} Prozentpunkten`;
-  return `${fmtZahl(grenze)} Stufen`;
+  const zahl = fmtZahl(grenze);
+  return `${zahl} ${zahl === '1' ? 'Stufe' : 'Stufen'}`;
 }
 
 /* ---------- Ein Vergleich von Tagen ---------- */
@@ -10254,7 +10295,8 @@ function adhsAuswertung({
     if (ohneZahl || pausen.beschwerden.length) {
       saetze.push('Tage ohne Mittel sind keine Zufallsauswahl. Wer an einem schlechten Tag das Mittel '
         + 'weglässt, macht die Tage ohne schlechter, ohne dass das Mittel etwas getan hat – deshalb '
-        + `zählen Tage „wegen Beschwerden“ nicht mit (${pausen.beschwerden.length} solche Tage).`);
+        + `zählen Tage „wegen Beschwerden“ nicht mit (${pausen.beschwerden.length === 1 ? 'ein solcher Tag'
+          : `${pausen.beschwerden.length} solche Tage`}).`);
     }
     a2Raus = {
       mitTage: a2.mitTage,
@@ -15244,6 +15286,7 @@ const HOECHSTENS = 5;
  * @param {object} [q.gewicht]      aus gewichtsBild(): { warnung, satz }
  * @param {object} [q.luecke]       { satz }
  * @param {number} [q.notierteTage]
+ * @param {object[]} [q.paare]      Hinweise der Stufe A aus js/zusammen.js: { id }
  */
 function wasSacheIst(q = {}) {
   const saetze = [];
@@ -15277,6 +15320,27 @@ function wasSacheIst(q = {}) {
    */
   if (q.gewicht && q.gewicht.warnung) {
     sag('warnung', q.gewicht.satz);
+  }
+
+  /*
+   * 1c. Zwei Mittel, die laut Fachinformation nicht zusammen vorgesehen sind
+   * (Stufe A in js/zusammen.js) – gleich nach den Warnzeichen.
+   *
+   * Es ist kein Befund aus dem Tagebuch, sondern eine Frage, die in die
+   * Sprechstunde gehört und sonst niemandem auffällt: Säureblocker und
+   * Methylphenidat kommen oft aus zwei verschiedenen Praxen. Je Art ein
+   * Satz, auch bei mehreren Paaren; die Namen stehen unten bei den Mitteln.
+   * Er sagt nie, etwas wegzulassen.
+   */
+  const paarIds = new Set((q.paare || []).map((p) => p && p.id));
+  if (paarIds.has('W1')) {
+    sag('paar', 'Eingetragen sind Methylphenidat als Kapsel mit zweierlei Kügelchen und ein '
+      + 'Säureblocker – laut Fachinformation nicht zusammen vorgesehen; das gehört geprüft, ohne '
+      + 'etwas eigenmächtig wegzulassen.');
+  }
+  if (paarIds.has('W1u')) {
+    sag('paar', 'Eingetragen sind Methylphenidat ohne Angabe der Form und ein Säureblocker – bei '
+      + 'manchen Kapseln laut Fachinformation nicht zusammen vorgesehen; die Form gehört geklärt.');
   }
 
   /*
@@ -15405,11 +15469,13 @@ function wasSacheIst(q = {}) {
    * noch fehlt, ist keine – er sagt gerade, dass etwas fehlt. Stünde er
    * alleine da, läse sich die Karte wie eine Antwort, wo keine ist.
    */
-  const auskunft = saetze.filter((x) => x.art !== 'luecke');
+  // Der Hinweis zu zwei Mitteln ist ebenso wenig eine Auskunft über das
+  // Tagebuch: Er steht dann vor dem Satz, dass die Zahlen noch nicht reichen.
+  const auskunft = saetze.filter((x) => x.art !== 'luecke' && x.art !== 'paar');
   if (!auskunft.length) {
     return {
       genug: false,
-      saetze: [{
+      saetze: [...saetze.filter((x) => x.art === 'paar'), {
         art: 'wenig',
         text: q.notierteTage
           ? `Aus ${q.notierteTage} notierten Tagen lässt sich noch nichts `
@@ -15419,7 +15485,7 @@ function wasSacheIst(q = {}) {
             + 'steht hier, was sich daraus ergibt.',
       // Der Hinweis, was am meisten hülfe, darf bleiben – er ist dann der
       // einzige nützliche Satz, den es zu sagen gibt.
-      }, ...saetze],
+      }, ...saetze.filter((x) => x.art !== 'paar')],
     };
   }
 
@@ -16971,7 +17037,18 @@ export async function schicken(text) {
 
 
 
+
+
+
+
 const prozent = (x) => `${Math.round(x * 100)} %`;
+
+/**
+ * So breit darf eine Zeile höchstens sein: Der Zettel wird ausgedruckt oder
+ * in eine Mail geklebt, und beides schneidet um die 80 Zeichen ab oder bricht
+ * mitten im Wort um.
+ */
+const BERICHT_BREITE = 79;
 
 /**
  * Einen langen Satz auf Zeilenbreite umbrechen.
@@ -16983,16 +17060,424 @@ const prozent = (x) => `${Math.round(x * 100)} %`;
 function umbrochen(satz, breite = 68) {
   const zeilen = [];
   let zeile = '';
-  String(satz).split(/\s+/).forEach((wort) => {
-    if (zeile && (zeile.length + wort.length + 1) > breite) {
-      zeilen.push(zeile);
-      zeile = wort;
-    } else {
-      zeile = zeile ? `${zeile} ${wort}` : wort;
-    }
+  String(satz).split(/\s+/).forEach((ganz) => {
+    // Ein Wort, das allein breiter ist als die Zeile – ein langer Name ohne
+    // Leerzeichen –, wird hart geteilt. Sonst stünde es über den Rand hinaus.
+    const stuecke = ganz.length > breite
+      ? Array.from({ length: Math.ceil(ganz.length / breite) }, (_, i) => ganz.slice(i * breite, (i + 1) * breite))
+      : [ganz];
+    stuecke.forEach((wort) => {
+      if (zeile && (zeile.length + wort.length + 1) > breite) {
+        zeilen.push(zeile);
+        zeile = wort;
+      } else {
+        zeile = zeile ? `${zeile} ${wort}` : wort;
+      }
+    });
   });
   if (zeile) zeilen.push(zeile);
   return zeilen;
+}
+
+/**
+ * Ein Absatz mit Einzug: die erste Zeile mit `einzug`, jede weitere mit
+ * `fort` – so, wie die Abschnitte des Berichts eingerückt sind.
+ */
+function berAbsatz(satz, einzug = '  ', fort = '    ', breite = BERICHT_BREITE - fort.length) {
+  // Eine Zahl und ihr Prozentzeichen bleiben auf einer Zeile.
+  return umbrochen(String(satz).replace(/ %/g, '\u0001%'), breite)
+    .map((zl, i) => `${i ? fort : einzug}${zl.replace(/\u0001/g, ' ')}`);
+}
+
+/**
+ * Eine Zeile in Spalten („Kopfschmerztage            3 · davor 4 · …"),
+ * deren Teile auf weitere Zeilen unter die zweite Spalte rücken, wenn alles
+ * zusammen zu breit wird. Passt es, bleibt es eine Zeile wie bisher.
+ */
+function berSpalte(kopf, ...teile) {
+  const ganz = `${kopf}${teile.join(' ')}`;
+  if (ganz.length <= BERICHT_BREITE) return [ganz];
+  const unter = ' '.repeat(kopf.length);
+  return [`${kopf}${teile[0]}`, ...teile.slice(1).map((t) => `${unter}${t}`)];
+}
+
+/**
+ * Der letzte Wächter über die Breite: Jede Zeile, die noch zu lang ist, wird
+ * an einem Leerzeichen umbrochen – unter der zweiten Spalte, wenn die Zeile
+ * Spalten hat, sonst etwas eingerückt. Was kürzer ist, bleibt Zeichen für
+ * Zeichen, wie es war; das hält einen Bericht ohne lange Zeilen gleich.
+ */
+function berZeileKuerzen(zeile) {
+  if (zeile.length <= BERICHT_BREITE) return [zeile];
+  const einzug = zeile.match(/^ */)[0].length;
+  const spalte = /^ *\S(?:.*?\S)? {2,}(?=\S)/.exec(zeile);
+  const fort = spalte && spalte[0].length <= 40 ? spalte[0].length : einzug + 2;
+  const raus = [];
+  let rest = zeile;
+  let innen = einzug;
+  while (rest.length > BERICHT_BREITE) {
+    // Am liebsten vor einem Gedankenstrich: „… 14 Tage – spricht dagegen"
+    // bleibt dann als Urteil beisammen, statt mitten darin umzubrechen.
+    const strich = rest.lastIndexOf(' – ', BERICHT_BREITE - 2);
+    let schnitt = strich > innen + 20 ? strich : rest.lastIndexOf(' ', BERICHT_BREITE);
+    // Kein Leerzeichen hinter dem Einzug: ein überlanges Wort, hart geteilt.
+    if (schnitt <= innen) schnitt = BERICHT_BREITE;
+    raus.push(rest.slice(0, schnitt).trimEnd());
+    const weiter = rest.slice(schnitt).trimStart();
+    rest = weiter ? `${' '.repeat(fort)}${weiter}` : '';
+    innen = fort;
+  }
+  if (rest) raus.push(rest);
+  return raus;
+}
+
+/* ---------- Die Teile der Fassung 28 ---------- */
+
+/** Die Tagesfelder zu Kiefer, Nacken und Schiene. */
+const BER_SPANNUNG_FELDER = ['verspannt', 'kiefer', 'gepresst', 'schiene'];
+const BER_GEGENMITTEL = ['massagepistole', 'massage', 'waerme'];
+const BER_SPANNUNG_KOPF = ['kauen', 'nackenbewegung', 'schlaefe'];
+/* Kurz genug für die Spalte der Kopfmerkmale – die langen Namen würden mitten im Wort abgeschnitten. */
+const BER_KOPF_KURZ = { kauen: 'Schlimmer beim Kauen', nackenbewegung: 'Bei Kopf-/Nackenbewegung' };
+
+const berDa = (x) => x !== undefined && x !== null && x !== '';
+
+/** Das Urteil eines neuen Vergleichs in einem Wort – wie auf „Muster". */
+const BER_URTEIL = { auffaellig: 'auffällig', moeglich: 'möglich', unauffaellig: 'eher weniger' };
+
+/** Ein Wert eines Vergleichs: Anteile in Prozent, Skalen mit Komma. */
+const berWert = (v, x) => (v.skala === 'anteil' ? prozent(x) : fmtZahl(x));
+const berSpielraum = (v) => (v.skala === 'anteil'
+  ? `${Math.round(v.urteil.spielraum * 100)} Prozentpunkte` : fmtZahl(v.urteil.spielraum));
+
+/** Teile mit „ · " zu Zeilen packen, ohne einen Teil zu zerreißen. */
+function berReihen(teile, breite) {
+  return teile.reduce((r, x) => {
+    if (r.length && `${r[r.length - 1]} · ${x}`.length <= breite) r[r.length - 1] += ` · ${x}`;
+    else r.push(x);
+    return r;
+  }, []);
+}
+
+/*
+ * Die Kernsätze der Paare für den Zettel. Die Karte auf „Tag" spricht den
+ * Menschen an, der die Mittel nimmt („In deinen Mitteln …", „bitte nichts
+ * weglassen"); der Zettel geht an die Praxis und braucht nur, was die
+ * Fachinformation sagt. Die Sätze sind Teile der Kartentexte aus
+ * js/zusammen.js und mit ihnen belegt. Für die übrigen Paare reicht der
+ * erste Satz des Hinweises bis zum Gedankenstrich.
+ */
+const BER_PAAR = {
+  W1: 'Die Fachinformation solcher Kapseln sieht beides nicht zusammen vor: In einem weniger '
+    + 'sauren Magen kann der Wirkstoff früher frei werden.',
+  W1u: 'Bei manchen Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) sieht die '
+    + 'Fachinformation das nicht zusammen vor; die Form ist nicht angegeben.',
+  W3: 'Ob ein Säureblocker zum Präparat passt, hängt bei Methylphenidat an der Form.',
+  W4: 'Ob ein Säureblocker zum Präparat passt, hängt bei Methylphenidat an der Form.',
+};
+
+function berPaarKern(h) {
+  if (BER_PAAR[h.id]) return BER_PAAR[h.id];
+  const vorStrich = String(h.text || '').split(' – ')[0];
+  const ende = vorStrich.search(/\.\s/);
+  const satz = (ende >= 0 ? vorStrich.slice(0, ende + 1) : vorStrich).trim();
+  return /[.!?]$/.test(satz) ? satz : `${satz}.`;
+}
+
+/** Die Form eines Methylphenidats in Worten – „nicht angegeben" statt einer Form, die keine ist. */
+function berFormText(name, standardMittel, eintraege) {
+  const f = mphForm(formZu(name, standardMittel, eintraege));
+  return f && f.id !== 'unbekannt' ? f.kurzname : null;
+}
+
+/** Ein Name im Paar: bei Methylphenidat mit der Form, damit die Praxis weiß, welches. */
+function berPaarName(name, standardMittel, eintraege) {
+  const g = wissenZu(name);
+  if (!g || g.id !== 'mph') return name;
+  const form = berFormText(name, standardMittel, eintraege) || 'Form nicht angegeben';
+  return /methylphenidat/i.test(name) ? `${name} (${form})` : `${name} (Methylphenidat, ${form})`;
+}
+
+/**
+ * ADHS-MITTEL – der Abschnitt zur Muster-Karte, für die Praxis.
+ *
+ * Er rechnet nichts selbst (js/adhs.js tut das) und sagt dasselbe wie die
+ * Karte, nur knapp und ohne Anrede: Zahlen mit Fallzahlen, ein Urteil nur,
+ * wo es über dem Zufallsspielraum der Familie liegt, und auf der Seite „ohne"
+ * nie, wie viel noch fehlt (R9).
+ */
+function berAdhs(a, rhythmus, { spannungAn, gewichtDa }) {
+  const z = [];
+  const absatz = (t, ein = '  ', fort = '    ') => z.push(...berAbsatz(t, ein, fort));
+  const klammer = (saetze, ein = '    ') => {
+    const da = saetze.filter(Boolean);
+    if (da.length) absatz(`(${da.join(' ')})`, ein, ein);
+  };
+
+  z.push('ADHS-MITTEL (eigene Einträge; Zählfenster, keine Wirkdauer)');
+  absatz(`${a.abschnitt.namen.join(', ')} seit ${a.abschnitt.datum}: `
+    + `${mehrzahl(a.abschnitt.tage, 'Einnahmetag', 'Einnahmetage')}`
+    + `${a.a2 && a.a2.bezugUhr ? `, erste meist ${a.a2.bezugUhr}` : ''}`);
+
+  /* Tage ohne Mittel – mit Grund, und „wegen Beschwerden" als nicht gewertet. */
+  if (a.a2) {
+    const g = a.a2.gruende;
+    const gruende = [
+      g.geplant ? `geplant ${g.geplant}` : '', g.vergessen ? `vergessen ${g.vergessen}` : '',
+      g.pause ? `ohne Grund ${g.pause}` : '',
+      g.beschwerden ? `wegen Beschwerden ${g.beschwerden} – nicht gewertet` : '',
+    ].filter(Boolean).join(', ');
+    absatz(`Tage ohne ADHS-Mittel: ${a.a2.ohneTage + g.beschwerden}${gruende ? ` (${gruende})` : ''}`);
+  }
+
+  /* A1 */
+  const h = a.a1 && a.a1.haupt;
+  if (h) {
+    const v = h.vergleich;
+    const zl = h.zaehl;
+    // Als Reihe von Teilen, damit keine Zahl allein auf der nächsten Zeile steht.
+    berReihen([
+      `Zum Essen (erste Einnahme je Tag): mit ${v.mit.n}`, `ohne ${v.ohne.n}`,
+      zl.vor ? `kurz vor dem Essen ${zl.vor}` : '', zl.ohneAngabe ? `ohne Angabe ${zl.ohneAngabe}` : '',
+      zl.spaet ? `später angegeben ${zl.spaet}` : '',
+      zl.widerspruch ? `Angabe und Mahlzeit widersprechen sich ${zl.widerspruch}` : '',
+      zl.unklar ? `Mahlzeit nur ungefähr ${zl.unklar}` : '',
+    ].filter(Boolean), BERICHT_BREITE - 4).forEach((zeile, i) => z.push(`${i ? '    ' : '  '}${zeile}`));
+    const nicht = [
+      zl.nichtZuzuordnen ? `Zeit nur ungefähr ${zl.nichtZuzuordnen}` : '',
+      zl.davor ? `Beschwerde schon davor ${zl.davor}` : '',
+      zl.offen ? `Reihenfolge offen ${zl.offen}` : '',
+      zl.nichtNotiert ? `Tag sonst ohne Bauch-Angaben ${zl.nichtNotiert}` : '',
+    ].filter(Boolean).join(' · ');
+    if (nicht) absatz(`Nicht gewertet: ${nicht}`, '    ', '      ');
+    absatz(`Bauch in den 4 Stunden nach der ersten Einnahme (0–10)${a.a1.alle.length > 1 ? `, ${h.name}` : ''}`);
+    z.push(`    ohne Essen ${String(v.ohne.n).padStart(3)} Mal${v.genug ? `, im Mittel ${fmtZahl(v.ohne.schnitt)}` : ''}`);
+    z.push(`    mit Essen  ${String(v.mit.n).padStart(3)} Mal${v.genug ? `, im Mittel ${fmtZahl(v.mit.schnitt)}` : ''}`);
+    const saetze = [];
+    if (hatUrteil(v)) {
+      absatz(`Unterschied ${fmtZahl(v.urteil.differenz)}, Zufallsspielraum ${fmtZahl(v.urteil.spielraum)} `
+        + `– ${BER_URTEIL[v.art]}.`, '    ', '    ');
+      saetze.push('Ob es am leeren Magen liegt oder an dem, was an solchen Morgen sonst anders ist, zeigt '
+        + 'das Tagebuch nicht.');
+    } else if (v.genug) {
+      saetze.push(...v.saetze);
+    } else {
+      // Zu wenige: die Sätze aus js/adhs.js – bisherige Zahl, kein Ziel (R9).
+      saetze.push(...h.saetze.filter((t) => t.startsWith('Bisher ') || t.startsWith('Ein Vergleich entsteht')
+        || t.startsWith('Bei manchen Präparaten')));
+    }
+    if (v.mit.n) saetze.push('Bei „mit Essen“ zählt die Mahlzeit selbst mit.');
+    if (v.genug && h.anspannung.ohne !== null && h.anspannung.mit !== null) {
+      saetze.push(`Anspannung an diesen Tagen ${fmtZahl(h.anspannung.ohne)} gegen ${fmtZahl(h.anspannung.mit)}.`);
+    }
+    if (h.nuechtern) {
+      saetze.push(`${h.nuechtern} dieser Beschwerden zählen unten unter „Wie lange nach dem Essen“ auch als `
+        + 'nüchtern – dieselben Beschwerden, zwei Lesarten.');
+    }
+    klammer(saetze);
+    if (a.a1.auch.length) {
+      absatz(`auch: ${a.a1.auch.map((x) => `${x.name}: ${mehrzahl(x.faelle, 'Fall', 'Fälle')}`).join(', ')}`,
+        '    ', '      ');
+    }
+  }
+
+  /* A2 */
+  if (a.a2) {
+    z.push('  Mit gegen ohne Mittel (nur notierte Tage)');
+    const ids = ['bauch', 'kopf', 'schlaf', ...(spannungAn ? ['kiefer', 'gepresst'] : [])];
+    const titel = {
+      bauch: 'Bauch am Tag (0–10)',
+      kopf: `Kopfschmerz nach der Einnahmezeit${a.a2.bezugUhr ? ` (meist ${a.a2.bezugUhr})` : ''}`,
+      schlaf: 'Schlaf danach (0 gut – 4 kaum)',
+      kiefer: 'Kiefer am Morgen danach (0–4)',
+      gepresst: 'Tagsüber gepresst',
+    };
+    const kurz = { bauch: 'Bauch', kopf: 'Kopf', schlaf: 'Schlaf', kiefer: 'Kiefer', gepresst: 'gepresst' };
+    const da = ids.map((id) => [id, a.a2.zeilen[id]]).filter(([, v]) => v && v.genug);
+    da.forEach(([id, v]) => {
+      absatz(`${titel[id]}: mit Mittel ${berWert(v, v.mit.schnitt)} · ohne ${berWert(v, v.ohne.schnitt)} `
+        + `(${v.mit.n}/${v.ohne.n} Tage)${hatUrteil(v) ? ` – ${BER_URTEIL[v.art]}, Spielraum ±${berSpielraum(v)}` : ''}`,
+      '    ', '      ');
+    });
+    // Ohne Urteil: ein gemeinsamer Satz zur Nachweisgrenze (R5), dazu die
+    // Gründe, aus denen keines fallen durfte (R6 bis R6c) – je einmal.
+    const grenzen = da.filter(([, v]) => v.art === 'neutral')
+      .map(([id, v]) => `${grenzeText(v.urteil.grenze, v.skala)} (${kurz[id]})`);
+    const saetze = [];
+    if (grenzen.length) {
+      saetze.push(`Kein Unterschied über dem Zufall – unter ${grenzen.length > 1
+        ? `${grenzen.slice(0, -1).join(', ')} und ${grenzen[grenzen.length - 1]}` : grenzen[0]} wäre hier `
+        + 'keiner zu sehen.');
+    }
+    saetze.push(...new Set(da.filter(([, v]) => v.stoerung).flatMap(([, v]) => v.saetze)));
+    const st = a.a2.stuhl;
+    if (st.genug && !st.stoerung) {
+      saetze.push(`Harter Stuhl (Typ 1–2) an Tagen mit Mittel ${prozent(st.mit.schnitt)} (${st.mit.n} Tage mit `
+        + `Stuhlgang), ohne ${prozent(st.ohne.schnitt)} (${st.ohne.n}) – nur beschrieben.`);
+    }
+    saetze.push(...a.a2.saetze);
+    saetze.forEach((t) => absatz(t, '    ', '    '));
+  }
+
+  /* A3 */
+  if (a.a3 && a.a3.faelle) {
+    const v = a.a3;
+    if (v.dicht) {
+      absatz('Schlaf nach späterer letzter Einnahme: Die Einnahmezeiten liegen zu dicht beieinander für '
+        + 'diesen Vergleich.');
+    } else if (!v.genug) {
+      absatz(`Schlaf nach späterer letzter Einnahme: bisher ${mehrzahl(v.faelle, 'Tag', 'Tage')} mit einer `
+        + 'Schlafangabe in der Nacht danach – zu wenige für einen Vergleich.');
+    } else {
+      absatz(`Schlaf (0 gut – 4 kaum) nach letzter Einnahme nach ${v.uhr}: ${fmtZahl(v.mit.schnitt)} `
+        + `(${v.mit.n} Nächte), sonst ${fmtZahl(v.ohne.schnitt)} (${v.ohne.n})`
+        + `${hatUrteil(v) ? ` – ${BER_URTEIL[v.art]}, Spielraum ±${fmtZahl(v.urteil.spielraum)}` : ''}`);
+      // Die übrigen Sätze aus js/adhs.js: Nachweisgrenze, Wochentag, Blöcke, Vor-Nacht.
+      const saetze = [...v.saetze.slice(1)];
+      if (v.stress.spaeter !== null && v.stress.sonst !== null) {
+        saetze.push(`Anspannung an diesen Tagen ${fmtZahl(v.stress.spaeter)} gegen ${fmtZahl(v.stress.sonst)}.`);
+      }
+      saetze.push('Späteres Einschlafen gehört oft auch zu ADHS selbst – beides lässt sich hier nicht trennen.');
+      klammer(saetze);
+    }
+  }
+
+  /* A4 */
+  if (a.a4 && a.a4.sichtbar) {
+    const f = a.a4.faecher;
+    absatz(`Kopfschmerz-Beginn ab der ersten Einnahme (n = ${a.a4.n}, Beschreibung):`);
+    absatz(`0–4 Std. ${f[0]} · 4–8 Std. ${f[1]} · 8–12 Std. ${f[2]} (vorher ${a.a4.vorher}, `
+      + `später ${a.a4.spaeter})`, '    ', '    ');
+    a.a4.saetze.forEach((t) => absatz(t, '    ', '    '));
+  }
+
+  /* A5 */
+  z.push(...berRhythmus(rhythmus, gewichtDa));
+
+  z.push('  (Zahlen aus dem Tagebuch, kein Urteil über das Mittel.)');
+  const fragen = a.fragen.filter((f) => !f.nurMitSpannung || spannungAn).slice(0, 3);
+  if (fragen.length) {
+    z.push('  Fragen dazu:');
+    fragen.forEach((f) => umbrochen(f.text, 64).forEach((zl, j) => z.push(`  ${j ? '  ' : '- '}${zl}`)));
+  }
+  return z;
+}
+
+/**
+ * Der Essensrhythmus in Zeilen – mit Einnahmen über ihre Tage, sonst über
+ * alle Tage. Jeder Nenner steht dabei: Eine ausgefallene und eine nicht
+ * eingetragene Mahlzeit sehen im Tagebuch gleich aus.
+ */
+function berRhythmus(r, gewichtDa) {
+  const z = [];
+  if (!r || !r.tage) return z;
+  const zl = r.zeilen;
+  const welche = r.mitEinnahme ? 'Einnahmetagen' : 'Tagen';
+  const zeilen = (x, ein) => {
+    const raus = [];
+    if (x.ohneMittag && x.ohneMittag.n) {
+      raus.push(`Tage mit zwei oder mehr Mahlzeiten, keine davon zwischen 11 und 15 Uhr: `
+        + `${x.ohneMittag.k} von ${x.ohneMittag.n}`);
+    }
+    if (x.spaet && x.spaet.n) raus.push(`Mahlzeit ab 20 Uhr: an ${x.spaet.k} von ${x.spaet.n} Tagen mit Abend-Einträgen`);
+    if (x.appetit && x.appetit.n) {
+      raus.push(`„Kein Appetit“: an ${x.appetit.k} von ${x.appetit.n} ${ein} mit Bauch-Angaben`);
+    }
+    return raus;
+  };
+  const raus = [];
+  if (zl.ersteMahlzeit && zl.ersteMahlzeit.tage) {
+    raus.push(`Erste eingetragene Mahlzeit nach der Einnahme: nach ${fmtZahl(zl.ersteMahlzeit.median)} Std. `
+      + `(Median über ${mehrzahl(zl.ersteMahlzeit.tage, 'Tag', 'Tage')})`);
+  }
+  raus.push(...zeilen(zl, welche));
+  if (r.ohne) {
+    const ohne = zeilen(r.ohne, 'Tagen');
+    if (ohne.length) raus.push(`An Tagen ohne ADHS-Mittel: ${ohne.join('; ')}`);
+  }
+  if (!raus.length) return z;
+  raus.forEach((t) => z.push(...berAbsatz(t)));
+  if (r.gewicht && gewichtDa) z.push('  Gewicht: siehe GEWICHT');
+  z.push(...berAbsatz(r.satz));
+  return z;
+}
+
+/**
+ * KIEFER, NACKEN, SCHIENE – der Abschnitt zur Muster-Karte. Die Sätze kommen
+ * fertig aus js/spannung.js; was am selben Tag zusammen vorkommt, steht nur
+ * als Zahl (R7).
+ */
+function berSpannung(sp) {
+  const z = [];
+  const absatz = (t, ein = '  ', fort = '    ') => z.push(...berAbsatz(t, ein, fort));
+  z.push('KIEFER, NACKEN, SCHIENE (eigene Angaben)');
+
+  const v1 = sp.v1;
+  if (v1.getragen || v1.nicht) {
+    absatz(`Schiene: ${v1.getragen} Nächte getragen, ${v1.nicht} nicht`
+      + `${v1.ohneAngabe ? `, ${v1.ohneAngabe} ohne Angabe` : ''}`);
+    v1.saetze.forEach((t) => absatz(t, '    ', '    '));
+  }
+
+  const v2 = sp.v2;
+  if (v2.mit.n || v2.ohne.n) {
+    if (v2.genug) {
+      absatz(v2.satz);
+      absatz(`Anspannung an diesen Tagen ${fmtZahl(v2.stress.mit)} gegen ${fmtZahl(v2.stress.ohne)}.`, '    ', '    ');
+    } else {
+      absatz(`Nacken/Schultern und neuer Kopfschmerz am Folgetag: bisher ${mehrzahl(v2.mit.n, 'Tag', 'Tage')} `
+        + `nach stark verspanntem, ${v2.ohne.n} nach lockerem Tag – zu wenige für einen Vergleich.`);
+    }
+    if (v2.gut.genug) {
+      absatz(`Nur nach guten Nächten: nach stark verspanntem Tag ${v2.gut.mit.k} von ${v2.gut.mit.n}, nach `
+        + `lockerem ${v2.gut.ohne.k} von ${v2.gut.ohne.n} – nur beschrieben.`, '    ', '    ');
+    }
+    absatz(v2.vorbote, '    ', '    ');
+  }
+
+  if (sp.v3.length) {
+    sp.v3.filter((x) => x.vergleich.genug).forEach((x) => absatz(x.satz));
+    const wenig = sp.v3.filter((x) => !x.vergleich.genug);
+    if (wenig.length) {
+      absatz(`Nach mindestens mittel verspanntem Vortag bisher: ${wenig.map((x) => `${x.name} `
+        + `${mehrzahl(x.vergleich.mit.n, 'Tag', 'Tage')}`).join(', ')} – zu wenige für einen Vergleich.`);
+    }
+    absatz('Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach kann schon '
+      + 'unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.', '    ', '    ');
+  }
+
+  sp.v4.forEach((x) => absatz(x.satz));
+
+  if (sp.v5.genug) {
+    absatz(`Kiefer am Morgen (0–4) nach Nächten mit „Nachts davon wach“ ${fmtZahl(sp.v5.mit.schnitt)} `
+      + `(${sp.v5.mit.n}), sonst ${fmtZahl(sp.v5.ohne.schnitt)} (${sp.v5.ohne.n}).`);
+    absatz(sp.v5.satz, '    ', '    ');
+  }
+
+  const g = sp.gleichzeitig;
+  if (g.nacken.an.n >= 4 && g.nacken.sonst.n >= 4) {
+    absatz(`Am selben Tag: Nacken/Schultern an Kopfschmerztagen ${fmtZahl(g.nacken.an.schnitt)}, sonst `
+      + `${fmtZahl(g.nacken.sonst.schnitt)} (gleichzeitig – sagt nichts über die Ursache)`);
+  }
+  if (g.gepresst.n) {
+    absatz(`Tagsüber gepresst/geknirscht bemerkt: an ${g.gepresst.ja} von ${mehrzahl(g.gepresst.n, 'Tag', 'Tagen')}`);
+  }
+  const m = g.merkmale;
+  const merkmale = [
+    m.kauen ? `schlimmer beim Kauen ${m.kauen}` : '',
+    m.nackenbewegung ? `bei Nackenbewegung ${m.nackenbewegung}` : '',
+    m.schlaefe ? `Schläfe/Kiefer ${m.schlaefe}` : '',
+  ].filter(Boolean);
+  if (merkmale.length) absatz(`Kopfschmerz-Merkmale: ${merkmale.join(' · ')}`);
+
+  const fragen = sp.fragen.slice(0, 2);
+  if (fragen.length) {
+    z.push('  Fragen dazu:');
+    fragen.forEach((f) => umbrochen(f.text, 64).forEach((zl, j) => z.push(`  ${j ? '  ' : '- '}${zl}`)));
+  }
+  z.push(...berAbsatz('(Bestätigt oder widerlegt keine ärztliche oder zahnärztliche Einschätzung – gezählt '
+    + 'wird, ob Kopfschmerz mit diesen Dingen zusammen öfter oder seltener kommt.)'));
+  return z;
 }
 
 /**
@@ -17012,6 +17497,12 @@ function arztBericht(zustand, von, bis) {
   const tageImZeitraum = Object.fromEntries(Object.entries(tage || {})
     .filter(([iso]) => iso >= von && iso <= bis));
   const z = gesamtZahlen(imZeitraum, tage, von, bis);
+  /*
+   * „Jetzt" für die Rechnungen, die abgelaufene Fenster brauchen: das Ende
+   * des Berichtszeitraums, und wenn er bis heute reicht, die Uhr. So rechnet
+   * ein Bericht über einen vergangenen Zeitraum heute dasselbe wie morgen.
+   */
+  const berichtJetzt = Math.min(Date.now(), zeitpunkt(plusTage(bis, 1), '00:00'));
   const zeilen = [];
   const sag = (s = '') => zeilen.push(s);
 
@@ -17037,10 +17528,27 @@ function arztBericht(zustand, von, bis) {
    */
   const kopfMarke = zeilen.length;
 
+  /*
+   * Was die einschaltbaren Teile im Zeitraum haben. Gerechnet wird es immer
+   * (R0); ob es auf dem Zettel steht, entscheiden die Schalter – ein
+   * ausgeschalteter Teil bekommt keinen Abschnitt und hält den Bericht auch
+   * nicht davon ab, „nichts eingetragen" zu sagen.
+   */
+  const adhsAn = zustand.adhsAn === true;
+  const spannungAn = zustand.spannungAn === true;
+  const tagWerte = Object.values(tageImZeitraum).filter((x) => x && typeof x === 'object');
+  const adhsDa = imZeitraum.some((e) => e.art === 'medikament' && istAdhsMittel(e.mittel))
+    || tagWerte.some((x) => PAUSE_WERTE.includes(x.adhsPause));
+  const spannungFelder = tagWerte.some((x) => BER_SPANNUNG_FELDER.some((f) => berDa(x[f])));
+  const spannungDa = spannungFelder
+    || imZeitraum.some((e) => aktivitaetenVon(e).some((id) => BER_GEGENMITTEL.includes(id)))
+    || imZeitraum.some((e) => e.art === 'kopf' && (e.kopfArten || []).some((id) => BER_SPANNUNG_KOPF.includes(id)));
+
   // Ohne einen notierten Bauchtag gibt es keinen Bauchbericht – außer der
-  // Kopf hat etwas: Dann stehen die Bauchzeilen auf null, der Kopfabschnitt
-  // nicht.
-  if (!z.notierteTage && !imZeitraum.some((e) => e.art === 'kopf')) {
+  // Kopf hat etwas, oder ein eingeschalteter Teil: Dann stehen die
+  // Bauchzeilen auf null, die anderen Abschnitte nicht.
+  if (!z.notierteTage && !imZeitraum.some((e) => e.art === 'kopf')
+    && !(adhsAn && adhsDa) && !(spannungAn && spannungFelder)) {
     sag('In diesem Zeitraum wurde nichts eingetragen.');
     return zeilen.join('\n');
   }
@@ -17079,7 +17587,8 @@ function arztBericht(zustand, von, bis) {
    * die nicht aus einer Selbsteinschätzung stammt.
    */
   const waage = gewichtsBild(zustand.gewicht, bis, zustand.abnehmenGewollt);
-  if (waage.urteil !== 'keine' && waage.urteil !== 'zu-kurz') {
+  const gewichtDa = waage.urteil !== 'keine' && waage.urteil !== 'zu-kurz';
+  if (gewichtDa) {
     sag(waage.warnung ? '!! GEWICHT' : 'GEWICHT');
     umbrochen(waage.satz).forEach((zl) => sag(`  ${zl}`));
     sag();
@@ -17328,6 +17837,10 @@ function arztBericht(zustand, von, bis) {
     });
     umbrochen(zb.satz).forEach((z) => sag(`  ${z}`));
     sag(`  Zugeordnet: ${zb.zugeordnet} von ${zb.gesamt} Beschwerden.`);
+    // Für alle, ohne Schalter: Liegen die Beschwerden des Schwerpunkts
+    // zugleich nach einem ADHS-Mittel, misst das Zeitfenster beides.
+    const nah = zeitprofilNahAmMittel(imZeitraum, zb, FENSTER);
+    if (nah && nah.zeigen) umbrochen(nah.satz, 66).forEach((z) => sag(`  ${z}`));
     umbrochen(`(${zb.hinweis})`, 66).forEach((z) => sag(`  ${z}`));
     sag();
   }
@@ -17384,11 +17897,12 @@ function arztBericht(zustand, von, bis) {
     const kette = (liste, feld) => liste.map((f, i) => `${i ? 'davor ' : ''}${f[feld]}`).join(' · ');
     sag('KOPFSCHMERZEN');
     sag('  Für die Neurologie, je 30-Tage-Fenster (jüngstes zuerst):');
-    sag(`  Kopfschmerztage            ${kette(kzAlle.fenster, 'kopfTage')} `
-      + `(${kzAlle.notiert30} der letzten 30 Tage notiert)`);
+    berSpalte('  Kopfschmerztage            ', kette(kzAlle.fenster, 'kopfTage'),
+      `(${kzAlle.notiert30} der letzten 30 Tage notiert)`).forEach(sag);
     if (kmAlle.fenster.some((f) => f.akut)) {
       const sorten = sortenText(kmAlle.fenster[0]);
-      sag(`  Tage mit Akutmittel        ${kette(kmAlle.fenster, 'akut')}${sorten ? ` (zuletzt: ${sorten})` : ''}`);
+      berSpalte('  Tage mit Akutmittel        ', kette(kmAlle.fenster, 'akut'),
+        ...(sorten ? [`(zuletzt: ${sorten})`] : [])).forEach(sag);
     }
     if (kzAlle.verlauf.ausgefallen || kzAlle.verlauf.eingeschraenkt) {
       sag(`  Ausgefallen (90 Tage)      ${mehrzahl(kzAlle.verlauf.ausgefallen, 'Tag', 'Tage')}`
@@ -17402,8 +17916,20 @@ function arztBericht(zustand, von, bis) {
       sag(`  Dauer ${x.name.padEnd(20)} ${mehrzahl(x.anzahl, 'Mal', 'Mal')}`);
     });
     kz.arten.slice(0, 5).forEach((a) => {
-      sag(`  ${a.name.slice(0, 26).padEnd(26)} ${mehrzahl(a.anzahl, 'Mal', 'Mal')}`);
+      sag(`  ${(BER_KOPF_KURZ[a.id] || a.name).slice(0, 26).padEnd(26)} ${mehrzahl(a.anzahl, 'Mal', 'Mal')}`);
     });
+    /*
+     * Die Merkmale so gezählt, wie die Kopfschmerzklassifikation fragt – nur,
+     * wenn im Zeitraum eines der Merkmale steht, die es erst seit der
+     * Fassung 28 gibt. Ein älteres Tagebuch bekommt keine Zeilen, die es
+     * nicht füllen konnte.
+     */
+    const merkmale = kopfMerkmale(imZeitraum, von, bis);
+    if (merkmale.zeilen.length) {
+      sag('  Merkmale (Zahl der Kopfschmerzen):');
+      berReihen(merkmale.zeilen.map((x) => `${x.name} ${x.anzahl}`), 66).forEach((zl) => sag(`    ${zl}`));
+      berAbsatz(merkmale.satz, '    ', '    ').forEach(sag);
+    }
     const w = kz.wirkung;
     if (w.weg + w.besser + w.nicht) {
       sag(`  Mittel nach zwei Stunden   weg ${w.weg}×, besser ${w.besser}×, nicht geholfen ${w.nicht}×`);
@@ -17426,9 +17952,22 @@ function arztBericht(zustand, von, bis) {
     if (monate.length) {
       sag('  Je Kalendermonat:          Kopfschmerz / Akutmittel / ausgefallen / Periode');
       monate.forEach((mo) => {
-        sag(`    ${(mo.name + (mo.angefangen ? ' (bis Berichtsende)' : '')).padEnd(24)} `
-          + `${String(mo.kopfTage).padStart(11)} / ${String(mo.akut).padStart(10)}`
-          + `${mo.triptan ? ` (Triptan ${mo.triptan})` : ''} / ${String(mo.ausgefallen).padStart(11)} / ${String(mo.blutung).padStart(7)}`);
+        const name = mo.name + (mo.angefangen ? ' (bis Berichtsende)' : '');
+        const zahlen = `${String(mo.kopfTage).padStart(11)} / ${String(mo.akut).padStart(10)}`
+          + `${mo.triptan ? ` (Triptan ${mo.triptan})` : ''} / ${String(mo.ausgefallen).padStart(11)} / ${String(mo.blutung).padStart(7)}`;
+        const zeile = `    ${name.padEnd(24)} ${zahlen}`;
+        // Zu breit für eine Zeile: der Monat für sich, die Zahlen darunter in
+        // ihren Spalten – und wenn auch das nicht passt, ohne die Lücken.
+        if (zeile.length <= BERICHT_BREITE) sag(zeile);
+        else {
+          let vorn = `    ${name.padEnd(24)} `;
+          if (name.length > 24) {
+            sag(`    ${name}`);
+            vorn = ' '.repeat(29);
+          }
+          const unter = `${vorn}${zahlen}`;
+          sag(unter.length <= BERICHT_BREITE ? unter : `${vorn}${zahlen.trim().replace(/ {2,}/g, ' ')}`);
+        }
       });
     }
     const nach = km.nsarTage.length
@@ -17448,7 +17987,10 @@ function arztBericht(zustand, von, bis) {
       sag('');
       umbrochen(satz).forEach((zl) => sag(`  ${zl}`));
     });
-    const fragen = kopfFragen({ zahlen: kzAlle, mittel: kmAlle, befundIds });
+    // Die Aufwach-Frage zählt über dieselben 30 Tage wie die Fenster oben.
+    const fragen = kopfFragen({
+      zahlen: kzAlle, mittel: kmAlle, befundIds, aufwach: aufwachZahlen(eintraege, tage, bis), spannungAn,
+    });
     if (fragen.length) {
       sag('');
       sag('  Fragen für die Sprechstunde:');
@@ -17506,6 +18048,19 @@ function arztBericht(zustand, von, bis) {
   }
 
   /*
+   * Kiefer, Nacken, Schiene – nur mit dem Schalter, und nur, wenn im Zeitraum
+   * etwas dazu steht. Gerechnet über den Zeitraum und seinen Tagesspeicher,
+   * wie alles hier.
+   */
+  if (spannungAn && spannungDa) {
+    berSpannung(spannungAuswertung({
+      eintraege: imZeitraum, tage: tageImZeitraum, heute: bis, jetzt: berichtJetzt,
+      fenster: zustand.fenster, mindestFaelle: zustand.mindestFaelle, standardMittel: zustand.standardMittel,
+    })).forEach(sag);
+    sag();
+  }
+
+  /*
    * Mit Dosis, und jede Dosis für sich: „Pantoprazol – 30 Mal" verschweigt,
    * ob das 20 oder 40 mg waren, und genau danach wird in der Sprechstunde
    * zuerst gefragt. Groß und klein geschrieben ist derselbe Name.
@@ -17515,14 +18070,35 @@ function arztBericht(zustand, von, bis) {
     const name = String(e.mittel || '').trim() || 'ohne Angabe';
     const dosis = String(e.dosis || '').trim();
     const k = `${name.toLowerCase()}|${dosis.toLowerCase()}`;
-    const v = mittel.get(k) || { text: dosis ? `${name} ${dosis}` : name, n: 0 };
+    const v = mittel.get(k) || { name, text: dosis ? `${name} ${dosis}` : name, n: 0 };
     v.n += 1;
     mittel.set(k, v);
   });
-  if (mittel.size) {
+  /*
+   * Und welche der eingetragenen Mittel zusammen eine Frage aufwerfen (alle
+   * Stufen aus js/zusammen.js, ohne Schalter): ein Satz, was die
+   * Fachinformation dazu sagt, und die Frage für die Sprechstunde.
+   * Eingetragen heißt wie auf „Tag": unter „Meine Mittel" oder in den 30
+   * Tagen bis zum Ende des Berichts eingenommen.
+   */
+  const paare = wechselHinweise(zustand.standardMittel, eintraege, bis);
+  if (mittel.size || paare.length) {
     sag('EINGENOMMENE MITTEL');
+    // Name und Dosis in voller Länge, umbrochen statt abgeschnitten: Die
+    // Dosis ist das, wonach in der Sprechstunde zuerst gefragt wird.
     [...mittel.values()].sort((a, b) => b.n - a.n).forEach((v) => {
-      sag(`  ${v.text} – ${mehrzahl(v.n, 'Mal', 'Mal')}`);
+      berAbsatz(`${v.text} – ${mehrzahl(v.n, 'Mal', 'Mal')}`, '  ', '    ', 66).forEach(sag);
+      // Bei Methylphenidat die Form: Für Magen und Säureblocker ist sie das
+      // eigentliche Mittel.
+      const g = wissenZu(v.name);
+      if (g && g.id === 'mph') {
+        sag(`    Form: ${berFormText(v.name, zustand.standardMittel, imZeitraum) || 'nicht angegeben'}`);
+      }
+    });
+    paare.forEach((h) => {
+      const [a, b] = h.namen.map((n) => berPaarName(n, zustand.standardMittel, eintraege));
+      berAbsatz(`Zusammen eingetragen: ${a} und ${b}. ${berPaarKern(h)}`).forEach(sag);
+      berAbsatz(`Frage: ${h.frage}`).forEach(sag);
     });
     sag();
   }
@@ -17550,6 +18126,35 @@ function arztBericht(zustand, von, bis) {
       umbrochen(befund(m)).forEach((z) => sag(`     ${z}`));
     });
     sag();
+  }
+
+  /*
+   * ADHS-MITTEL – nur mit dem Schalter. Ohne eine Einnahme im Zeitraum bleibt
+   * vom Abschnitt der Essensrhythmus: Er ist auch ohne Mittel eine Frage, die
+   * zu ADHS gehört.
+   */
+  if (adhsAn) {
+    const a = adhsAuswertung({
+      eintraege: imZeitraum, tage: tageImZeitraum, heute: bis, jetzt: berichtJetzt,
+      mindestFaelle: zustand.mindestFaelle, standardMittel: zustand.standardMittel, gewicht: zustand.gewicht,
+    });
+    const rhythmus = essensRhythmus({
+      eintraege: imZeitraum, tage: tageImZeitraum, von, bis, standardMittel: zustand.standardMittel,
+      gewicht: zustand.gewicht,
+    });
+    if (a.einnahmen && a.abschnitt) {
+      berAdhs(a, rhythmus, { spannungAn, gewichtDa }).forEach(sag);
+      sag();
+    } else {
+      const ohne = tagWerte.filter((x) => PAUSE_WERTE.includes(x.adhsPause)).length;
+      const zeilenR = berRhythmus(rhythmus, gewichtDa);
+      if (zeilenR.length || ohne) {
+        sag('ESSENSRHYTHMUS (eigene Einträge)');
+        if (ohne) sag(`  Als Tage ohne ADHS-Mittel notiert: ${ohne}`);
+        zeilenR.forEach(sag);
+        sag();
+      }
+    }
   }
 
   const v = zustand.versuch;
@@ -17662,14 +18267,41 @@ function arztBericht(zustand, von, bis) {
   }
 
   const phasen = phasenBilanz(imZeitraum, tage, tagesWert);
-  if (phasen.length > 1) {
+  /*
+   * Mit „ADHS": Stimmung und Anspannung je Phase. Die Werte nur aus dem
+   * Zeitraum, die Phasen wie oben aus allen Blutungstagen. Kein Urteil – nur
+   * die Grenze, unter der ein Abstand zwischen höchster und niedrigster Phase
+   * auch zufällig vorkommt (1,4 fürs Heraussuchen aus vier Phasen, mal der
+   * Strenge der Familie, mal Standardfehler).
+   */
+  const zyklusFragen = [];
+  if (adhsAn) {
+    const tageFrage = Object.fromEntries(Object.entries(tage || {}).map(([iso, t]) => [iso,
+      iso >= von && iso <= bis ? t : { blutung: t && t.blutung }]));
+    [['stimmung', 'Stimmung (0 gut – 4 sehr schlecht)'], ['stress', 'Anspannung (0 ruhig – 4 sehr viel)']]
+      .forEach(([id, name]) => {
+        const f = phasenFrage(tageFrage, id);
+        if (f.genug) zyklusFragen.push({ id, name, f, grenze: 1.4 * strenge(familienVergleiche(2)) * f.se });
+      });
+  }
+  if (phasen.length > 1 || zyklusFragen.length) {
     sag('NACH ZYKLUSPHASE');
     phasen.forEach((p) => {
       sag(`  ${p.name.padEnd(24)} ${String(p.tage).padStart(3)} Tage, `
         + `im Mittel ${fmtZahl(p.schnitt)}`);
     });
     const pu = phasenUrteil(phasen, tage);
-    if (pu.pruefbar) umbrochen(pu.satz).forEach((z) => sag(`  ${z}`));
+    if (phasen.length > 1 && pu.pruefbar) umbrochen(pu.satz).forEach((z) => sag(`  ${z}`));
+    zyklusFragen.forEach(({ name, f }) => {
+      sag(`  ${name} je Phase:`);
+      berReihen(PHASEN.map((ph) => f.phasen.find((x) => x.phase === ph.id))
+        .map((x) => `${x.name} ${fmtZahl(x.schnitt)} (${x.tage} Tage)`), 72).forEach((zl) => sag(`    ${zl}`));
+    });
+    if (zyklusFragen.length) {
+      const grenzen = zyklusFragen.map((x) => `${fmtZahl(x.grenze)} Stufen (${x.name.split(' ')[0]})`);
+      berAbsatz(`(Zahlen aus den Tagesfragen, keine Einordnung. Unterschiede unter ${grenzen.join(' und ')} `
+        + 'zwischen der höchsten und der niedrigsten Phase kommen hier auch zufällig vor.)').forEach(sag);
+    }
     sag('  (Phasen geschätzt aus den eingetragenen Blutungstagen.)');
     sag();
   }
@@ -17824,6 +18456,7 @@ function arztBericht(zustand, von, bis) {
     gewicht: waage,
     mittel: ansprechen,
     notierteTage: z.notierteTage,
+    paare: paare.filter((h) => h.stufe === 'A'),
   });
   const kurzZeilen = ['IN KÜRZE'];
   kurz.saetze.forEach((x) => {
@@ -17843,7 +18476,7 @@ function arztBericht(zustand, von, bis) {
   sag('Der Abschnitt zum Muster ordnet den');
   sag('Verlauf in gebräuchliche Begriffe ein und stellt keine Diagnose – die');
   sag('genannten Möglichkeiten unterscheidet eine Untersuchung, nicht ein Tagebuch.');
-  return zeilen.join('\n');
+  return zeilen.flatMap(berZeileKuerzen).join('\n');
 }
 
 /** Dateiname für den Bericht – ohne Umlaute, damit ihn jedes System annimmt. */
@@ -21409,7 +22042,10 @@ function kopfTeil(s, d) {
   const umstaende = kopfUmstaende(s.eintraege, s.tage, faktorBilanz, zufallsSpielraum);
   const periode = kopfUmPeriode(s.eintraege, s.tage, d.heute);
   const monate = kopfMonate(s.eintraege, s.tage, d.gruppeVon, d.heute);
-  const fragen = kopfFragen({ zahlen: z, mittel: m, befundIds });
+  // Die Aufwach-Frage wie im Bericht – Muster und Zettel fragen dasselbe.
+  const fragen = kopfFragen({
+    zahlen: z, mittel: m, befundIds, aufwach: aufwachZahlen(s.eintraege, s.tage, d.heute), spannungAn: s.spannungAn,
+  });
   const phasen = kopfNachPhase(s.eintraege, s.tage);
   const saetze = [
     { text: statusSatz(z, d.heute), laut: true },

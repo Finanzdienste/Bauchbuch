@@ -260,7 +260,8 @@ export function nachweisSatz(grenze) {
 export function grenzeText(grenze, art) {
   if (!Number.isFinite(grenze)) return '';
   if (art === 'anteil') return `${Math.round(grenze * 100)} Prozentpunkten`;
-  return `${fmtZahl(grenze)} Stufen`;
+  const zahl = fmtZahl(grenze);
+  return `${zahl} ${zahl === '1' ? 'Stufe' : 'Stufen'}`;
 }
 
 /* ---------- Ein Vergleich von Tagen ---------- */

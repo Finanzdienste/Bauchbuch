@@ -229,7 +229,9 @@ check(text.includes('Kopfschmerztage            20'), 'und die zwanzig Kopfschme
 check(!text.includes('BESCHWERDEN NACH ART'), 'keine Beschwerdeart – „pochend" ist keine');
 check(!/Kaffee\s+8 gegen/.test(text), 'Kaffee wird nicht zum Auslöser mit Stärke 8');
 check(text.includes('KOPFSCHMERZEN'), 'dafür ein eigener Abschnitt für den Kopf');
-check(/Kopfschmerztage\s+20 · davor 0 · davor 0 \(20 der letzten 30 Tage notiert\)/.test(text), 'mit den drei Fenstern');
+// Die Klammer steht seit der Fassung 28 unter der Spalte: Die Zeile hätte
+// sonst über 80 Zeichen.
+check(/Kopfschmerztage\s+20 · davor 0 · davor 0\n {29}\(20 der letzten 30 Tage notiert\)/.test(text), 'mit den drei Fenstern');
 check(/Pochend, pulsierend\s+20 Mal/.test(text), 'und den Merkmalen');
 
 await setze(muster(nurKopf));

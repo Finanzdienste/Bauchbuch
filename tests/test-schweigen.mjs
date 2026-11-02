@@ -265,6 +265,11 @@ async function stand(z) {
   await tippeNeu('[data-act="bogen-speichern"]');
   await reiter('mehr');
   await tippeNeu('[data-act="mph-form"]');
+  // Der Bericht mit dem Abschnitt ADHS-MITTEL (der Schalter ist seit dem
+  // Angebot an) – auch er rechnet nur hier.
+  await tippeNeu('[data-act="bericht"][data-n="90"]');
+  const zettelAdhs = await page.locator('.bericht').inputValue();
+  check(zettelAdhs.includes('ADHS-MITTEL'), 'der Bericht hat den Abschnitt zu den ADHS-Mitteln');
   await tippeNeu('[data-act="adhs-schalter"]', 2);
   await reiter('muster');
   await tippeNeu('[data-act="v28-gelesen"]');
@@ -291,6 +296,9 @@ async function stand(z) {
   await tippeNeu('[data-act="aktiv-wahl"][data-id="massagepistole"]');
   await tippeNeu('[data-act="bogen-speichern"]');
   await reiter('mehr');
+  await tippeNeu('[data-act="bericht"][data-n="90"]');
+  const zettel = await page.locator('.bericht').inputValue();
+  check(zettel.includes('KIEFER, NACKEN, SCHIENE'), 'der Bericht hat den Abschnitt zu Kiefer, Nacken und Schiene');
   await tippeNeu('[data-act="spannung-schalter"]', 2);
   for (const t2 of ['verlauf', 'muster', 'heute']) await reiter(t2);
 }

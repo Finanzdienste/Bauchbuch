@@ -100,6 +100,45 @@ await page.locator('[data-act="bericht"][data-n="30"]').click();
 await page.waitForTimeout(250);
 check(await page.locator('.bericht').count() === 1, 'der Bericht ist erzeugt worden');
 
+/*
+ * Und dasselbe mit den einschaltbaren Teilen: zwei ADHS-Mittel, ein Tag ohne
+ * Mittel, Nacken, Kiefer, Pressen, Schiene und eine Massagepistole – beide
+ * Schalter an, alle Reiter und der Bericht, in dem die neuen Abschnitte
+ * stehen. Diese Wörter dürfen unten ebenso wenig hinausgehen.
+ */
+const NEU_GEHEIM = ['Methylphenidat', 'Ritalin Adult', 'adhsPause', 'schiene', 'kiefer', 'verspannt',
+  'gepresst', 'Massagepistole'];
+await page.evaluate((k) => {
+  const z = JSON.parse(localStorage.getItem(k));
+  const d = new Date();
+  const iso = (n) => {
+    const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() - n, 12);
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  };
+  z.adhsAn = true;
+  z.spannungAn = true;
+  z.eintraege.push(
+    { id: 'n28a', am: iso(0), um: '07:30', art: 'medikament', mittel: 'Methylphenidat', dosis: '10 mg', form: 'unbekannt',
+      essen: 'mit', essenGesetzt: Date.now() },
+    { id: 'n28b', am: iso(0), um: '12:30', art: 'medikament', mittel: 'Ritalin Adult', dosis: '20 mg' },
+    { id: 'n28c', am: iso(0), um: '19:00', art: 'aktivitaet', aktivitaeten: ['massagepistole'],
+      notiz: 'Massagepistole nach dem Sport' },
+  );
+  z.tage = z.tage || {};
+  z.tage[iso(1)] = { ...(z.tage[iso(1)] || {}), adhsPause: 'geplant', verspannt: 3, kiefer: 2, gepresst: 1, schiene: 1 };
+  localStorage.setItem(k, JSON.stringify(z));
+}, KEY);
+await page.reload({ waitUntil: 'networkidle' });
+for (const tab of ['heute', 'verlauf', 'muster', 'mehr']) {
+  await page.locator(`[data-act="tab"][data-tab="${tab}"]`).click();
+  await page.waitForTimeout(200);
+}
+await page.locator('[data-act="bericht"][data-n="30"]').click();
+await page.waitForTimeout(250);
+const bericht28 = await page.locator('.bericht').inputValue();
+check(bericht28.includes('ADHS-MITTEL') && bericht28.includes('KIEFER, NACKEN, SCHIENE'),
+  'mit beiden Schaltern stehen die neuen Abschnitte im Bericht');
+
 // Der Service Worker holt beim Einrichten die ganze Liste nach – abwarten,
 // sonst prüft der Test, bevor überhaupt etwas hätte falsch laufen können.
 await page.waitForTimeout(1200);
@@ -180,6 +219,10 @@ for (const geheim of ['Reis mit Möhren', 'staerke', 'eintraege', 'beschwerde', 
   'Kletterwand am Abend', 'aktivitaet', 'wasser']) {
   check(!gesendet.includes(geheim), `und nichts aus dem Tagebuch: „${geheim}" fehlt`);
 }
+// Die Wörter der Fassung 28 – ohne Rücksicht auf Groß- und Kleinschreibung.
+for (const geheim of NEU_GEHEIM) {
+  check(!gesendet.toLowerCase().includes(geheim.toLowerCase()), `und nichts aus den neuen Teilen: „${geheim}" fehlt`);
+}
 
 /*
  * Gegenprobe. Ohne sie könnte dieser Test grün sein, weil gar nichts da war,
@@ -192,6 +235,10 @@ check(
     && daheim.includes('Kletterwand am Abend') && daheim.includes('"wasser":1'),
   'das Tagebuch liegt dabei sehr wohl im Speicher, samt Wasser und Aktivität – es geht nur nicht mit',
 );
+// Und jedes neue Wort ebenso – sonst prüfte die Liste oben nichts.
+for (const geheim of NEU_GEHEIM) {
+  check(daheim.includes(geheim), `„${geheim}" liegt im Speicher`);
+}
 
 /* ==================== 4. Und sonst nichts ==================== */
 

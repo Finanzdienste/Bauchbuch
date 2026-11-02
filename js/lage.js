@@ -60,6 +60,7 @@ const HOECHSTENS = 5;
  * @param {object} [q.gewicht]      aus gewichtsBild(): { warnung, satz }
  * @param {object} [q.luecke]       { satz }
  * @param {number} [q.notierteTage]
+ * @param {object[]} [q.paare]      Hinweise der Stufe A aus js/zusammen.js: { id }
  */
 export function wasSacheIst(q = {}) {
   const saetze = [];
@@ -93,6 +94,27 @@ export function wasSacheIst(q = {}) {
    */
   if (q.gewicht && q.gewicht.warnung) {
     sag('warnung', q.gewicht.satz);
+  }
+
+  /*
+   * 1c. Zwei Mittel, die laut Fachinformation nicht zusammen vorgesehen sind
+   * (Stufe A in js/zusammen.js) – gleich nach den Warnzeichen.
+   *
+   * Es ist kein Befund aus dem Tagebuch, sondern eine Frage, die in die
+   * Sprechstunde gehört und sonst niemandem auffällt: Säureblocker und
+   * Methylphenidat kommen oft aus zwei verschiedenen Praxen. Je Art ein
+   * Satz, auch bei mehreren Paaren; die Namen stehen unten bei den Mitteln.
+   * Er sagt nie, etwas wegzulassen.
+   */
+  const paarIds = new Set((q.paare || []).map((p) => p && p.id));
+  if (paarIds.has('W1')) {
+    sag('paar', 'Eingetragen sind Methylphenidat als Kapsel mit zweierlei Kügelchen und ein '
+      + 'Säureblocker – laut Fachinformation nicht zusammen vorgesehen; das gehört geprüft, ohne '
+      + 'etwas eigenmächtig wegzulassen.');
+  }
+  if (paarIds.has('W1u')) {
+    sag('paar', 'Eingetragen sind Methylphenidat ohne Angabe der Form und ein Säureblocker – bei '
+      + 'manchen Kapseln laut Fachinformation nicht zusammen vorgesehen; die Form gehört geklärt.');
   }
 
   /*
@@ -221,11 +243,13 @@ export function wasSacheIst(q = {}) {
    * noch fehlt, ist keine – er sagt gerade, dass etwas fehlt. Stünde er
    * alleine da, läse sich die Karte wie eine Antwort, wo keine ist.
    */
-  const auskunft = saetze.filter((x) => x.art !== 'luecke');
+  // Der Hinweis zu zwei Mitteln ist ebenso wenig eine Auskunft über das
+  // Tagebuch: Er steht dann vor dem Satz, dass die Zahlen noch nicht reichen.
+  const auskunft = saetze.filter((x) => x.art !== 'luecke' && x.art !== 'paar');
   if (!auskunft.length) {
     return {
       genug: false,
-      saetze: [{
+      saetze: [...saetze.filter((x) => x.art === 'paar'), {
         art: 'wenig',
         text: q.notierteTage
           ? `Aus ${q.notierteTage} notierten Tagen lässt sich noch nichts `
@@ -235,7 +259,7 @@ export function wasSacheIst(q = {}) {
             + 'steht hier, was sich daraus ergibt.',
       // Der Hinweis, was am meisten hülfe, darf bleiben – er ist dann der
       // einzige nützliche Satz, den es zu sagen gibt.
-      }, ...saetze],
+      }, ...saetze.filter((x) => x.art !== 'paar')],
     };
   }
 
