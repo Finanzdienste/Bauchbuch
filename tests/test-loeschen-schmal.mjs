@@ -268,7 +268,8 @@ await passt('„Muster“ mit beiden neuen Karten, 320 Pixel');
 const breiter = await page.evaluate(() => [...document.querySelectorAll('.karte-adhs *, .karte-spannung *')]
   .filter((el) => el.getBoundingClientRect().right > document.documentElement.clientWidth + 0.5).length);
 check(breiter === 0, `kein Teil der beiden Karten ragt über den Rand (${breiter})`);
-check(!/(braucht|nötig|noch)\W{0,3}\d/i.test(karten.text), 'R9: in den Karten nirgends eine Zielzahl');
+check(!/(braucht|nötig|noch|fehl\w*|mindestens)\W{0,3}\d|\d+\W{0,3}(nötig|fehl)/i.test(karten.text),
+  'R9: in den Karten nirgends eine Zielzahl („noch 5“, „es fehlen 2“, „mindestens 8“, „5 nötig“)');
 await page.locator('.karte-adhs').screenshot({ path: `${SHOT}/schmal-muster-adhs.png` });
 await page.locator('.karte-spannung').screenshot({ path: `${SHOT}/schmal-muster-spannung.png` });
 

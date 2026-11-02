@@ -105,6 +105,13 @@ function zeitArtVon(e, mahlzeiten) {
  * die js/zusammen.js für diesen Namen kennt (zuletzt eingetragen, „Meine
  * Mittel", der Name selbst, sonst 'unbekannt').
  *
+ * „Weiß ich nicht" im Eintrag zählt dabei wie keine Angabe: Es ist keine
+ * eigene Form, sondern eine fehlende. Wer die Form später nachträgt – wozu
+ * der Hinweis W1u ausdrücklich auffordert –, nimmt dasselbe Mittel weiter;
+ * als eigene Form gezählt, begänne der Abschnitt (adhsAbschnitt) an diesem
+ * Tag neu, und A1 zerfiele in zwei Schlüssel. Ein Wechsel ist erst der
+ * Übergang zwischen zwei angegebenen Formen.
+ *
  * Bupropion steht nicht dabei (siehe ADHS_GRUPPEN in js/mittel.js).
  */
 export function adhsEinnahmen(eintraege, standardMittel = []) {
@@ -122,7 +129,8 @@ export function adhsEinnahmen(eintraege, standardMittel = []) {
     .filter((e) => e.art === 'medikament' && istAdhsMittel(e.mittel))
     .map((e) => {
       const gruppe = adhsGruppe(e.mittel);
-      const form = gruppe === 'mph' ? (e.form || formVon(e.mittel)) : null;
+      const angegeben = e.form && e.form !== 'unbekannt' ? e.form : null;
+      const form = gruppe === 'mph' ? (angegeben || formVon(e.mittel)) : null;
       return {
         e,
         gruppe,
@@ -409,9 +417,10 @@ function adhsPausen(p, von, bis) {
  * was eine feste Reihenfolge hat (R3): eine genaue oder an eine Mahlzeit
  * gebundene Zeit, keine Beschwerde in den zwei Stunden davor (die wäre schon
  * da gewesen), keine Beschwerde, bei der offen ist, ob sie davor oder danach
- * kam. Und der Tag muss durch etwas anderes notiert sein als die Beschwerden
- * im Fenster (R10) – sonst stünde ein Tag nur dann in der Rechnung, wenn es
- * danach wehtat.
+ * kam. Und der Tag muss durch etwas außerhalb des Fensters oder durch eine
+ * Tagesfrage notiert sein (R10) – sonst stünde ein Tag nur dann in der
+ * Rechnung, wenn es danach wehtat, oder nur auf einer Seite schon durch die
+ * Mahlzeit, die die Seite bestimmt.
  */
 function a1Faelle(p, { jetzt }) {
   const jeSchluessel = new Map();
@@ -435,10 +444,16 @@ function a1Faelle(p, { jetzt }) {
       const t = zeitpunkt(e.am, e.um);
       return t >= x.t - 60 * MINUTE && t <= ende;
     };
-    // Notiert ohne die Zielgröße (R10): Eine Beschwerde im Fenster macht den
-    // Tag nicht zu einem gezählten, eine davor oder danach schon. Kopfschmerz
-    // und sein Mittel sagen über den Bauch wie überall nichts (zaehltFuerBauch).
-    if (!tagNotiertOhne(p.liste, p.tage, iso, (e) => ZIEL_BAUCH(e) && (e.art !== 'beschwerde' || imFenster(e)))) {
+    // Notiert ohne die Zielgröße (R10): Was im Fenster steht, macht den Tag
+    // nicht zu einem gezählten – nur etwas davor oder danach oder eine
+    // Tagesfrage. Nicht nur die Beschwerden dort: Auch die Mahlzeit im
+    // Fenster zählt nicht, denn bei „mit Essen“ ist sie es, die die Seite
+    // bestimmt. Sonst wäre jeder Fall „mit“ durch sein Frühstück notiert, ein
+    // Fall „ohne“ aber nur durch etwas Späteres – oft eine Beschwerde, die an
+    // einem schlechten Morgen hängt –, und ruhige Morgen ohne Essen fielen
+    // heraus, ruhige mit Essen nicht. Kopfschmerz und sein Mittel sagen über
+    // den Bauch wie überall nichts (zaehltFuerBauch).
+    if (!tagNotiertOhne(p.liste, p.tage, iso, (e) => imFenster(e) || (ZIEL_BAUCH(e) && e.art !== 'beschwerde'))) {
       z.nichtNotiert += 1;
       return;
     }

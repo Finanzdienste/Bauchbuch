@@ -163,7 +163,11 @@ function v1Rechnen(liste, tage, heute, einnahmen) {
     if (mit) getragen += 1; else nicht += 1;
     if (nachtGestoert(am(plusTage(iso, -1)))) { gestoert += 1; return; }
     const seite = mit ? 'mit' : 'ohne';
-    if (tagNotiertOhne(liste, tage, iso, ZIEL_KOPF)) {
+    // Kopf am Morgen erst ab gestern: Heute kann ein Kopfschmerz mit „Schon
+    // beim Aufwachen da" noch kommen, und bis dahin zählte die Nacht als 0 –
+    // eine Lücke als „kein Kopf" (R1), wie in A2 bis A4 und V2. Der Kiefer
+    // am Morgen ist eine Antwort und zählt sofort.
+    if ((!heute || iso < heute) && tagNotiertOhne(liste, tage, iso, ZIEL_KOPF)) {
       if (herueberreichend(liste, iso)) herueber += 1;
       else {
         const w = morgenKopf(am(iso), morgenNachTag.get(iso) || null);
@@ -372,7 +376,14 @@ function v5Rechnen(tage, heute) {
   };
 }
 
-/** R7: was am selben Tag zusammen vorkommt – nur als Zahl. */
+/**
+ * R7: was am selben Tag zusammen vorkommt – nur als Zahl.
+ *
+ * „Sonst" sind Tage ohne Kopfschmerz, und das heißt: für den Kopf notiert,
+ * ohne dass einer dasteht (R1). Ein Tag, an dem nur „Nacken/Schultern"
+ * beantwortet ist, ist für den Kopf eine Lücke (ZAEHLT_NICHT in
+ * js/wasser.js) – kein Tag ohne Kopfschmerz.
+ */
 function gleichzeitig(liste, tage, heute) {
   const nachTag = eintraegeNachTag(liste);
   const kopf = { an: [], sonst: [] };
@@ -382,7 +393,10 @@ function gleichzeitig(liste, tage, heute) {
     if (heute && iso > heute) return;
     const amTag = nachTag.get(iso) || [];
     const v = spFeld(tage, iso, 'verspannt');
-    if (v !== null) (kopfEintraege(amTag).length ? kopf.an : kopf.sonst).push(v);
+    if (v !== null) {
+      if (kopfEintraege(amTag).length) kopf.an.push(v);
+      else if (tagNotiertOhne(liste, tage, iso, ZIEL_KOPF)) kopf.sonst.push(v);
+    }
     const g = spFeld(tage, iso, 'gepresst');
     if (g !== null) {
       gepresstN += 1;

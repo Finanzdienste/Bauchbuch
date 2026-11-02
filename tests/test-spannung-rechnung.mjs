@@ -40,7 +40,9 @@ const mittelAm = (iso, um, name, extra = {}) => ({
 const HEUTE = '2026-12-31';
 const JETZT = Date.parse('2027-01-01T12:00:00Z');
 const auswerten = (eintraege, tage) => spannungAuswertung({ eintraege, tage, heute: HEUTE, jetzt: JETZT });
-const ZIELZAHL = /(braucht|nötig|noch)\W{0,3}\d/i;
+/* R9: Zielzahlen in jeder Reihenfolge; „x von y“ nur in den Sätzen der Seite „ohne“ (siehe test-adhs-rechnung). */
+const ZIELZAHL = /(braucht|nötig|noch|fehl\w*|mindestens)\W{0,3}\d|\d+\W{0,3}(nötig|fehl)/i;
+const X_VON_Y = /\d+ von \d+/;
 const RAT = /\b(nimm|nehmen Sie|empfehlen|empfohlen|du solltest|hilft gegen)\b/i;
 const verteilt = (n, ab = 0, schritt = 3) => Array.from({ length: n }, (_, k) => ab + k * schritt);
 
@@ -135,6 +137,35 @@ const verteilt = (n, ab = 0, schritt = 3) => Array.from({ length: n }, (_, k) =>
   check(fall((d) => [kopf(d, '04:30')], ungefaehr).schnitt === 1
     && fall((d) => [kopf(d, '11:30')], ungefaehr).schnitt === 0,
   'V1a: vor 5 Uhr liegt ein Kopfschmerz sicher vor einer Einnahme „morgens“, ab 11 Uhr sicher danach');
+}
+{
+  // Der laufende Morgen zählt für „Kopf am Morgen“ noch nicht: Um 6:40 sind
+  // Schiene und Schlaf beantwortet, ein Kopfschmerz „Schon beim Aufwachen da“
+  // kann noch kommen. Bis dahin wäre die Nacht eine 0 – eine Lücke als „kein
+  // Kopf“. Der Kiefer am Morgen ist eine Antwort und zählt sofort.
+  const heute = tagN(200);
+  const gestern = tagN(199);
+  const tage = { [gestern]: { schiene: 1, schlaf: 1 }, [heute]: { schiene: 1, schlaf: 1, kiefer: 2 } };
+  const s = spannungAuswertung({ eintraege: [], tage, heute, jetzt: Date.parse(`${heute}T06:40:00Z`) });
+  check(!s.v1.v1a.mit.isos.includes(heute) && s.v1.v1a.mit.isos.includes(gestern),
+    `V1a: die Nacht von heute zählt erst morgen, die von gestern schon (${s.v1.v1a.mit.isos.join(', ')})`);
+  check(s.v1.v1b.mit.isos.includes(heute) && s.v1.getragen === 2,
+    'V1b: der Kiefer von heute Morgen zählt sofort, und gezählt wird die Nacht bei „getragen“ auch');
+}
+{
+  // R9: zu wenige Nächte ohne Schiene – die bisherigen Zahlen und der Satz,
+  // dass das so in Ordnung ist. Zeichengleich, damit kein Zielteil anhängt.
+  const eintraege = [];
+  const tage = {};
+  verteilt(23, 0, 3).forEach((i, k) => {
+    tage[tagN(i)] = { schiene: k < 20 ? 1 : 0 };
+    eintraege.push(stuhl(tagN(i)));
+  });
+  const v1 = auswerten(eintraege, tage).v1;
+  const satz = 'Mit Schiene 20 Nächte, ohne 3. Wer die Schiene regelmäßig trägt, hat keinen Vergleich – und das '
+    + 'ist so in Ordnung.';
+  check(v1.saetze[0] === satz && !X_VON_Y.test(v1.saetze[0]) && !ZIELZAHL.test(v1.saetze[0]),
+    `R9: zu wenige Nächte ohne Schiene – nur die bisherigen Zahlen (${v1.saetze[0]})`);
 }
 
 {
@@ -297,6 +328,28 @@ function v2Tagebuch(saat, p = [0.15, 0.6]) {
   check(g.nacken.an.schnitt === 3 && g.nacken.sonst.schnitt === 1 && g.gepresst.ja === 24 && g.gepresst.n === 120
     && g.merkmale.kauen === 1 && g.merkmale.schlaefe === 1,
   'R7: was am selben Tag zusammen vorkommt, steht nur als Zahl');
+}
+{
+  // R7, „sonst“: nur Tage, die für den Kopf notiert sind. Ein Tag, an dem nur
+  // „Nacken/Schultern“ beantwortet ist, ist für den Kopf eine Lücke (R1) –
+  // kein Tag ohne Kopfschmerz.
+  const eintraege = [];
+  const tage = {};
+  for (let i = 0; i < 30; i++) {
+    const d = tagN(i);
+    if (i < 10) {
+      tage[d] = { verspannt: 3 };
+      eintraege.push(kopf(d, '14:00'));
+    } else if (i < 20) {
+      tage[d] = { verspannt: 1 };
+    } else {
+      tage[d] = { verspannt: 2, ...(i % 2 ? { stimmung: 1 } : {}) };
+      if (i % 2 === 0) eintraege.push(stuhl(d));
+    }
+  }
+  const g = auswerten(eintraege, tage).gleichzeitig.nacken;
+  check(g.an.n === 10 && g.sonst.n === 10 && g.sonst.schnitt === 2,
+    `R7: Tage nur mit „Nacken/Schultern“ zählen nicht zu „sonst“, mit Stuhlgang oder einer anderen Tagesfrage schon (sonst ${g.sonst.n} Tage, im Mittel ${g.sonst.schnitt})`);
 }
 
 /* ---------- 5. Kein Satz rät, keiner nennt ein Ziel ---------- */

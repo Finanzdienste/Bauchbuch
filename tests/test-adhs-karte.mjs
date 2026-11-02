@@ -34,7 +34,8 @@ const fmt = (iso) => {
 };
 const WEGLASS = 'Ein Vergleich entsteht nur, wenn es das ohnehin gibt. Kein Grund, dafür etwas wegzulassen oder '
   + 'anders einzunehmen: Änderungen am Mittel gehören in die Praxis.';
-const ZIELZAHL = /(braucht|nötig|noch)\W{0,3}\d/i;
+// R9: Zielzahlen in jeder Reihenfolge – „noch 5“, „es fehlen 2“, „mindestens 8“, „5 nötig“.
+const ZIELZAHL = /(braucht|nötig|noch|fehl\w*|mindestens)\W{0,3}\d|\d+\W{0,3}(nötig|fehl)/i;
 
 /*
  * 75 Tage ein Mittel, an jedem dritten ohne Essen und danach mit Bauch; dann

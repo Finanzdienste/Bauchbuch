@@ -1024,7 +1024,11 @@ Wirkdauer:
 * **A1** Bauch in den vier Stunden nach der ersten Einnahme des Tages, ohne
   gegen mit Essen – je Mittel und bei Methylphenidat je Form, ein Fall je Tag,
   nur mit genauer oder an eine Mahlzeit gebundener Zeit, ohne Beschwerde in
-  den zwei Stunden davor. Gezeigt wird das Mittel mit den meisten Fällen, mit
+  den zwei Stunden davor, und nur an Tagen, die durch etwas außerhalb des
+  Fensters oder eine Tagesfrage notiert sind. Was im Fenster steht, zählt
+  dafür nicht – auch nicht die Mahlzeit, die „mit Essen“ bestimmt: Sonst wäre
+  jeder Morgen mit Essen schon durch sein Frühstück notiert, einer ohne Essen
+  aber eher, wenn danach noch etwas kam. Gezeigt wird das Mittel mit den meisten Fällen, mit
   seinem Namen – nach einem Wechsel auch mit dem letzten Einnahmetag, damit
   der Befund nicht beim heutigen Mittel landet.
 * **A2** Tage mit gegen Tage ohne Stimulans: Bauch, Kopfschmerz nach der
@@ -1044,7 +1048,9 @@ Wirkdauer:
   ein Tag „ohne Mittagessen“.
 
 Gerechnet wird ab dem Tag, seit dem das heutige Mittel genommen wird: Ein
-Wechsel von Präparat oder Form fängt neu an, ein zusätzliches Mittel nicht.
+Wechsel von Präparat oder Form fängt neu an, ein zusätzliches Mittel nicht –
+und eine nachgetragene Form auch nicht: „Weiß ich nicht“ ist keine eigene
+Form, und wer sie später angibt, nimmt dasselbe Mittel weiter.
 Fragen für die Sprechstunde gibt es nur bei einem Urteil, höchstens drei.
 
 #### Kiefer, Nacken, Schiene (eingeschaltet)
@@ -1069,7 +1075,9 @@ Gerechnet wird in `js/spannung.js`:
   Morgen. „Am Morgen“ heißt: mit „Schon beim Aufwachen da“ oder vor der
   ersten Einnahme eines ADHS-Mittels am Morgen (bis 11 Uhr), sonst vor 9 Uhr –
   eine Einnahme am Abend verschiebt nichts. Ist die Einnahme am Morgen nur
-  ungefähr, bleibt offen, was davor lag, und der Tag zählt nicht. Nächte nach
+  ungefähr, bleibt offen, was davor lag, und der Tag zählt nicht. Der Kopf am
+  Morgen zählt erst ab der Nacht von gestern – heute kann ein Kopfschmerz
+  „Schon beim Aufwachen da“ noch eingetragen werden. Nächte nach
   einer Feier, einer Reise oder Alkohol zählen auf keiner
   Seite – danach wird die Schiene eher vergessen, und der Kopf ist ohnehin
   schwerer. Immer dabei: Die Schiene ist vor allem zum Schutz der Zähne
@@ -1089,7 +1097,8 @@ Gerechnet wird in `js/spannung.js`:
 
 Was am selben Tag zusammen vorkommt – Nacken an Kopfschmerztagen, die
 Kiefer-Merkmale, wie oft gepresst –, steht nur als Zahl da, nie als Fund
-(R7). Body Check bestätigt oder widerlegt keine ärztliche oder zahnärztliche
+(R7). „Sonst“ sind dabei Tage, die für den Kopf notiert sind: Ein Tag, an dem
+nur „Nacken/Schultern“ beantwortet ist, ist für den Kopf eine Lücke. Body Check bestätigt oder widerlegt keine ärztliche oder zahnärztliche
 Einschätzung; es zählt, ob Kopfschmerz mit diesen Dingen zusammen öfter oder
 seltener kommt.
 
@@ -2325,8 +2334,8 @@ den Rückgabewert.
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; der Massagetext auch ohne Schalter; kein Angebot durch Nackenschmerz |
 | `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
 | `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste |
-| `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll |
-| `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend macht keinen Kopfschmerz am Nachmittag zu einem am Morgen, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag |
+| `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge |
+| `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend macht keinen Kopfschmerz am Nachmittag zu einem am Morgen, der laufende Morgen zählt noch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
 | `test-nulltagebuch.mjs` | 300 Tagebücher ohne Zusammenhang, aber mit Störwegen: je Rechnung höchstens 6 %, je Karte höchstens 10 % mit Urteil |
 | `test-adhs-gegenprobe.mjs` | R0: Rechnungen, Rat-Karte und Bericht mit jedem Stand der Schalter gleich – ohne Schalter fehlen nur die neuen Abschnitte und Karten |
 | `test-adhs-karte.mjs` | als iPhone: nach einem Wechsel trägt der Befund zum Bauch den Namen des früheren Mittels und seinen letzten Einnahmetag, die Zahl der Tage ohne Mittel ist die Summe ihrer Gründe, und Tage, an denen nur „ohne Mittel“ steht, ergeben „zu wenige“ ohne Zielzahl |
