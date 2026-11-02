@@ -49,6 +49,13 @@ jobs:
       - name: Nur der eine Weg nach draußen
         run: python3 tools/pruefung/keine-leitung.py
 
+      # Das Repository ist öffentlich, die App für alle gebaut. Kein
+      # Kommentar, kein Test und kein Commit-Text dieses Zweiges darf nach
+      # einem bestimmten Menschen klingen – wer was nimmt, wer was trägt.
+      # Ohne Namensliste: Die prüft nur der lokale Haken (tools/haken/).
+      - name: Allgemein, ohne Personenbezug
+        run: python3 tools/pruefung/allgemein.py --commits origin/main..HEAD
+
       # Die Rechnung darf nicht an der Anzeige hängen, und ein neues Modul muss
       # in beiden Listen stehen: im Bündel und im Offline-Vorrat. Beides geht
       # sonst still kaputt – die Ein-Datei-Fassung endet in einem
