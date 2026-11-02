@@ -1112,10 +1112,12 @@ hat“ mit genau den Punkten, die auf das eigene Tagebuch zutreffen, bis
   genommen und nur nicht eingetragen wurde, weiß niemand.
 
 Wer nichts davon einträgt, merkt davon nichts: `tests/test-gold.mjs` rechnet
-34 Rechnungen über feste Tagebücher und vergleicht sie Zeichen für Zeichen mit
-dem, was die Fassung 27 dazu gerechnet hat (eingecheckt, bevor sich am Code
-etwas änderte) – im Bericht mit der einen Ausnahme der umbrochenen langen
-Zeilen. `tests/test-notiert.mjs` gibt demselben Tagebuch an jedem Tag ein
+34 Rechnungen über feste Tagebücher – auch mit Tagen, an denen allein ein
+Säureblocker, ein Schmerzmittel ohne Kopfschmerz oder eine Notiz steht – und
+vergleicht sie Zeichen für Zeichen mit dem, was der Code der Fassung 27 dazu
+gerechnet hat (mit `tests/gold/erzeugen.mjs` aus einem Stand von 27cf388
+erzeugt und eingecheckt) – im Bericht mit der einen Ausnahme der umbrochenen
+langen Zeilen. `tests/test-notiert.mjs` gibt demselben Tagebuch an jedem Tag ein
 ADHS-Mittel und alle neuen Tagesangaben und verlangt dieselben Zahlen bis auf
 die Zählung der Mittel selbst, `tests/test-gleich-v27.mjs` dasselbe für den
 Text der Reiter.
@@ -2275,7 +2277,7 @@ den Rückgabewert.
 | `test-kueche.mjs` | „Geht gut“ und „Geht nicht“ werden nicht ausgewertet – und die Zahlen dürfen der Liste widersprechen |
 | `test-spaetphase.mjs` | nach Wochen Tagebuch steht nicht alles gleichzeitig da – der umgekehrte Fehler der ersten Wochen |
 | `test-gold.mjs` | 34 Rechnungen über feste Tagebücher ohne alles Neue ergeben Zeichen für Zeichen, was die Fassung 27 gerechnet hat (`tests/gold/`) – im Bericht nur die langen Zeilen umbrochen |
-| `test-notiert.mjs` | ein Tag nur mit einem ADHS-Mittel, einer Schiene oder einem Tag ohne Mittel ist eine Lücke; dasselbe Tagebuch mit einem ADHS-Mittel an jedem Tag und allen neuen Angaben ergibt dieselben Zahlen |
+| `test-notiert.mjs` | ein Tag nur mit einem ADHS-Mittel, einer Schiene oder einem Tag ohne Mittel ist eine Lücke, einer nur mit irgendeinem anderen bekannten Mittel nicht; dasselbe Tagebuch mit einem ADHS-Mittel an jedem Tag und allen neuen Angaben ergibt dieselben Zahlen |
 | `test-adhs-wissen.mjs` | Namen zur Gruppe, Formen aus dem Namen, Koffein-Regel, neue Säureblocker-Namen, jedes Paar an und aus – und kein Text mit Dosis oder Empfehlung |
 | `test-adhs-ui.mjs` | als iPhone: ohne Schalter nichts Neues außer dem, was für alle gilt; Angebot einmal, „jetzt genommen“, „Heute keins“ nur bei Stimulanzien, „Zum Essen?“ bis eine Stunde danach, nie ein „noch nicht“ |
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; der Massagetext auch ohne Schalter; kein Angebot durch Nackenschmerz |

@@ -16,7 +16,9 @@
  * Erzeugt wird einmal, bevor sich am Code etwas ändert. Wer es später noch
  * einmal laufen lässt, muss auf dieselbe Fassung zeigen und dasselbe
  * bekommen – das Skript vergleicht deshalb mit `--pruefen` nur, statt zu
- * schreiben.
+ * schreiben. Ändert sich das Tagebuch in tests/rechnungen.mjs, wird das Gold
+ * neu geschrieben – immer mit derselben alten Fassung als Wurzel, nie mit
+ * dem neuen Code, sonst verglichen die Tests ihn mit sich selbst.
  */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';

@@ -23,8 +23,9 @@
  * und ungefährer Zeit, mit Bezug zum Essen; Kopfschmerzen mit Merkmalen,
  * Dauer, Verlauf, Wirkung und den Mitteln dazu; Stuhlgänge; ein Säureblocker,
  * Ibuprofen, Paracetamol; Aktivitäten samt einer eigenen; Tagesfragen, Zyklus,
- * Wasser; Lücken. Und mit Absicht nichts, was erst nach der Fassung 27 eine
- * Bedeutung bekommen hat – siehe tests/test-gold.mjs.
+ * Wasser; Lücken; und Tage, an denen nur ein Mittel oder nur eine Notiz steht.
+ * Und mit Absicht nichts, was erst nach der Fassung 27 eine Bedeutung bekommen
+ * hat – siehe tests/test-gold.mjs.
  */
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -102,6 +103,8 @@ export function tagebuch(saat, { grunddatum = GRUNDDATUM, tage = TAGE } = {}) {
   // Der Säureblocker kommt erst nach einem Drittel dazu – sonst hätte die
   // Frage „hat es etwas bewirkt?" keine Zeit davor.
   const saeureAb = isoPlus(start, Math.floor(tage / 3));
+  // Die Tage, die ganz durchlaufen sind – keine Lücke, nicht nur Tagesfragen.
+  const voll = new Set();
 
   for (let i = 0; i < tage; i++) {
     const iso = isoPlus(start, i);
@@ -247,7 +250,42 @@ export function tagebuch(saat, { grunddatum = GRUNDDATUM, tage = TAGE } = {}) {
         eintraege.push(a);
       });
     if (ja(0.05)) eintraege.push({ id: n('n'), art: 'notiz', ...amUm(iso, 21 * 60), text: 'Ruhiger Tag' });
+    voll.add(iso);
   }
+
+  /*
+   * Sondertage: An jedem steht nur ein einziges Mittel oder nur eine Notiz –
+   * keine Mahlzeit, keine Tagesfrage. Erst an solchen Tagen entscheidet der
+   * eine Eintrag, ob der Tag notiert ist. Ohne sie bliebe im Gold unsichtbar,
+   * wenn eine Fassung ein gewöhnliches Mittel wie ein ADHS-Mittel nicht mehr
+   * zählen ließe (K1 zu weit): Die Mahlzeit daneben machte den Tag ohnehin
+   * notiert, und keine Rechnung änderte sich.
+   *
+   * Genommen werden volle Tage ohne Periode, nach dem ersten Drittel und vor
+   * den letzten beiden; ihr Inhalt wird ersetzt, nur Wasser bleibt (es zählt
+   * nicht). Ausgewählt wird ohne den Zufallsgenerator: Alle übrigen Tage
+   * bleiben, wie sie waren.
+   */
+  const sondertage = [
+    ...SAEUREBLOCKER.map((mittel, k) => (iso) => ({
+      id: `${iso}-sp${k}`, art: 'medikament', am: iso, um: '07:00', mittel, dosis: '40 mg',
+    })),
+    (iso) => ({ id: `${iso}-si`, art: 'medikament', am: iso, um: '10:00', mittel: 'Ibuprofen', dosis: '400 mg' }),
+    (iso) => ({ id: `${iso}-sc`, art: 'medikament', am: iso, um: '15:00', mittel: 'Paracetamol', dosis: '500 mg' }),
+    (iso) => ({ id: `${iso}-sn`, art: 'notiz', am: iso, um: '21:00', text: 'Ruhiger Tag' }),
+  ];
+  let sonder = Math.floor(tage / 3) + 5;
+  sondertage.forEach((neu) => {
+    while (sonder < tage - 2 && (!voll.has(isoPlus(start, sonder)) || blutung.has(isoPlus(start, sonder)))) sonder += 1;
+    if (sonder >= tage - 2) return;
+    const iso = isoPlus(start, sonder);
+    for (let j = eintraege.length - 1; j >= 0; j--) if (eintraege[j].am === iso) eintraege.splice(j, 1);
+    eintraege.push(neu(iso));
+    const rest = tagesspeicher[iso] && tagesspeicher[iso].wasser ? { wasser: tagesspeicher[iso].wasser } : null;
+    if (rest) tagesspeicher[iso] = rest;
+    else delete tagesspeicher[iso];
+    sonder += 8;
+  });
 
   sortiere(eintraege);
 

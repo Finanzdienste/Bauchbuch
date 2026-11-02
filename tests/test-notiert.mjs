@@ -27,7 +27,8 @@ import {
   ZAEHLT_NICHT, eintragZaehlt, tagZaehlt, zaehltFuerBauch,
 } from '../js/wasser.js';
 import {
-  ADHS_GRUPPEN, STIMULANZIEN, adhsGruppe, istAdhsMittel, wissenZu,
+  ADHS_GRUPPEN, ADHS_MITTEL, MITTEL_WISSEN, REIZSTOFFE, SONSTIGE_MITTEL, STIMULANZIEN, WEITERE_MITTEL,
+  adhsGruppe, istAdhsMittel, wissenZu,
 } from '../js/mittel.js';
 
 const { check, ende } = pruefer();
@@ -97,6 +98,28 @@ check(bauch([adhs('Bupropion')]) && kopf([adhs('Bupropion')]) && eintragZaehlt(a
   'Bupropion allein macht den Tag notiert, wie jedes andere Mittel');
 check(bauch([adhs('Pantoprazol')]) && kopf([adhs('Ibuprofen')]),
   'ein Säureblocker oder ein Schmerzmittel zählt weiter');
+
+/*
+ * Die andere Seite von K1, für jeden Namen, den die App kennt: Jedes Mittel,
+ * das kein ADHS-Mittel ist, macht einen Tag allein notiert – für Bauch und
+ * Kopf. Fiele die Erkennung zu weit aus (ein Säureblocker als
+ * Methylphenidat), würde sein Tag still zur Lücke, und Pantoprazol sähe in
+ * jeder Rechnung anders aus. Bupropion und Koffein gehören mit Absicht dazu:
+ * Sie haben Texte, sind aber keine ADHS-Mittel im Sinn von K1.
+ */
+const ANDERE = [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL, ...ADHS_MITTEL, ...SONSTIGE_MITTEL]
+  .filter((g) => !ADHS_GRUPPEN.includes(g.id));
+const andereNamen = ANDERE.flatMap((g) => g.beispiele.map((name) => ({ gruppe: g.id, name })));
+const zuWeit = andereNamen.filter(({ name }) => {
+  const nur = [adhs(name)];
+  return istAdhsMittel(name) || !bauch(nur) || !kopf(nur) || notierteTage(nur) !== 1;
+});
+check(
+  andereNamen.length >= 90 && ANDERE.some((g) => g.id === 'bupro') && ANDERE.some((g) => g.id === 'koffeinmittel')
+    && zuWeit.length === 0,
+  `alle ${andereNamen.length} Namen der übrigen ${ANDERE.length} Gruppen machen einen Tag allein notiert`
+    + `${zuWeit.length ? ` – nicht: ${zuWeit.map((x) => `${x.name} (${x.gruppe})`).join(', ')}` : ''}`,
+);
 
 /*
  * Ein ADHS-Mittel, das an einem Kopfschmerz hängt (`zuKopf`), wird damit

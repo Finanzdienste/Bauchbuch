@@ -48,6 +48,20 @@ for (const saat of GOLD_SAATEN) {
     `Tagebuch ${saat}: ohne ADHS-, Koffein- und neue Säureblocker-Namen, ohne neue Aktivitäten und Felder`);
   check(d.eintraege.length > 400 && Object.keys(d.tage).length > 60,
     `Tagebuch ${saat}: kein leeres Tagebuch (${d.eintraege.length} Einträge, ${Object.keys(d.tage).length} Tage)`);
+  /*
+   * Die Sondertage (siehe tagebuch()): Tage mit genau einem Eintrag – einem
+   * Säureblocker, Ibuprofen oder Paracetamol ohne Kopfschmerz, oder einer
+   * Notiz – und ohne Tagesfrage. Nur an ihnen merkt das Gold, wenn eine Fassung
+   * ein gewöhnliches Mittel nicht mehr als Angabe zählt.
+   */
+  const allein = [...new Set(d.eintraege.map((e) => e.am))].filter((iso) => {
+    const dort = d.eintraege.filter((e) => e.am === iso);
+    const tag = d.tage[iso] || {};
+    return dort.length === 1 && !dort[0].zuKopf && Object.keys(tag).every((k) => k === 'wasser');
+  }).map((iso) => d.eintraege.find((e) => e.am === iso)).map((e) => e.mittel || e.art);
+  const gebraucht = ['Pantoprazol', 'Omeprazol', 'Esomeprazol', 'Ibuprofen', 'Paracetamol', 'notiz'];
+  check(gebraucht.every((x) => allein.includes(x)),
+    `Tagebuch ${saat}: Tage, an denen allein ein Mittel oder eine Notiz steht (${allein.join(', ')})`);
 }
 
 /* ---------- Jede Rechnung im Gold sagt etwas ---------- */
