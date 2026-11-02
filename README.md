@@ -904,6 +904,9 @@ ich nicht“), denn wie Methylphenidat freigesetzt wird, hängt an der Form – 
 damit, wie es sich zum Essen und zu einem Säureblocker verhält. Die Form fragt
 der Medikamenten-Bogen (vorgewählt nach dem Namen, wo der Name sie eindeutig
 nennt) und „Meine Mittel“; ältere Einträge gelten als „Form nicht angegeben“.
+Die Form gehört zum Mittel, nicht zum Bogen: Wer im Bogen ein anderes eigenes
+Mittel wählt oder eins unter „Mehr“ umbenennt, nimmt die alte Form nicht mit –
+nur eine geänderte Dosis lässt sie stehen.
 Auf Zweigen aus dem Briefkasten hält `tools/pruefung/unantastbar.py` die Texte
 zu den Formen, die Hinweise der ADHS-Mittel, die Paartexte und den Massagetext
 fest wie die Warnzeichen.
@@ -2255,7 +2258,7 @@ den Rückgabewert.
 | `test-anleitung.mjs` | die Anleitung nur auf iPhone und iPad: die Schritte auf den Home-Bildschirm schon in der Begrüßung, die Frage „liegt es schon da?" vor den Schritten, ein Tipp auf „Mehr" führt immer zu „Mehr", „Als Text" gilt erst nach dem Kopieren als gesichert, das Dateifeld hängt beim Einlesen im Dokument – und in der App steht keine Sieben-Tage-Regel |
 | `test-ablaeufe.mjs` | jeder Shell-Schritt der GitHub-Abläufe geht durch `bash -n` – ein falsches Anführungszeichen fällt hier auf, nicht erst, wenn der Schritt gebraucht wird |
 | `test-zeitknoepfe.mjs` | „morgens" und „vor dem Essen" ergeben eine Uhrzeit, die als ungefähr gilt – und eine ungefähre Zeit zählt bei „wie lange nach dem Essen" nicht mit |
-| `test-standardmittel.mjs` | ein Mittel mit Dosis einmal anlegen, dann mit einem Tipp eintragen – ohne Dubletten und höchstens zwölf |
+| `test-standardmittel.mjs` | ein Mittel mit Dosis einmal anlegen, dann mit einem Tipp eintragen – ohne Dubletten und höchstens zwölf; die Form bleibt bei einer neuen Dosis und geht bei einem anderen Mittel oder Namen |
 | `test-zeit-mittel.mjs` | als iPhone mit 320 Pixeln: „abends" rastet nicht am Frühstück ein – auch ohne gewählte Tageszeit und in jeder Reihenfolge des Nachtragens –, eine Mahlzeit zieht ungefähre Einträge nach, gleiche Minute ergibt keinen Nüchternschmerz, „nach dem Essen" ohne Mahlzeit auch nicht, ein Auslöser im Knopf-Abendessen fällt auf, dasselbe Mittel morgens und abends, „Meine Mittel" unter „Mehr" ohne Einnahme, die Dosis im Bericht – und alte Stände laden weiter |
 | `test-stand.mjs` | jede Datei des Offline-Vorrats zählt mit ihrem Inhalt, `sw.js` selbst auch – und ein vertippter Aufruf des Bauskripts baut nichts |
 | `test-ideen-einzeln.mjs` | jede Idee genau einmal, die älteste zuerst; was während eines Versands dazukommt, geht mit, was gelöscht wird, nicht – und wer gerade tippt, tippt weiter |

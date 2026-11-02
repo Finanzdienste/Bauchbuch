@@ -6615,6 +6615,10 @@ function bogenSpeichern() {
     const f = formImBogen(store.zustandLesen(), b);
     if (e.form === undefined && f.form) e.form = f.form;
     if (e.form === null && !b.id) delete e.form;
+    // Beim Ändern auch „keine Form" ausdrücklich: Wer ein anderes eigenes
+    // Mittel gewählt hat, hat die Form des alten Eintrags verworfen (siehe
+    // 'standard-waehlen'), und ein bloß fehlendes Feld ließe sie dort stehen.
+    if (e.form === undefined && b.id) e.form = null;
     /*
      * Zum Essen: Ein Bezug („vor dem Essen" an einer Mahlzeit) sagt es schon,
      * dann gilt keine eigene Angabe. Hat sich die Angabe geändert, bekommt
@@ -6989,6 +6993,12 @@ const AKTION = {
    * nur, wenn noch keine gewählt ist. Wer schon „abends" getippt hat und dann
    * sein Morgenmittel antippt, hat es abends genommen – die Vorlage weiß das
    * nicht besser. Weicht es dann ab, sagt der Bogen das darunter.
+   *
+   * Die Form dagegen gehört zum Mittel, nicht zum Bogen: Eine schon gewählte
+   * (oder vom vorigen Mittel übernommene) Form fällt weg, und formImBogen()
+   * nimmt die des gewählten Mittels oder die, die sein Name nennt. Sonst
+   * stünde nach „Concerta" und dann „Medikinet retard" die Hülle von Concerta
+   * im Eintrag – und der Hinweis zum Säureblocker fehlte.
    */
   'standard-waehlen': (el) => {
     const s = store.zustandLesen();
@@ -6997,6 +7007,7 @@ const AKTION = {
     const e = b && b.entwurf;
     if (!m || !e) return;
     Object.assign(b, { vorlage: m.id, alsStandard: false, vorlageAendern: false });
+    delete e.form;
     const zeitSchon = !!(e.tageszeit || e.bezug || b.zeitGesetzt);
     entwurf({
       mittel: m.mittel,
@@ -7022,7 +7033,7 @@ const AKTION = {
     const f = formImBogen(s, b);
     if (!f.form) return;
     const wechselVorher = wechselStand();
-    store.standardAendern(m.id, { ...m, form: f.form });
+    store.standardAendern(m.id, { form: f.form });
     melden(`Bei deinen Mitteln steht jetzt „${mphForm(f.form).kurzname}“.${wechselZusatz(wechselVorher)}`);
     zeichne();
   },
@@ -7065,8 +7076,12 @@ const AKTION = {
     if (!m) return;
     const am = ui.tag;
     // Die Form des eigenen Mittels geht mit, wenn eine angegeben ist – sie
-    // steht auf der Packung und ändert sich nicht von Tag zu Tag.
-    const form = m.form ? { form: m.form } : {};
+    // steht auf der Packung und ändert sich nicht von Tag zu Tag. Nur bei
+    // Methylphenidat: Dieser Weg läuft an bogenSpeichern() vorbei, und eine
+    // Form an einem Säureblocker (etwa aus einem älteren Stand) wäre ein
+    // Hinweis auf ein Paar, das es nicht gibt.
+    const gruppe = wissenZu(m.mittel);
+    const form = m.form && gruppe && gruppe.id === 'mph' ? { form: m.form } : {};
     const wechselVorher = wechselStand();
     /*
      * „jetzt genommen" (siehe jetztModus): genau jetzt, ein Tipp. Liegt die
@@ -7215,7 +7230,7 @@ const AKTION = {
     if (!m) return;
     const wechselVorher = wechselStand();
     const form = m.form === el.dataset.id ? null : el.dataset.id;
-    store.standardAendern(m.id, { ...m, form });
+    store.standardAendern(m.id, { form });
     melden((form ? `Form: ${mphForm(form).kurzname}.` : 'Form nicht angegeben.') + wechselZusatz(wechselVorher));
     zeichne();
   },

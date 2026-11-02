@@ -425,6 +425,142 @@ s = await speicher();
 check(s.eintraege.some((e) => e.mittel === 'Medikinet' && e.form === 'sofort'), 'der Eintrag trägt die gewählte Form');
 check(await page.locator('.wechsel-karte').count() === 0, 'mit der nicht retardierten Tablette keine Karte der Stufe A mehr');
 
+/* ---------- 10. Die Form folgt dem Mittel ---------- */
+
+/*
+ * Die Form steht auf der Packung eines bestimmten Mittels. Wählt man im Bogen
+ * ein anderes eigenes Mittel oder benennt man eins unter „Mehr" um, darf die
+ * alte Form nicht mitwandern: Aus einer Kapsel mit zweierlei Kügelchen würde
+ * sonst eine Retardtablette mit Hülle, und der Hinweis zum Säureblocker
+ * (Stufe A) fiele still weg. Nur eine bloße Dosisänderung behält sie (oben).
+ */
+await page.evaluate(([k, g]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true,
+  tab: 'heute',
+  eintraege: [{ id: 'fz', art: 'essen', am: g, um: '07:30', was: 'Brot', zutaten: [], portion: 'normal' }],
+  tage: {},
+  standardMittel: [
+    { id: 'c1', mittel: 'Concerta', dosis: '18 mg', tageszeit: null, bezug: null, form: 'oros' },
+    { id: 'k1', mittel: 'Medikinet', dosis: '10 mg', tageszeit: null, bezug: null, form: null },
+    { id: 'r2', mittel: 'Ritalin Adult', dosis: '20 mg', tageszeit: null, bezug: null, form: 'sodas' },
+  ],
+})), [KEY, gestern]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.locator('[data-act="tag-blaettern"][data-d="-1"]').click();
+await kurz();
+const gestrigeMittel = async () => (await speicher()).eintraege.filter((e) => e.art === 'medikament' && e.am === gestern);
+const gedrueckt = async () => page.locator('[data-act="bogen-form"][aria-pressed="true"]')
+  .evaluateAll((l) => l.map((x) => x.dataset.id));
+
+// Ein Tipp auf Concerta öffnet gestern den Bogen – mit der Form von Concerta.
+await page.locator('[data-act="standard-eintragen"][data-id="c1"]').click();
+await kurz();
+check(JSON.stringify(await gedrueckt()) === '["oros"]', 'der Bogen nach dem Tipp auf Concerta zeigt dessen Form');
+// Dann ein anderes eigenes Mittel gewählt: eins ohne Form.
+await page.locator('[data-act="standard-waehlen"][data-id="k1"]').click();
+await kurz();
+check((await gedrueckt()).length === 0,
+  `ein anderes Mittel ohne Form gewählt: keine Form mehr vorgewählt (${(await gedrueckt()).join(', ')})`);
+await page.locator('[data-act="zeit-tageszeit"][data-id="morgens"]').click();
+await kurz();
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(250);
+let ohneForm = (await gestrigeMittel()).find((e) => e.mittel === 'Medikinet') || {};
+check(ohneForm.id && !ohneForm.form,
+  `gespeichert wird das gewählte Mittel ohne die Form des ersten (${ohneForm.mittel}, ${ohneForm.form})`);
+
+// Dasselbe mit einem Mittel, das eine eigene Form hat: dessen Form gilt.
+await page.locator('[data-act="standard-eintragen"][data-id="c1"]').click();
+await kurz();
+await page.locator('[data-act="standard-waehlen"][data-id="r2"]').click();
+await kurz();
+check(JSON.stringify(await gedrueckt()) === '["sodas"]', 'ein anderes Mittel mit Form gewählt: dessen Form ist vorgewählt');
+await page.locator('[data-act="zeit-tageszeit"][data-id="mittags"]').click();
+await kurz();
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(250);
+const mitForm = (await gestrigeMittel()).find((e) => e.mittel === 'Ritalin Adult') || {};
+check(mitForm.form === 'sodas', `gespeichert mit der Form des gewählten Mittels (${mitForm.form})`);
+
+// Beim Ändern eines Eintrags genauso – dort muss die alte Form ausdrücklich weg.
+await page.locator(`[data-act="bearbeiten"][data-id="${mitForm.id}"]`).click();
+await kurz();
+await page.locator('[data-act="standard-waehlen"][data-id="k1"]').click();
+await kurz();
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(250);
+ohneForm = (await speicher()).eintraege.find((e) => e.id === mitForm.id) || {};
+check(ohneForm.mittel === 'Medikinet' && !ohneForm.form,
+  `ein geänderter Eintrag behält die Form des alten Mittels nicht (${ohneForm.mittel}, ${ohneForm.form})`);
+
+// Unter „Mehr" umbenannt: Die Form gehörte zum alten Namen.
+await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+await kurz();
+const umbenennenMehr = async (id, name) => {
+  await page.locator(`[data-act="meinmittel-aendern"][data-id="${id}"]`).click();
+  await kurz();
+  await page.locator('#mmName').fill(name);
+  await page.locator('[data-act="mm-speichern"]').click();
+  await page.waitForTimeout(250);
+  return (await speicher()).standardMittel.find((x) => x.id === id) || {};
+};
+let neuName = await umbenennenMehr('r2', 'Pantoprazol');
+check(neuName.mittel === 'Pantoprazol' && neuName.form === null,
+  `„Ritalin Adult" in „Pantoprazol" umbenannt: die Form ist weg (${neuName.form})`);
+neuName = await umbenennenMehr('c1', 'Medikinet retard');
+check(neuName.mittel === 'Medikinet retard' && neuName.form === null,
+  `„Concerta" in „Medikinet retard" umbenannt: keine Hülle mehr, die Form ist offen (${neuName.form})`);
+await page.locator('[data-act="tab"][data-tab="heute"]').click();
+await kurz();
+await page.locator('[data-act="tag-blaettern"][data-d="1"]').click();
+await kurz();
+for (const id of ['r2', 'c1']) {
+  await page.locator(`[data-act="standard-eintragen"][data-id="${id}"]`).click();
+  await page.waitForTimeout(250);
+}
+s = await speicher();
+const heutige = s.eintraege.filter((e) => e.art === 'medikament' && e.am === heute);
+check(heutige.length === 2 && heutige.every((e) => !('form' in e)),
+  `danach trägt der Tipp keine alte Form ein (${heutige.map((e) => `${e.mittel}: ${e.form}`).join(', ')})`);
+
+/*
+ * Ein eigenes Mittel mit einer Form, die nicht zu seinem Namen passt – aus
+ * einem älteren Stand oder einer Sicherung: Der Tipp trägt sie nicht ein. Eine
+ * Form gibt es nur bei Methylphenidat.
+ */
+await page.evaluate(([k]) => {
+  const st = JSON.parse(localStorage.getItem(k));
+  st.standardMittel = [{ id: 'x1', mittel: 'Omeprazol', dosis: '20 mg', tageszeit: null, bezug: null, form: 'pellet' }];
+  localStorage.setItem(k, JSON.stringify(st));
+}, [KEY]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.locator('[data-act="standard-eintragen"][data-id="x1"]').click();
+await page.waitForTimeout(250);
+const omeprazol = (await speicher()).eintraege.find((e) => e.mittel === 'Omeprazol') || {};
+check(omeprazol.id && !('form' in omeprazol), `ein Säureblocker bekommt durch den Tipp keine Form (${omeprazol.form})`);
+
+/* ---------- 11. Nur die Form ändern ---------- */
+
+/*
+ * standardAendern() mit einer Vorlage, die nur einen Teil nennt: Was sie nicht
+ * nennt, bleibt. „Form dort übernehmen" braucht genau das – ein Aufruf nur
+ * mit der Form darf den Namen nicht leeren.
+ */
+const teil = await page.evaluate(async () => {
+  const st = await import('/js/store.js');
+  const id = st.zustandLesen().standardMittel[0].id;
+  const r1 = st.standardAendern(id, { form: 'sofort' });
+  const nachForm = { ...st.zustandLesen().standardMittel[0] };
+  const r2 = st.standardAendern(id, { mittel: 'Medikinet', dosis: '20 mg' });
+  const nachName = { ...st.zustandLesen().standardMittel[0] };
+  return { id, r1, nachForm, r2, nachName };
+});
+check(teil.r1.id === teil.id && teil.nachForm.form === 'sofort' && teil.nachForm.mittel === 'Omeprazol'
+  && teil.nachForm.dosis === '20 mg' && teil.nachForm.tageszeit === null,
+  `nur die Form: Name, Dosis und Zeit bleiben (${JSON.stringify(teil.r1)}, ${teil.nachForm.mittel} ${teil.nachForm.dosis} ${teil.nachForm.form})`);
+check(teil.r2.id === teil.id && teil.nachName.mittel === 'Medikinet' && teil.nachName.form === null,
+  `ein neuer Name ohne Form: die alte Form geht mit dem alten Namen (${teil.nachName.mittel}, ${teil.nachName.form})`);
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();
 await kopie.zu();

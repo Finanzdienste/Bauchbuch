@@ -915,13 +915,25 @@ export function standardMerken(vorlage) {
  * { id } bei Erfolg, { fehler: 'leer' } ohne Namen, { fehler: 'doppelt' },
  * wenn es genau so schon ein anderes gibt, { fehler: 'weg' }, wenn es dieses
  * nicht mehr gibt. Die Einträge, die damit schon angelegt wurden, bleiben,
- * wie sie sind: Sie sagen, was an jenem Tag genommen wurde. Nennt die Vorlage
- * keine Form, bleibt die alte (siehe standardSauber).
+ * wie sie sind: Sie sagen, was an jenem Tag genommen wurde.
+ *
+ * Felder, die die Vorlage nicht nennt, bleiben, wie sie waren – „nur die Form
+ * ändern" ist { form }, ohne Namen und Dosis noch einmal mitzuschicken. Eine
+ * Ausnahme hat die Form: Bekommt das Mittel einen anderen Namen und nennt die
+ * Vorlage keine Form, wird sie null. Sie stand auf der Packung des alten
+ * Mittels; behielte „Pantoprazol" die Freisetzungsform von „Ritalin Adult",
+ * oder „Medikinet retard" die Hülle von „Concerta", hinge daran ein falscher
+ * Hinweis – oder es fehlte einer. Null ist die sichere Seite: Was der Name
+ * eindeutig sagt, findet formAusName() in js/mittel.js wieder.
  */
 export function standardAendern(id, vorlage) {
   const i = zustand.standardMittel.findIndex((x) => x.id === id);
   if (i < 0) return { fehler: 'weg' };
-  const neu = { ...zustand.standardMittel[i], ...standardSauber(vorlage), id };
+  const alt = zustand.standardMittel[i];
+  const v = vorlage && typeof vorlage === 'object' ? vorlage : {};
+  const neu = { ...alt, ...standardSauber({ ...alt, ...v }), id };
+  const nameKlein = (x) => String(x || '').trim().toLowerCase();
+  if (!Object.hasOwn(v, 'form') && nameKlein(neu.mittel) !== nameKlein(alt.mittel)) neu.form = null;
   if (!neu.mittel) return { fehler: 'leer' };
   if (zustand.standardMittel.some((x) => x.id !== id && mittelSchluessel(x) === mittelSchluessel(neu))) {
     return { fehler: 'doppelt' };
