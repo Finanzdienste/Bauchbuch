@@ -308,11 +308,39 @@ export function rolleName(id, kurz) {
  * Nicht jede Frage will jeder beantworten – ein Feld für Sex im Tagebuch ist
  * für die einen selbstverständlich und für die anderen ein Übergriff. Welche
  * Fragen erscheinen, entscheidet die Einstellung `tagesfragen` unter Mehr.
+ *
+ * Fragen mit `gruppe: 'spannung'` (Nacken, Kiefer, Pressen, Schiene) gehören
+ * zum Schalter „Kiefer, Nacken, Schiene" und erscheinen nur, solange er an
+ * ist – auch dann nicht, wenn ihre Kennung aus einer Sicherung oder einem
+ * älteren Stand in `tagesfragen` steht (siehe sichtbareFragen). Wer nie
+ * „Schiene" gesagt hat, soll nicht jeden Morgen danach gefragt werden.
+ * Keine davon macht einen Tag zu einem notierten (ZAEHLT_NICHT in
+ * js/wasser.js): Sonst wäre ein Tag, an dem nur „Schiene getragen" steht, ein
+ * beschwerdefreier.
  */
 export const TAGESFRAGEN = [
   { id: 'stimmung', name: 'Stimmung', worte: ['gut', 'ok', 'gedrückt', 'schlecht', 'sehr schlecht'] },
   { id: 'stress', name: 'Anspannung', worte: ['ruhig', 'geht so', 'angespannt', 'viel', 'sehr viel'] },
+  // Die Stufen wie überall: 0 gut, 4 schlecht.
+  { id: 'verspannt', name: 'Nacken/Schultern', gruppe: 'spannung', worte: ['locker', 'leicht', 'mittel', 'stark', 'sehr stark'] },
+  // Eine Menge, keine Note – gezählt wird, an wie vielen Tagen.
+  { id: 'gepresst', name: 'Tagsüber gepresst/geknirscht bemerkt', gruppe: 'spannung', menge: true, worte: ['nein', 'ja'] },
   { id: 'schlaf', name: 'Schlaf', worte: ['gut', 'ok', 'mäßig', 'schlecht', 'kaum'] },
+  /*
+   * Beide gelten, wie der Schlaf, für die Nacht davor. „nicht getragen" ist
+   * eine Antwort und keine Lücke: Nur sie zählt später als Nacht ohne
+   * Schiene – eine fehlende Antwort nie.
+   */
+  { id: 'schiene', name: 'Schiene letzte Nacht', gruppe: 'spannung', menge: true, worte: ['nicht getragen', 'getragen'] },
+  {
+    id: 'kiefer',
+    name: 'Kiefer/Zähne beim Aufwachen',
+    gruppe: 'spannung',
+    worte: ['nichts', 'etwas', 'spürbar', 'stark', 'sehr stark'],
+    // Gefragt wird, was morgens zu spüren ist, nicht ob geknirscht wurde:
+    // Das merkt man im Schlaf selbst kaum.
+    hinweis: 'Ob nachts geknirscht wird, merkt man selbst oft nicht – gefragt ist, was morgens zu spüren ist.',
+  },
   { id: 'bewegung', name: 'Bewegung', menge: true, worte: ['keine', 'leicht', 'moderat', 'intensiv', 'sehr intensiv'] },
   { id: 'blutung', name: 'Periode', menge: true, worte: ['keine', 'Schmierblutung', 'leicht', 'mittel', 'stark'] },
   { id: 'sex', name: 'Sex', menge: true, worte: ['nein', 'ja'] },
@@ -350,10 +378,23 @@ export function frageVon(id) {
   return FRAGEN_MAP[id] || null;
 }
 
-/** Die Fragen, die dieser Nutzer sehen will – in der Reihenfolge von oben. */
-export function sichtbareFragen(gewaehlt) {
-  if (!Array.isArray(gewaehlt)) return TAGESFRAGEN;
-  return TAGESFRAGEN.filter((f) => gewaehlt.includes(f.id));
+/** Die Fragen, die zum Schalter „Kiefer, Nacken, Schiene" gehören. */
+export const SPANNUNG_FRAGEN = TAGESFRAGEN.filter((f) => f.gruppe === 'spannung').map((f) => f.id);
+
+/**
+ * Die Fragen, die auf „Tag" stehen – in der Reihenfolge von oben.
+ *
+ * `schalter` ist der Zustand mit `spannungAn`. Die Fragen der Gruppe
+ * „spannung" stehen nur bei `spannungAn === true` da: null heißt „nie
+ * entschieden", und auch dann wird nicht gefragt. Die Kennungen allein
+ * reichen nicht – eine Sicherung kann sie mitbringen, ohne dass hier jemand
+ * etwas eingeschaltet hat.
+ */
+export function sichtbareFragen(gewaehlt, schalter = {}) {
+  const an = !!schalter && schalter.spannungAn === true;
+  const erlaubt = (f) => an || f.gruppe !== 'spannung';
+  if (!Array.isArray(gewaehlt)) return TAGESFRAGEN.filter(erlaubt);
+  return TAGESFRAGEN.filter((f) => erlaubt(f) && gewaehlt.includes(f.id));
 }
 
 export const PORTIONEN = [

@@ -821,6 +821,42 @@ p { margin: 0 0 8px; }
 }
 .massage-hinweis summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 
+/* ---------- ADHS sowie Kiefer, Nacken, Schiene (einschaltbar) ---------- */
+/* Die Jetzt-Zeile unter dem Tageskopf: eine Auskunft, kein Alarm – ohne
+   Farbe, und sie bricht um, statt bei 320 px über den Rand zu laufen. */
+.jetzt-zeile { margin: -4px 0 10px; text-align: center; overflow-wrap: anywhere; }
+/* Unter „Meine Mittel": Tag ohne Mittel und „Zum Essen?". */
+.adhs-tag { margin: 4px 0 8px; }
+.adhs-tag .feld-name { margin-top: 10px; overflow-wrap: anywhere; }
+.adhs-pause .klein { margin-top: 6px; }
+/* Der Knopf „jetzt" fragt bei einer zweiten Einnahme im Knopf selbst nach. */
+.marke-jetzt.frage { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+/* „Was dazu bekannt ist" unter den Schaltern und die Texte im Bogen. */
+details.wissen { margin: 4px 0 12px; }
+details.wissen > summary { cursor: pointer; color: var(--muted); font-size: 14px; padding: 4px 0; }
+details.wissen p { margin-top: 6px; overflow-wrap: anywhere; }
+#mitdenken .wahl { margin-top: 6px; }
+#mitdenken .marken { margin-bottom: 10px; }
+.bogen-form, .bogen-essen, .bogen-wechsel { margin-top: 8px; }
+.bogen-form .form-text, .bogen-wechsel p { overflow-wrap: anywhere; }
+.bogen-wechsel { border-left: 2px solid var(--accent); padding-left: 10px; }
+.kopf-adhs { margin-bottom: 6px; overflow-wrap: anywhere; }
+.huellen-satz { border-left: 2px solid var(--line); padding-left: 10px; }
+.frage-hinweis { margin: 4px 0 8px; }
+/* Die Formwahl unter einem eigenen Mittel: eine eigene Zeile unter Name und
+   Knöpfen, nicht als dritte Spalte daneben. */
+.wartend li.mm-mit-form { flex-wrap: wrap; }
+.wartend li.mm-mit-form > span:first-child { flex: 1 1 0; }
+.mm-form { flex: 1 0 100%; }
+.mm-form .feld-name { margin-top: 2px; }
+.wechsel-liste { list-style: none; margin: 4px 0 0; padding: 0; }
+.wechsel-liste li { padding: 7px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.wechsel-liste li:last-child { border-bottom: none; }
+.wechsel-liste .klein { margin: 4px 0 0; }
+.v28-liste { margin: 6px 0 10px; padding-left: 18px; font-size: 14px; }
+.v28-liste li { margin-bottom: 6px; overflow-wrap: anywhere; }
+.angebot .reihe { margin: 8px 0 4px; }
+
 /* ---------- Willkommen ---------- */
 .willkommen { max-width: 480px; margin: 20px auto; }
 .punkte { padding-left: 18px; color: var(--muted); font-size: 14px; }
@@ -2997,11 +3033,39 @@ function rolleName(id, kurz) {
  * Nicht jede Frage will jeder beantworten – ein Feld für Sex im Tagebuch ist
  * für die einen selbstverständlich und für die anderen ein Übergriff. Welche
  * Fragen erscheinen, entscheidet die Einstellung `tagesfragen` unter Mehr.
+ *
+ * Fragen mit `gruppe: 'spannung'` (Nacken, Kiefer, Pressen, Schiene) gehören
+ * zum Schalter „Kiefer, Nacken, Schiene" und erscheinen nur, solange er an
+ * ist – auch dann nicht, wenn ihre Kennung aus einer Sicherung oder einem
+ * älteren Stand in `tagesfragen` steht (siehe sichtbareFragen). Wer nie
+ * „Schiene" gesagt hat, soll nicht jeden Morgen danach gefragt werden.
+ * Keine davon macht einen Tag zu einem notierten (ZAEHLT_NICHT in
+ * js/wasser.js): Sonst wäre ein Tag, an dem nur „Schiene getragen" steht, ein
+ * beschwerdefreier.
  */
 const TAGESFRAGEN = [
   { id: 'stimmung', name: 'Stimmung', worte: ['gut', 'ok', 'gedrückt', 'schlecht', 'sehr schlecht'] },
   { id: 'stress', name: 'Anspannung', worte: ['ruhig', 'geht so', 'angespannt', 'viel', 'sehr viel'] },
+  // Die Stufen wie überall: 0 gut, 4 schlecht.
+  { id: 'verspannt', name: 'Nacken/Schultern', gruppe: 'spannung', worte: ['locker', 'leicht', 'mittel', 'stark', 'sehr stark'] },
+  // Eine Menge, keine Note – gezählt wird, an wie vielen Tagen.
+  { id: 'gepresst', name: 'Tagsüber gepresst/geknirscht bemerkt', gruppe: 'spannung', menge: true, worte: ['nein', 'ja'] },
   { id: 'schlaf', name: 'Schlaf', worte: ['gut', 'ok', 'mäßig', 'schlecht', 'kaum'] },
+  /*
+   * Beide gelten, wie der Schlaf, für die Nacht davor. „nicht getragen" ist
+   * eine Antwort und keine Lücke: Nur sie zählt später als Nacht ohne
+   * Schiene – eine fehlende Antwort nie.
+   */
+  { id: 'schiene', name: 'Schiene letzte Nacht', gruppe: 'spannung', menge: true, worte: ['nicht getragen', 'getragen'] },
+  {
+    id: 'kiefer',
+    name: 'Kiefer/Zähne beim Aufwachen',
+    gruppe: 'spannung',
+    worte: ['nichts', 'etwas', 'spürbar', 'stark', 'sehr stark'],
+    // Gefragt wird, was morgens zu spüren ist, nicht ob geknirscht wurde:
+    // Das merkt man im Schlaf selbst kaum.
+    hinweis: 'Ob nachts geknirscht wird, merkt man selbst oft nicht – gefragt ist, was morgens zu spüren ist.',
+  },
   { id: 'bewegung', name: 'Bewegung', menge: true, worte: ['keine', 'leicht', 'moderat', 'intensiv', 'sehr intensiv'] },
   { id: 'blutung', name: 'Periode', menge: true, worte: ['keine', 'Schmierblutung', 'leicht', 'mittel', 'stark'] },
   { id: 'sex', name: 'Sex', menge: true, worte: ['nein', 'ja'] },
@@ -3039,10 +3103,23 @@ function frageVon(id) {
   return FRAGEN_MAP[id] || null;
 }
 
-/** Die Fragen, die dieser Nutzer sehen will – in der Reihenfolge von oben. */
-function sichtbareFragen(gewaehlt) {
-  if (!Array.isArray(gewaehlt)) return TAGESFRAGEN;
-  return TAGESFRAGEN.filter((f) => gewaehlt.includes(f.id));
+/** Die Fragen, die zum Schalter „Kiefer, Nacken, Schiene" gehören. */
+const SPANNUNG_FRAGEN = TAGESFRAGEN.filter((f) => f.gruppe === 'spannung').map((f) => f.id);
+
+/**
+ * Die Fragen, die auf „Tag" stehen – in der Reihenfolge von oben.
+ *
+ * `schalter` ist der Zustand mit `spannungAn`. Die Fragen der Gruppe
+ * „spannung" stehen nur bei `spannungAn === true` da: null heißt „nie
+ * entschieden", und auch dann wird nicht gefragt. Die Kennungen allein
+ * reichen nicht – eine Sicherung kann sie mitbringen, ohne dass hier jemand
+ * etwas eingeschaltet hat.
+ */
+function sichtbareFragen(gewaehlt, schalter = {}) {
+  const an = !!schalter && schalter.spannungAn === true;
+  const erlaubt = (f) => an || f.gruppe !== 'spannung';
+  if (!Array.isArray(gewaehlt)) return TAGESFRAGEN.filter(erlaubt);
+  return TAGESFRAGEN.filter((f) => erlaubt(f) && gewaehlt.includes(f.id));
 }
 
 const PORTIONEN = [
@@ -3920,21 +3997,45 @@ function heutigerStand(tage, iso) {
  * beide, Übelkeit, Erbrechen, Licht, Bewegung, Nacken, Aura. Aus der
  * Kombination schließt eine Ärztin etwas; die App schließt nichts, sie zählt.
  *
- * „Nackenschmerz dabei", nicht „vom Nacken her": Nackenschmerz begleitet die
- * meisten Migräneanfälle, und wer ihn als Ursache einträgt, landet in der
- * falschen Sprechstunde.
+ * „Nackenschmerz dabei", nicht „vom Nacken her": Nackenschmerz haben die
+ * meisten Menschen mit Migräne, und wer ihn als Ursache einträgt, landet in
+ * der falschen Sprechstunde.
+ *
+ * Seit der Fassung 28:
+ *
+ *   * „Licht stört" und „Lärm stört" getrennt. Die Kopfschmerzklassifikation
+ *     fragt nach beiden zusammen; wer nur eins davon hat, konnte das bisher
+ *     nicht sagen. Das alte `licht` („Licht oder Lärm stören") bleibt mit
+ *     `alt: true` in der Liste – sonst zählte kopfZahlen() die früheren
+ *     Einträge nicht mehr (siehe KOPF_MAP). Der Bogen zeigt es nur bei einem
+ *     Eintrag, der es trägt, und deutet es nie in eines der beiden neuen um.
+ *   * „Beidseitig" neben „Einseitig" – die beiden schließen sich im Bogen
+ *     aus – und „Schon beim Aufwachen da".
+ *   * Drei Merkmale mit `nurMit: 'spannung'`: Sie stehen im Bogen nur, wenn
+ *     „Kiefer, Nacken, Schiene" eingeschaltet ist. Gespeicherte bleiben
+ *     lesbar und gezählt, auch wenn er wieder aus ist.
  */
 const KOPF_ARTEN = [
   { id: 'pochend', name: 'Pochend, pulsierend' },
   { id: 'drueckend', name: 'Drückend, wie ein Band' },
   { id: 'einseitig', name: 'Einseitig' },
+  { id: 'beidseitig', name: 'Beidseitig' },
   { id: 'kopfuebel', name: 'Mit Übelkeit' },
   { id: 'kopferbrechen', name: 'Erbrochen' },
-  { id: 'licht', name: 'Licht oder Lärm stören' },
+  { id: 'lichtscheu', name: 'Licht stört' },
+  { id: 'laermscheu', name: 'Lärm stört' },
+  { id: 'licht', name: 'Licht oder Lärm stören', alt: true },
   { id: 'bewegung', name: 'Schlimmer bei Bewegung' },
   { id: 'nacken', name: 'Nackenschmerz dabei' },
+  { id: 'aufwachen', name: 'Schon beim Aufwachen da' },
   { id: 'aura', name: 'Aura vorher (Flimmern, Zacken, wanderndes Kribbeln, Wortsuche)' },
+  { id: 'kauen', name: 'Schlimmer beim Kauen oder Kieferbewegen', nurMit: 'spannung' },
+  { id: 'nackenbewegung', name: 'Schlimmer, wenn ich Kopf oder Nacken bewege', nurMit: 'spannung' },
+  { id: 'schlaefe', name: 'An Schläfe oder Kiefer', nurMit: 'spannung' },
 ];
+
+/** Die beiden Merkmale, von denen höchstens eines zutreffen kann. */
+const KOPF_SEITE = ['einseitig', 'beidseitig'];
 
 /*
  * Wie lange. Vier grobe Stufen statt einer Stundenzahl: Wer eine Attacke
@@ -8703,6 +8804,165 @@ function stuhlZahlen(eintraege, tage) {
     unvollstaendig: alle.filter((e) => e.unvollstaendig).length,
     ...b,
   };
+}
+
+/* ===== js/adhs.js ===== */
+/*
+ * ADHS-Mittel im Tagebuch: welche Einnahmen es gibt, wann sie waren und ob
+ * sie zum Essen waren.
+ *
+ * Hier wird nur gezählt und eingeordnet, nicht geurteilt. Ein ADHS-Mittel wird
+ * nach Plan genommen und nicht wegen des Bauchs; was es mit dem Bauch, dem
+ * Kopf oder dem Schlaf zu tun haben könnte, lässt sich nur mit Einnahmen
+ * fragen, deren Zeit und Bezug zum Essen feststehen. Deshalb trägt jede
+ * Einnahme mit, wie sicher ihre Zeit ist (`zeitArt`), und die Angabe zum
+ * Essen, wann sie gemacht wurde.
+ *
+ * Rein: alles kommt als Argument herein, nichts wird gespeichert, nichts geht
+ * hinaus. Wer diese Datei liest, liest auch ihre Grenze – sie weiß nichts von
+ * der Anzeige und nichts von den Schaltern. Gerechnet wird immer, sobald
+ * Daten da sind; ob etwas davon zu sehen ist, entscheidet js/app.js.
+ */
+
+
+
+const MINUTE = 60 * 1000;
+
+/** Die drei Antworten auf „Zum Essen?" – so, wie sie gespeichert werden. */
+const ESSEN_ARTEN = ['mit', 'vor', 'ohne'];
+
+/**
+ * Bis wann nach der Einnahme eine Angabe zum Essen zählt: eine Stunde.
+ *
+ * Später gemacht, weiß man schon, wie es dem Bauch danach ging – und eine
+ * Angabe, die nach dem Ergebnis kommt, darf nicht darüber entscheiden, auf
+ * welcher Seite eines Vergleichs der Fall landet. „Ohne Essen" fiele sonst
+ * gerade dann, wenn es danach schlecht ging, und das Mittel sähe nüchtern
+ * schlechter aus, als es war.
+ */
+const ESSEN_GILT_MIN = 60;
+
+/** Die Gründe für einen Tag ohne Mittel. Der vierte ist 'pause' ohne Grund. */
+const PAUSE_GRUENDE = ['geplant', 'vergessen', 'beschwerden'];
+const PAUSE_WERTE = ['pause', ...PAUSE_GRUENDE];
+
+/** Gehört dieser Name zu einem Stimulans (Methylphenidat, Lisdexamfetamin, Dexamfetamin)? */
+const istStimulans = (name) => STIMULANZIEN.includes(adhsGruppe(name));
+
+const BEZUG_MIT = ['beim', 'nach'];
+
+/**
+ * Wie sicher die Zeit einer Einnahme ist:
+ *
+ *   'genau'      von Hand oder mit „jetzt" – keine ungefähre Zeit
+ *   'gebunden'   ungefähr, aber vor, beim oder nach einer Mahlzeit mit
+ *                genauer Zeit: die Reihenfolge steht fest
+ *   'ungefaehr'  nur „morgens" o. Ä. – für Stunden nicht zu gebrauchen
+ */
+function zeitArtVon(e, mahlzeiten) {
+  if (!e.ungefaehr) return 'genau';
+  const m = e.bezugMahlzeit ? mahlzeiten.get(e.bezugMahlzeit) : null;
+  return m && !m.ungefaehr && ['vor', ...BEZUG_MIT].includes(e.bezug) ? 'gebunden' : 'ungefaehr';
+}
+
+/**
+ * Alle Einnahmen von ADHS-Mitteln, nach der Zeit sortiert.
+ *
+ * Je Einnahme { e, gruppe, form, schluessel, t, zeitArt }: `t` ist der
+ * Zeitpunkt in Millisekunden (Ortszeit), `schluessel` die Gruppe – bei
+ * Methylphenidat mit der Form ('mph:pellet'), denn zwei Formen sind für den
+ * Magen zwei verschiedene Mittel. Die Form ist die des Eintrags, sonst die,
+ * die js/zusammen.js für diesen Namen kennt (zuletzt eingetragen, „Meine
+ * Mittel", der Name selbst, sonst 'unbekannt').
+ *
+ * Bupropion steht nicht dabei (siehe ADHS_GRUPPEN in js/mittel.js).
+ */
+function adhsEinnahmen(eintraege, standardMittel = []) {
+  const liste = Array.isArray(eintraege) ? eintraege.filter((x) => x && typeof x === 'object') : [];
+  const mahlzeiten = new Map(liste.filter((x) => x.art === 'essen').map((x) => [x.id, x]));
+  // Die Form je Name nur einmal suchen: formZu() geht alle Einträge durch,
+  // und ein Jahr Tagebuch hat Hunderte Einnahmen desselben Mittels.
+  const formNachName = new Map();
+  const formVon = (name) => {
+    const k = String(name || '').trim().toLowerCase();
+    if (!formNachName.has(k)) formNachName.set(k, formZu(name, standardMittel, liste));
+    return formNachName.get(k);
+  };
+  return liste
+    .filter((e) => e.art === 'medikament' && istAdhsMittel(e.mittel))
+    .map((e) => {
+      const gruppe = adhsGruppe(e.mittel);
+      const form = gruppe === 'mph' ? (e.form || formVon(e.mittel)) : null;
+      return {
+        e,
+        gruppe,
+        form,
+        schluessel: gruppe === 'mph' ? `mph:${form}` : gruppe,
+        t: zeitpunkt(e.am, e.um),
+        zeitArt: zeitArtVon(e, mahlzeiten),
+      };
+    })
+    .sort((a, b) => a.t - b.t);
+}
+
+/**
+ * War diese Einnahme zum Essen? → { art, quelle }
+ *
+ *   'mit'          eine Mahlzeit mit genauer Zeit von einer Stunde davor bis
+ *                  eine Viertelstunde danach, „beim" oder „nach dem Essen" an
+ *                  einer solchen Mahlzeit, oder die Angabe „mit/nach Essen"
+ *   'vor'          eine Mahlzeit eine Viertelstunde bis eine Stunde danach,
+ *                  „vor dem Essen" an einer solchen, oder die Angabe
+ *   'ohne'         nur aus der Angabe – und nur, wenn von einer Stunde davor
+ *                  bis zwei Stunden danach keine Mahlzeit steht, auch keine
+ *                  ungefähre derselben Tageszeit
+ *   'widerspruch'  „ohne Essen" angegeben, aber da steht eine Mahlzeit
+ *   'unklar'       nur eine ungefähre Mahlzeit derselben Tageszeit, sonst nichts
+ *   'spaet'        die Angabe kam erst nach ESSEN_GILT_MIN Minuten
+ *   null           nichts davon
+ *
+ * Ein fehlendes Frühstück ist kein nüchterner Magen: „ohne" gibt es nur, wenn
+ * es jemand angetippt hat. Was sich aus den Mahlzeiten ergibt, geht der
+ * Angabe vor – außer, beides widerspricht sich; dann zählt keins von beiden.
+ * Abgeleitet wird nur bei einer genauen oder gebundenen Einnahmezeit: Bei
+ * „morgens" ist offen, ob die Tablette vor oder nach dem Frühstück kam.
+ *
+ * `quelle` ist 'mahlzeit', 'bezug' oder 'angabe' – oder null.
+ */
+function essenZurEinnahme(eintraege, einnahme) {
+  const nichts = { art: null, quelle: null };
+  if (!einnahme || !einnahme.e) return nichts;
+  const { e, t, zeitArt } = einnahme;
+  const liste = Array.isArray(eintraege) ? eintraege : [];
+  const mahlzeiten = liste.filter((x) => x && x.art === 'essen');
+  const abstand = (m) => (zeitpunkt(m.am, m.um) - t) / MINUTE;
+  const genau = mahlzeiten.filter((m) => !m.ungefaehr);
+  const tageszeit = tageszeitVon(e);
+  const ungefaehrDabei = (m) => m.ungefaehr && m.am === e.am && tageszeitVon(m) === tageszeit;
+
+  let abgeleitet = null;
+  if (zeitArt === 'gebunden') {
+    abgeleitet = { art: BEZUG_MIT.includes(e.bezug) ? 'mit' : 'vor', quelle: 'bezug' };
+  } else if (zeitArt === 'genau') {
+    if (genau.some((m) => abstand(m) >= -60 && abstand(m) <= 15)) abgeleitet = { art: 'mit', quelle: 'mahlzeit' };
+    else if (genau.some((m) => abstand(m) > 15 && abstand(m) <= 60)) abgeleitet = { art: 'vor', quelle: 'mahlzeit' };
+  }
+
+  const angabe = ESSEN_ARTEN.includes(e.essen) ? e.essen : null;
+  const gesetzt = Number(e.essenGesetzt);
+  const mitZeit = Number.isFinite(gesetzt) && gesetzt > 0;
+  const gueltig = !!angabe && mitZeit && gesetzt <= t + ESSEN_GILT_MIN * MINUTE;
+
+  if (angabe === 'ohne' && gueltig) {
+    const doch = mahlzeiten.some((m) => (m.ungefaehr ? ungefaehrDabei(m)
+      : abstand(m) >= -60 && abstand(m) <= 120));
+    return { art: doch ? 'widerspruch' : 'ohne', quelle: 'angabe' };
+  }
+  if (abgeleitet) return abgeleitet;
+  if (angabe && gueltig) return { art: angabe, quelle: 'angabe' };
+  if (angabe && mitZeit) return { art: 'spaet', quelle: 'angabe' };
+  if (mahlzeiten.some(ungefaehrDabei)) return { art: 'unklar', quelle: 'mahlzeit' };
+  return nichts;
 }
 
 /* ===== js/kriterien.js ===== */
@@ -15712,6 +15972,12 @@ const ui = {
   // Was zuletzt unter „Meine Mittel" oder „Eigene Aktivitäten" entfernt
   // wurde, für „Rückgängig": { art: 'mittel', weg } oder { art: 'aktiv', id }.
   entfernt: null,
+  // Welcher Tag „heute" war, als die App zuletzt verlassen wurde, und ob
+  // „Tag" dort stand: { heute, standDort } – siehe tagNachRueckkehr().
+  // Flüchtig wie der Tag selbst.
+  heuteBeimVerlassen: null,
+  // Der Tag, an dem zuletzt „Heute keins" getippt wurde, für „Rückgängig".
+  pauseZurueck: null,
 };
 
 /*
@@ -16186,6 +16452,8 @@ function melden(text, knopf = null) {
     k.type = 'button';
     k.className = 'toast-knopf';
     k.dataset.act = knopf.act;
+    // Woran der Knopf sich richtet, etwa der Eintrag bei „Uhrzeit ändern".
+    if (knopf.id) k.dataset.id = knopf.id;
     k.textContent = knopf.text;
     toastEl.append(' ', k);
   }
@@ -16276,7 +16544,8 @@ function tagesFrage(frage, wert) {
     <div class="vier">${frage.worte.map((w, i) => `
       <button type="button" class="vier-btn${wert === i ? ' an' : ''}"
               data-act="tagfrage" data-id="${frage.id}" data-n="${i}"
-              aria-pressed="${wert === i}">${esc(w)}</button>`).join('')}</div>`;
+              aria-pressed="${wert === i}">${esc(w)}</button>`).join('')}</div>
+    ${frage.hinweis ? `<p class="klein frage-hinweis">${esc(frage.hinweis)}</p>` : ''}`;
 }
 
 /* ==================== Reiter: Tag ==================== */
@@ -16512,7 +16781,7 @@ function tagAnsicht(s) {
     ? (s.standardMittel.every((m) => mittelImBogen(m, iso)) ? 'die Zeit wählst du im Bogen'
       : 'ohne übliche Zeit wählst du sie im Bogen')
     : 'ein Tipp trägt ein'}</p>
-    <div class="marken marken-eng">${s.standardMittel.map((m) => standardKnopf(m, liste, iso, s.standardMittel)).join('')}</div>
+    <div class="marken marken-eng">${s.standardMittel.map((m) => standardKnopf(m, liste, iso, s.standardMittel, s)).join('')}</div>
   </div>` : `<p class="klein mittel-tipp">Deine täglichen Mittel kannst du einmal unter
     <button type="button" class="link-knopf" data-act="meine-mittel-zeigen">„Mehr“ › „Meine Mittel“</button>
     anlegen – dann trägt sie hier ein Tipp ein.</p>`;
@@ -16571,9 +16840,11 @@ function tagAnsicht(s) {
     <div class="gross ${t.kopf >= 7 ? 'schlecht' : 'mittel'}">Kopfschmerz bis ${t.kopf}</div>
     <p class="klein">Zum Bauch ist nichts eingetragen – für den Bauch zählt der Tag
       als Lücke, nicht als beschwerdefrei.</p>
-  </div>` : '');
+  </div>` : nurMittelKarte(liste));
 
-  const fragen = sichtbareFragen(s.tagesfragen);
+  // Die Fragen zu Kiefer, Nacken und Schiene nur mit eingeschaltetem
+  // Schalter – siehe sichtbareFragen().
+  const fragen = sichtbareFragen(s.tagesfragen, s);
   const umstaende = fragen.length ? `<div class="karte">
     <h3>Wie war der Tag sonst?</h3>
     ${fragen.map((f) => tagesFrage(f, tagInfo[f.id] === undefined ? null : tagInfo[f.id])).join('')}
@@ -16587,13 +16858,265 @@ function tagAnsicht(s) {
   </p>` : '';
 
   return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
-    + kopf + sicherungKarte(iso) + planZeile(s, iso) + versuchZeile(s, iso)
+    + kopf + jetztZeile(s, iso) + sicherungKarte(iso) + wechselKarte(s, iso)
+    + planZeile(s, iso) + versuchZeile(s, iso)
     + provokationZeile(s, iso) + bilanz + zyklusZeile + kopfNachtragKarte(s, iso)
-    + (heute ? ratKarte(s) : '') + schnellReihe + mittelReihe + aktivReihe + anlegen + wasser
+    + (heute ? ratKarte(s) + angebotKarte(s) : '') + schnellReihe + mittelReihe
+    + (kuenftig ? '' : adhsTeil(s, iso)) + aktivReihe + anlegen + wasser
     + zeilen + umstaende
     // Ans Ende und zugeklappt: Die Liste ist zum Nachsehen da, nicht zum
     // täglichen Durchscrollen. Wer sie sucht, findet sie an derselben Stelle.
     + (iso === heuteISO() ? kuecheKarte(s) : '');
+}
+
+/* ---------- Tag: ADHS-Mittel, Hinweise zu den Mitteln, Angebote ---------- */
+
+/** „07:40" oder „≈07:40" – wie im Strang. */
+const uhrText = (e) => `${e.ungefaehr ? '≈' : ''}${e.um}`;
+
+/**
+ * Wie lange etwas her ist: „vor 40 Min.", ab einer Stunde in Viertelstunden
+ * („vor 3¼ Std."). Genauer wäre nicht ehrlicher – die Uhrzeit daneben ist
+ * die genaue Angabe, das hier nur die Lesehilfe.
+ */
+function vorWieLange(ms) {
+  const min = Math.floor(ms / 60000);
+  // Geschützte Leerzeichen: „(vor 30" am Zeilenende und „Min.)" am Anfang
+  // der nächsten liest sich bei 320 Pixeln wie zwei Angaben.
+  if (min < 1) return 'gerade\u00a0eben';
+  if (min < 60) return `vor\u00a0${min}\u00a0Min.`;
+  const viertel = Math.round(min / 15);
+  return `vor\u00a0${Math.floor(viertel / 4)}${['', '¼', '½', '¾'][viertel % 4]}\u00a0Std.`;
+}
+
+/** Die ADHS-Einnahmen eines Tages, nach der Zeit. */
+const adhsAm = (s, iso) => adhsEinnahmen(s.eintraege, s.standardMittel).filter((x) => x.e.am === iso);
+
+/**
+ * Die Jetzt-Zeile unter dem Tageskopf: was heute mit Uhrzeit dasteht.
+ *
+ * Nur mit eingeschaltetem „ADHS" und nur heute. Sie nennt ausschließlich, was
+ * eingetragen ist – nie, dass etwas fehlt oder „noch nicht" genommen ist. Eine
+ * Zeile, die jeden Morgen meldet, was noch aussteht, wäre eine Erinnerung, und
+ * die gehört nicht in ein Tagebuch, das nur zählt. Keine Farbe, kein Takt:
+ * Erneuert wird sie, wenn die Seite ohnehin neu gezeichnet wird und wenn die
+ * App wieder nach vorn kommt.
+ */
+function jetztZeile(s, iso) {
+  if (s.adhsAn !== true || iso !== heuteISO()) return '';
+  const jetzt = Date.now();
+  const seit = (e) => {
+    const t = zeitpunkt(e.am, e.um);
+    return t <= jetzt ? `\u00a0(${vorWieLange(jetzt - t)})` : '';
+  };
+  const teile = [`Stand ${jetztUhr()}`];
+  adhsAm(s, iso).forEach(({ e }) => teile.push(`${esc(e.mittel)} ${uhrText(e)}${seit(e)}`));
+  if ((s.tage[iso] || {}).adhsPause) teile.push('heute als Tag ohne ADHS-Mittel notiert');
+  const mahlzeit = s.eintraege.filter((e) => e.art === 'essen' && e.am === iso)
+    .filter((e) => zeitpunkt(e.am, e.um) <= jetzt).pop();
+  teile.push(mahlzeit ? `letzte Mahlzeit ${uhrText(mahlzeit)}${seit(mahlzeit)}` : 'Mahlzeit heute: keine eingetragen');
+  return `<p class="klein jetzt-zeile">${teile.join(' · ')}</p>`;
+}
+
+/**
+ * Ist ein Stimulans „eingetragen" – unter „Meine Mittel" oder in den letzten
+ * Wochen genommen? Nur dann gibt es „Heute keins".
+ */
+function stimulansDa(s) {
+  const ab = plusTage(heuteISO(), -(WECHSEL_TAGE - 1));
+  return s.standardMittel.some((m) => istStimulans(m.mittel))
+    || s.eintraege.some((e) => e.art === 'medikament' && e.am >= ab && istStimulans(e.mittel));
+}
+
+const PAUSE_NAME = { geplant: 'geplant', vergessen: 'vergessen', beschwerden: 'wegen Beschwerden' };
+const ESSEN_WAHL = [
+  { id: 'mit', name: 'mit/nach Essen' },
+  { id: 'vor', name: 'kurz vor dem Essen' },
+  { id: 'ohne', name: 'ohne Essen' },
+];
+
+/**
+ * Unter „Meine Mittel" mit eingeschaltetem „ADHS": der Tag ohne Mittel und
+ * die Frage „Zum Essen?".
+ *
+ * „Heute keins" gibt es nur bei Stimulanzien und nur, wenn an diesem Tag
+ * weder eine Einnahme noch schon eine Pause steht. Ein Tipp genügt; der Grund
+ * ist freiwillig. „Wegen Beschwerden" wird mitgezählt, aber in keinem
+ * Vergleich gewertet – wer das Mittel an einem schlechten Tag weglässt, macht
+ * die Tage ohne schlechter, ohne dass das Mittel etwas getan hat.
+ *
+ * „Zum Essen?" steht je heutiger Einnahme mit genauer oder gebundener Zeit,
+ * solange nichts angegeben ist, sich nichts aus den Mahlzeiten ergibt und
+ * die Einnahme höchstens ESSEN_GILT_MIN Minuten her ist. Danach weiß man, wie
+ * es dem Bauch ging, und eine Angabe zählte nicht mehr (siehe js/adhs.js) –
+ * also wird auch nicht mehr gefragt.
+ */
+function adhsTeil(s, iso) {
+  if (s.adhsAn !== true) return '';
+  const tag = s.tage[iso] || {};
+  const heute = iso === heuteISO();
+  const einnahmen = adhsAm(s, iso);
+  const mitStimulans = einnahmen.some((x) => istStimulans(x.e.mittel));
+  let pause = '';
+  if (tag.adhsPause) {
+    pause = `<div class="adhs-pause" role="group" aria-label="Tag ohne ADHS-Mittel">
+      <p class="feld-name">Ohne ADHS-Mittel · Warum?</p>
+      <div class="marken marken-eng">${PAUSE_GRUENDE.map((g) => `
+        <button type="button" class="marke${tag.adhsPause === g ? ' an' : ''}" data-act="adhs-pause-grund"
+                data-id="${g}" aria-pressed="${tag.adhsPause === g}">${PAUSE_NAME[g]}</button>`).join('')}
+        <button type="button" class="marke" data-act="adhs-pause-weg"
+                aria-label="Tag ohne ADHS-Mittel zurücknehmen">×</button>
+      </div>
+      <p class="klein">„Wegen Beschwerden“ zählt in keinem Vergleich – sonst sähe das Mittel
+        besser aus, als es war.</p>
+    </div>`;
+  } else if (!mitStimulans && stimulansDa(s)) {
+    pause = `<div class="reihe adhs-pause">
+      ${knopf('adhs-pause', heute ? 'Heute keins' : 'Keins genommen', 'btn-ghost btn-klein')}
+    </div>`;
+  }
+  const jetzt = Date.now();
+  const offen = heute ? einnahmen.filter((x) => (x.zeitArt === 'genau' || x.zeitArt === 'gebunden')
+    && !x.e.essen && jetzt <= x.t + ESSEN_GILT_MIN * 60000
+    && [null, 'unklar'].includes(essenZurEinnahme(s.eintraege, x).art)) : [];
+  const essen = offen.map((x) => `<div class="adhs-essen" role="group"
+      aria-label="${esc(`${x.e.mittel} ${x.e.um} – zum Essen?`)}">
+    <p class="feld-name">${esc(x.e.mittel)} ${esc(uhrText(x.e))} – zum Essen?</p>
+    <div class="marken marken-eng">${ESSEN_WAHL.map((w) => `
+      <button type="button" class="marke" data-act="adhs-essen" data-id="${esc(x.e.id)}"
+              data-wert="${w.id}" aria-pressed="false">${w.name}</button>`).join('')}</div>
+  </div>`).join('');
+  return pause || essen ? `<div class="adhs-tag">${pause}${essen}</div>` : '';
+}
+
+/**
+ * Hinweise zu zwei Mitteln, die die Fachinformation nicht zusammen vorsieht
+ * (Stufe A, siehe js/zusammen.js), als Karte auf „Tag" – nur heute, bis sie
+ * gelesen sind. Ohne Schalter: Was hier steht, betrifft jeden mit diesen
+ * beiden Mitteln, ob er ADHS mitdenken will oder nicht.
+ */
+function wechselOffen(s) {
+  const gelesen = new Set(Array.isArray(s.wechselGelesen) ? s.wechselGelesen : []);
+  return wechselHinweise(s.standardMittel, s.eintraege, heuteISO())
+    .filter((h) => h.stufe === 'A' && !gelesen.has(h.schluessel));
+}
+
+function wechselKarte(s, iso) {
+  if (iso !== heuteISO()) return '';
+  return wechselOffen(s).map((h) => `<div class="karte karte-merk wechsel-karte">
+    <h3>Hinweis zu deinen Mitteln</h3>
+    <p class="klein">${esc(h.text)}</p>
+    <div class="reihe">${knopf('wechsel-gelesen', 'Gelesen', 'btn-ghost', `data-id="${esc(h.schluessel)}"`)}</div>
+  </div>`).join('');
+}
+
+/**
+ * Der Satz für die Meldung, wenn eine Eintragung gerade ein Paar der Stufe A
+ * vollständig gemacht hat. `vorher` sind die offenen Schlüssel davor.
+ */
+function wechselZusatz(vorher) {
+  const neu = wechselOffen(store.zustandLesen()).some((h) => !vorher.has(h.schluessel));
+  return neu ? ' Hinweis zu deinen Mitteln oben auf „Tag“.' : '';
+}
+const wechselStand = () => new Set(wechselOffen(store.zustandLesen()).map((h) => h.schluessel));
+
+/**
+ * Ein Tag, an dem nur ein ADHS-Mittel steht: für den Bauch eine Lücke. Die
+ * Karte sagt das, statt still nichts zu zeigen – wer die Tablette eingetragen
+ * hat, hält den Tag sonst für erledigt.
+ */
+function nurMittelKarte(liste) {
+  if (!liste.some((e) => e.art === 'medikament' && istAdhsMittel(e.mittel))) return '';
+  return `<div class="karte tagbilanz">
+    <p class="klein">Eingetragen ist bisher nur ein Mittel. Zum Bauch steht nichts – für den
+      Bauch zählt der Tag noch als Lücke, nicht als beschwerdefrei.</p>
+  </div>`;
+}
+
+/*
+ * Ein Angebot statt einer Einstellung, die niemand sucht.
+ *
+ * Steht ein ADHS-Mittel unter „Meine Mittel" oder im Tagebuch der letzten
+ * Wochen, fragt „Tag" einmal, ob Body Check dazu mitzählen soll. Ebenso für
+ * Kiefer, Nacken und Schiene, wenn eine Massage oder Wärme eingetragen ist
+ * oder eine Notiz davon spricht – Nackenschmerz beim Kopfschmerz allein reicht
+ * nicht, den haben die meisten Menschen mit Migräne. Höchstens eine Karte,
+ * ADHS zuerst, nur heute. „Nein danke" ist endgültig (der Schalter steht dann
+ * auf false); umstellen lässt es sich nur noch unter „Mehr".
+ *
+ * Genannt wird der Gruppenname („Methylphenidat"), nie der eingetippte Name.
+ */
+const KIEFER_AKTIV = ['massagepistole', 'massage', 'waerme'];
+const KIEFER_NOTIZ = /schiene|knirsch|kiefer/;
+
+function angebotKarte(s) {
+  const ab = plusTage(heuteISO(), -(WECHSEL_TAGE - 1));
+  const neu = s.eintraege.filter((e) => e.am >= ab && e.am <= heuteISO());
+  const umstellen = '<p class="klein">Umstellen kannst du das jederzeit unter „Mehr“ › „Was Body Check mitdenken soll“.</p>';
+  if (s.adhsAn === null || s.adhsAn === undefined) {
+    const name = [...s.standardMittel.map((m) => m.mittel),
+      ...neu.filter((e) => e.art === 'medikament').map((e) => e.mittel)].find(istAdhsMittel);
+    if (name) {
+      return `<div class="karte karte-merk angebot">
+        <p class="klein">${esc(wissenZu(name).gruppe)} gehört zu den Mitteln bei ADHS. Wenn du magst,
+        zählt Body Check dazu mit: wann du es nimmst, ob mit oder ohne Essen, und wie Bauch, Kopf
+        und Schlaf in den Stunden danach aussehen. Nur Zahlen, kein Rat – und wie alles hier nur
+        auf diesem Gerät.</p>
+        <div class="reihe">${knopf('adhs-angebot-ja', 'Einschalten', 'btn-primary')}
+          ${knopf('adhs-angebot-nein', 'Nein danke', 'btn-ghost')}</div>
+        ${umstellen}
+      </div>`;
+    }
+  }
+  if (s.spannungAn === null || s.spannungAn === undefined) {
+    const aktiv = neu.filter((e) => e.art === 'aktivitaet')
+      .flatMap((e) => e.aktivitaeten || []).find((id) => KIEFER_AKTIV.includes(id));
+    const passt = (x) => typeof x === 'string' && KIEFER_NOTIZ.test(x.toLowerCase());
+    const notiz = neu.some((e) => passt(e.text) || passt(e.notiz))
+      || Object.entries(s.tage || {}).some(([iso, t]) => iso >= ab && t && passt(t.notiz));
+    if (aktiv || notiz) {
+      return `<div class="karte karte-merk angebot">
+        <p class="klein">${aktiv ? `Du hast „${esc(aktivitaetName(aktiv, s.eigeneAktivitaeten))}“ eingetragen.`
+    : 'In deinen Notizen steht etwas zu Kiefer oder Schiene.'} Wenn du magst, fragt der Tag
+        zusätzlich nach Nacken und Schultern, dem Kiefer am Morgen, Pressen und einer
+        Aufbissschiene. Dann zählt Body Check, ob Kopfschmerz mit ihnen zusammen öfter oder
+        seltener kommt – als Zahlen fürs Gespräch, ohne Urteil.</p>
+        <div class="reihe">${knopf('spannung-angebot-ja', 'Einschalten', 'btn-primary')}
+          ${knopf('spannung-angebot-nein', 'Nein danke', 'btn-ghost')}</div>
+        ${umstellen}
+      </div>`;
+    }
+  }
+  return '';
+}
+
+/**
+ * Den Schalter „Kiefer, Nacken, Schiene" stellen – mit den vier Tagesfragen.
+ *
+ * An fügt sie in `tagesfragen` ein, aus nimmt sie heraus. Eingetragenes bleibt
+ * in beiden Fällen, wo es ist: Ausschalten blendet nur aus.
+ */
+function spannungStellen(an) {
+  const s = store.zustandLesen();
+  const gewaehlt = Array.isArray(s.tagesfragen) ? s.tagesfragen : [];
+  store.einstellen('tagesfragen', an
+    ? [...new Set([...gewaehlt, ...SPANNUNG_FRAGEN])]
+    : gewaehlt.filter((id) => !SPANNUNG_FRAGEN.includes(id)));
+  store.einstellen('spannungAn', an);
+}
+
+const SCHALTER_AN = 'Eingeschaltet. Ausschalten blendet alles wieder aus – Eingetragenes bleibt.';
+const SCHALTER_AUS = 'Ausgeschaltet. Eingetragenes bleibt und zählt weiter.';
+
+/**
+ * Hebt eine Stimulans-Einnahme an diesem Tag die Pause auf? Dann geht sie weg,
+ * und die Meldung sagt es. Ohne Schalterprüfung: Ein Tag mit Einnahme ist kein
+ * Tag ohne Mittel, ob „ADHS" gerade an ist oder nicht.
+ */
+function pauseAufheben(name, iso) {
+  if (!istStimulans(name) || !(store.tagLesen(iso) || {}).adhsPause) return '';
+  store.tagSetzen(iso, { adhsPause: null });
+  return ' Der Tag ohne Mittel ist damit aufgehoben.';
 }
 
 /**
@@ -16951,6 +17474,7 @@ function verlaufAnsicht(s) {
     : '<p class="leer">Noch keine Eintragungen in diesem Zeitraum.</p>';
 
   // --- Monatsraster ---
+  const mitEintrag = new Set(s.eintraege.map((e) => e.am));
   const felder = monatsRaster(ui.monat).map((iso) => {
     const t = tagesWert(s.eintraege, iso, s.tage);
     const fremd = iso.slice(0, 7) !== ui.monat.slice(0, 7);
@@ -16959,9 +17483,13 @@ function verlaufAnsicht(s) {
     // eingetragen" liest, wo „Kopf 8" steht.
     const stufe = !t.notiert ? (t.kopf ? 'kopf' : 'leer')
       : (t.wert === 0 ? 'gut' : (t.wert >= 7 ? 'schlecht' : (t.wert >= 4 ? 'mittel' : 'leicht')));
+    // Ein Tag mit nur einem ADHS-Mittel oder einer Aktivität bleibt in der
+    // Farbe eine Lücke, sagt aber, dass dort etwas steht – „nichts
+    // eingetragen" wäre für den, der die Tablette eingetragen hat, falsch.
     const wort = t.notiert
       ? (t.wert === 0 ? 'beschwerdefrei' : `Stärke ${t.wert}`)
-      : (t.kopf ? `nur Kopfschmerz ${t.kopf} – zum Bauch nichts eingetragen` : 'nichts eingetragen');
+      : (t.kopf ? `nur Kopfschmerz ${t.kopf} – zum Bauch nichts eingetragen`
+        : (mitEintrag.has(iso) ? 'nur Mittel oder Aktivität – zum Bauch nichts eingetragen' : 'nichts eingetragen'));
     return `<button type="button" class="rfeld f-${stufe}${fremd ? ' fremd' : ''}${iso === heuteISO() ? ' heute' : ''}"
       data-act="tag-waehlen" data-iso="${iso}"
       aria-label="${fmtDatum(iso, true)}: ${wort}">
@@ -16979,7 +17507,7 @@ function verlaufAnsicht(s) {
     <div class="legende">
       <span><i class="f-gut"></i> frei</span><span><i class="f-leicht"></i> 1–3</span>
       <span><i class="f-mittel"></i> 4–6</span><span><i class="f-schlecht"></i> 7–10</span>
-      <span><i class="f-leer"></i> nichts eingetragen</span>
+      <span><i class="f-leer"></i> nichts eingetragen oder zum Bauch nichts</span>
       <span><i class="f-kopf"></i> nur Kopfschmerz</span>
     </div>
   </div>`;
@@ -18144,7 +18672,75 @@ function artAnteilVon(s, arten) {
   return artAnteil(s.eintraege, arten).anteil;
 }
 
+/*
+ * Was sich mit der Fassung 28 an den Zahlen geändert hat – einmal, oben auf
+ * „Muster", bis „Gelesen".
+ *
+ * Manche Tage und Mittel zählen seitdem anders: ein Tag mit nur einem
+ * ADHS-Mittel ist eine Lücke, Koffein als Tablette kein Schmerzmittel, jedes
+ * Schmerzmittel mit Koffein ein Kombinationsmittel, und mehr Namen werden als
+ * Säureblocker erkannt. Wer das nicht gesagt bekommt, merkt es nur daran, dass
+ * sich eine Zahl still verschoben hat – und traut danach keiner mehr. Jeder
+ * Punkt steht nur, wenn er dieses Tagebuch betrifft, und mit seiner Zahl.
+ */
+const NEUE_SAEURE_NAMEN = /pantozol|nexium|antra|agopton|maaloxan/;
+
+function v28Punkte(s) {
+  const klein = (x) => String(x || '').toLowerCase();
+  const mittel = s.eintraege.filter((e) => e.art === 'medikament');
+  const gruppe = (name) => (wissenZu(name) || {}).id || null;
+  const punkte = [];
+  // Tage, die bisher über ein ADHS-Mittel als notiert galten und es jetzt
+  // nicht mehr sind (siehe eintragZaehlt in js/wasser.js).
+  const adhsTage = new Set(mittel.filter((e) => !e.zuKopf && istAdhsMittel(e.mittel)).map((e) => e.am));
+  const luecken = [...adhsTage].filter((iso) => !tagesWert(s.eintraege, iso, s.tage).notiert).length;
+  if (luecken) {
+    punkte.push(luecken === 1
+      ? 'Ein Tag, an dem nur ein ADHS-Mittel steht, zählt jetzt als Lücke statt als beschwerdefrei.'
+      : `${luecken} Tage, an denen nur ein ADHS-Mittel steht, zählen jetzt als Lücke statt als beschwerdefrei.`);
+  }
+  // „Koffein" zählte bisher als Kombinationsmittel, „Coffein" gar nicht.
+  const koffein = mittel.filter((e) => gruppe(e.mittel) === 'koffeinmittel' && klein(e.mittel).includes('koffein'));
+  if (koffein.length) {
+    punkte.push(`Koffein als Tablette zählt nicht mehr als Schmerzmittel und für den Magen nicht als NSAR (${mehrzahl(koffein.length, 'Eintrag', 'Einträge')}).`);
+  }
+  // Schmerzmittel mit Koffein: ASS mit Koffein war bisher NSAR (Grenze 15),
+  // Paracetamol mit „Koffein" für den Magen ein NSAR.
+  const kombiNamen = [...new Set(mittel.filter((e) => {
+    const g = gruppe(e.mittel);
+    return g === 'kombipara' || (g === 'kombi' && /koffein|coffein/.test(klein(e.mittel)));
+  }).map((e) => String(e.mittel).trim()))];
+  if (kombiNamen.length) {
+    const para = mittel.some((e) => gruppe(e.mittel) === 'kombipara' && klein(e.mittel).includes('koffein'));
+    punkte.push('Schmerzmittel mit Koffein zählen jetzt alle als Kombinationsmittel, mit der Grenze von etwa zehn Tagen im Monat'
+      + `${para ? '; Paracetamol mit Koffein zählt für den Magen nicht mehr als NSAR' : ''} (${kombiNamen.join(', ')}).`);
+  }
+  const saeure = [...new Set([...mittel.map((e) => e.mittel), ...s.standardMittel.map((m) => m.mittel)]
+    .filter((n) => ['ppi', 'antazida'].includes(gruppe(n)) && NEUE_SAEURE_NAMEN.test(klein(n)))
+    .map((n) => String(n).trim()))];
+  if (saeure.length) punkte.push(`${undListe(saeure)} ${saeure.length === 1 ? 'wird' : 'werden'} jetzt als Säureblocker erkannt.`);
+  if (s.eintraege.some((e) => e.art === 'kopf')) {
+    punkte.push('Im Kopfbogen sind „Licht“ und „Lärm“ jetzt getrennt; frühere Einträge behalten „Licht oder Lärm“.');
+  }
+  return punkte;
+}
+
+function v28Karte(s) {
+  if (s.v28Gesagt === true) return '';
+  const punkte = v28Punkte(s);
+  if (!punkte.length) return '';
+  return `<div class="karte karte-merk v28-karte">
+    <h3>Was sich an deinen Zahlen geändert hat</h3>
+    <ul class="v28-liste">${punkte.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>
+    <div class="reihe">${knopf('v28-gelesen', 'Gelesen', 'btn-ghost')}</div>
+  </div>`;
+}
+
 function musterAnsicht(s) {
+  return v28Karte(s) + musterInhalt(s);
+}
+
+function musterInhalt(s) {
   const d = musterDaten(s);
   const bilanz = d.bilanz;
   const mahlzeiten = s.eintraege.filter((e) => e.art === 'essen').length;
@@ -19751,12 +20347,14 @@ function mehrAnsicht(s) {
 
   ${befundeKarte(s)}
 
+  ${mitdenkenKarte(s)}
+
   <div class="karte">
     <h3>Welche Fragen stellt der Tag?</h3>
     <p class="klein">Nicht jede Frage will jeder beantworten. Was hier aus ist,
     erscheint nicht in der Tagesansicht – schon Eingetragenes bleibt erhalten
     und wird weiter mitgerechnet.</p>
-    ${marken(TAGESFRAGEN, s.tagesfragen || [], 'frageAn')}
+    ${marken(TAGESFRAGEN.filter((f) => f.gruppe !== 'spannung'), s.tagesfragen || [], 'frageAn')}
   </div>
 
   ${wasserKarte(s)}
@@ -19795,6 +20393,70 @@ function mehrAnsicht(s) {
     <p class="klein">Entfernt jede Eintragung aus diesem Browser. Nicht
     rückgängig zu machen.</p>
     ${knopf('alles-weg', 'Tagebuch löschen', 'btn-danger')}
+  </div>`;
+}
+
+/*
+ * Was Body Check mitdenken soll: zwei Schalter, für alle, die sie brauchen.
+ *
+ * Beide sind dreiwertig (siehe VORGABE in js/store.js) und zeigen „an" nur
+ * bei true. Keiner ändert eine Zahl – gerechnet wird ohnehin, die Schalter
+ * entscheiden nur, was gefragt und gezeigt wird. Darunter je ein Abschnitt
+ * „Was dazu bekannt ist": was Studien und Fachinformationen sagen, und wo
+ * die Grenze dessen liegt, was ein Tagebuch zeigen kann. Die Quellen stehen
+ * außerhalb des Repositorys beim Nachweis der übrigen Wissenstexte.
+ *
+ * Mit „Kiefer, Nacken, Schiene" stehen die vier Fragen hier als Marken – wer
+ * keine Schiene trägt, wählt sie ab. Unter „Welche Fragen stellt der Tag?"
+ * stehen sie nicht noch einmal.
+ */
+const WISSEN_ADHS = 'Reizdarm, Verstopfung und Reizmagen sind bei ADHS in großen Studien häufiger '
+  + 'beschrieben; ob das an ADHS selbst, an den Mitteln, an Stimmung oder am Essen liegt, ist offen. '
+  + 'Migräne ist bei ADHS häufiger beschrieben, für Spannungskopfschmerz fand eine Übersichtsarbeit '
+  + 'keinen Zusammenhang; Kopfschmerz steht bei den meisten ADHS-Mitteln unter den häufigen '
+  + 'Nebenwirkungen. Späteres Einschlafen gehört oft zu ADHS selbst; Stimulanzien können den Schlaf '
+  + 'zusätzlich stören – beides lässt sich in einem Tagebuch nicht trennen. Knirschen und Pressen sind '
+  + 'bei Kindern und Jugendlichen mit ADHS häufiger beschrieben, für Erwachsene gibt es erst kleine '
+  + 'Studien; bei Methylphenidat steht Zähneknirschen in den Fachinformationen als häufige '
+  + 'Nebenwirkung. Body Check rechnet nichts davon für dich aus – es zählt, was du einträgst, und '
+  + 'stellt es nebeneinander.';
+const WISSEN_SPANNUNG = 'Pressen und Knirschen gilt bei sonst Gesunden als Verhalten, nicht als '
+  + 'Krankheit. Ob nachts geknirscht wird, merkt man selbst oft nicht – deshalb fragt Body Check nach '
+  + 'dem Kiefer am Morgen. Eine Aufbissschiene ist vor allem zum Schutz der Zähne gedacht; ob sie '
+  + 'Kiefer- oder Kopfschmerz verringert, ist in Studien nicht sicher belegt. Das ist kein Grund, sie '
+  + 'wegzulassen – ob und wie lange sie getragen wird, gehört in die Zahnarztpraxis. Bei Menschen mit '
+  + 'bekannter Schlafapnoe stiegen in einer kleinen Studie die Atemaussetzer mit einer '
+  + 'Oberkieferschiene teils an; ob das allgemein gilt, ist nicht geklärt. Schnarchen oder '
+  + 'Atemaussetzer gehören in der Zahnarzt- oder Hausarztpraxis erwähnt. Zu Massagepistolen gibt es '
+  + 'wenige Studien, meist mit Sportlern, zu Kopfschmerz keine abgeschlossene. Nackenschmerz haben '
+  + 'auch etwa drei von vier Menschen mit Migräne (in Klinikstudien) – er sagt allein nichts über die '
+  + 'Art des Kopfschmerzes. Body Check bestätigt oder widerlegt keine ärztliche Einschätzung – es '
+  + 'zählt, ob Kopfschmerz mit diesen Dingen zusammen öfter oder seltener kommt.';
+
+function mitdenkenKarte(s) {
+  const schalter = (act, an, name) => `<div class="wahl">
+    <button type="button" class="wahl-btn${an ? ' an' : ''}" data-act="${act}"
+            aria-pressed="${an}">${an ? '✓ ' : ''}${name}</button>
+  </div>`;
+  const adhs = s.adhsAn === true;
+  const spannung = s.spannungAn === true;
+  const fragen = TAGESFRAGEN.filter((f) => f.gruppe === 'spannung');
+  return `<div class="karte" id="mitdenken">
+    <h3>Was Body Check mitdenken soll</h3>
+    ${schalter('adhs-schalter', adhs, 'ADHS')}
+    <p class="klein">Für alle, die ein ADHS-Mittel nehmen oder ADHS im Tagebuch mitdenken
+    wollen. Ausgeschaltet ändert sich keine Zahl.</p>
+    <details class="wissen"><summary>Was dazu bekannt ist</summary>
+      <p class="klein">${esc(WISSEN_ADHS)}</p>
+    </details>
+    ${schalter('spannung-schalter', spannung, 'Kiefer, Nacken, Schiene')}
+    <p class="klein">Fragt am Tag nach Nacken, Kiefer, Pressen und Schiene und zeigt im
+    Kopfbogen drei Merkmale mehr.</p>
+    ${spannung ? `<p class="feld-name">Diese Fragen stellt der Tag</p>
+      ${marken(fragen, s.tagesfragen || [], 'frageAn')}` : ''}
+    <details class="wissen"><summary>Was dazu bekannt ist</summary>
+      <p class="klein">${esc(WISSEN_SPANNUNG)}</p>
+    </details>
   </div>`;
 }
 
@@ -19888,7 +20550,21 @@ function meineMittelKarte(s) {
       ${knopf('mm-abbrechen', 'Abbrechen', 'btn-ghost')}
     </div>
   </div>`;
-  const zeile = (m) => (f && f.id === m.id ? `<li class="mm-offen">${formular()}</li>` : `<li>
+  /*
+   * Bei Methylphenidat die Form – sie steht auf der Packung und entscheidet,
+   * was für den Magen gilt. Ein zweiter Tipp nimmt die Wahl zurück.
+   */
+  const formWahl = (m) => {
+    const g = wissenZu(m.mittel);
+    if (!g || g.id !== 'mph') return '';
+    return `<div class="mm-form" role="group" aria-label="${esc(`Form von ${mittelName(m)}`)}">
+      <p class="feld-name">Welche Form? (steht auf der Packung)</p>
+      <div class="marken marken-eng">${MPH_FORMEN.map((x) => `
+        <button type="button" class="marke${m.form === x.id ? ' an' : ''}" data-act="mph-form"
+                data-mittel="${esc(m.id)}" data-id="${x.id}" aria-pressed="${m.form === x.id}">${esc(x.name)}</button>`).join('')}</div>
+    </div>`;
+  };
+  const zeile = (m) => (f && f.id === m.id ? `<li class="mm-offen">${formular()}</li>` : `<li class="${formWahl(m) ? 'mm-mit-form' : ''}">
     <span>${esc(mittelName(m))}<span class="zeile-tags">${esc(vorlageText(m) || 'ohne übliche Zeit')}</span></span>
     <span class="mm-knoepfe">
       ${knopf('meinmittel-aendern', 'Ändern', 'btn-ghost btn-klein', `data-id="${esc(m.id)}" aria-label="${esc(mittelName(m))} ändern"`)}
@@ -19896,7 +20572,16 @@ function meineMittelKarte(s) {
     normal: '×', frage: 'Entfernen?', sagt: `${mittelName(m)} entfernen`, klasse: 'strang-weg',
   })}</span>
     </span>
+    ${formWahl(m)}
   </li>`);
+  // Alle Hinweise zu Paaren, auch die schon gelesenen und die der Stufen B
+  // und C – hier ist die Stelle, an der man sie wiederfindet.
+  const hinweise = wechselHinweise(s.standardMittel, s.eintraege, heuteISO());
+  const hinweisTeil = hinweise.length ? `<p class="feld-name">Hinweise zu deinen Mitteln</p>
+    <ul class="wechsel-liste">${hinweise.map((h) => `<li>
+      <b>${esc(h.namen.join(' und '))}</b>
+      <p class="klein">${esc(h.text)}</p>
+    </li>`).join('')}</ul>` : '';
   return `<div class="karte" id="meineMittel">
     <h3>Meine Mittel</h3>
     <p class="klein">Was du regelmäßig nimmst, mit Dosis und üblicher Zeit. Es steht
@@ -19904,6 +20589,7 @@ function meineMittelKarte(s) {
     Hier anlegen trägt noch nichts ein.</p>
     ${s.standardMittel.length ? `<ul class="wartend meine-mittel">${s.standardMittel.map(zeile).join('')}</ul>`
     : '<p class="klein">Noch keins angelegt.</p>'}
+    ${hinweisTeil}
     ${f && !f.id ? formular() : ''}
     ${f ? '' : (voll
     ? `<p class="klein">Mehr als ${store.STANDARD_HOECHSTENS} passen nicht. Entferne erst eins,
@@ -20271,8 +20957,56 @@ function schonEingetragen(m, liste) {
  */
 const mittelImBogen = (m, iso) => iso !== heuteISO() && !TAGESZEITEN.some((x) => x.id === m.tageszeit);
 
+/*
+ * „jetzt genommen": Mit eingeschaltetem „ADHS" trägt der Knopf eines
+ * ADHS-Mittels heute die genaue Uhrzeit ein – ohne Tageszeit, ohne Bezug zum
+ * Essen. Bei diesen Mitteln zählen die Stunden danach, und „morgens" ist für
+ * Stunden zu ungenau. An anderen Tagen und ohne Schalter bleibt alles wie
+ * bisher.
+ */
+const jetztModus = (s, m, iso) => !!s && s.adhsAn === true && iso === heuteISO() && istAdhsMittel(m.mittel);
+
+/** Die Einnahmen eines eigenen Mittels in einer Tagesliste – wie schonEingetragen(). */
+const einnahmenVon = (m, liste) => liste.filter((x) => x.art === 'medikament' && gleichText(x.mittel, m.mittel)
+  && gleichText(x.dosis, m.dosis) && (!m.tageszeit || tageszeitVon(x) === m.tageszeit));
+
+/** Die letzte Einnahme eines Mittels (nach Namen, jede Dosis) – oder null. */
+function letzteEinnahme(s, name) {
+  const liste = s.eintraege.filter((x) => x.art === 'medikament' && gleichText(x.mittel, name));
+  return liste.length ? liste[liste.length - 1] : null;
+}
+
+/**
+ * Fragt der Knopf vor einer weiteren Einnahme nach? Nur, wenn die letzte
+ * Einnahme dieses Mittels keine zwei Stunden her ist – dann ist ein
+ * versehentlicher zweiter Tipp wahrscheinlicher als eine zweite Tablette.
+ */
+function einnahmeFrage(s, m) {
+  const letzte = letzteEinnahme(s, m.mittel);
+  if (!letzte) return '';
+  const her = Date.now() - zeitpunkt(letzte.am, letzte.um);
+  return her >= 0 && her < 2 * 3600000 ? `Schon um ${uhrText(letzte)} – noch eine Einnahme?` : '';
+}
+
 /** Ein Knopf in der Reihe „Meine Mittel" auf dem Tag-Reiter. */
-function standardKnopf(m, liste, iso, alle) {
+function standardKnopf(m, liste, iso, alle, s = null) {
+  if (jetztModus(s, m, iso)) {
+    const schon = einnahmenVon(m, liste);
+    const zeiten = schon.length > 2 ? `${schon.length}×, zuletzt ${schon[schon.length - 1].um}`
+      : schon.map((x) => x.um).join(', ');
+    const name = `${kuerze(m.mittel, 18)}${m.dosis ? ` ${m.dosis}` : ''}`;
+    const normal = schon.length ? `${name} · ${zeiten} ✓` : `${name} · jetzt`;
+    const sagt = schon.length
+      ? `${mittelName(m)} – heute um ${zeiten} eingetragen, noch eine Einnahme jetzt eintragen`
+      : `${mittelName(m)} – jetzt genommen, eintragen`;
+    const frage = einnahmeFrage(s, m);
+    // Gefragt wird im Knopf selbst, wie beim Löschen (siehe zweiterTipp).
+    const fragt = !!frage && ui.loeschFrage === `standard-eintragen:${m.id}`;
+    return `<button type="button" class="marke marke-schnell marke-jetzt${fragt ? ' frage' : ''}"
+              data-act="standard-eintragen" data-id="${esc(m.id)}" data-normal="${esc(normal)}"
+              data-frage="${esc(frage)}" data-sagt="${esc(sagt)}"
+              aria-label="${esc(fragt ? `${frage} Noch einmal tippen.` : sagt)}">${esc(fragt ? frage : normal)}</button>`;
+  }
   const zeit = knopfZeit(m, alle);
   const da = schonEingetragen(m, liste);
   const tag = fmtTag(iso);
@@ -20338,10 +21072,16 @@ function merkenTeil(s, b) {
       aria-pressed="${an}">${an ? '✓ ' : ''}${text}</button>`;
   const genau = gemerktGenau(s, b);
   if (genau) {
+    // Gleicher Name, gleiche Dosis, aber hier eine andere Form gewählt: Die
+    // Packung hat gewechselt, und das eigene Mittel weiß es noch nicht.
+    const f = formImBogen(s, b);
+    const formAnders = f.quelle === 'gewaehlt' && f.form && (genau.form || null) !== f.form;
     return `<p class="klein">Steht bei deinen Mitteln.
       ${loeschKnopf('standard-entfernen', genau.id, {
     normal: 'Dort entfernen', frage: 'Wirklich entfernen?', sagt: `${mittelName(genau)} aus deinen Mitteln nehmen`, klasse: 'btn btn-ghost',
-  })}</p>`;
+  })}</p>
+      ${formAnders ? `<p class="klein">Dort steht ${genau.form ? `die Form „${esc(mphForm(genau.form).kurzname)}“` : 'keine Form'}.
+        ${knopf('standard-form', 'Form dort übernehmen', 'btn-ghost', `data-id="${esc(genau.id)}"`)}</p>` : ''}`;
   }
   const ref = mittelVorlageVon(s, b);
   if (ref) {
@@ -20374,6 +21114,127 @@ function merkenAuffrischen() {
   if (ui.bogen.merkenStand === html) return;
   el.innerHTML = html;
   ui.bogen.merkenStand = html;
+}
+
+/*
+ * Was der Medikamenten-Bogen zum getippten Namen weiß – in einem eigenen
+ * Behälter (#bogenWissen), der beim Tippen aufgefrischt wird wie #bogenMerken:
+ * Wer „Medikinet" tippt, soll die Frage nach der Form sehen, ohne dass der
+ * Bogen neu gezeichnet wird und das Feld den Fokus verliert.
+ *
+ *   * Wissen zur Gruppe – kurz, mit dem Verweis auf „Mehr".
+ *   * Bei Methylphenidat immer, ohne Schalter: „Welche Form?" mit den sieben
+ *     Formen, vorgewählt nach „Meine Mittel" oder nach dem Namen, darunter
+ *     die Texte der gewählten Form.
+ *   * Mit „ADHS" und einem ADHS-Mittel: „Zum Essen?" – nur ohne gewählten
+ *     Bezug zum Essen, denn der sagt es schon.
+ *   * Die Hinweise, die dieser Name mit den eingetragenen Mitteln ergibt.
+ */
+
+/**
+ * Die Form im Bogen: { form, quelle }. Gewählt ist gewählt (auch null –
+ * ausdrücklich keine); sonst die des eigenen Mittels, sonst die, die der Name
+ * eindeutig nennt. Nur bei Methylphenidat.
+ */
+function formImBogen(s, b) {
+  const e = b.entwurf;
+  const g = wissenZu(e.mittel);
+  if (!g || g.id !== 'mph') return { form: null, quelle: null };
+  if (e.form !== undefined) return { form: e.form, quelle: 'gewaehlt' };
+  const ref = mittelVorlageVon(s, b);
+  if (ref && ref.form) return { form: ref.form, quelle: 'gemerkt' };
+  const ausName = formAusName(e.mittel);
+  return ausName ? { form: ausName, quelle: 'name' } : { form: null, quelle: null };
+}
+
+/** Die Hinweise, die der Name im Bogen mit den eingetragenen Mitteln ergibt. */
+function wechselImBogen(s, b) {
+  const e = b.entwurf;
+  const name = String(e.mittel || '').trim().toLowerCase();
+  if (!name) return [];
+  const f = formImBogen(s, b);
+  // Der Entwurf zählt mit, als wäre er heute als Letztes eingetragen – mit der
+  // Form, die hier gewählt ist.
+  const probe = {
+    art: 'medikament', am: heuteISO(), um: '23:59', mittel: e.mittel, ...(f.form ? { form: f.form } : {}),
+  };
+  return wechselHinweise(s.standardMittel, [...s.eintraege, probe], heuteISO())
+    .filter((h) => h.namen.some((n) => n.trim().toLowerCase() === name));
+}
+
+function wissenTeil(s, b) {
+  const e = b.entwurf;
+  const g = wissenZu(e.mittel);
+  if (!g) return '';
+  const teile = [`<p class="klein mittel-hinweis">${esc(g.gruppe)}: ${esc(g.kurz)}
+    <br>Ausführlich unter „Mehr".</p>`];
+  if (g.id === 'mph') {
+    const f = formImBogen(s, b);
+    const form = mphForm(f.form);
+    teile.push(`<div class="bogen-form" role="group" aria-label="Form">
+      <p class="feld-name">Welche Form? (steht auf der Packung)</p>
+      <div class="marken marken-eng">${MPH_FORMEN.map((x) => `
+        <button type="button" class="marke${f.form === x.id ? ' an' : ''}" data-act="bogen-form"
+                data-id="${x.id}" aria-pressed="${f.form === x.id}">${esc(x.name)}</button>`).join('')}</div>
+      ${f.quelle === 'name' ? '<p class="klein">vorgewählt nach dem Namen</p>' : ''}
+      ${f.quelle === 'gemerkt' ? '<p class="klein">vorgewählt wie bei deinen Mitteln</p>' : ''}
+      ${form ? `<p class="klein form-text">${esc(form.einnahme)}${form.saeure ? ` ${esc(form.saeure)}` : ''}${form.extra ? ` ${esc(form.extra)}` : ''}</p>` : ''}
+    </div>`);
+  }
+  if (s.adhsAn === true && istAdhsMittel(e.mittel) && !e.bezug) {
+    teile.push(`<div class="bogen-essen" role="group" aria-label="Zum Essen?">
+      <p class="feld-name">Zum Essen?</p>
+      <div class="marken marken-eng">${ESSEN_WAHL.map((w) => `
+        <button type="button" class="marke${e.essen === w.id ? ' an' : ''}" data-act="bogen-essen"
+                data-id="${w.id}" aria-pressed="${e.essen === w.id}">${w.name}</button>`).join('')}</div>
+    </div>`);
+  }
+  const paare = wechselImBogen(s, b);
+  if (paare.length) {
+    teile.push(`<div class="bogen-wechsel">${paare.map((h) => `<p class="klein">${esc(h.text)}</p>`).join('')}</div>`);
+  }
+  return teile.join('');
+}
+
+/*
+ * Die Tablettenhülle im Stuhl.
+ *
+ * Wer Methylphenidat als Retardtablette mit Hülle nimmt (Concerta), findet
+ * sie womöglich im Stuhl wieder – laut Packungsbeilage normal. Ohne diesen
+ * Satz ist das der Moment, in dem jemand glaubt, die Tablette habe nicht
+ * gewirkt. Er steht im Stuhl-Bogen, wenn so ein Mittel unter „Meine Mittel"
+ * steht oder in den letzten Wochen eingetragen ist – ohne Schalter.
+ *
+ * Nur der erste Satz von `extra` der Form: Der zweite (Verengungen als
+ * Gegenanzeige) gehört zum Mittel, nicht zum Stuhlgang.
+ */
+function huellenSatz() {
+  const text = mphForm('oros').extra;
+  const ende = text.indexOf('. ');
+  return ende > 0 ? text.slice(0, ende + 1) : text;
+}
+
+function huelleDa(s) {
+  const ab = plusTage(heuteISO(), -(WECHSEL_TAGE - 1));
+  const namen = [...s.standardMittel.map((m) => m.mittel),
+    ...s.eintraege.filter((e) => e.art === 'medikament' && e.am >= ab).map((e) => e.mittel)];
+  return [...new Set(namen.map((n) => String(n || '').trim()).filter(Boolean))]
+    .some((n) => (wissenZu(n) || {}).id === 'mph' && formZu(n, s.standardMittel, s.eintraege) === 'oros');
+}
+
+function wissenBehaelter(s, b) {
+  b.wissenStand = wissenTeil(s, b);
+  return `<div id="bogenWissen">${b.wissenStand}</div>`;
+}
+
+/** Wie merkenAuffrischen(): nur ersetzen, wenn sich etwas ändert. */
+function wissenAuffrischen() {
+  const el = document.getElementById('bogenWissen');
+  if (!el || !ui.bogen || ui.bogen.art !== 'medikament') return;
+  const html = wissenTeil(store.zustandLesen(), ui.bogen);
+  if (ui.bogen.wissenStand === html) return;
+  el.innerHTML = html;
+  ui.bogen.wissenStand = html;
 }
 
 /**
@@ -20626,11 +21487,35 @@ function bogenHTML(s) {
         <button type="button" class="wahl-btn${e[feld] === x.id ? ' an' : ''}"
                 data-act="${act}" data-id="${x.id}">${esc(x.name)}</button>`).join('')}</div>`;
     const uebel = (e.kopfArten || []).some((a) => a === 'kopfuebel' || a === 'kopferbrechen');
+    /*
+     * Die Merkmale: das alte „Licht oder Lärm stören" nur bei einem Eintrag,
+     * der es trägt (siehe KOPF_ARTEN); die drei zu Kiefer und Nacken als
+     * eigene Gruppe, nur mit eingeschaltetem Schalter – oder wenn dieser
+     * Eintrag eines davon schon trägt, damit es sich abwählen lässt.
+     */
+    const traegt = (a) => (e.kopfArten || []).includes(a.id);
+    const grundArten = KOPF_ARTEN.filter((a) => !a.nurMit && (!a.alt || traegt(a)));
+    const spannungArten = KOPF_ARTEN.filter((a) => a.nurMit === 'spannung' && (s.spannungAn === true || traegt(a)));
+    // Mit „ADHS": wann an diesem Tag ein ADHS-Mittel steht – nur, wenn eins steht.
+    const adhsZeile = (() => {
+      if (s.adhsAn !== true) return '';
+      const nachName = new Map();
+      adhsAm(s, e.am).forEach(({ e: x }) => {
+        const k = String(x.mittel).trim();
+        nachName.set(k, [...(nachName.get(k) || []), uhrText(x)]);
+      });
+      if (!nachName.size) return '';
+      return `<p class="klein kopf-adhs">ADHS-Mittel an diesem Tag: ${[...nachName.entries()]
+        .map(([name, zeiten]) => `${esc(undListe(zeiten))} (${esc(name)})`).join('; ')}</p>`;
+    })();
     mitte = `
+      ${adhsZeile}
       <p class="feld-name">Wie stark?</p>
       ${skala(e.staerke)}
       <p class="feld-name">Wie ist er?</p>
-      ${marken(KOPF_ARTEN, e.kopfArten || [], 'kopfart')}
+      ${marken(grundArten, e.kopfArten || [], 'kopfart')}
+      ${spannungArten.length ? `<p class="feld-name">Kiefer und Nacken</p>
+      ${marken(spannungArten, e.kopfArten || [], 'kopfart')}` : ''}
       ${uebel ? `<p class="klein">Die Übelkeit des Anfalls gehört hier zum Kopf. Bitte
       nicht noch einmal als Bauchbeschwerde eintragen – sonst wird aus dem
       Kopfschmerz ein Magentag.</p>` : ''}
@@ -20688,6 +21573,7 @@ function bogenHTML(s) {
       3 bis 5 sind unauffällig. Die Skala ist seit dreißig Jahren das Maß, mit
       dem in der Sprechstunde darüber geredet wird – die Zahl allein sagt dort
       genug.</p>
+      ${huelleDa(s) ? `<p class="klein huellen-satz">${esc(huellenSatz())}</p>` : ''}
       <p class="feld-name">War sonst etwas?</p>
       <div class="wahl">
         <button type="button" class="wahl-btn${e.dringend ? ' an' : ''}"
@@ -20731,11 +21617,7 @@ function bogenHTML(s) {
       <div class="marken">${vorschlaege.map((m) => `
         <button type="button" class="marke${e.mittel === m ? ' an' : ''}"
                 data-act="mittel-vorschlag" data-id="${esc(m)}">${esc(m)}</button>`).join('')}</div>
-      ${(() => {
-        const g = wissenZu(e.mittel);
-        return g ? `<p class="klein mittel-hinweis">${esc(g.gruppe)}: ${esc(g.kurz)}
-          <br>Ausführlich unter „Mehr".</p>` : '';
-      })()}
+      ${wissenBehaelter(s, b)}
       <label class="feld-name" for="bogenDosis">Dosis</label>
       <input type="text" class="feld feld-breit" id="bogenDosis" data-act="dosis"
              value="${esc(e.dosis || '')}" placeholder="z. B. 20 mg" autocomplete="off">
@@ -21152,7 +22034,29 @@ function bogenSpeichern() {
    * den alten Eintrag, und ein Säureblocker mit einer Freisetzungsform wäre
    * ein Hinweis auf ein Paar, das es nicht gibt.
    */
+  const wechselVorher = wechselStand();
   if (b.art === 'medikament') {
+    // Die vorgewählte Form gilt, wie sie im Bogen zu sehen war; „ausdrücklich
+    // keine" steht bei einem neuen Eintrag gar nicht erst drin.
+    const f = formImBogen(store.zustandLesen(), b);
+    if (e.form === undefined && f.form) e.form = f.form;
+    if (e.form === null && !b.id) delete e.form;
+    /*
+     * Zum Essen: Ein Bezug („vor dem Essen" an einer Mahlzeit) sagt es schon,
+     * dann gilt keine eigene Angabe. Hat sich die Angabe geändert, bekommt
+     * sie den Zeitpunkt von jetzt – eine Angabe, die erst nach dem Ergebnis
+     * kam, darf in keinem Vergleich zählen (siehe essenZurEinnahme).
+     */
+    const alt = b.id ? store.eintragVon(b.id) : null;
+    const essenAlt = (alt && alt.essen) || null;
+    const essenNeu = e.bezug ? null : (e.essen || null);
+    e.essen = essenNeu;
+    if (essenNeu !== essenAlt) e.essenGesetzt = essenNeu ? Date.now() : null;
+    // Weder vorher noch jetzt eine Angabe: das Feld gar nicht erst anlegen.
+    if (!e.essen && !essenAlt) {
+      delete e.essen;
+      delete e.essenGesetzt;
+    }
     const weg = (felder) => felder.forEach((k) => {
       if (b.id) e[k] = null;
       else delete e[k];
@@ -21216,6 +22120,10 @@ function bogenSpeichern() {
   });
   // Eine Mahlzeit dazu, verschoben oder geändert: was an ihr hängt, rückt mit.
   const nachgezogen = b.art === 'essen' ? nachziehen(neueId, vorher, store.eintragVon(neueId)) : '';
+  // Eine Stimulans-Einnahme hebt den Tag ohne Mittel auf; ein Paar der Stufe
+  // A, das gerade vollständig geworden ist, bekommt einen Satz.
+  const ohneMittel = b.art === 'medikament' ? pauseAufheben(e.mittel, e.am).trim() : '';
+  const paar = wechselZusatz(wechselVorher).trim();
   ui.tag = e.am;
   ui.bogen = null;
   const getan = b.id ? 'Geändert' : 'Eingetragen';
@@ -21231,6 +22139,8 @@ function bogenSpeichern() {
     mitgerueckt.length
       ? `${undListe(mitgerueckt)} ${new Set(mitgerueckt).size === 1 ? 'ist' : 'sind'} mitgerückt.` : '',
     nachgezogen,
+    ohneMittel,
+    paar,
   ].filter(Boolean).join(' ');
   melden(zusatz ? `${satz} ${zusatz}` : satz);
   zeichne();
@@ -21528,6 +22438,31 @@ const AKTION = {
     if (ui.bogen.alsStandard) ui.bogen.vorlageAendern = false;
     zeichne();
   },
+  // Die im Bogen gewählte Form beim eigenen Mittel übernehmen – sonst nichts
+  // daran ändern.
+  'standard-form': (el) => {
+    const s = store.zustandLesen();
+    const m = s.standardMittel.find((x) => x.id === el.dataset.id);
+    const b = ui.bogen;
+    if (!m || !b) return;
+    const f = formImBogen(s, b);
+    if (!f.form) return;
+    const wechselVorher = wechselStand();
+    store.standardAendern(m.id, { ...m, form: f.form });
+    melden(`Bei deinen Mitteln steht jetzt „${mphForm(f.form).kurzname}“.${wechselZusatz(wechselVorher)}`);
+    zeichne();
+  },
+  'bogen-form': (el) => {
+    const b = ui.bogen;
+    if (!b) return;
+    const f = formImBogen(store.zustandLesen(), b);
+    entwurf({ form: f.form === el.dataset.id ? null : el.dataset.id });
+  },
+  'bogen-essen': (el) => {
+    const b = ui.bogen;
+    if (!b || !ESSEN_WAHL.some((w) => w.id === el.dataset.id)) return;
+    entwurf({ essen: b.entwurf.essen === el.dataset.id ? null : el.dataset.id });
+  },
   'standard-anpassen': () => {
     if (!ui.bogen) return;
     ui.bogen.vorlageAendern = !ui.bogen.vorlageAendern;
@@ -21558,6 +22493,31 @@ const AKTION = {
     // Die Form des eigenen Mittels geht mit, wenn eine angegeben ist – sie
     // steht auf der Packung und ändert sich nicht von Tag zu Tag.
     const form = m.form ? { form: m.form } : {};
+    const wechselVorher = wechselStand();
+    /*
+     * „jetzt genommen" (siehe jetztModus): genau jetzt, ein Tipp. Liegt die
+     * letzte Einnahme keine zwei Stunden zurück, fragt der Knopf erst nach.
+     * Die Meldung nennt die Uhrzeit und bietet an, sie zu ändern – wer den
+     * Knopf erst nach dem Frühstück findet, korrigiert mit einem Tipp.
+     */
+    if (jetztModus(s, m, am)) {
+      if (einnahmeFrage(s, m) && !zweiterTipp(el)) return;
+      frageEnde();
+      const vorher = s.eintraege.filter((x) => x.art === 'medikament' && x.am === am && gleichText(x.mittel, m.mittel));
+      const um = jetztUhr();
+      const id = store.eintragen({
+        art: 'medikament', am, um, mittel: m.mittel, dosis: m.dosis, ...form,
+      });
+      store.mittelMerken(m.mittel);
+      const n = vorher.length + 1;
+      const satz = n === 1 ? `${mittelName(m)} um ${um} eingetragen.`
+        : (n === 2 ? `Zweite Einnahme heute eingetragen (erste ${uhrText(vorher[0])}).`
+          : `${n}. Einnahme heute eingetragen (zuletzt davor ${uhrText(vorher[vorher.length - 1])}).`);
+      melden(satz + pauseAufheben(m.mittel, am) + wechselZusatz(wechselVorher),
+        { act: 'uhrzeit-aendern', id, text: 'Uhrzeit ändern' });
+      zeichne();
+      return;
+    }
     if (mittelImBogen(m, am)) {
       bogenOeffnen('medikament');
       ui.bogen.vorlage = m.id;
@@ -21571,7 +22531,118 @@ const AKTION = {
       art: 'medikament', am, um: zeit.um || jetztUhr(), mittel: m.mittel, dosis: m.dosis, ...zeit, ...form,
     });
     store.mittelMerken(m.mittel);
-    melden(`${mittelName(m)} eingetragen${zeit.ungefaehr ? ` (≈${zeit.um})` : ''}.`);
+    melden(`${mittelName(m)} eingetragen${zeit.ungefaehr ? ` (≈${zeit.um})` : ''}.`
+      + pauseAufheben(m.mittel, am) + wechselZusatz(wechselVorher));
+    zeichne();
+  },
+  // Aus der Meldung nach „jetzt genommen": den Bogen dieses Eintrags öffnen,
+  // den Finger gleich an der Uhrzeit.
+  'uhrzeit-aendern': (el) => {
+    const e = store.eintragVon(el.dataset.id);
+    if (!e) return;
+    ui.tag = e.am;
+    store.einstellen('tab', 'heute');
+    bogenOeffnen(e.art, e.id);
+    setTimeout(() => {
+      const uhr = document.getElementById('bogenUhr');
+      if (uhr) uhr.focus({ preventScroll: true });
+    }, 0);
+  },
+  /*
+   * Ein Tag ohne ADHS-Mittel: ein Tipp, der Grund freiwillig dazu. Ein
+   * zweiter Tipp auf denselben Grund nimmt nur den Grund zurück, das × den
+   * ganzen Tag ohne Mittel.
+   */
+  'adhs-pause': () => {
+    const iso = ui.tag;
+    store.tagSetzen(iso, { adhsPause: 'pause' });
+    ui.pauseZurueck = iso;
+    melden('Als Tag ohne ADHS-Mittel notiert.', { act: 'adhs-pause-zurueck', text: 'Rückgängig' });
+    zeichne();
+  },
+  'adhs-pause-zurueck': () => {
+    if (!ui.pauseZurueck) return;
+    store.tagSetzen(ui.pauseZurueck, { adhsPause: null });
+    ui.pauseZurueck = null;
+    melden('Zurückgenommen.');
+    zeichne();
+  },
+  'adhs-pause-grund': (el) => {
+    const jetzt = (store.tagLesen(ui.tag) || {}).adhsPause;
+    if (!PAUSE_GRUENDE.includes(el.dataset.id) || !jetzt) return;
+    store.tagSetzen(ui.tag, { adhsPause: jetzt === el.dataset.id ? 'pause' : el.dataset.id });
+    zeichne();
+  },
+  'adhs-pause-weg': () => {
+    store.tagSetzen(ui.tag, { adhsPause: null });
+    melden('Der Tag ohne Mittel ist zurückgenommen.');
+    zeichne();
+  },
+  // „Zum Essen?" – mit dem Zeitpunkt der Angabe, damit eine später gemachte
+  // in keinem Vergleich zählt (siehe essenZurEinnahme in js/adhs.js).
+  'adhs-essen': (el) => {
+    const e = store.eintragVon(el.dataset.id);
+    const wahl = ESSEN_WAHL.find((w) => w.id === el.dataset.wert);
+    if (!e || !wahl) return;
+    store.eintragAendern(e.id, { essen: wahl.id, essenGesetzt: Date.now() });
+    melden(`${e.mittel} ${e.um}: ${wahl.name}.`);
+    zeichne();
+  },
+  'wechsel-gelesen': (el) => {
+    const s = store.zustandLesen();
+    const alt = Array.isArray(s.wechselGelesen) ? s.wechselGelesen : [];
+    store.einstellen('wechselGelesen', [...alt.filter((x) => x !== el.dataset.id), el.dataset.id].slice(-50));
+    melden('Gelesen. Unter „Mehr“ › „Meine Mittel“ steht der Hinweis weiter.');
+    zeichne();
+  },
+  'adhs-angebot-ja': () => {
+    store.einstellen('adhsAn', true);
+    melden(SCHALTER_AN);
+    zeichne();
+  },
+  'adhs-angebot-nein': () => {
+    store.einstellen('adhsAn', false);
+    melden('Gut. Unter „Mehr“ lässt es sich jederzeit einschalten.');
+    zeichne();
+  },
+  'spannung-angebot-ja': () => {
+    spannungStellen(true);
+    melden(SCHALTER_AN);
+    zeichne();
+  },
+  'spannung-angebot-nein': () => {
+    store.einstellen('spannungAn', false);
+    melden('Gut. Unter „Mehr“ lässt es sich jederzeit einschalten.');
+    zeichne();
+  },
+  'adhs-schalter': () => {
+    const an = store.zustandLesen().adhsAn === true;
+    store.einstellen('adhsAn', !an);
+    melden(an ? SCHALTER_AUS : SCHALTER_AN);
+    zeichne();
+  },
+  'spannung-schalter': () => {
+    const an = store.zustandLesen().spannungAn === true;
+    spannungStellen(!an);
+    melden(an ? SCHALTER_AUS : SCHALTER_AN);
+    zeichne();
+  },
+  'v28-gelesen': () => {
+    store.einstellen('v28Gesagt', true);
+    zeichne();
+  },
+  /*
+   * Die Form eines eigenen Mittels unter „Mehr" › „Meine Mittel". Ein
+   * zweiter Tipp nimmt sie zurück („nicht angegeben").
+   */
+  'mph-form': (el) => {
+    const s = store.zustandLesen();
+    const m = s.standardMittel.find((x) => x.id === el.dataset.mittel);
+    if (!m) return;
+    const wechselVorher = wechselStand();
+    const form = m.form === el.dataset.id ? null : el.dataset.id;
+    store.standardAendern(m.id, { ...m, form });
+    melden((form ? `Form: ${mphForm(form).kurzname}.` : 'Form nicht angegeben.') + wechselZusatz(wechselVorher));
     zeichne();
   },
   /*
@@ -21645,6 +22716,7 @@ const AKTION = {
   'mm-speichern': () => {
     const f = ui.mittelForm;
     if (!f) return;
+    const wechselVorher = wechselStand();
     const r = f.id ? store.standardAendern(f.id, f) : store.standardMerken(f);
     if (r.fehler === 'leer') { melden('Wie heißt das Mittel?'); return; }
     if (r.fehler === 'voll') {
@@ -21653,9 +22725,10 @@ const AKTION = {
     }
     if (r.schon || r.fehler === 'doppelt') { melden('Genau so steht es schon bei deinen Mitteln.'); return; }
     ui.mittelForm = null;
-    melden(f.id
+    melden((f.id
       ? 'Geändert. Was schon eingetragen ist, bleibt, wie es war.'
-      : 'Bei deinen Mitteln gemerkt. Eingetragen ist damit noch nichts – das macht ein Tipp auf dem Tag-Reiter.');
+      : 'Bei deinen Mitteln gemerkt. Eingetragen ist damit noch nichts – das macht ein Tipp auf dem Tag-Reiter.')
+      + wechselZusatz(wechselVorher));
     zeichne();
   },
   'zeit-tageszeit': (el) => {
@@ -21757,7 +22830,16 @@ const AKTION = {
     zeichne();
   },
   beschwerdeart: (el) => umschalten('arten', el.dataset.id),
-  kopfart: (el) => umschalten('kopfArten', el.dataset.id),
+  // „Einseitig" und „Beidseitig" schließen sich aus: Wer das eine antippt,
+  // nimmt das andere zurück.
+  kopfart: (el) => {
+    const id = el.dataset.id;
+    const b = ui.bogen;
+    if (b && KOPF_SEITE.includes(id) && !(b.entwurf.kopfArten || []).includes(id)) {
+      b.entwurf.kopfArten = (b.entwurf.kopfArten || []).filter((x) => !KOPF_SEITE.includes(x));
+    }
+    umschalten('kopfArten', id);
+  },
   // Ein zweites Tippen nimmt die Dauer zurück – „weiß ich nicht mehr" ist eine
   // zulässige Antwort und etwas anderes als die kürzeste Stufe.
   kopfdauer: (el) => entwurf({
@@ -22588,7 +23670,7 @@ function eingabe(ev) {
     // mit – nur bei 'input', siehe merkenAuffrischen().
     case 'mittel':
       entwurf({ mittel: wert }, false);
-      if (ev.type === 'input') merkenAuffrischen();
+      if (ev.type === 'input') { merkenAuffrischen(); wissenAuffrischen(); }
       break;
     case 'dosis':
       entwurf({ dosis: wert }, false);
@@ -22675,6 +23757,41 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') store.sofortSchreiben();
 });
 window.addEventListener('pagehide', () => store.sofortSchreiben());
+
+/*
+ * Der neue Tag nach dem Wiederöffnen.
+ *
+ * Eine App auf dem Home-Bildschirm wird selten beendet. Wer sie abends offen
+ * lässt und morgens wieder aufmacht, stand bisher auf gestern – und trug das
+ * Frühstück am falschen Tag ein. Jetzt springt „Tag" auf heute, wenn beim
+ * Verlassen heute angezeigt war und inzwischen ein neuer Tag ist. Wer von
+ * Hand einen anderen Tag gewählt hatte, bleibt dort; ein offener Bogen auch.
+ *
+ * `warHeute` ist der Tag, der beim Verlassen „heute" war; ob die Anzeige dort
+ * stand, sagt `standDort`. Nach einem Neuladen kommt beides aus NACH_NEULADEN.
+ */
+function tagNachRueckkehr(warHeute, standDort) {
+  const heute = heuteISO();
+  if (ui.bogen || !standDort || !warHeute || heute === warHeute) return false;
+  ui.tag = heute;
+  // Der Monat rückt mit, wenn er der von damals war.
+  if (ui.monat === monatsStart(warHeute)) ui.monat = monatsStart(heute);
+  return true;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    ui.heuteBeimVerlassen = { heute: heuteISO(), standDort: ui.tag === heuteISO() };
+    return;
+  }
+  const v = ui.heuteBeimVerlassen;
+  ui.heuteBeimVerlassen = null;
+  const gewechselt = !!v && tagNachRueckkehr(v.heute, v.standDort);
+  // Die Jetzt-Zeile soll beim Zurückkommen stimmen – neu gezeichnet wird
+  // aber nicht unter den Fingern: nicht mit offenem Bogen oder halb
+  // getipptem Feld.
+  if (gewechselt || (!inArbeit() && store.zustandLesen().adhsAn === true)) zeichne();
+});
 
 /*
  * Dauerhaften Speicher anfordern.
@@ -22787,6 +23904,9 @@ try {
       nachNeuladen = z;
       if (istISO(z.tag)) ui.tag = z.tag;
       if (z.monat) ui.monat = z.monat;
+      // Stand die Anzeige beim Verlassen auf „heute" und ist inzwischen ein
+      // neuer Tag, gilt der neue – siehe tagNachRueckkehr().
+      if (z.tagWarHeute === true && istISO(z.tag)) tagNachRueckkehr(z.tag, true);
       if (z.zeitraum) ui.zeitraum = z.zeitraum;
       ui.kuecheOffen = !!z.kuecheOffen;
       ui.umzug = z.umzug || null;
@@ -22794,6 +23914,13 @@ try {
     }
   }
 } catch { /* dann eben von vorn */ }
+
+// Im Hintergrund geladen – etwa nach dem Neuladen für eine neue Fassung beim
+// Verlassen –, fehlt der Moment des Verlassens. Dann zählt dieser hier, sonst
+// bliebe der Tageswechsel beim nächsten Öffnen aus.
+if (document.visibilityState === 'hidden') {
+  ui.heuteBeimVerlassen = { heute: heuteISO(), standDort: ui.tag === heuteISO() };
+}
 
 male();
 
@@ -22900,6 +24027,9 @@ function neuLaden(warum) {
       zeit: Date.now(),
       warum,
       tag: ui.tag,
+      // Stand die Anzeige auf heute? Dann springt sie nach dem Neuladen auf
+      // den neuen Tag, falls Mitternacht dazwischen lag.
+      tagWarHeute: ui.tag === heuteISO(),
       monat: ui.monat,
       zeitraum: ui.zeitraum,
       kuecheOffen: ui.kuecheOffen,

@@ -44,21 +44,45 @@ import { eintragZaehlt, tagZaehlt } from './wasser.js';
  * beide, Übelkeit, Erbrechen, Licht, Bewegung, Nacken, Aura. Aus der
  * Kombination schließt eine Ärztin etwas; die App schließt nichts, sie zählt.
  *
- * „Nackenschmerz dabei", nicht „vom Nacken her": Nackenschmerz begleitet die
- * meisten Migräneanfälle, und wer ihn als Ursache einträgt, landet in der
- * falschen Sprechstunde.
+ * „Nackenschmerz dabei", nicht „vom Nacken her": Nackenschmerz haben die
+ * meisten Menschen mit Migräne, und wer ihn als Ursache einträgt, landet in
+ * der falschen Sprechstunde.
+ *
+ * Seit der Fassung 28:
+ *
+ *   * „Licht stört" und „Lärm stört" getrennt. Die Kopfschmerzklassifikation
+ *     fragt nach beiden zusammen; wer nur eins davon hat, konnte das bisher
+ *     nicht sagen. Das alte `licht` („Licht oder Lärm stören") bleibt mit
+ *     `alt: true` in der Liste – sonst zählte kopfZahlen() die früheren
+ *     Einträge nicht mehr (siehe KOPF_MAP). Der Bogen zeigt es nur bei einem
+ *     Eintrag, der es trägt, und deutet es nie in eines der beiden neuen um.
+ *   * „Beidseitig" neben „Einseitig" – die beiden schließen sich im Bogen
+ *     aus – und „Schon beim Aufwachen da".
+ *   * Drei Merkmale mit `nurMit: 'spannung'`: Sie stehen im Bogen nur, wenn
+ *     „Kiefer, Nacken, Schiene" eingeschaltet ist. Gespeicherte bleiben
+ *     lesbar und gezählt, auch wenn er wieder aus ist.
  */
 export const KOPF_ARTEN = [
   { id: 'pochend', name: 'Pochend, pulsierend' },
   { id: 'drueckend', name: 'Drückend, wie ein Band' },
   { id: 'einseitig', name: 'Einseitig' },
+  { id: 'beidseitig', name: 'Beidseitig' },
   { id: 'kopfuebel', name: 'Mit Übelkeit' },
   { id: 'kopferbrechen', name: 'Erbrochen' },
-  { id: 'licht', name: 'Licht oder Lärm stören' },
+  { id: 'lichtscheu', name: 'Licht stört' },
+  { id: 'laermscheu', name: 'Lärm stört' },
+  { id: 'licht', name: 'Licht oder Lärm stören', alt: true },
   { id: 'bewegung', name: 'Schlimmer bei Bewegung' },
   { id: 'nacken', name: 'Nackenschmerz dabei' },
+  { id: 'aufwachen', name: 'Schon beim Aufwachen da' },
   { id: 'aura', name: 'Aura vorher (Flimmern, Zacken, wanderndes Kribbeln, Wortsuche)' },
+  { id: 'kauen', name: 'Schlimmer beim Kauen oder Kieferbewegen', nurMit: 'spannung' },
+  { id: 'nackenbewegung', name: 'Schlimmer, wenn ich Kopf oder Nacken bewege', nurMit: 'spannung' },
+  { id: 'schlaefe', name: 'An Schläfe oder Kiefer', nurMit: 'spannung' },
 ];
+
+/** Die beiden Merkmale, von denen höchstens eines zutreffen kann. */
+export const KOPF_SEITE = ['einseitig', 'beidseitig'];
 
 /*
  * Wie lange. Vier grobe Stufen statt einer Stundenzahl: Wer eine Attacke

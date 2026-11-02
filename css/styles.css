@@ -801,6 +801,42 @@ p { margin: 0 0 8px; }
 }
 .massage-hinweis summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 
+/* ---------- ADHS sowie Kiefer, Nacken, Schiene (einschaltbar) ---------- */
+/* Die Jetzt-Zeile unter dem Tageskopf: eine Auskunft, kein Alarm – ohne
+   Farbe, und sie bricht um, statt bei 320 px über den Rand zu laufen. */
+.jetzt-zeile { margin: -4px 0 10px; text-align: center; overflow-wrap: anywhere; }
+/* Unter „Meine Mittel": Tag ohne Mittel und „Zum Essen?". */
+.adhs-tag { margin: 4px 0 8px; }
+.adhs-tag .feld-name { margin-top: 10px; overflow-wrap: anywhere; }
+.adhs-pause .klein { margin-top: 6px; }
+/* Der Knopf „jetzt" fragt bei einer zweiten Einnahme im Knopf selbst nach. */
+.marke-jetzt.frage { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+/* „Was dazu bekannt ist" unter den Schaltern und die Texte im Bogen. */
+details.wissen { margin: 4px 0 12px; }
+details.wissen > summary { cursor: pointer; color: var(--muted); font-size: 14px; padding: 4px 0; }
+details.wissen p { margin-top: 6px; overflow-wrap: anywhere; }
+#mitdenken .wahl { margin-top: 6px; }
+#mitdenken .marken { margin-bottom: 10px; }
+.bogen-form, .bogen-essen, .bogen-wechsel { margin-top: 8px; }
+.bogen-form .form-text, .bogen-wechsel p { overflow-wrap: anywhere; }
+.bogen-wechsel { border-left: 2px solid var(--accent); padding-left: 10px; }
+.kopf-adhs { margin-bottom: 6px; overflow-wrap: anywhere; }
+.huellen-satz { border-left: 2px solid var(--line); padding-left: 10px; }
+.frage-hinweis { margin: 4px 0 8px; }
+/* Die Formwahl unter einem eigenen Mittel: eine eigene Zeile unter Name und
+   Knöpfen, nicht als dritte Spalte daneben. */
+.wartend li.mm-mit-form { flex-wrap: wrap; }
+.wartend li.mm-mit-form > span:first-child { flex: 1 1 0; }
+.mm-form { flex: 1 0 100%; }
+.mm-form .feld-name { margin-top: 2px; }
+.wechsel-liste { list-style: none; margin: 4px 0 0; padding: 0; }
+.wechsel-liste li { padding: 7px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.wechsel-liste li:last-child { border-bottom: none; }
+.wechsel-liste .klein { margin: 4px 0 0; }
+.v28-liste { margin: 6px 0 10px; padding-left: 18px; font-size: 14px; }
+.v28-liste li { margin-bottom: 6px; overflow-wrap: anywhere; }
+.angebot .reihe { margin: 8px 0 4px; }
+
 /* ---------- Willkommen ---------- */
 .willkommen { max-width: 480px; margin: 20px auto; }
 .punkte { padding-left: 18px; color: var(--muted); font-size: 14px; }
