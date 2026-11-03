@@ -962,8 +962,10 @@ Zählung ist: die Texte zu den Mitteln bei ADHS und die Formwahl, die Hinweise
 zu Paaren von Mitteln (unten), die Rechenkorrekturen (*Was sich an deinen
 Zahlen ändert*), die neuen Kopfmerkmale, der Text zur Massagepistole, die
 Vorbehalte an Auslösern und am Zeitprofil, der Tageswechsel nach Mitternacht,
-die Tageskarte für Tage, an denen nur ein Mittel steht, und der Satz zur Hülle
-im Stuhl-Bogen bei der Retardtablette mit Hülle.
+die Tageskarte für Tage, an denen nur ein Mittel steht, der Satz zur Hülle
+im Stuhl-Bogen bei der Retardtablette mit Hülle – und seit der Fassung 29 die
+Rückfrage zu Methylphenidat (unten, unter *Paare von Mitteln*) und die
+einmalige Karte „Neu“ (*Neu in der Fassung 29*).
 
 #### Paare von Mitteln
 
@@ -999,6 +1001,44 @@ beruhigender Satz wäre genauso unbelegt. Im Bericht stehen die Paare unter
 EINGENOMMENE MITTEL mit einem Satz aus der Fachinformation und einer Frage für
 die Sprechstunde („Passt mein Säureblocker zu meinem Methylphenidat?“), unter
 jedem Methylphenidat seine Form.
+
+**Die Rückfrage.** Ein Hinweis zu einem Paar steht nur da, wenn beide Mittel
+eingetragen sind und die Form bekannt ist. Für alle, die ein Methylphenidat
+eintragen – unter „Meine Mittel“ oder in den letzten 30 Tagen –, ohne die Form
+anzugeben oder einen Säureblocker zu notieren, fragt deshalb eine Karte oben
+auf „Tag“ (nur heute, direkt unter den Hinweisen der Stufe A, ohne Schalter)
+genau das, was fehlt, und sonst nichts:
+
+* „Welche Form steht auf der Packung?“ – mit denselben sieben Formen wie im
+  Bogen und unter „Meine Mittel“, „Weiß ich nicht“ zuletzt. Die Form landet
+  dort, wo die Paare sie lesen: beim eigenen Mittel, wenn der Name unter „Meine
+  Mittel“ steht, sonst bei der jüngsten Einnahme der letzten 30 Tage – dann
+  bietet die Karte an, das Mittel mit dieser Form auch unter „Meine Mittel“ zu
+  merken, denn an einer Einnahme gilt die Form nur so lange. „Weiß ich nicht“
+  ändert keine Mitteldaten.
+* „Nimmst du außerdem ein Mittel gegen Magensäure?“ – nur bei Formen, bei
+  denen ein Säureblocker überhaupt einen Hinweis ergibt (nicht bei der Hülle
+  und nicht bei Equasym). „Ja“ legt den Namen unter „Meine Mittel“ an, ohne
+  Dosis und ohne Einnahme: zur Wahl stehen Namen aus dem eigenen Tagebuch und
+  die, die die Erkennung kennt. Ein getippter Name, den die Erkennung nicht
+  kennt, wird erst nachgefragt, statt die Frage still zu schließen. „Nein“
+  wird gemerkt und gilt für alle Methylphenidat-Namen.
+
+Danach erscheint die passende Karte von selbst; die Rückfrage stellt nichts
+fest, sie sagt nur, warum sie fragt („Davon hängt ab, ob es zu deinen Mitteln
+einen Hinweis gibt“). Verschwindet ein Hinweis der Stufe A, weil die Form
+keinen ergibt, sagt die Meldung, dass das nicht heißt, dass beides
+zusammenpasst. **Kein Drängeln:** Je Name steht die Karte an höchstens zwei
+Tagen – dem ersten, an dem sie sichtbar war, und frühestens eine Woche danach
+ein letztes Mal, egal ob „Später“ getippt oder übergangen. „Später“ gibt es nur
+am ersten Tag, „Nicht mehr fragen“ ist je Name endgültig (mit „Rückgängig“), ein
+neuer Name ist ein neues Mittel. Sie verdrängt nie, was schon dasteht: Stehen
+zwei Hinweise der Stufe A oder einer und das Angebot da, wartet sie. Die
+Antworten stehen im Tagebuch und reisen mit der Sicherung – aber nur zu Namen,
+die dort noch vorkommen. An welchen Tagen die Karte zu sehen war, steht in
+einem eigenen Speicher auf dem Gerät, nie im Tagebuch und nie in einer
+Sicherung, und gezählt wird ein Tag nur, wenn die Seite sichtbar ist. Alles
+bleibt auf diesem Gerät.
 
 #### ADHS (eingeschaltet)
 
@@ -1204,6 +1244,20 @@ langen Zeilen. `tests/test-notiert.mjs` gibt demselben Tagebuch an jedem Tag ein
 ADHS-Mittel und alle neuen Tagesangaben und verlangt dieselben Zahlen bis auf
 die Zählung der Mittel selbst, `tests/test-gleich-v27.mjs` dasselbe für den
 Text der Reiter.
+
+### Neu in der Fassung 29
+
+Tagebücher, die schon Einträge hatten, sehen oben auf „Tag“ einmal die Karte
+„Neu: Hinweise zu zwei Mitteln zusammen“: dass Body Check zu einigen wenigen
+Paaren von Mitteln einen Hinweis zeigt, dass das nur mit Mitteln klappt, die
+hier stehen, und ausdrücklich, dass kein Hinweis nicht heißt, dass die Mittel
+zusammenpassen – Body Check prüft nicht alle Mittel, das kann die Apotheke.
+Dazu die Knöpfe „Zu „Meine Mittel““ und „Gelesen“. Einmal heißt an genau einem
+Tag, dem ersten, an dem sie sichtbar stand. Ein neues Tagebuch sieht sie nie
+(wer heute anfängt, hatte nie eine Fassung ohne die Hinweise), außer es kommen
+über eine Sicherung ältere Einträge dazu, deren Karte dort noch nicht gelesen
+war. Sie steht nie neben einem offenen Hinweis der Stufe A oder der Rückfrage,
+sondern wartet, bis dort Platz ist.
 
 ### Quellen der Wissenstexte
 
@@ -2301,7 +2355,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Vierundsiebzig Dateien, über 3500 Prüfungen, alle in einem echten Chromium. Kein
+Fünfundsiebzig Dateien, über 3800 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -2313,7 +2367,7 @@ den Rückgabewert.
 | `test-muster.mjs` | ein gepflanzter Zusammenhang wird gefunden, ein zu dünner nicht |
 | `test-verlauf.mjs` | Kacheln, Balken, Kalender – und die Lücke bleibt eine Lücke |
 | `test-bericht.mjs` | die Zahlen im Arztbericht – keine Zeile mit 80 Zeichen, auch mit einem 80 Zeichen langen Mittelnamen und allen Abschnitten an; die Abschnitte zum Einschalten nur mit ihrem Schalter, auch wenn sonst nichts eingetragen ist; Form, Paare samt Frage, Vorher-Nachher ohne Urteil beim ADHS-Mittel und W1 oben in IN KÜRZE; der Vorbehalt an Massage, Massagepistole und Wärme unter NACH AKTIVITÄTEN mit jedem Schalterstand |
-| `test-sicherung.mjs` | sichern, alles löschen, wieder einlesen – über echte Dateien; gelesene Hinweise zu zwei langen Mittelnamen bleiben gelesen |
+| `test-sicherung.mjs` | sichern, alles löschen, wieder einlesen – über echte Dateien; gelesene Hinweise zu zwei langen Mittelnamen bleiben gelesen; die Antworten auf die Rückfrage reisen mit, aber nur zu Namen, die noch vorkommen, nie, wann eine Karte stand; Unsinn fällt weg, ein älterer Stand lädt unverändert |
 | `test-persist.mjs` | die Ein-Datei-Fassung übersteht Neuladen und Neustart |
 | `test-offline.mjs` | Service Worker, offline eintragen, offline auswerten – ohne Netz auch für den Service Worker, keine einzige Anfrage am Server |
 | `test-ideen.mjs` | eintragen, abhaken, kopieren, die Erinnerung ans Verschicken – und Ideen bleiben aus der Auswertung heraus |
@@ -2371,11 +2425,12 @@ den Rückgabewert.
 | `test-spaetphase.mjs` | nach Wochen Tagebuch steht nicht alles gleichzeitig da – der umgekehrte Fehler der ersten Wochen |
 | `test-gold.mjs` | 34 Rechnungen über feste Tagebücher ohne alles Neue ergeben Zeichen für Zeichen, was die Fassung 27 gerechnet hat (`tests/gold/`) – im Bericht nur die langen Zeilen umbrochen |
 | `test-notiert.mjs` | ein Tag nur mit einem ADHS-Mittel, einer Schiene oder einem Tag ohne Mittel ist eine Lücke, einer nur mit irgendeinem anderen bekannten Mittel nicht; dasselbe Tagebuch mit einem ADHS-Mittel an jedem Tag und allen neuen Angaben ergibt dieselben Zahlen |
-| `test-adhs-wissen.mjs` | Namen zur Gruppe, Formen aus dem Namen, Koffein-Regel, neue Säureblocker-Namen, jedes Paar an und aus, eine Form von vor einem halben Jahr sticht „Meine Mittel“ nicht – und kein Text mit Dosis oder Empfehlung |
+| `test-adhs-wissen.mjs` | Namen zur Gruppe, Formen aus dem Namen, Koffein-Regel, neue Säureblocker-Namen, jedes Paar an und aus, eine Form von vor einem halben Jahr sticht „Meine Mittel“ nicht – und kein Text mit Dosis oder Empfehlung; was der Rückfrage fehlt, je Form im Gleichlauf mit den Paaren |
 | `test-adhs-ui.mjs` | als iPhone: ohne Schalter nichts Neues außer dem, was für alle gilt; Angebot einmal, „jetzt genommen“ mit Häkchen auch zu anderer Tageszeit und bei zwei gleichen Mitteln, „Heute keins“ nur bei Stimulanzien, „Zum Essen?“ bis eine Stunde danach, nie ein „noch nicht“ |
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; alte Kopfmerkmale lassen sich abwählen und wieder wählen; der Massagetext auch ohne Schalter und bei einer eigenen „Massagepistole“, die unter „Mehr“ als fest eingebaut vermerkt ist und ihre Einträge behält; kein Angebot durch Nackenschmerz |
 | `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, auch für einen Namen mit Koffein, der nicht mehr mitzählt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
-| `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste |
+| `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste – dazu einmal die Karte „Neu“ |
+| `test-rueckfrage.mjs` | als iPhone: die Rückfrage fragt nur, was fehlt, die Antwort landet dort, wo die Paare sie lesen, und die passende Karte erscheint; höchstens zwei Tage je Name, „Später“ einmal, „Nicht mehr fragen“ mit „Rückgängig“; nie mehr als die bestehenden Karten; die Karte „Neu“ einmal und nie bei einem neuen Tagebuch; gezählt wird nur, was sichtbar war; kein Rat, keine Dosis, nichts über den Rand, keine Anfrage nach draußen |
 | `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, ein Fenster, das noch läuft, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge; der Abschnitt liegt mittags wie abends, ein Wechsel des Stimulans setzt ihn auch bei durchlaufendem Zweitmittel, ein abgesetztes Stimulans und der Rückwechsel auf ein früheres Mittel beenden ihn; „zu wenige“ nur, wenn keine gezeigte Zeile genug Tage ohne Mittel hat; die Schwelle des Zeitprofil-Vorbehalts |
 | `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend oder nach Mitternacht macht keinen Kopfschmerz am Nachmittag oder Morgen zu einem „am Morgen“ bzw. „nicht am Morgen“, der laufende Morgen zählt noch nicht, ein Folgetag, der heute ist, auch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
 | `test-nulltagebuch.mjs` | 300 Tagebücher ohne Zusammenhang, aber mit Störwegen: je Rechnung höchstens 6 %, je Karte höchstens 10 % mit Urteil |
