@@ -2152,17 +2152,14 @@ export function gezeigtMerken(iso, schluessel = [], neu = false) {
   });
 }
 
-/** „Später" oder „Nicht mehr fragen": heute keine Rückfrage mehr (null hebt das auf). */
+/*
+ * „Später" oder „Nicht mehr fragen": heute keine Rückfrage mehr (null hebt
+ * das auf). Einen gezeigten Tag nimmt nichts zurück – auch kein „Ja", das an
+ * einem vollen „Meine Mittel" scheitert: Sonst käme die Rückfrage dann jeden
+ * Tag wieder, jedes Mal mit „Später".
+ */
 export function rueckfrageZu(iso) {
   gezeigtAendern((g) => ({ ...g, zu: istISO(iso) ? iso : null }));
-}
-
-/** Der heutige Tag zählt nicht – „Ja" scheiterte an einem vollen „Meine Mittel". */
-export function gezeigtZuruecknehmen(iso) {
-  gezeigtAendern((g) => ({
-    ...g,
-    tage: Object.fromEntries(Object.entries(g.tage).map(([k, t]) => [k, t.filter((x) => x !== iso)])),
-  }));
 }
 
 /*

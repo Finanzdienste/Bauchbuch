@@ -11,8 +11,11 @@
  *   1. Was sie fragt, wo die Antwort landet und dass danach die passende
  *      bestehende Karte (W1, W1u, W3, W4) von selbst erscheint.
  *   2. Kein Drängeln: höchstens zwei Tage je Name, „Später" nur am ersten,
- *      „Nicht mehr fragen" endgültig (mit „Rückgängig"), ein neuer Name ist
- *      ein neues Mittel.
+ *      „Nicht mehr fragen" endgültig (mit „Rückgängig", auch per Tastatur
+ *      erreichbar), ein neuer Name ist ein neues Mittel. Ohne Ausnahme –
+ *      auch nicht über Nacht in einem Zwischenschritt oder bei vollem
+ *      „Meine Mittel".
+ *   2a. Ein Doppeltipp beantwortet nicht gleich den nächsten Schritt.
  *   3. Nie mehr als die bestehenden Karten zulassen: W1/W1u und das Angebot
  *      werden nie verdrängt.
  *   4. Die Karte „Neu" einmal, nie bei einem neuen Tagebuch.
@@ -124,7 +127,16 @@ const gezeigt = (page) => page.evaluate((k) => {
   return { am: null, zu: null, tage: {} };
 }, GEZEIGT);
 const kurz = (page) => page.waitForTimeout(150);
-const tipp = async (page, sel) => { await page.locator(sel).first().click(); await kurz(page); };
+/*
+ * Nach einer Antwort auf die Rückfrage oder die Karte „Neu" zählt auf „Tag"
+ * eine halbe Sekunde lang kein Tipp (Abschnitt 16b, Doppeltipp). Der Test
+ * tippt danach erst, wenn ein Mensch die neue Frage gelesen haben könnte.
+ */
+const RUHE = 560;
+const tipp = async (page, sel) => {
+  await page.locator(sel).first().click();
+  await page.waitForTimeout(/rueckfrage-|v29-/.test(sel) ? RUHE : 150);
+};
 const text = async (page, sel) => ((await page.locator(sel).count())
   ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
 const zahl = (page, sel) => page.locator(sel).count();
@@ -225,20 +237,32 @@ const davor = (page, a, b) => page.evaluate(([x, y]) => {
   check(saeureText.includes('Pantoprazol') && saeureText.includes('Rennie') && saeureText.includes('Natron')
     && saeureText.includes('Davon hängt ab, ob es zu deinen Mitteln einen Hinweis gibt.'),
   'die Säurefrage nennt Beispiele aus der Erkennung und sagt, warum');
-  check(await page.locator(`${KARTE} [data-act="rueckfrage-saeure-ja"]`).getAttribute('aria-label') === 'Ja – das Mittel gegen Magensäure unter „Meine Mittel“ anlegen'
+  // „Ja" legt selbst nichts an – es führt zur Wahl (siehe 2). Die Ansage sagt das.
+  check(await page.locator(`${KARTE} [data-act="rueckfrage-saeure-ja"]`).getAttribute('aria-label') === 'Ja – das Mittel gegen Magensäure auswählen'
     && await page.locator(`${KARTE} [data-act="rueckfrage-saeure-nein"]`).getAttribute('aria-label') === 'Nein, kein Mittel gegen Magensäure',
-  '„Ja" und „Nein" mit Ansage');
+  '„Ja" und „Nein" mit Ansage – „Ja" verspricht kein Anlegen');
   await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-nein"]`);
   s = await speicher(page);
   check(s.mphRueckfrage.medikinet && s.mphRueckfrage.medikinet.saeure === 'nein' && await zahl(page, KARTE) === 0,
     '„Nein" wird gemerkt, die Karte ist weg');
-  check((await meldung(page)).startsWith('Gemerkt. Dazu fragt Body Check nicht noch einmal.'), 'mit Meldung');
+  check(await meldung(page) === 'Gemerkt. Dazu fragt Body Check erst bei einem neuen Methylphenidat-Namen wieder. '
+    + 'Kommt ein Mittel gegen Magensäure dazu, trag es beim Eintragen oder unter „Meine Mittel“ ein.',
+  `mit Meldung – sie sagt, dass ein neuer Name noch einmal gefragt wird (${await meldung(page)})`);
   await page.reload({ waitUntil: 'networkidle' });
   check(await zahl(page, KARTE) === 0, 'auch nach dem Neuladen');
   await tagWechsel(page, tag(1));
   check(await zahl(page, KARTE) === 0, 'und am nächsten Tag');
   await tagWechsel(page, tag(30));
   check(await zahl(page, KARTE) === 0, 'und nach 30 Tagen');
+  // Ein neuer Name ist ein neues Mittel – auch für die Frage nach dem Säureblocker.
+  await page.evaluate(async () => {
+    const st = await import('/js/store.js');
+    st.standardMerken({ mittel: 'Ritalin LA', dosis: '', tageszeit: null, bezug: null });
+    st.sofortSchreiben();
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  check(await kopf(page) === 'Rückfrage zu Ritalin LA' && await frage(page) === F_SAEURE,
+    `ein später dazukommender Name wird noch einmal gefragt, wie die Meldung sagt (${await kopf(page)} | ${await frage(page)})`);
   await ctx.close();
 }
 
@@ -287,7 +311,7 @@ const davor = (page, a, b) => page.evaluate(([x, y]) => {
   await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
   await page.locator('#rueckfrageName').fill('Pantoprazl');
   await page.locator('#rueckfrageName').press('Enter');
-  await kurz(page);
+  await page.waitForTimeout(RUHE);
   let s = await speicher(page);
   check(await frage(page) === F_PRUEFEN && await fokusId(page) === 'rueckfrageFrage',
     `ein Tippfehler wird nachgefragt, nicht angelegt (${await frage(page)})`);
@@ -368,16 +392,25 @@ const STAND4 = {
   check(w.includes('Kapsel mit zweierlei Kügelchen und Pantoprazol') && !w.includes('(Methylphenidat)'),
     'W1 steht, W1u nicht mehr');
   check(await frage(page) === F_MERKEN && await zahl(page, `${KARTE} [data-act="rueckfrage-merken"]`) === 1
-    && (await text(page, `${KARTE} [data-act="rueckfrage-nicht-merken"]`)) === 'Nur diese Einnahme',
+    && (await text(page, `${KARTE} [data-act="rueckfrage-nicht-merken"]`)) === 'Nicht merken',
   'die Karte bietet an, das Mittel unter „Meine Mittel" zu merken');
+  check(await page.locator(`${KARTE} [data-act="rueckfrage-nicht-merken"]`).getAttribute('aria-label')
+    === 'Nicht unter „Meine Mittel“ anlegen – die Form bleibt bei der Einnahme',
+  '„Nicht merken" sagt, was bleibt – und verspricht nicht „nur diese Einnahme"');
   const merkenText = await kartenText(page);
-  check(merkenText.includes('Die Form steht jetzt bei deiner Einnahme von gestern.'), 'MERKEN sagt, wo die Form steht');
+  // formZu liest die jüngste bekannte Form der letzten 30 Tage – auch für
+  // spätere Einnahmen ohne Formangabe. Der Text sagt das, statt „nur diese".
+  check(merkenText.includes('Die Form steht jetzt bei deiner Einnahme von gestern. Sie gilt ab dieser Einnahme 30 Tage lang, '
+    + 'auch für weitere Einnahmen ohne Formangabe. Dauerhaft gilt sie, wenn Methylphenidat unter „Meine Mittel“ steht.')
+    && !/gilt sie nur|nur für diese/.test(merkenText),
+  `MERKEN sagt, wo die Form steht und wie lange sie für weitere Einnahmen gilt (${merkenText.slice(0, 160)}…)`);
   check(await breitOk(page), 'MERKEN passt in 320 Pixel');
 
-  // a) Nur diese Einnahme – und 31 Tage später ist die Form verfallen.
+  // a) Nicht merken – die Form gilt 30 Tage, auch für Einnahmen ohne Form, und verfällt dann.
   await tipp(page, `${KARTE} [data-act="rueckfrage-nicht-merken"]`);
-  check(await zahl(page, KARTE) === 0 && await meldung(page) === 'Gut. Die Form gilt für diese eine Einnahme.',
-    '„Nur diese Einnahme": Karte zu');
+  check(await zahl(page, KARTE) === 0 && await meldung(page) === 'Gut. Die Form gilt ab dieser Einnahme 30 Tage lang, '
+    + 'auch für weitere ohne Formangabe. Eine andere kannst du beim Eintragen im Bogen angeben.',
+  `„Nicht merken": Karte zu, die Meldung sagt, wie lange die Form gilt (${await meldung(page)})`);
   await page.evaluate(async ([k, neu]) => {
     const st = await import('/js/store.js');
     st.sofortSchreiben();
@@ -385,6 +418,10 @@ const STAND4 = {
     z.eintraege.push(...neu);
     localStorage.setItem(k, JSON.stringify(z));
   }, [KEY, Array.from({ length: 31 }, (_, i) => nimmt(`t${i + 1}`, 'Methylphenidat', tag(i + 1)))]);
+  await tagWechsel(page, tag(28));
+  check((await text(page, '.wechsel-karte')).includes('Kapsel mit zweierlei Kügelchen und Pantoprazol')
+    && await zahl(page, KARTE) === 0,
+  '28 Tage später, tägliche Einnahmen ohne Form: die Form gilt noch – W1, wie der Text sagt');
   await tagWechsel(page, tag(31));
   check((await text(page, '.wechsel-karte')).includes('Methylphenidat (Methylphenidat) und Pantoprazol'),
     '31 Tage später, tägliche Einnahmen ohne Form: wieder W1u');
@@ -535,6 +572,27 @@ const STAND4 = {
     `ein neuer Name ist ein neues Mittel (${await kopf(page)})`);
   await ctx.close();
 }
+{
+  // Mit der Tastatur (oder Schaltersteuerung): „Rückgängig" ist der einzige
+  // Weg zurück und steht nur acht Sekunden. Der Fokus geht dorthin, nicht an
+  // den Anfang der Seite – und nach „Rückgängig" auf die Frage.
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet')] }, { viewport: IPHONE });
+  await page.locator(NIE).focus();
+  await page.keyboard.press('Enter');
+  await kurz(page);
+  const wo = await page.evaluate(() => {
+    const a = document.activeElement;
+    return a ? (a.dataset.act || a.tagName) : '';
+  });
+  check(await zahl(page, KARTE) === 0 && wo === 'rueckfrage-nie-zurueck',
+    `„Nicht mehr fragen" per Tastatur: der Fokus steht auf „Rückgängig" in der Meldung (${wo})`);
+  await page.keyboard.press('Enter');
+  await kurz(page);
+  check(await zahl(page, KARTE) === 1 && await fokusId(page) === 'rueckfrageFrage'
+    && !((await speicher(page)).mphRueckfrage.medikinet || {}).nie,
+  '„Rückgängig" per Tastatur: die Karte steht wieder, der Fokus auf ihrer Frage');
+  await ctx.close();
+}
 
 /* ---------- 9. Zwei Methylphenidat-Namen, beantwortet ---------- */
 
@@ -676,7 +734,9 @@ for (const [wer, sm] of [
 /* ---------- 13. Die Karte „Neu" ---------- */
 
 const NEU_TEXTE = [
-  'Zu einigen wenigen Paaren von Mitteln zeigt Body Check jetzt einen Hinweis, vor allem zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Die wichtigen stehen hier oben, alle unter „Mehr“ › „Meine Mittel“.',
+  // Ohne Wertung: Die Stufen der Paare sagen, was die Fachinformation dazu
+  // schreibt – nicht, welche „wichtig" sind.
+  'Zu einigen wenigen Paaren von Mitteln zeigt Body Check jetzt einen Hinweis, vor allem zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Alle stehen unter „Mehr“ › „Meine Mittel“, einige auch hier oben.',
   'Steht kein Hinweis da, heißt das nicht, dass deine Mittel zusammenpassen. Body Check prüft nicht alle Mittel – das kann die Apotheke.',
   'Es klappt nur mit Mitteln, die hier stehen: unter „Meine Mittel“ oder in den letzten 30 Tagen notiert. Was du regelmäßig nimmst, kannst du unter „Meine Mittel“ anlegen. Eine Einnahme wird dabei nicht notiert. Alles bleibt auf diesem Gerät.',
 ];
@@ -699,6 +759,7 @@ const STAND13 = {
   check(ganz.includes('Body Check prüft nicht alle Mittel') && ganz.includes('Apotheke')
     && !/nicht zusammen vor|alle Gegenanzeigen|unter den Gegenanzeigen/.test(ganz),
   'sie nennt die Grenze und verspricht keine Vollständigkeit');
+  check(!/wichtig/i.test(ganz), 'sie teilt die Hinweise nicht in wichtige und andere');
   const namen = [...ADHS_NAMEN, ...MITTEL_WISSEN, ...REIZSTOFFE].flatMap((g) => g.beispiele)
     .filter((n) => new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}])`, 'iu').test(ganz));
   check(gleich([...new Set(namen)], ['Methylphenidat']), `als Mittelname nur der allgemeine „Methylphenidat" (${namen.join(', ')})`);
@@ -800,29 +861,147 @@ const STAND13 = {
   await ctx.close();
 }
 
+/*
+ * Über Nacht offen, wie eine App vom Home-Bildschirm: Ein Zwischenschritt
+ * (MERKEN, WELCHES) gilt nur an dem Tag, an dem er begann. Sonst stünde er
+ * an jedem neuen Tag wieder oben, bis man reagiert – eine Erinnerung.
+ */
+const sicht = async (page, wert) => {
+  await page.evaluate((x) => { window.__sicht = x; document.dispatchEvent(new Event('visibilitychange')); }, wert);
+  await kurz(page);
+};
+const ueberNacht = async (page, iso) => {
+  await sicht(page, 'hidden');
+  await page.clock.setFixedTime(um('08:10', iso));
+  await sicht(page, 'visible');
+};
+for (const [was, z, schritt, fragt] of [
+  ['MERKEN', { eintraege: [nimmt('m1', 'Methylphenidat', tag(-1)), NOTIZ], standardMittel: [] }, form('pellet'), F_MERKEN],
+  ['WELCHES', { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')] },
+    `${KARTE} [data-act="rueckfrage-saeure-ja"]`, F_WELCHES],
+]) {
+  const { ctx, page } = await iphone(z, { verborgen: true });
+  await sicht(page, 'visible');
+  await tipp(page, schritt);
+  check(await frage(page) === fragt, `${was}: der Schritt steht (${await frage(page)})`);
+  const tage0 = (await gezeigt(page)).tage;
+  const reihe = [];
+  for (const d of [1, 2, 3, 5]) {
+    await ueberNacht(page, tag(d));
+    reihe.push(await zahl(page, KARTE));
+  }
+  check(gleich(reihe, [0, 0, 0, 0]) && gleich((await gezeigt(page)).tage, tage0),
+    `${was}, die App bleibt über Nacht offen: am Tag +1, +2, +3, +5 keine Karte (${reihe.join(', ')})`);
+  await ueberNacht(page, tag(7));
+  check(await zahl(page, KARTE) === 1 && await zahl(page, SPAETER) === 0,
+    `${was}: nach einer Woche ihr zweiter und letzter Tag, ohne „Später"`);
+  await ctx.close();
+}
+
 /* ---------- 16. „Meine Mittel" voll ---------- */
 
+const ANDERE = ['Vitamin D', 'Magnesium', 'Eisen', 'Zink', 'Folsäure', 'Vitamin B12', 'L-Thyroxin', 'Ramipril',
+  'Cetirizin', 'Melatonin', 'Omega 3'];
+const VOLL = { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult'), ...ANDERE.map((n, i) => meins(`a${i}`, n))] };
 {
-  const andere = ['Vitamin D', 'Magnesium', 'Eisen', 'Zink', 'Folsäure', 'Vitamin B12', 'L-Thyroxin', 'Ramipril',
-    'Cetirizin', 'Melatonin', 'Omega 3'];
-  const { ctx, page } = await iphone({
-    eintraege: [NOTIZ],
-    standardMittel: [meins('s1', 'Medikinet adult'), ...andere.map((n, i) => meins(`a${i}`, n))],
-  });
+  const { ctx, page } = await iphone(VOLL);
   check(await frage(page) === F_SAEURE, 'zwölf eigene Mittel, Medikinet adult darunter: die Säurefrage');
+  check(await page.locator(`${KARTE} [data-act="rueckfrage-saeure-ja"]`).getAttribute('aria-label') === 'Ja, ich nehme ein Mittel gegen Magensäure',
+    '„Ja" verspricht bei vollem „Meine Mittel" weder Wahl noch Anlegen');
   await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
   check((await text(page, KARTE)).includes('Bei deinen Mitteln stehen schon 12 – mehr passen nicht.')
     && await zahl(page, `${KARTE} [data-act="rueckfrage-meine-mittel"]`) === 1
     && await zahl(page, `${KARTE} .rueckfrage-wahl`) === 0 && await zahl(page, '#rueckfrageName') === 0,
   '„Ja" bei vollem „Meine Mittel": der Satz und der Weg dorthin statt der Wahl');
   await kartenText(page);
-  check(!((await gezeigt(page)).tage['medikinet adult'] || []).includes(HEUTE), 'der Tag zählt nicht');
+  check(gleich((await gezeigt(page)).tage['medikinet adult'], [HEUTE]), 'der Tag zählt wie jeder andere');
   await tipp(page, `${KARTE} [data-act="rueckfrage-meine-mittel"]`);
+  await kurz(page);
   check((await speicher(page)).tab === 'mehr' && await zahl(page, '#meineMittel') === 1, 'der Knopf führt zu „Meine Mittel"');
-  await tagWechsel(page, tag(1));
+  check(await zahl(page, '#meineMittel .mittel-formular') === 0 && await zahl(page, '#mmName') === 0,
+    'dort steht kein Formular für ein neues Mittel, das sich nicht speichern ließe');
+  check((await text(page, '#meineMittel')).includes('Mehr als 12 passen nicht.'), 'sondern der Satz zum vollen Stand');
+  check(await page.evaluate(() => document.activeElement === document.querySelector('#meineMittel h3')),
+    'der Fokus steht auf der Überschrift „Meine Mittel", nicht in einem Feld außerhalb des Bildes');
+  // Eins entfernen (zwei Tipps), zurück auf „Tag": jetzt die Wahl, am selben Tag.
+  await tipp(page, '[data-act="meinmittel-weg"][data-id="a10"]');
+  await tipp(page, '[data-act="meinmittel-weg"][data-id="a10"]');
   await tab(page, 'heute');
-  check(await zahl(page, KARTE) === 1 && await zahl(page, SPAETER) === 1, 'am nächsten Tag: wieder ein erster Tag, mit „Später"');
+  check(await frage(page) === F_WELCHES && await zahl(page, `${KARTE} .rueckfrage-wahl`) > 0,
+    'eins entfernt, zurück auf „Tag": die Wahl steht da');
+  await tipp(page, `${KARTE} .rueckfrage-wahl[data-name="Pantoprazol"]`);
+  check((await text(page, '.wechsel-karte')).includes('Kapsel mit zweierlei Kügelchen und Pantoprazol') && await zahl(page, KARTE) === 0,
+    'Pantoprazol gewählt: angelegt, W1 erscheint');
+  await meldung(page);
   await ctx.close();
+}
+{
+  // Jeden Tag „Ja" bei vollem „Meine Mittel": trotzdem höchstens zwei Tage, „Später" einmal.
+  const { ctx, page } = await iphone(VOLL);
+  const reihe = [];
+  let spaeter = 0;
+  for (const d of [0, 1, 2, 7, 8, 30]) {
+    if (d) await tagWechsel(page, tag(d));
+    const n = await zahl(page, KARTE);
+    reihe.push(n);
+    spaeter += await zahl(page, SPAETER);
+    if (n) await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+  }
+  check(gleich(reihe, [1, 0, 0, 1, 0, 0]), `Tag 0, 1, 2, 7, 8, 30: ${reihe.join(', ')}`);
+  check(spaeter === 1, `„Später" gab es genau einmal (${spaeter})`);
+  await ctx.close();
+}
+
+/* ---------- 16b. Doppeltipp: der zweite Tipp beantwortet nicht den nächsten Schritt ---------- */
+
+const doppel = async (page, sel) => {
+  const b = await page.locator(sel).first().boundingBox();
+  const x = b.x + b.width / 2;
+  const y = b.y + b.height / 2;
+  await page.touchscreen.tap(x, y);
+  await page.waitForTimeout(180);
+  await page.touchscreen.tap(x, y);
+  await page.waitForTimeout(RUHE);
+};
+for (const [vp, wie] of [[IPHONE, '390'], [{ width: 320, height: 640 }, '320']]) {
+  {
+    const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')] }, { viewport: vp });
+    await doppel(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+    const s = await speicher(page);
+    check(await frage(page) === F_WELCHES && s.standardMittel.length === 1 && !((s.mphRueckfrage || {})['medikinet adult'] || {}).saeure
+      && await zahl(page, '.wechsel-karte') === 0,
+    `${wie}: Doppeltipp auf „Ja" – die Wahl steht, kein Mittel angelegt, kein Hinweis (${s.standardMittel.map((m) => m.mittel).join(', ')})`);
+    await ctx.close();
+  }
+  {
+    const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet')] }, { viewport: vp });
+    await doppel(page, form('sodas'));
+    const s = await speicher(page);
+    check(s.standardMittel[0].form === 'sodas' && !((s.mphRueckfrage || {}).medikinet || {}).saeure && await frage(page) === F_SAEURE,
+      `${wie}: Doppeltipp auf eine Form – die Säurefrage steht, kein „Nein" gespeichert`);
+    await ctx.close();
+  }
+  {
+    const { ctx, page } = await iphone({
+      eintraege: [nimmt('m1', 'Methylphenidat', tag(-1)), NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')],
+    }, { viewport: vp });
+    await doppel(page, `${KARTE} [data-act="rueckfrage-saeure-nein"]`);
+    const s = await speicher(page);
+    check(!('form' in s.eintraege.find((e) => e.id === 'm1')) && await kopf(page) === 'Rückfrage zu Methylphenidat'
+      && await frage(page) === F_FORM,
+    `${wie}: Doppeltipp auf „Nein" – die Formfrage zum zweiten Namen steht, keine Form an der Einnahme`);
+    await ctx.close();
+  }
+  {
+    const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')] }, { viewport: vp });
+    await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+    await doppel(page, `${KARTE} .rueckfrage-wahl[data-name="Pantoprazol"]`);
+    const s = await speicher(page);
+    check(s.standardMittel.length === 2 && await zahl(page, '.wechsel-karte') === 1 && gleich(s.wechselGelesen || [], []),
+      `${wie}: Doppeltipp auf einen Namen – angelegt, W1 steht und ist nicht weggetippt`);
+    await meldung(page);
+    await ctx.close();
+  }
 }
 
 /* ---------- 17. Der Ton ---------- */

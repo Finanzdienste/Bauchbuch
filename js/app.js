@@ -207,10 +207,13 @@ const ui = {
   /*
    * Die Rückfrage zu Methylphenidat mitten in einem Schritt, der nicht aus
    * dem Speicher folgt: { schluessel, schritt: 'merken'|'welches'|'pruefen',
-   * einnahme?, form?, eigen? } – siehe rueckfrageHeute(). Flüchtig: Nach
-   * einem Neustart fragt die Karte wieder, was offen ist.
+   * am, einnahme?, form?, eigen? } – siehe rueckfrageHeute(). Flüchtig: Nach
+   * einem Neustart fragt die Karte wieder, was offen ist. `am` ist der Tag,
+   * an dem der Schritt begann; er gilt nur an diesem Tag (rueckfrageSchritt).
    */
   rueckfrage: null,
+  // Kurz nach einer Antwort auf „Tag" zählt kein Tipp – siehe nachtippSperren().
+  nachtipp: false,
   // Was das letzte Zeichnen von „Tag" als gezeigt meldet, bis es gestempelt
   // ist – siehe gezeigtStempeln().
   gezeigt: null,
@@ -729,11 +732,18 @@ function mittelFeldFokus() {
  * ein Formular mitten in einem Text. Gemessen statt geschätzt, denn mit
  * größerer Schrift bricht die Kopfleiste um. Der Fokus geht danach ins
  * Namensfeld, ohne die Seite noch einmal zu verschieben.
+ *
+ * Mit { formular: false } (die Rückfrage bei vollem „Meine Mittel") bleibt
+ * das Formular zu: Gebraucht wird dort die Liste mit den Knöpfen zum
+ * Entfernen und der Satz zum vollen Stand, nicht ein Feld für ein Mittel,
+ * das nicht mehr hineinpasst. Der Fokus geht dann auf die Überschrift.
+ * Ein offenes Formular zum Ändern eines Mittels bleibt offen.
  */
-function meineMittelZeigen() {
+function meineMittelZeigen({ formular = true } = {}) {
   store.einstellen('tab', 'mehr');
   Object.assign(ui, { bericht: null, sicherung: null, mittel: false, anleitung: false });
-  ui.mittelForm = { id: null, mittel: '', dosis: '', tageszeit: null, bezug: null };
+  if (formular) ui.mittelForm = { id: null, mittel: '', dosis: '', tageszeit: null, bezug: null };
+  else if (ui.mittelForm && !ui.mittelForm.id) ui.mittelForm = null;
   zeichne();
   setTimeout(() => {
     const karte = document.getElementById('meineMittel');
@@ -741,7 +751,14 @@ function meineMittelZeigen() {
     const leiste = document.querySelector('.topbar');
     const oben = leiste ? leiste.getBoundingClientRect().bottom : 0;
     window.scrollTo(0, Math.max(0, karte.getBoundingClientRect().top + window.scrollY - oben - 8));
-    mittelFeldFokus();
+    if (formular) {
+      mittelFeldFokus();
+      return;
+    }
+    const titel = karte.querySelector('h3');
+    if (!titel) return;
+    titel.setAttribute('tabindex', '-1');
+    titel.focus({ preventScroll: true });
   }, 0);
 }
 
@@ -1138,11 +1155,11 @@ function tagAnsicht(s) {
   const frage = heute ? rueckfrageHeute(s, gesehen) : null;
   const mitFrage = !!frage && offen.length + (angebot ? 1 : 0) < 2;
   const mitNeu = heute && v29Offen(s, gesehen) && !offen.length && !mitFrage;
-  // Scheitert „Ja" an einem vollen „Meine Mittel", zählt der Tag nicht.
-  const zaehlt = mitFrage
-    && !(frage.schritt === 'welches' && s.standardMittel.length >= store.STANDARD_HOECHSTENS);
-  ui.gezeigt = zaehlt || mitNeu
-    ? { am: heuteISO(), rueckfrage: zaehlt ? frage.alleDran : [], neu: mitNeu } : null;
+  // Jeder Tag, an dem die Rückfrage sichtbar stand, zählt – auch einer, an
+  // dem „Ja" an einem vollen „Meine Mittel" scheiterte. Sonst käme sie dann
+  // jeden Tag wieder, mit „Später" (siehe rueckfrageDran).
+  ui.gezeigt = mitFrage || mitNeu
+    ? { am: heuteISO(), rueckfrage: mitFrage ? frage.alleDran : [], neu: mitNeu } : null;
 
   return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + jetztZeile(s, iso) + sicherungKarte(iso) + wechselKarte(s, iso)
@@ -1327,6 +1344,9 @@ const wechselStand = () => new Set(wechselOffen(store.zustandLesen()).map((h) =>
  * ein letztes Mal – egal ob „Später" getippt oder übergangen. Täglich, bis
  * man reagiert, wäre eine Erinnerung. „Später" gibt es nur am ersten Tag,
  * „Nicht mehr fragen" ist je Name endgültig, ein neuer Name ein neues Mittel.
+ * Das gilt ohne Ausnahme: auch für einen Zwischenschritt, der über Nacht
+ * offen blieb (rueckfrageSchritt), und auch, wenn „Ja" an einem vollen
+ * „Meine Mittel" scheitert – der Tag zählt wie jeder andere.
  */
 
 /** Nach wie vielen Tagen die Rückfrage ein zweites und letztes Mal kommt. */
@@ -1367,12 +1387,25 @@ function rueckfragenMit(s) {
   });
 }
 
+/*
+ * Ein Zwischenschritt (MERKEN, WELCHES, PRUEFEN) – mit dem Tag, an dem er
+ * begann. Er gilt nur an diesem Tag: Eine App vom Home-Bildschirm bleibt oft
+ * über Nacht offen, und ohne den Tag stünde der Schritt an jedem neuen Tag
+ * wieder oben, an rueckfrageDran vorbei, bis man reagiert. Am nächsten Tag
+ * entscheiden wieder die gezeigten Tage. Eine Antwort prüft den Tag nicht
+ * (siehe rueckfrageOffen): Wer um 23:58 die Wahl sieht und um 0:01 tippt,
+ * hat trotzdem geantwortet.
+ */
+function rueckfrageSchritt(u) {
+  ui.rueckfrage = { ...u, am: heuteISO() };
+}
+
 /**
  * Die Rückfrage, die heute auf „Tag" steht – oder null: { x, schritt,
  * erster, alleDran }.
  *
- *   x         der Name mitten in einem Schritt (ui.rueckfrage), sonst der
- *             erste mit offener Frage, der heute dran ist
+ *   x         der Name mitten in einem Schritt (ui.rueckfrage, nur von
+ *             heute), sonst der erste mit offener Frage, der heute dran ist
  *   schritt   'form', 'saeure', oder aus ui.rueckfrage 'merken', 'welches',
  *             'pruefen' – solange der Schritt noch passt
  *   erster    der erste Tag dieses Namens: Nur dann gibt es „Später".
@@ -1387,6 +1420,7 @@ function rueckfrageHeute(s, g) {
   const kandidaten = alle.filter((x) => x.frage && rueckfrageDran(x.schluessel, g, heute));
   let x = null;
   let schritt = null;
+  if (ui.rueckfrage && ui.rueckfrage.am !== heute) ui.rueckfrage = null;
   const u = ui.rueckfrage;
   if (u) {
     const y = alle.find((z) => z.schluessel === u.schluessel);
@@ -1424,7 +1458,12 @@ function rueckfrageOffen(s, k) {
   return x && !x.r.nie ? x : null;
 }
 
-/** Die Namen, bei denen nach dem Säureblocker gefragt würde – eine Antwort gilt für alle. */
+/*
+ * Die Namen, bei denen gerade nach dem Säureblocker gefragt würde – eine
+ * Antwort gilt für alle. Ein Name, der erst später dazukommt, ist ein neues
+ * Mittel und wird noch einmal gefragt (höchstens an seinen zwei Tagen); die
+ * Meldung nach „Nein" sagt das.
+ */
 const alleOffenSaeure = (s) => rueckfragenMit(s)
   .filter((x) => x.fehltSaeure && !x.r.saeure && !x.r.nie).map((x) => x.schluessel);
 
@@ -1525,22 +1564,33 @@ function rueckfrageKarte(f, s) {
         <button type="button" class="marke" data-act="rueckfrage-form" data-id="${m.id}" ${mitK()}>${esc(m.name)}</button>`).join('')}</div>`;
   } else if (schritt === 'saeure') {
     frage = 'Nimmst du außerdem ein Mittel gegen Magensäure?';
+    // „Ja" legt selbst nichts an: Es führt zur Wahl – oder, wenn „Meine
+    // Mittel" voll ist, zum Satz darüber. Die Ansage sagt nur, was geschieht.
+    const jaSagt = s.standardMittel.length >= store.STANDARD_HOECHSTENS
+      ? 'Ja, ich nehme ein Mittel gegen Magensäure' : 'Ja – das Mittel gegen Magensäure auswählen';
     teil = `<p class="klein">Auch eins, das du nur ab und zu bei Sodbrennen nimmst. Zum Beispiel Pantoprazol,
       Pantozol, Omeprazol, Nexium, Famotidin, Rennie, Maaloxan, Gaviscon oder Natron. Davon hängt ab, ob es
       zu deinen Mitteln einen Hinweis gibt.</p>
-      <div class="reihe">${knopf('rueckfrage-saeure-ja', 'Ja', 'btn-primary',
-    mitK('aria-label="Ja – das Mittel gegen Magensäure unter „Meine Mittel“ anlegen"'))}
+      <div class="reihe">${knopf('rueckfrage-saeure-ja', 'Ja', 'btn-primary', mitK(`aria-label="${jaSagt}"`))}
         ${knopf('rueckfrage-saeure-nein', 'Nein', 'btn-ghost', mitK('aria-label="Nein, kein Mittel gegen Magensäure"'))}</div>`;
   } else if (schritt === 'merken') {
+    /*
+     * Wie lange die Form an der Einnahme gilt, sagt formZu: Für ein
+     * eingetragenes Mittel zählt die jüngste bekannte Form der letzten
+     * WECHSEL_TAGE Tage – auch für spätere Einnahmen ohne Formangabe. Der
+     * Text sagt genau das. „Nur diese Einnahme" wäre falsch und wirkte in
+     * die unsichere Richtung: Wer bei einer neuen Packung mit anderer Form
+     * nichts angibt, bekäme 30 Tage lang den Hinweis zur alten.
+     */
     const e = store.eintragVon(u.einnahme);
     frage = 'Auch unter „Meine Mittel“ merken?';
-    teil = `<p class="klein">Die Form steht jetzt bei deiner Einnahme ${esc(wannText(e.am))}. Für spätere
-      Einnahmen gilt sie nur, wenn ${name} unter „Meine Mittel“ steht. Dort trägt dann auch ein Tipp auf
-      „Tag“ eine Einnahme ein.</p>
+    teil = `<p class="klein">Die Form steht jetzt bei deiner Einnahme ${esc(wannText(e.am))}. Sie gilt ab dieser
+      Einnahme ${WECHSEL_TAGE} Tage lang, auch für weitere Einnahmen ohne Formangabe. Dauerhaft gilt sie, wenn
+      ${name} unter „Meine Mittel“ steht. Dort trägt dann auch ein Tipp auf „Tag“ eine Einnahme ein.</p>
       <div class="reihe">${knopf('rueckfrage-merken', 'Ja, merken', 'btn-primary',
     mitK(`aria-label="${esc(`${x.name} mit dieser Form unter „Meine Mittel“ anlegen`)}"`))}
-        ${knopf('rueckfrage-nicht-merken', 'Nur diese Einnahme', 'btn-ghost',
-    mitK('aria-label="Nicht anlegen – die Form gilt nur für diese Einnahme"'))}</div>`;
+        ${knopf('rueckfrage-nicht-merken', 'Nicht merken', 'btn-ghost',
+    mitK('aria-label="Nicht unter „Meine Mittel“ anlegen – die Form bleibt bei der Einnahme"'))}</div>`;
   } else if (schritt === 'welches') {
     frage = 'Welches Mittel gegen Magensäure?';
     const zurueck = knopf('rueckfrage-zurueck', 'Zurück', 'btn-ghost btn-klein', mitK());
@@ -1606,7 +1656,7 @@ function saeureAnlegen(name, trotzdem) {
     return;
   }
   if (!trotzdem && !istSaeureMittel(n)) {
-    ui.rueckfrage = { ...u, schritt: 'pruefen', eigen: n };
+    rueckfrageSchritt({ ...u, schritt: 'pruefen', eigen: n });
     rueckfrageFokus();
     zeichne();
     return;
@@ -1650,12 +1700,18 @@ function v29Offen(s, g) {
   return s.v29Gesagt !== true && s.eintraege.length > 0 && (!g.am || g.am === heuteISO());
 }
 
+/*
+ * Ohne Wertung: Oben stehen nur die ungelesenen Hinweise der Stufe A. Die
+ * Stufen sagen, was die Fachinformation zu einem Paar schreibt, nicht, wie
+ * wichtig es ist – „die wichtigen stehen oben" erklärte die übrigen still
+ * für unwichtig, und oft steht über dieser Karte gar keiner.
+ */
 function v29Karte() {
   return `<div class="karte hinweis neu-karte" role="region" aria-labelledby="neuTitel">
     <h3 id="neuTitel">Neu: Hinweise zu zwei Mitteln zusammen</h3>
     <p class="klein">Zu einigen wenigen Paaren von Mitteln zeigt Body Check jetzt einen Hinweis, vor allem
-      zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Die wichtigen stehen hier oben, alle
-      unter „Mehr“ › „Meine Mittel“.</p>
+      zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Alle stehen unter „Mehr“ › „Meine
+      Mittel“, einige auch hier oben.</p>
     <p class="klein">Steht kein Hinweis da, heißt das nicht, dass deine Mittel zusammenpassen. Body Check
       prüft nicht alle Mittel – das kann die Apotheke.</p>
     <p class="klein">Es klappt nur mit Mitteln, die hier stehen: unter „Meine Mittel“ oder in den letzten
@@ -7805,14 +7861,17 @@ const AKTION = {
   },
   /*
    * Die Rückfrage zu Methylphenidat (siehe rueckfrageKarte). Jede Antwort
-   * prüft zuerst, ob die Frage noch offen ist – ein doppelter Tipp ändert
-   * nichts –, aber nicht, ob sie heute dran ist.
+   * prüft zuerst, ob die Frage noch offen ist – ein zweiter Tipp auf
+   * denselben Knopf ändert nichts –, aber nicht, ob sie heute dran ist. Dass
+   * ein Doppeltipp nicht gleich den Knopf des nächsten Schritts trifft, der
+   * an derselben Stelle steht, regelt nachtippSperren().
    *
    * Die Form landet dort, wo formZu sie liest: Steht der Name unter „Meine
    * Mittel", dort (bei jedem Mittel dieses Namens) – das ist der dauerhafte
    * Ort, von dem aus Knopf und Bogen sie weitertragen. Sonst an der jüngsten
-   * Einnahme der letzten WECHSEL_TAGE Tage; dort gilt sie so lange, und die
-   * Karte bietet danach an, das Mittel unter „Meine Mittel" zu merken.
+   * Einnahme der letzten WECHSEL_TAGE Tage; dort gilt sie ab dieser Einnahme
+   * WECHSEL_TAGE Tage lang, auch für weitere Einnahmen ohne Formangabe, und
+   * die Karte bietet danach an, das Mittel unter „Meine Mittel" zu merken.
    */
   'rueckfrage-form': (el) => {
     const s = store.zustandLesen();
@@ -7843,7 +7902,7 @@ const AKTION = {
       if (!e) { zeichne(); return; }
       store.eintragAendern(e.id, { form: f.id });
       if (s.standardMittel.length < store.STANDARD_HOECHSTENS) {
-        ui.rueckfrage = { schluessel: k, schritt: 'merken', einnahme: e.id, form: f.id };
+        rueckfrageSchritt({ schluessel: k, schritt: 'merken', einnahme: e.id, form: f.id });
       }
       melden(`Form: ${f.kurzname}. Bei deiner Einnahme ${wannText(e.am)} vermerkt.${hinweisZusatz(vorher, vorherAlle)}`);
     }
@@ -7871,33 +7930,43 @@ const AKTION = {
     rueckfrageFokus();
     zeichne();
   },
+  // Die Form bleibt an der Einnahme – und gilt dort so, wie formZu sie liest.
   'rueckfrage-nicht-merken': () => {
     ui.rueckfrage = null;
-    melden('Gut. Die Form gilt für diese eine Einnahme.');
+    melden(`Gut. Die Form gilt ab dieser Einnahme ${WECHSEL_TAGE} Tage lang, auch für weitere ohne Formangabe. `
+      + 'Eine andere kannst du beim Eintragen im Bogen angeben.');
     rueckfrageFokus();
     zeichne();
   },
+  /*
+   * „Ja" führt zur Wahl. Ist „Meine Mittel" voll, steht dort der Satz dazu
+   * und der Weg hin. Der Tag zählt trotzdem (siehe tagAnsicht): Den Weg gibt
+   * es gleich, und WELCHES bleibt für den Rest des Tages stehen – wer eins
+   * entfernt und zurückkommt, findet die Wahl.
+   */
   'rueckfrage-saeure-ja': (el) => {
     const s = store.zustandLesen();
     const k = el.dataset.schluessel;
     const x = rueckfrageOffen(s, k);
     if (!x || x.frage !== 'saeure') { zeichne(); return; }
-    // Kein Platz unter „Meine Mittel": Dieser Tag zählt nicht, die Frage
-    // kommt wieder als erster Tag.
-    if (s.standardMittel.length >= store.STANDARD_HOECHSTENS) store.gezeigtZuruecknehmen(heuteISO());
-    ui.rueckfrage = { schluessel: k, schritt: 'welches', eigen: '' };
+    rueckfrageSchritt({ schluessel: k, schritt: 'welches', eigen: '' });
     rueckfrageFokus();
     zeichne();
   },
-  // „Nein" gilt für alle Namen mit offener Säurefrage: gefragt ist nach dem
-  // Menschen, nicht nach dem einzelnen Mittel.
+  /*
+   * „Nein" gilt für alle Namen, bei denen gerade danach gefragt würde:
+   * gefragt ist nach dem Menschen, nicht nach dem einzelnen Mittel. Ein
+   * Methylphenidat, das später unter einem neuen Namen dazukommt, ist ein
+   * neues Mittel und wird noch einmal gefragt – die Meldung sagt das.
+   */
   'rueckfrage-saeure-nein': (el) => {
     const s = store.zustandLesen();
     const x = rueckfrageOffen(s, el.dataset.schluessel);
     if (!x || x.frage !== 'saeure') { zeichne(); return; }
     store.rueckfrageSetzen(alleOffenSaeure(s), { saeure: 'nein' });
     ui.rueckfrage = null;
-    melden('Gemerkt. Dazu fragt Body Check nicht noch einmal. Kommt eins dazu, trag es beim Eintragen oder unter „Meine Mittel“ ein.');
+    melden('Gemerkt. Dazu fragt Body Check erst bei einem neuen Methylphenidat-Namen wieder. '
+      + 'Kommt ein Mittel gegen Magensäure dazu, trag es beim Eintragen oder unter „Meine Mittel“ ein.');
     rueckfrageFokus();
     zeichne();
   },
@@ -7909,7 +7978,7 @@ const AKTION = {
   'rueckfrage-trotzdem': () => saeureAnlegen((ui.rueckfrage || {}).eigen, true),
   'rueckfrage-aendern': () => {
     if (!ui.rueckfrage) { zeichne(); return; }
-    ui.rueckfrage = { ...ui.rueckfrage, schritt: 'welches' };
+    rueckfrageSchritt({ ...ui.rueckfrage, schritt: 'welches' });
     rueckfrageFokus('rueckfrageName');
     zeichne();
   },
@@ -7918,8 +7987,10 @@ const AKTION = {
     rueckfrageFokus();
     zeichne();
   },
-  // „Meine Mittel" ist voll: dorthin, und beim Zurückkommen steht die Wahl wieder da.
-  'rueckfrage-meine-mittel': () => meineMittelZeigen(),
+  // „Meine Mittel" ist voll: dorthin, zur Liste mit den Knöpfen zum Entfernen –
+  // ohne ein Formular für ein neues Mittel, das sich ohnehin nicht speichern
+  // ließe. Beim Zurückkommen (am selben Tag) steht die Wahl wieder da.
+  'rueckfrage-meine-mittel': () => meineMittelZeigen({ formular: false }),
   // „Später" und „Nicht mehr fragen": für heute keine Rückfrage mehr, auch
   // nicht zu einem zweiten Namen.
   'rueckfrage-spaeter': () => {
@@ -7928,15 +7999,23 @@ const AKTION = {
     melden('Gut. Frühestens in einer Woche fragt Body Check noch ein letztes Mal.');
     zeichne();
   },
+  /*
+   * „Rückgängig" ist der einzige Weg zurück und steht acht Sekunden. Hatte
+   * der Knopf den Fokus (Tastatur, Schaltersteuerung, VoiceOver), geht er
+   * dorthin und nicht mit der verschwundenen Karte an den Seitenanfang –
+   * wie beim Entfernen unter „Meine Mittel".
+   */
   'rueckfrage-nie': (el) => {
     const k = el.dataset.schluessel;
     const x = rueckfrageOffen(store.zustandLesen(), k);
     if (!x) { zeichne(); return; }
+    const fokus = document.activeElement === el;
     store.rueckfrageSetzen([k], { nie: true });
     store.rueckfrageZu(heuteISO());
     ui.rueckfrage = null;
     melden(`Gut. Zu ${x.name} fragt Body Check nicht mehr.`, { act: 'rueckfrage-nie-zurueck', id: k, text: 'Rückgängig' });
     zeichne();
+    fokusNachEntfernen(fokus);
   },
   'rueckfrage-nie-zurueck': (el) => {
     const k = el.dataset.id;
@@ -7944,6 +8023,7 @@ const AKTION = {
     store.rueckfrageSetzen([k], { nie: false });
     store.rueckfrageZu(null);
     melden('Gut. Die Frage steht wieder auf „Tag“.');
+    rueckfrageFokus();
     zeichne();
   },
   /*
@@ -8927,6 +9007,27 @@ const AKTION = {
   },
 };
 
+/*
+ * Nach einer Antwort auf die Rückfrage oder die Karte „Neu" steht an
+ * derselben Stelle sofort etwas anderes: der nächste Schritt, dessen Knöpfe
+ * genau dort liegen, wo eben der Finger war, der Hinweis, der jetzt
+ * erscheint, oder – wenn die Karte schließt – das, was darunter stand. Ein
+ * Doppeltipp oder ein nachgesetzter Finger beantwortete sonst gleich die
+ * nächste Frage, legte ein Mittel an, das niemand gewählt hat, speicherte
+ * ein „Nein" auf eine Frage, die nie zu sehen war, oder tippte einen Hinweis
+ * weg. Darum zählt danach NACHTIPP_MS lang kein Tipp im Inhalt der Seite –
+ * so lange braucht ohnehin, wer die neue Frage liest. Die Meldung unten
+ * („Rückgängig") und die Reiter liegen außerhalb und bleiben antippbar.
+ */
+const NACHTIPP_MS = 500;
+const NACH_ANTWORT = /^(rueckfrage-|v29-)/;
+let nachtippUhr = 0;
+function nachtippSperren() {
+  ui.nachtipp = true;
+  clearTimeout(nachtippUhr);
+  nachtippUhr = setTimeout(() => { ui.nachtipp = false; }, NACHTIPP_MS);
+}
+
 document.addEventListener('click', (ev) => {
   const el = ev.target.closest('[data-act]');
   if (!el || el.disabled) return;
@@ -8935,7 +9036,9 @@ document.addEventListener('click', (ev) => {
   // Textfelder tragen ebenfalls data-act, ihre Werte kommen über 'input'.
   if (el.matches('input, textarea')) return;
   ev.preventDefault();
+  if (ui.nachtipp && viewEl.contains(el)) return;
   fn(el);
+  if (NACH_ANTWORT.test(el.dataset.act)) nachtippSperren();
 });
 
 /*
@@ -9045,6 +9148,7 @@ document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Enter' && !ev.isComposing && ev.target && ev.target.id === 'rueckfrageName') {
     ev.preventDefault();
     AKTION['rueckfrage-eigen']();
+    nachtippSperren();
   }
 });
 
