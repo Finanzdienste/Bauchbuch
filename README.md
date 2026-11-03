@@ -2301,7 +2301,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Zweiundsiebzig Dateien, über 3300 Prüfungen, alle in einem echten Chromium. Kein
+Vierundsiebzig Dateien, über 3500 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -2351,6 +2351,7 @@ den Rückgabewert.
 | `test-geraete.mjs` | elf Geräte, jedes mit seiner Anleitung: das iPad, das sich als Mac meldet, der Mac, der kein iPad ist, und die Sieben-Tage-Regel in Safari, auch wenn Safari zur Speicherfrage nein sagt |
 | `test-anleitung.mjs` | die Anleitung nur auf iPhone und iPad: die Schritte auf den Home-Bildschirm schon in der Begrüßung, die Frage „liegt es schon da?" vor den Schritten, ein Tipp auf „Mehr" führt immer zu „Mehr", „Als Text" gilt erst nach dem Kopieren als gesichert, das Dateifeld hängt beim Einlesen im Dokument – und in der App steht keine Sieben-Tage-Regel |
 | `test-ablaeufe.mjs` | jeder Shell-Schritt der GitHub-Abläufe geht durch `bash -n` – ein falsches Anführungszeichen fällt hier auf, nicht erst, wenn der Schritt gebraucht wird |
+| `test-allgemein.mjs` | die Wächter fürs öffentliche Repository, in Wegwerf-Repositorys mit einer Probeliste statt der echten: CI liest auch nach einem Push auf main alle Commit-Texte und meldet die Zeile, nie den Text; `commit-msg` prüft auch Zeilen mit # bis zur Scherenzeile; `pre-commit` sieht auch Namen von Bildern, leeren und umbenannten Dateien; `allgemein.py` liest auch `css/`, `index.html` und `sw.js` |
 | `test-zeitknoepfe.mjs` | „morgens" und „vor dem Essen" ergeben eine Uhrzeit, die als ungefähr gilt – und eine ungefähre Zeit zählt bei „wie lange nach dem Essen" nicht mit |
 | `test-standardmittel.mjs` | ein Mittel mit Dosis einmal anlegen, dann mit einem Tipp eintragen – ohne Dubletten und höchstens zwölf; die Form bleibt bei einer neuen Dosis und geht bei einem anderen Mittel oder Namen, auch beim Ändern eines Eintrags |
 | `test-zeit-mittel.mjs` | als iPhone mit 320 Pixeln: „abends" rastet nicht am Frühstück ein – auch ohne gewählte Tageszeit und in jeder Reihenfolge des Nachtragens –, eine Mahlzeit zieht ungefähre Einträge nach, gleiche Minute ergibt keinen Nüchternschmerz, „nach dem Essen" ohne Mahlzeit auch nicht, ein Auslöser im Knopf-Abendessen fällt auf, dasselbe Mittel morgens und abends, „Meine Mittel" unter „Mehr" ohne Einnahme, die Dosis im Bericht – und alte Stände laden weiter |
