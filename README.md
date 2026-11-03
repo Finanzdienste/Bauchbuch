@@ -654,7 +654,8 @@ Karte „Kopfschmerzen" unter Muster stellt sie nach oben: **Kopfschmerztage und
 Tage mit Akutmittel je 30-Tage-Fenster**, drei Fenster nebeneinander, dazu
 Stärke, Dauer, Ausfalltage über 90 Tage, Merkmale – und ein Kalender nach
 Monaten. Die App kennt dafür die Mittel: Triptane, Kombinationsmittel – jedes
-Schmerzmittel mit Koffein, mit ASS wie mit Paracetamol –, Schmerzmittel ohne
+Schmerzmittel mit Koffein, dessen Wirkstoff sie erkennt, mit ASS wie mit
+Paracetamol –, Schmerzmittel ohne
 Entzündungshemmung (Paracetamol, Metamizol), Opioide, die neuen Gepante – und
 was nie als Akutmittel zählt: die vorbeugenden Mittel, Koffein als Tablette
 und die Mittel bei ADHS (`js/mittel.js`). Ein Gel fürs Knie zählt nicht, ein
@@ -913,10 +914,19 @@ er allein, ohne den Hinweis zum Wirkstoff. Die Form fragt der Medikamenten-Bogen
 Bindestrich oder ® geschrieben) und „Meine Mittel“; ältere
 Einträge gelten als „Form nicht angegeben“. „Weiß ich nicht“ bei einer
 Einnahme ist keine Auskunft: Es überdeckt weder die Form unter „Meine Mittel“
-noch einen eindeutigen Namen.
+noch einen eindeutigen Namen. Eine Form aus einer Einnahme der letzten 30
+Tage geht vor „Meine Mittel“, eine ältere nicht – sie sagt nichts über die
+Packung von heute. Sagt die jüngste Einnahme nichts zur Form, gilt die Kapsel
+mit zweierlei Kügelchen unter „Meine Mittel“ auch vor einer anderen Form aus
+diesen Tagen: im Zweifel die Form, zu der die Fachinformation die
+Gegenanzeige nennt. Ein Mittel, das länger nicht genommen wurde, behält in der
+Liste „Was du eingetragen hast“ die Form seines letzten Eintrags.
 Die Form gehört zum Mittel, nicht zum Bogen: Wer im Bogen ein anderes eigenes
-Mittel wählt oder eins unter „Mehr“ umbenennt, nimmt die alte Form nicht mit –
-nur eine geänderte Dosis lässt sie stehen.
+Mittel wählt, beim Ändern eines Eintrags einen anderen Namen eintippt oder ein
+Mittel unter „Mehr“ umbenennt, nimmt die alte Form nicht mit – vorgewählt wird
+neu, nach dem eigenen Mittel oder dem Namen. Nur eine geänderte Dosis, ein
+anders geschriebener gleicher Name oder eine im Bogen selbst angetippte Form
+lassen sie stehen.
 Auf Zweigen aus dem Briefkasten hält `tools/pruefung/unantastbar.py` die Texte
 zu den Formen, die Hinweise der ADHS-Mittel, die Paartexte und den Massagetext
 fest wie die Warnzeichen.
@@ -1041,7 +1051,10 @@ Wirkdauer:
   Kiefer und Pressen; harter Stuhl nur beschrieben. Dazu immer der Satz, dass
   Tage ohne Mittel keine Zufallsauswahl sind. Ob es „zu wenige“ Tage ohne
   Mittel sind, hängt an den Vergleichen, nicht an der Zahl der angegebenen
-  Tage: Ein Tag, an dem nur „ohne Mittel“ steht, ist nicht notiert.
+  Tage: Ein Tag, an dem nur „ohne Mittel“ steht, ist nicht notiert. Und an
+  den Zeilen, die gezeigt werden: Schlaf, Kiefer und Pressen brauchen nur
+  ihren Wert, keinen für Bauch oder Kopf notierten Tag. Hat eine gezeigte
+  Zeile genug Tage ohne Mittel, steht neben ihrem Vergleich kein „zu wenige“.
 * **A3** Schlaf nach späterer gegen frühere letzte Einnahme, geteilt an der
   eigenen mittleren Uhrzeit, nur Tage mit der häufigsten Zahl von Gaben, mit
   der Nacht davor daneben.
@@ -1062,7 +1075,12 @@ ist kein Wechsel, ein Wechsel des Stimulans dagegen schon, auch wenn ein
 zweites Mittel durchläuft. Sonst stünde mittags, bevor ein Abendmittel
 eingetragen ist, ein anderer Abschnitt da als abends. Wer seit mindestens
 drei Tagen kein Stimulans eingetragen hat und seither ein Mittel nimmt, das
-es davor nicht gab, hat gewechselt; dann zählen die Tage seither.
+im Abschnitt des Stimulans nicht vorkam – auch eines, das schon früher
+genommen wurde –, hat gewechselt; ebenso, wer seit zwei Wochen keins
+eingetragen hat, auch wenn ein zweites Mittel weiterläuft. Dann zählen die
+Tage seither, und das Stimulans steht mit seinem letzten Einnahmetag da statt
+als laufendes Mittel. Kommt dasselbe Stimulans nach einer Pause wieder, gilt
+sein Abschnitt von vorher weiter.
 Fragen für die Sprechstunde gibt es nur bei einem Urteil, höchstens drei.
 
 #### Kiefer, Nacken, Schiene (eingeschaltet)
@@ -1085,8 +1103,9 @@ Gerechnet wird in `js/spannung.js`:
 
 * **V1** Nächte mit gegen ohne Schiene: Kopfschmerz am Morgen und Kiefer am
   Morgen. „Am Morgen“ heißt: mit „Schon beim Aufwachen da“ oder vor der
-  ersten Einnahme eines ADHS-Mittels am Morgen (bis 11 Uhr), sonst vor 9 Uhr –
-  eine Einnahme am Abend verschiebt nichts. Ist die Einnahme am Morgen nur
+  ersten Einnahme eines ADHS-Mittels am Morgen (5 bis 11 Uhr), sonst vor 9 Uhr –
+  eine Einnahme am Abend verschiebt nichts, auch nicht eine nach Mitternacht
+  eingetragene. Ist die Einnahme am Morgen nur
   ungefähr, bleibt offen, was davor lag, und der Tag zählt nicht. Der Kopf am
   Morgen zählt erst ab der Nacht von gestern – heute kann ein Kopfschmerz
   „Schon beim Aufwachen da“ noch eingetragen werden. Nächte nach
@@ -1146,9 +1165,14 @@ Sicherung ältere Einträge dazu, deren Karte dort noch nicht gelesen war.
   den Magen kein entzündungshemmendes Mittel (bisher als Kombinationsmittel bzw.
   gar nicht erkannt). Das gilt nur für einen Namen, der außer Koffein, Form und
   Stärke nichts trägt: Steht noch etwas da, das die App nicht kennt
-  („Kopfschmerztablette mit Koffein“), bekommt der Name keine Gruppe und steht
-  unter „nicht zugeordnet“ – er ist womöglich ein Kombinationsmittel und darf
-  nicht still aus der Zählung fallen. Zwei Marken mit belegter Zusammensetzung
+  („Kopfschmerztablette mit Koffein“), bekommt der Name keine Gruppe: Was
+  darin steckt, ist offen, also zählt er nicht mit – weder als Akutmittel
+  noch für den Magen. Weil er womöglich ein Kombinationsmittel ist, fällt er
+  aber nicht still heraus: An Kopfschmerztagen steht er mit Namen unter „nicht
+  zugeordnet“, und hat er bis Fassung 27 als Kombinationsmittel gezählt (mit
+  „Koffein“ geschrieben), nennt ihn die Karte „Was sich an deinen Zahlen
+  geändert hat“ – mit dem Hinweis, dass die App ihn mit dem Wirkstoff im
+  Namen wieder zuordnet. Zwei Marken mit belegter Zusammensetzung
   kennt die App: „Spalt plus Coffein N“ (ASS, Paracetamol und Coffein) und
   „Vivimed mit Coffein“ (Paracetamol und Coffein). Thomapyrin und Neuralgin
   bleiben Kombinationsmittel. Am Kopfschmerztag stehen Kombinationsmittel in der
@@ -2328,7 +2352,7 @@ den Rückgabewert.
 | `test-anleitung.mjs` | die Anleitung nur auf iPhone und iPad: die Schritte auf den Home-Bildschirm schon in der Begrüßung, die Frage „liegt es schon da?" vor den Schritten, ein Tipp auf „Mehr" führt immer zu „Mehr", „Als Text" gilt erst nach dem Kopieren als gesichert, das Dateifeld hängt beim Einlesen im Dokument – und in der App steht keine Sieben-Tage-Regel |
 | `test-ablaeufe.mjs` | jeder Shell-Schritt der GitHub-Abläufe geht durch `bash -n` – ein falsches Anführungszeichen fällt hier auf, nicht erst, wenn der Schritt gebraucht wird |
 | `test-zeitknoepfe.mjs` | „morgens" und „vor dem Essen" ergeben eine Uhrzeit, die als ungefähr gilt – und eine ungefähre Zeit zählt bei „wie lange nach dem Essen" nicht mit |
-| `test-standardmittel.mjs` | ein Mittel mit Dosis einmal anlegen, dann mit einem Tipp eintragen – ohne Dubletten und höchstens zwölf; die Form bleibt bei einer neuen Dosis und geht bei einem anderen Mittel oder Namen |
+| `test-standardmittel.mjs` | ein Mittel mit Dosis einmal anlegen, dann mit einem Tipp eintragen – ohne Dubletten und höchstens zwölf; die Form bleibt bei einer neuen Dosis und geht bei einem anderen Mittel oder Namen, auch beim Ändern eines Eintrags |
 | `test-zeit-mittel.mjs` | als iPhone mit 320 Pixeln: „abends" rastet nicht am Frühstück ein – auch ohne gewählte Tageszeit und in jeder Reihenfolge des Nachtragens –, eine Mahlzeit zieht ungefähre Einträge nach, gleiche Minute ergibt keinen Nüchternschmerz, „nach dem Essen" ohne Mahlzeit auch nicht, ein Auslöser im Knopf-Abendessen fällt auf, dasselbe Mittel morgens und abends, „Meine Mittel" unter „Mehr" ohne Einnahme, die Dosis im Bericht – und alte Stände laden weiter |
 | `test-stand.mjs` | jede Datei des Offline-Vorrats zählt mit ihrem Inhalt, `sw.js` selbst auch – und ein vertippter Aufruf des Bauskripts baut nichts |
 | `test-ideen-einzeln.mjs` | jede Idee genau einmal, die älteste zuerst; was während eines Versands dazukommt, geht mit, was gelöscht wird, nicht – und wer gerade tippt, tippt weiter |
@@ -2346,13 +2370,13 @@ den Rückgabewert.
 | `test-spaetphase.mjs` | nach Wochen Tagebuch steht nicht alles gleichzeitig da – der umgekehrte Fehler der ersten Wochen |
 | `test-gold.mjs` | 34 Rechnungen über feste Tagebücher ohne alles Neue ergeben Zeichen für Zeichen, was die Fassung 27 gerechnet hat (`tests/gold/`) – im Bericht nur die langen Zeilen umbrochen |
 | `test-notiert.mjs` | ein Tag nur mit einem ADHS-Mittel, einer Schiene oder einem Tag ohne Mittel ist eine Lücke, einer nur mit irgendeinem anderen bekannten Mittel nicht; dasselbe Tagebuch mit einem ADHS-Mittel an jedem Tag und allen neuen Angaben ergibt dieselben Zahlen |
-| `test-adhs-wissen.mjs` | Namen zur Gruppe, Formen aus dem Namen, Koffein-Regel, neue Säureblocker-Namen, jedes Paar an und aus – und kein Text mit Dosis oder Empfehlung |
+| `test-adhs-wissen.mjs` | Namen zur Gruppe, Formen aus dem Namen, Koffein-Regel, neue Säureblocker-Namen, jedes Paar an und aus, eine Form von vor einem halben Jahr sticht „Meine Mittel“ nicht – und kein Text mit Dosis oder Empfehlung |
 | `test-adhs-ui.mjs` | als iPhone: ohne Schalter nichts Neues außer dem, was für alle gilt; Angebot einmal, „jetzt genommen“ mit Häkchen auch zu anderer Tageszeit und bei zwei gleichen Mitteln, „Heute keins“ nur bei Stimulanzien, „Zum Essen?“ bis eine Stunde danach, nie ein „noch nicht“ |
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; alte Kopfmerkmale lassen sich abwählen und wieder wählen; der Massagetext auch ohne Schalter und bei einer eigenen „Massagepistole“, die unter „Mehr“ als fest eingebaut vermerkt ist und ihre Einträge behält; kein Angebot durch Nackenschmerz |
-| `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
+| `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, auch für einen Namen mit Koffein, der nicht mehr mitzählt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
 | `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste |
-| `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, ein Fenster, das noch läuft, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge; der Abschnitt liegt mittags wie abends, ein Wechsel des Stimulans setzt ihn auch bei durchlaufendem Zweitmittel; die Schwelle des Zeitprofil-Vorbehalts |
-| `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend macht keinen Kopfschmerz am Nachmittag zu einem am Morgen, der laufende Morgen zählt noch nicht, ein Folgetag, der heute ist, auch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
+| `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, ein Fenster, das noch läuft, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge; der Abschnitt liegt mittags wie abends, ein Wechsel des Stimulans setzt ihn auch bei durchlaufendem Zweitmittel, ein abgesetztes Stimulans und der Rückwechsel auf ein früheres Mittel beenden ihn; „zu wenige“ nur, wenn keine gezeigte Zeile genug Tage ohne Mittel hat; die Schwelle des Zeitprofil-Vorbehalts |
+| `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend oder nach Mitternacht macht keinen Kopfschmerz am Nachmittag oder Morgen zu einem „am Morgen“ bzw. „nicht am Morgen“, der laufende Morgen zählt noch nicht, ein Folgetag, der heute ist, auch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
 | `test-nulltagebuch.mjs` | 300 Tagebücher ohne Zusammenhang, aber mit Störwegen: je Rechnung höchstens 6 %, je Karte höchstens 10 % mit Urteil |
 | `test-adhs-gegenprobe.mjs` | R0: Rechnungen, Rat-Karte und Bericht mit jedem Stand der Schalter gleich – ohne Schalter fehlen nur die neuen Abschnitte und Karten |
 | `test-adhs-karte.mjs` | als iPhone: nach einem Wechsel trägt der Befund zum Bauch den Namen des früheren Mittels und seinen letzten Einnahmetag, die Zahl der Tage ohne Mittel ist die Summe ihrer Gründe, und Tage, an denen nur „ohne Mittel“ steht, ergeben „zu wenige“ ohne Zielzahl |

@@ -371,6 +371,13 @@ const adhsStimSchluessel = (k) => STIMULANZIEN.includes(String(k).split(':')[0])
 const ADHS_WEG_TAGE = 3;
 
 /**
+ * Ab wie vielen Tagen ohne Stimulans es als abgesetzt gilt, auch wenn ein
+ * zweites Mittel weiterläuft und nichts Neues dazukommt. Zwei Wochen: Eine
+ * Woche ohne – Ferien, ein Infekt – ist noch kein Absetzen.
+ */
+const ADHS_ABGESETZT_TAGE = 14;
+
+/**
  * Der Wechselpunkt nach der bisherigen Regel: der erste Tag nach dem
  * letzten, an dem keiner der Bezugsschlüssel stand.
  */
@@ -401,11 +408,17 @@ function adhsAbschnittVon(isos, schluesselAm, bezug) {
  * im Lauf des Tages. Umgekehrt setzte ein Wechsel des Stimulans nie zurück,
  * solange das zweite Mittel durchläuft.
  *
- * Vom Stimulans weg gewechselt hat, wer seit mindestens ADHS_WEG_TAGE Tagen
- * keines eingetragen hat und seither ein Mittel nimmt, das es davor nicht
- * gab. Dann – und ohne jedes Stimulans – gilt die Regel über alle Mittel,
- * über die Tage nach dem letzten Stimulans: Bezug sind die Mittel des
- * letzten Einnahmetags.
+ * Vom Stimulans weg ist, wer seit mindestens ADHS_WEG_TAGE Tagen keines
+ * eingetragen hat und seither ein Mittel ohne Stimulans nimmt, das im
+ * Abschnitt des letzten Stimulans nicht vorkam – auch eines, das schon früher
+ * einmal genommen wurde (zurück auf das alte Mittel). Ebenso, wer seit
+ * ADHS_ABGESETZT_TAGE Tagen keines eingetragen hat, auch wenn ein zweites
+ * Mittel weiterläuft. Sonst bliebe ein seit Monaten abgesetztes Stimulans in
+ * Karte und Bericht das laufende Mittel, und A2 und A3 rechneten über seine
+ * alten Tage. Dann – und ohne jedes Stimulans – gilt die Regel über alle
+ * Mittel, über die Tage nach dem letzten Stimulans: Bezug sind die Mittel des
+ * letzten Einnahmetags. Kommt dasselbe Stimulans nach einer Pause wieder,
+ * bestimmt es den Abschnitt wieder, von seinem Beginn an.
  *
  * `schluessel` sind die Mittel des Abschnitts in der Kopfzeile: der Bezug und
  * was in den letzten sieben Tagen bis zum letzten Einnahmetag dazukam – damit
@@ -425,17 +438,25 @@ export function adhsAbschnitt(einnahmen, heute) {
   const stimAm = (iso) => alleAm(iso).filter(adhsStimSchluessel);
   const stimTage = isos.filter((iso) => stimAm(iso).length);
   const letzterStim = stimTage.length ? stimTage[stimTage.length - 1] : null;
-  // Ein Mittel ohne Stimulans, das erst nach dem letzten Stimulans-Tag
-  // zum ersten Mal dasteht – nach mindestens ADHS_WEG_TAGE Tagen ohne.
-  const erstesMal = new Map();
-  isos.forEach((iso) => tageKeys.get(iso).forEach((k) => { if (!erstesMal.has(k)) erstesMal.set(k, iso); }));
-  const neuDanach = letzterStim !== null && letzterStim <= plusTage(letzter, -ADHS_WEG_TAGE)
-    && [...erstesMal].some(([k, iso]) => !adhsStimSchluessel(k) && iso > letzterStim);
+  const stimBezug = letzterStim !== null ? new Set(stimAm(letzterStim)) : null;
+  const stimVon = letzterStim !== null ? adhsAbschnittVon(stimTage, stimAm, stimBezug) : null;
+  /*
+   * Weg vom Stimulans: seit mindestens ADHS_WEG_TAGE Tagen keines, und danach
+   * ein Mittel ohne Stimulans, das im Abschnitt des letzten Stimulans nicht
+   * vorkam – oder seit ADHS_ABGESETZT_TAGE Tagen keines.
+   */
+  let weg = false;
+  if (letzterStim !== null && letzterStim <= plusTage(letzter, -ADHS_WEG_TAGE)) {
+    const vorher = new Set();
+    isos.filter((iso) => iso >= stimVon && iso <= letzterStim).forEach((iso) => alleAm(iso).forEach((k) => vorher.add(k)));
+    weg = letzterStim <= plusTage(letzter, -ADHS_ABGESETZT_TAGE)
+      || isos.some((iso) => iso > letzterStim && alleAm(iso).some((k) => !adhsStimSchluessel(k) && !vorher.has(k)));
+  }
   let von;
   let bezug;
-  if (letzterStim !== null && !neuDanach) {
-    bezug = new Set(stimAm(letzterStim));
-    von = adhsAbschnittVon(stimTage, stimAm, bezug);
+  if (letzterStim !== null && !weg) {
+    bezug = stimBezug;
+    von = stimVon;
   } else {
     const nachher = letzterStim !== null ? isos.filter((iso) => iso > letzterStim) : isos;
     bezug = new Set(alleAm(letzter));
@@ -680,6 +701,33 @@ function a2Satz(id, v) {
     return `${zahlen} Das liegt über dem Zufallsspielraum (±${s}).`;
   }
   return `${zahlen} ${v.saetze.join(' ')}`;
+}
+
+/**
+ * R9 für A2: der Satz „zu wenige für einen Vergleich“ samt WEGLASS_SATZ – oder
+ * nichts.
+ *
+ * „zu wenige“ hängt an den Vergleichen, nicht an der Zahl der angegebenen
+ * Tage: Gewertet wird nur ein Tag mit einem Wert (R1, R10), und zehn Tage, an
+ * denen nur „ohne Mittel“ steht, ergeben keinen Vergleich. Der Satz steht nur,
+ * wenn KEINE der gezeigten Zeilen (`ids`) auf der Seite „ohne“ genug Tage hat:
+ * Schlaf, Kiefer und gepresst brauchen keinen für Bauch oder Kopf notierten
+ * Tag, nur einen Wert – sonst stünde „zu wenige“ neben einem Vergleich
+ * derselben Tage. Welche Zeilen gezeigt werden, wissen nur Karte und Bericht
+ * (Kiefer und gepresst mit dem Schalter); eine verdeckte Zeile darf den Satz
+ * nicht unterdrücken. „Davon gewertet“ ist das Höchste über dieselben Zeilen.
+ * Fehlen Tage nur auf der Seite „mit“, meinte der Satz die falsche Seite.
+ * Genannt wird nur, was es bisher gibt, nie eine Mindestzahl.
+ */
+export function a2ZuWenig(a2, ids) {
+  if (!a2 || !a2.zuWenigOhne) return [];
+  const da = (ids || []).filter((id) => id in a2.zuWenigOhne);
+  if (!da.length || !da.every((id) => a2.zuWenigOhne[id])) return [];
+  const gewertet = Math.max(...da.map((id) => a2.ohneGewertet[id]));
+  return [gewertet === a2.ohneTage
+    ? `Tage ohne ADHS-Mittel bisher: ${a2.ohneTage} – zu wenige für einen Vergleich.`
+    : `Tage ohne ADHS-Mittel bisher: ${a2.ohneTage}, davon gewertet ${gewertet} – zu wenige für einen Vergleich.`,
+  WEGLASS_SATZ];
 }
 
 /* ---------- A3 ---------- */
@@ -1018,22 +1066,8 @@ export function adhsAuswertung({
     const stuhl = vergleichUrteilen(a2.stuhlRoh, { skala: 'anteil', vergleiche, richtung: 'mit' });
     const saetze = [];
     const ohneZahl = pausen.ohne.length;
-    /*
-     * R9: „zu wenige“ hängt an den Vergleichen, nicht an der Zahl der
-     * angegebenen Tage – gewertet wird nur ein notierter Tag (R1, R10), und
-     * zehn Tage, an denen nur „ohne Mittel“ steht, ergeben keinen Vergleich.
-     * Der Satz steht, wenn weder Bauch noch Kopf auf der Seite „ohne“ genug
-     * Tage hat; fehlen sie nur auf der Seite „mit“, meinte er die falsche
-     * Seite. Genannt wird nur, was es bisher gibt, nie eine Mindestzahl.
-     */
-    const zuWenigOhne = ['bauch', 'kopf'].every((id) => zeilen[id].ohne.n < zeilen[id].mindest);
-    if (zuWenigOhne) {
-      const gewertet = Math.max(zeilen.bauch.ohne.n, zeilen.kopf.ohne.n);
-      saetze.push(gewertet === ohneZahl
-        ? `Tage ohne ADHS-Mittel bisher: ${ohneZahl} – zu wenige für einen Vergleich.`
-        : `Tage ohne ADHS-Mittel bisher: ${ohneZahl}, davon gewertet ${gewertet} – zu wenige für einen Vergleich.`,
-      WEGLASS_SATZ);
-    }
+    // „zu wenige“ entscheiden Karte und Bericht nach den Zeilen, die sie
+    // zeigen (a2ZuWenig) – hier stehen nur die Zahlen dafür.
     if (ohneZahl || pausen.beschwerden.length) {
       saetze.push('Tage ohne Mittel sind keine Zufallsauswahl. Wer an einem schlechten Tag das Mittel '
         + 'weglässt, macht die Tage ohne schlechter, ohne dass das Mittel etwas getan hat – deshalb '
@@ -1048,6 +1082,10 @@ export function adhsAuswertung({
       alleTage: ohneZahl + pausen.beschwerden.length,
       gruende: pausen.gruende,
       zeilen,
+      // Je Zeile, wie viele Tage ohne Mittel gewertet sind und ob das unter
+      // ihrer Mindestzahl liegt – für a2ZuWenig().
+      ohneGewertet: Object.fromEntries(Object.entries(zeilen).map(([id, v]) => [id, v.ohne.n])),
+      zuWenigOhne: Object.fromEntries(Object.entries(zeilen).map(([id, v]) => [id, v.ohne.n < v.mindest])),
       // Harter Stuhl nur beschrieben – ohne Urteil, auch wenn es eines gäbe.
       stuhl: {
         genug: stuhl.genug, mit: stuhl.mit, ohne: stuhl.ohne, stoerung: stuhl.stoerung,

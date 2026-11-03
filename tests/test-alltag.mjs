@@ -212,6 +212,10 @@ const speicher = (page) => page.evaluate(async (k) => {
       // Koffeintablette; eine Marke mit ASS und Koffein ein Kombinationsmittel.
       { id: 'c3', art: 'medikament', am: '2026-05-23', um: '15:00', mittel: 'Kopfweg mit Coffein', dosis: '' },
       { id: 'c4', art: 'medikament', am: '2026-05-22', um: '15:00', mittel: 'Spalt plus Koffein', dosis: '' },
+      // Mit Koffein, aber ohne einen Wirkstoff, den die App kennt: Bis Fassung
+      // 27 zählte das als Kombinationsmittel, jetzt gar nicht – das muss die
+      // Karte sagen, sonst sinkt die Zahl für den Übergebrauch still.
+      { id: 'c5', art: 'medikament', am: '2026-05-19', um: '15:00', mittel: 'Kopfschmerztabletten mit Koffein', dosis: '' },
       // „Omep" ist neu, „Omeprazol" kannte schon die Fassung 27.
       { id: 'p2', art: 'medikament', am: '2026-05-21', um: '07:00', mittel: 'Omep 20', dosis: '' },
       { id: 'p3', art: 'medikament', am: '2026-05-20', um: '07:00', mittel: 'Omeprazol', dosis: '20 mg' },
@@ -228,6 +232,13 @@ const speicher = (page) => page.evaluate(async (k) => {
   check(karte.includes('Kombinationsmittel') && karte.includes('Paracetamol mit Koffein zählt für den Magen nicht mehr als NSAR')
     && karte.includes('Paracetamol Koffein') && karte.includes('Spalt plus Koffein') && !karte.includes('Kopfweg'),
   'mit den Schmerzmitteln mit Koffein');
+  const kombiSatz = (karte.match(/Schmerzmittel mit Koffein[^.]*\./) || [''])[0];
+  check(!/\balle\b/.test(kombiSatz) && kombiSatz.includes('deren Wirkstoff die App erkennt') && !kombiSatz.includes('Kopfschmerztabletten'),
+    `der Satz zu den Kombinationsmitteln sagt nicht „alle“ und nennt nur, was die App erkennt (${kombiSatz})`);
+  const fremdSatz = (karte.match(/Kopfschmerztabletten mit Koffein[^.]*\.[^.]*\.[^.]*\./) || [''])[0];
+  check(fremdSatz.startsWith('Kopfschmerztabletten mit Koffein zählte bisher als Kombinationsmittel')
+    && fremdSatz.includes('zählt jetzt nicht mehr mit') && !karte.includes('Kopfweg mit Coffein zählte'),
+  `ein Name mit Koffein ohne erkannten Wirkstoff: die Karte sagt, dass er nicht mehr mitzählt (${fremdSatz})`);
   const saeureSatz = (karte.match(/[^.]*Säureblocker erkannt\./) || [''])[0].trim();
   check(/^(Agopton und Omep 20|Omep 20 und Agopton) werden jetzt als Säureblocker erkannt\.$/.test(saeureSatz)
     && !karte.includes('Omeprazol'),
@@ -359,6 +370,35 @@ async function neuMitKopf() {
   }, um('12:00'));
   await tipp(page, '[data-act="neu"][data-art="stuhl"]');
   check(await page.locator('.huellen-satz').count() === 0, 'bei einer Kapsel nicht');
+  await ctx.close();
+}
+{
+  /*
+   * Eine Hülle von vor einem halben Jahr, gestern „Weiß ich nicht“, unter
+   * „Meine Mittel“ die Kapsel mit zweierlei Kügelchen: Es gilt die Kapsel –
+   * im Stuhl-Bogen kein Hüllensatz, auf „Tag“ die Karte der Stufe A, und in
+   * der Liste unter „Mehr“ steht die Kapsel als Form.
+   */
+  const { ctx, page } = await iphone({
+    standardMittel: [
+      { id: 's1', mittel: 'Methylphenidat', dosis: '10 mg', tageszeit: null, bezug: null, form: 'pellet' },
+      { id: 's2', mittel: 'Rifun 40', dosis: '', tageszeit: null, bezug: null, form: null },
+    ],
+    eintraege: [
+      { id: 'm1', art: 'medikament', am: '2025-11-26', um: '07:30', mittel: 'Methylphenidat', dosis: '10 mg', form: 'oros' },
+      { id: 'm2', art: 'medikament', am: VORTAG, um: '07:30', mittel: 'Methylphenidat', dosis: '10 mg', form: 'unbekannt' },
+    ],
+  }, um('12:00'));
+  check(await page.locator('.wechsel-karte').count() === 1
+    && (await page.locator('.wechsel-karte').innerText()).includes('Kapsel mit zweierlei Kügelchen und Rifun 40'),
+  'die Karte der Stufe A steht auf „Tag“ – die alte Hülle sticht die Wahl unter „Meine Mittel“ nicht');
+  await tipp(page, '[data-act="neu"][data-art="stuhl"]');
+  check(await page.locator('.huellen-satz').count() === 0, 'im Stuhl-Bogen kein Satz zur Hülle');
+  await tipp(page, 'button.bogen-zu');
+  await tipp(page, '[data-act="tab"][data-tab="mehr"]');
+  const mehr = ((await page.locator('#view').innerText()) || '').replace(/\s+/g, ' ');
+  check(mehr.includes('Form: Kapsel mit zweierlei Kügelchen') && !mehr.includes('Form: Retardtablette mit Hülle'),
+    'unter „Mehr“ steht beim Mittel die Kapsel als Form, nicht die alte Hülle');
   await ctx.close();
 }
 

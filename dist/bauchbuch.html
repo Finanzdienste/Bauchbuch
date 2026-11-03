@@ -2495,18 +2495,43 @@ const wMinuten = (um) => {
  * eine fehlende Angabe. Sonst überdeckte ein Eintrag mit „Weiß ich nicht" die
  * Form, die man danach unter „Meine Mittel" wählt – genau dorthin schickt die
  * Karte W1u – und sogar einen Namen, der die Form eindeutig nennt.
+ *
+ * Mit `heute` zählt für ein Mittel, das gerade eingetragen ist (unter „Meine
+ * Mittel" oder in den letzten WECHSEL_TAGE Tagen eingenommen, wie bei den
+ * Paaren), nur eine Form aus diesen Tagen vor „Meine Mittel"; eine ältere
+ * nicht. Eine Hülle von vor einem halben Jahr sagt nichts über die Packung
+ * von heute – sie stäche sonst die Wahl, zu der die Karte W1u rät, und der
+ * Hinweis der Stufe A fehlte. Sagt die jüngste Einnahme dieser Tage nichts
+ * zur Form und steht unter „Meine Mittel" die Kapsel mit zweierlei
+ * Kügelchen, gilt sie auch vor einer anderen Form aus diesen Tagen: im
+ * Zweifel die Form, zu der die Fachinformation die Gegenanzeige nennt.
+ * Ein Mittel, das gerade nicht eingetragen ist, behält die Form seines
+ * letzten Eintrags – sie beschreibt, was damals genommen wurde. Ohne `heute`
+ * (die Rechnungen über das ganze Tagebuch) gilt die zuletzt eingetragene Form.
  */
-function formZu(name, standardMittel = [], eintraege = []) {
+function formZu(name, standardMittel = [], eintraege = [], heute = null) {
   const k = wKlein(name);
   if (!k) return 'unbekannt';
   const bekannt = (form) => !!form && form !== 'unbekannt';
-  const mitForm = (eintraege || [])
-    .filter((e) => e && e.art === 'medikament' && wKlein(e.mittel) === k && bekannt(e.form))
+  const eigene = (eintraege || [])
+    .filter((e) => e && e.art === 'medikament' && wKlein(e.mittel) === k)
     .sort((a, b) => (a.am === b.am ? wMinuten(a.um) - wMinuten(b.um) : (a.am < b.am ? -1 : 1)));
-  if (mitForm.length) return mitForm[mitForm.length - 1].form;
-  const gemerkt = (standardMittel || []).find((m) => m && wKlein(m.mittel) === k && bekannt(m.form));
-  if (gemerkt) return gemerkt.form;
-  return formAusName(name) || 'unbekannt';
+  const letzteForm = (liste) => {
+    const mit = liste.filter((e) => bekannt(e.form));
+    return mit.length ? mit[mit.length - 1].form : null;
+  };
+  const meine = (standardMittel || []).filter((m) => m && wKlein(m.mittel) === k);
+  const gemerkt = meine.find((m) => bekannt(m.form));
+  if (heute) {
+    const ab = wVorTagen(heute, WECHSEL_TAGE - 1);
+    const neu = eigene.filter((e) => e.am >= ab && e.am <= heute);
+    if (neu.length || meine.length) {
+      const juengste = neu[neu.length - 1];
+      if (gemerkt && gemerkt.form === 'pellet' && juengste && !bekannt(juengste.form)) return 'pellet';
+      return letzteForm(neu) || (gemerkt && gemerkt.form) || formAusName(name) || 'unbekannt';
+    }
+  }
+  return letzteForm(eigene) || (gemerkt && gemerkt.form) || formAusName(name) || 'unbekannt';
 }
 
 /**
@@ -2660,7 +2685,7 @@ function wechselHinweise(standardMittel, eintraege, heute) {
 
   // Methylphenidat und Säureblocker – je nach Form.
   paare('mph', (b) => wIstSaeure(b.name), (a, b) => {
-    const form = formZu(a.name, standardMittel, eintraege);
+    const form = formZu(a.name, standardMittel, eintraege, heute);
     if (form === 'pellet') dazu('W1', a, b, wKarteW1(b.name), W_FRAGE_A);
     else if (form === 'unbekannt') dazu('W1u', a, b, wKarteW1u(a.name, b.name), W_FRAGE_A);
     else if (form === 'sodas') dazu('W3', a, b, KLAER_SATZ, W_FRAGE_B);
@@ -9989,6 +10014,13 @@ const adhsStimSchluessel = (k) => STIMULANZIEN.includes(String(k).split(':')[0])
 const ADHS_WEG_TAGE = 3;
 
 /**
+ * Ab wie vielen Tagen ohne Stimulans es als abgesetzt gilt, auch wenn ein
+ * zweites Mittel weiterläuft und nichts Neues dazukommt. Zwei Wochen: Eine
+ * Woche ohne – Ferien, ein Infekt – ist noch kein Absetzen.
+ */
+const ADHS_ABGESETZT_TAGE = 14;
+
+/**
  * Der Wechselpunkt nach der bisherigen Regel: der erste Tag nach dem
  * letzten, an dem keiner der Bezugsschlüssel stand.
  */
@@ -10019,11 +10051,17 @@ function adhsAbschnittVon(isos, schluesselAm, bezug) {
  * im Lauf des Tages. Umgekehrt setzte ein Wechsel des Stimulans nie zurück,
  * solange das zweite Mittel durchläuft.
  *
- * Vom Stimulans weg gewechselt hat, wer seit mindestens ADHS_WEG_TAGE Tagen
- * keines eingetragen hat und seither ein Mittel nimmt, das es davor nicht
- * gab. Dann – und ohne jedes Stimulans – gilt die Regel über alle Mittel,
- * über die Tage nach dem letzten Stimulans: Bezug sind die Mittel des
- * letzten Einnahmetags.
+ * Vom Stimulans weg ist, wer seit mindestens ADHS_WEG_TAGE Tagen keines
+ * eingetragen hat und seither ein Mittel ohne Stimulans nimmt, das im
+ * Abschnitt des letzten Stimulans nicht vorkam – auch eines, das schon früher
+ * einmal genommen wurde (zurück auf das alte Mittel). Ebenso, wer seit
+ * ADHS_ABGESETZT_TAGE Tagen keines eingetragen hat, auch wenn ein zweites
+ * Mittel weiterläuft. Sonst bliebe ein seit Monaten abgesetztes Stimulans in
+ * Karte und Bericht das laufende Mittel, und A2 und A3 rechneten über seine
+ * alten Tage. Dann – und ohne jedes Stimulans – gilt die Regel über alle
+ * Mittel, über die Tage nach dem letzten Stimulans: Bezug sind die Mittel des
+ * letzten Einnahmetags. Kommt dasselbe Stimulans nach einer Pause wieder,
+ * bestimmt es den Abschnitt wieder, von seinem Beginn an.
  *
  * `schluessel` sind die Mittel des Abschnitts in der Kopfzeile: der Bezug und
  * was in den letzten sieben Tagen bis zum letzten Einnahmetag dazukam – damit
@@ -10043,17 +10081,25 @@ function adhsAbschnitt(einnahmen, heute) {
   const stimAm = (iso) => alleAm(iso).filter(adhsStimSchluessel);
   const stimTage = isos.filter((iso) => stimAm(iso).length);
   const letzterStim = stimTage.length ? stimTage[stimTage.length - 1] : null;
-  // Ein Mittel ohne Stimulans, das erst nach dem letzten Stimulans-Tag
-  // zum ersten Mal dasteht – nach mindestens ADHS_WEG_TAGE Tagen ohne.
-  const erstesMal = new Map();
-  isos.forEach((iso) => tageKeys.get(iso).forEach((k) => { if (!erstesMal.has(k)) erstesMal.set(k, iso); }));
-  const neuDanach = letzterStim !== null && letzterStim <= plusTage(letzter, -ADHS_WEG_TAGE)
-    && [...erstesMal].some(([k, iso]) => !adhsStimSchluessel(k) && iso > letzterStim);
+  const stimBezug = letzterStim !== null ? new Set(stimAm(letzterStim)) : null;
+  const stimVon = letzterStim !== null ? adhsAbschnittVon(stimTage, stimAm, stimBezug) : null;
+  /*
+   * Weg vom Stimulans: seit mindestens ADHS_WEG_TAGE Tagen keines, und danach
+   * ein Mittel ohne Stimulans, das im Abschnitt des letzten Stimulans nicht
+   * vorkam – oder seit ADHS_ABGESETZT_TAGE Tagen keines.
+   */
+  let weg = false;
+  if (letzterStim !== null && letzterStim <= plusTage(letzter, -ADHS_WEG_TAGE)) {
+    const vorher = new Set();
+    isos.filter((iso) => iso >= stimVon && iso <= letzterStim).forEach((iso) => alleAm(iso).forEach((k) => vorher.add(k)));
+    weg = letzterStim <= plusTage(letzter, -ADHS_ABGESETZT_TAGE)
+      || isos.some((iso) => iso > letzterStim && alleAm(iso).some((k) => !adhsStimSchluessel(k) && !vorher.has(k)));
+  }
   let von;
   let bezug;
-  if (letzterStim !== null && !neuDanach) {
-    bezug = new Set(stimAm(letzterStim));
-    von = adhsAbschnittVon(stimTage, stimAm, bezug);
+  if (letzterStim !== null && !weg) {
+    bezug = stimBezug;
+    von = stimVon;
   } else {
     const nachher = letzterStim !== null ? isos.filter((iso) => iso > letzterStim) : isos;
     bezug = new Set(alleAm(letzter));
@@ -10298,6 +10344,33 @@ function a2Satz(id, v) {
     return `${zahlen} Das liegt über dem Zufallsspielraum (±${s}).`;
   }
   return `${zahlen} ${v.saetze.join(' ')}`;
+}
+
+/**
+ * R9 für A2: der Satz „zu wenige für einen Vergleich“ samt WEGLASS_SATZ – oder
+ * nichts.
+ *
+ * „zu wenige“ hängt an den Vergleichen, nicht an der Zahl der angegebenen
+ * Tage: Gewertet wird nur ein Tag mit einem Wert (R1, R10), und zehn Tage, an
+ * denen nur „ohne Mittel“ steht, ergeben keinen Vergleich. Der Satz steht nur,
+ * wenn KEINE der gezeigten Zeilen (`ids`) auf der Seite „ohne“ genug Tage hat:
+ * Schlaf, Kiefer und gepresst brauchen keinen für Bauch oder Kopf notierten
+ * Tag, nur einen Wert – sonst stünde „zu wenige“ neben einem Vergleich
+ * derselben Tage. Welche Zeilen gezeigt werden, wissen nur Karte und Bericht
+ * (Kiefer und gepresst mit dem Schalter); eine verdeckte Zeile darf den Satz
+ * nicht unterdrücken. „Davon gewertet“ ist das Höchste über dieselben Zeilen.
+ * Fehlen Tage nur auf der Seite „mit“, meinte der Satz die falsche Seite.
+ * Genannt wird nur, was es bisher gibt, nie eine Mindestzahl.
+ */
+function a2ZuWenig(a2, ids) {
+  if (!a2 || !a2.zuWenigOhne) return [];
+  const da = (ids || []).filter((id) => id in a2.zuWenigOhne);
+  if (!da.length || !da.every((id) => a2.zuWenigOhne[id])) return [];
+  const gewertet = Math.max(...da.map((id) => a2.ohneGewertet[id]));
+  return [gewertet === a2.ohneTage
+    ? `Tage ohne ADHS-Mittel bisher: ${a2.ohneTage} – zu wenige für einen Vergleich.`
+    : `Tage ohne ADHS-Mittel bisher: ${a2.ohneTage}, davon gewertet ${gewertet} – zu wenige für einen Vergleich.`,
+  WEGLASS_SATZ];
 }
 
 /* ---------- A3 ---------- */
@@ -10636,22 +10709,8 @@ function adhsAuswertung({
     const stuhl = vergleichUrteilen(a2.stuhlRoh, { skala: 'anteil', vergleiche, richtung: 'mit' });
     const saetze = [];
     const ohneZahl = pausen.ohne.length;
-    /*
-     * R9: „zu wenige“ hängt an den Vergleichen, nicht an der Zahl der
-     * angegebenen Tage – gewertet wird nur ein notierter Tag (R1, R10), und
-     * zehn Tage, an denen nur „ohne Mittel“ steht, ergeben keinen Vergleich.
-     * Der Satz steht, wenn weder Bauch noch Kopf auf der Seite „ohne“ genug
-     * Tage hat; fehlen sie nur auf der Seite „mit“, meinte er die falsche
-     * Seite. Genannt wird nur, was es bisher gibt, nie eine Mindestzahl.
-     */
-    const zuWenigOhne = ['bauch', 'kopf'].every((id) => zeilen[id].ohne.n < zeilen[id].mindest);
-    if (zuWenigOhne) {
-      const gewertet = Math.max(zeilen.bauch.ohne.n, zeilen.kopf.ohne.n);
-      saetze.push(gewertet === ohneZahl
-        ? `Tage ohne ADHS-Mittel bisher: ${ohneZahl} – zu wenige für einen Vergleich.`
-        : `Tage ohne ADHS-Mittel bisher: ${ohneZahl}, davon gewertet ${gewertet} – zu wenige für einen Vergleich.`,
-      WEGLASS_SATZ);
-    }
+    // „zu wenige“ entscheiden Karte und Bericht nach den Zeilen, die sie
+    // zeigen (a2ZuWenig) – hier stehen nur die Zahlen dafür.
     if (ohneZahl || pausen.beschwerden.length) {
       saetze.push('Tage ohne Mittel sind keine Zufallsauswahl. Wer an einem schlechten Tag das Mittel '
         + 'weglässt, macht die Tage ohne schlechter, ohne dass das Mittel etwas getan hat – deshalb '
@@ -10666,6 +10725,10 @@ function adhsAuswertung({
       alleTage: ohneZahl + pausen.beschwerden.length,
       gruende: pausen.gruende,
       zeilen,
+      // Je Zeile, wie viele Tage ohne Mittel gewertet sind und ob das unter
+      // ihrer Mindestzahl liegt – für a2ZuWenig().
+      ohneGewertet: Object.fromEntries(Object.entries(zeilen).map(([id, v]) => [id, v.ohne.n])),
+      zuWenigOhne: Object.fromEntries(Object.entries(zeilen).map(([id, v]) => [id, v.ohne.n < v.mindest])),
       // Harter Stuhl nur beschrieben – ohne Urteil, auch wenn es eines gäbe.
       stuhl: {
         genug: stuhl.genug, mit: stuhl.mit, ohne: stuhl.ohne, stoerung: stuhl.stoerung,
@@ -10923,10 +10986,12 @@ const MORGEN_BIS = 9 * 60;
 
 /*
  * Was als Einnahme am Morgen gilt: das Fenster des Zeitknopfs „morgens"
- * (5 bis 11 Uhr, js/datum.js). Nur eine Einnahme bis 11 Uhr verschiebt die
- * Grenze für „Kopf am Morgen" – eine am Abend, wie sie bei Guanfacin oder
- * Atomoxetin vorkommt, machte sonst einen Kopfschmerz am Nachmittag zu einem
- * am Morgen.
+ * (5 bis 11 Uhr, js/datum.js). Nur eine Einnahme in diesem Fenster
+ * verschiebt die Grenze für „Kopf am Morgen" – eine am Abend, wie sie bei
+ * Guanfacin oder Atomoxetin vorkommt, machte sonst einen Kopfschmerz am
+ * Nachmittag zu einem am Morgen. Ebenso eine nach Mitternacht: Wer die
+ * Abenddosis um 00:30 mit „jetzt genommen" einträgt, hat sie am neuen Tag
+ * stehen, und jeder Kopfschmerz am Morgen wäre sonst „kein Kopf am Morgen".
  */
 const MORGEN_EINNAHME_VON = KNOPF_TAGESZEIT.morgens.von;
 const MORGEN_EINNAHME_BIS = KNOPF_TAGESZEIT.morgens.bis;
@@ -10988,10 +11053,10 @@ function morgenKopf(amTag, morgen) {
 }
 
 /*
- * Die Einnahmen am Morgen je Tag: die früheste genaue oder gebundene vor
- * 11 Uhr (`fest`, Minuten seit Mitternacht) und ob eine ungefähre „morgens"
- * dabei war (`offen`). Einnahmen später am Tag spielen für „Kopf am Morgen"
- * keine Rolle.
+ * Die Einnahmen am Morgen je Tag: die früheste genaue oder gebundene
+ * zwischen 5 und 11 Uhr (`fest`, Minuten seit Mitternacht) und ob eine
+ * ungefähre „morgens" dabei war (`offen`). Einnahmen davor oder später am Tag
+ * spielen für „Kopf am Morgen" keine Rolle.
  */
 function morgenEinnahmen(einnahmen) {
   const raus = new Map();
@@ -11002,7 +11067,8 @@ function morgenEinnahmen(einnahmen) {
       if (tageszeitVon(x.e) === 'morgens') m.offen = true;
     } else {
       const min = (x.t - zeitpunkt(iso, '00:00')) / 60000;
-      if (min < MORGEN_EINNAHME_BIS && (m.fest === null || min < m.fest)) m.fest = min;
+      const amMorgen = min >= MORGEN_EINNAHME_VON && min < MORGEN_EINNAHME_BIS;
+      if (amMorgen && (m.fest === null || min < m.fest)) m.fest = min;
     }
     raus.set(iso, m);
   });
@@ -17627,17 +17693,22 @@ function berPaarKern(h) {
   return /[.!?]$/.test(satz) ? satz : `${satz}.`;
 }
 
-/** Die Form eines Methylphenidats in Worten – „nicht angegeben" statt einer Form, die keine ist. */
-function berFormText(name, standardMittel, eintraege) {
-  const f = mphForm(formZu(name, standardMittel, eintraege));
+/**
+ * Die Form eines Methylphenidats in Worten – „nicht angegeben" statt einer
+ * Form, die keine ist. Zum Ende des Berichts bestimmt, wie die Paare darunter
+ * (formZu in js/zusammen.js): Sonst stünde bei einem Paar eine andere Form als
+ * in der Zeile darüber.
+ */
+function berFormText(name, standardMittel, eintraege, bis) {
+  const f = mphForm(formZu(name, standardMittel, eintraege, bis));
   return f && f.id !== 'unbekannt' ? f.kurzname : null;
 }
 
 /** Ein Name im Paar: bei Methylphenidat mit der Form, damit die Praxis weiß, welches. */
-function berPaarName(name, standardMittel, eintraege) {
+function berPaarName(name, standardMittel, eintraege, bis) {
   const g = wissenZu(name);
   if (!g || g.id !== 'mph') return name;
-  const form = berFormText(name, standardMittel, eintraege) || 'Form nicht angegeben';
+  const form = berFormText(name, standardMittel, eintraege, bis) || 'Form nicht angegeben';
   return /methylphenidat/i.test(name) ? `${name} (${form})` : `${name} (Methylphenidat, ${form})`;
 }
 
@@ -17761,7 +17832,8 @@ function berAdhs(a, rhythmus, { spannungAn, gewichtDa }) {
       saetze.push(`Harter Stuhl (Typ 1–2) an Tagen mit Mittel ${prozent(st.mit.schnitt)} (${st.mit.n} Tage mit `
         + `Stuhlgang), ohne ${prozent(st.ohne.schnitt)} (${st.ohne.n}) – nur beschrieben.`);
     }
-    saetze.push(...a.a2.saetze);
+    // „zu wenige“ nach den Zeilen, die hier stehen (siehe a2ZuWenig).
+    saetze.push(...a2ZuWenig(a.a2, ids), ...a.a2.saetze);
     saetze.forEach((t) => absatz(t, '    ', '    '));
   }
 
@@ -18548,11 +18620,11 @@ function arztBericht(zustand, von, bis) {
       // eigentliche Mittel.
       const g = wissenZu(v.name);
       if (g && g.id === 'mph') {
-        sag(`    Form: ${berFormText(v.name, zustand.standardMittel, imZeitraum) || 'nicht angegeben'}`);
+        sag(`    Form: ${berFormText(v.name, zustand.standardMittel, imZeitraum, bis) || 'nicht angegeben'}`);
       }
     });
     paare.forEach((h) => {
-      const [a, b] = h.namen.map((n) => berPaarName(n, zustand.standardMittel, eintraege));
+      const [a, b] = h.namen.map((n) => berPaarName(n, zustand.standardMittel, eintraege, bis));
       berAbsatz(`Zusammen eingetragen: ${a} und ${b}. ${berPaarKern(h)}`).forEach(sag);
       berAbsatz(`Frage: ${h.frage}`).forEach(sag);
     });
@@ -21805,7 +21877,8 @@ function artAnteilVon(s, arten) {
  *
  * Manche Tage und Mittel zählen seitdem anders: ein Tag mit nur einem
  * ADHS-Mittel ist eine Lücke, Koffein als Tablette kein Schmerzmittel, jedes
- * Schmerzmittel mit Koffein ein Kombinationsmittel, und mehr Namen werden als
+ * erkannte Schmerzmittel mit Koffein ein Kombinationsmittel, ein Name mit
+ * Koffein ohne erkannten Wirkstoff gar nichts mehr, und mehr Namen werden als
  * Säureblocker erkannt. Wer das nicht gesagt bekommt, merkt es nur daran, dass
  * sich eine Zahl still verschoben hat – und traut danach keiner mehr. Jeder
  * Punkt steht nur, wenn er dieses Tagebuch betrifft, und mit seiner Zahl.
@@ -21840,8 +21913,28 @@ function v28Punkte(s) {
   }).map((e) => String(e.mittel).trim()))];
   if (kombiNamen.length) {
     const para = mittel.some((e) => gruppe(e.mittel) === 'kombipara' && klein(e.mittel).includes('koffein'));
-    punkte.push('Schmerzmittel mit Koffein zählen jetzt alle als Kombinationsmittel, mit der Grenze von etwa zehn Tagen im Monat'
-      + `${para ? '; Paracetamol mit Koffein zählt für den Magen nicht mehr als NSAR' : ''} (${kombiNamen.join(', ')}).`);
+    punkte.push('Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel, mit der '
+      + `Grenze von etwa zehn Tagen im Monat${para ? '; Paracetamol mit Koffein zählt für den Magen nicht mehr als NSAR' : ''} `
+      + `(${kombiNamen.join(', ')}).`);
+  }
+  /*
+   * Und was mit „Koffein" bisher ein Kombinationsmittel war, jetzt aber keine
+   * Gruppe hat („Kopfschmerztabletten mit Koffein"): Die Fassung 27 zählte
+   * jeden Namen mit „Koffein" so, für den Kopf mit der Grenze zehn und für den
+   * Magen als NSAR. Jetzt zählt er nirgends, weil offen ist, was darin steckt –
+   * ohne diesen Punkt sänke die Zahl für den Übergebrauch still. Mit „Coffein"
+   * kannte schon die Fassung 27 ihn nicht; auf der Haut zählte er nie.
+   */
+  const fremd = [...new Set(mittel.filter((e) => {
+    const k = klein(e.mittel);
+    return k.includes('koffein') && !/(gel|salbe|creme|pflaster)\b/.test(k) && !gruppe(e.mittel);
+  }).map((e) => String(e.mittel).trim()))];
+  if (fremd.length) {
+    const eins = fremd.length === 1;
+    punkte.push(`${undListe(fremd)} ${eins ? 'zählte' : 'zählten'} bisher als Kombinationsmittel – für den Kopf mit `
+      + 'der Grenze von etwa zehn Tagen im Monat, für den Magen wie ein NSAR. '
+      + `${eins ? 'Es zählt' : 'Sie zählen'} jetzt nicht mehr mit: Die App erkennt den Wirkstoff darin nicht. `
+      + `Mit dem Wirkstoff im Namen ordnet sie ${eins ? 'es' : 'sie'} wieder zu.`);
   }
   const saeure = [...new Set([...mittel.map((e) => e.mittel), ...s.standardMittel.map((m) => m.mittel)]
     .filter((n) => ['ppi', 'antazida'].includes(gruppe(n)) && NEUE_SAEURE_NAMEN.test(klein(n)))
@@ -22289,7 +22382,7 @@ function adhsKarte(s, d) {
       <ul class="wartend">${zeile('Tage ohne ADHS-Mittel', `${a.a2.alleTage}${gruende ? ` (${gruende})` : ''}`)}</ul>
       ${funde ? `<ul class="funde">${funde}</ul>` : ''}
       ${ohneUrteil}
-      ${kleinSaetze([stuhl, ...a.a2.saetze])}`);
+      ${kleinSaetze([stuhl, ...a2ZuWenig(a.a2, ids), ...a.a2.saetze])}`);
   }
 
   /* A3 */
@@ -24096,7 +24189,7 @@ function mittelKarte(s) {
     ${meine.length ? `<p class="feld-name">Was du eingetragen hast</p>
       <ul class="wartend">${meine.map((m) => {
         const g = wissenZu(m.name);
-        const form = g && g.id === 'mph' ? mphForm(formZu(m.name, s.standardMittel, s.eintraege)) : null;
+        const form = g && g.id === 'mph' ? mphForm(formZu(m.name, s.standardMittel, s.eintraege, heuteISO())) : null;
         return `<li>
           <span>${esc(m.name)}<span class="zeile-tags">${g ? esc(g.kurz) : 'nicht in der Übersicht – frag in der Apotheke nach'}</span>${form ? `<span class="zeile-tags">Form: ${esc(form.kurzname)}</span>` : ''}</span>
           <span class="klein">${mehrzahl(m.anzahl, 'Mal', 'Mal')}</span>
@@ -24629,12 +24722,23 @@ function merkenAuffrischen() {
  * Die Form im Bogen: { form, quelle }. Gewählt ist gewählt (auch null –
  * ausdrücklich keine); sonst die des eigenen Mittels, sonst die, die der Name
  * eindeutig nennt. Nur bei Methylphenidat.
+ *
+ * Eine Form, die der Bogen mitgebracht hat – vom geöffneten Eintrag oder vom
+ * Tipp auf ein eigenes Mittel –, gehört zu dessen Namen (`formFuer`). Steht
+ * jetzt ein anderer Name da, gilt sie nicht mehr als gewählt: Aus „Concerta"
+ * mit Hülle wird „Medikinet retard" sonst eine Kapsel mit Hülle, und der
+ * Hinweis zum Säureblocker (Stufe A) fehlte. Vorgewählt wird dann neu, nach
+ * dem eigenen Mittel oder dem Namen, mit dem Zusatz „vorgewählt …". Wer die
+ * Form in diesem Bogen selbst angetippt hat (`formSelbst`), behält sie. Kommt
+ * der alte Name zurück, gilt auch die Form wieder – nichts wird beim Tippen
+ * gelöscht.
  */
 function formImBogen(s, b) {
   const e = b.entwurf;
   const g = wissenZu(e.mittel);
   if (!g || g.id !== 'mph') return { form: null, quelle: null };
-  if (e.form !== undefined) return { form: e.form, quelle: 'gewaehlt' };
+  const zumNamen = b.formSelbst || b.formFuer === undefined || gleichText(b.formFuer, e.mittel);
+  if (e.form !== undefined && zumNamen) return { form: e.form, quelle: 'gewaehlt' };
   const ref = mittelVorlageVon(s, b);
   if (ref && ref.form) return { form: ref.form, quelle: 'gemerkt' };
   const ausName = formAusName(e.mittel);
@@ -24713,7 +24817,7 @@ function huelleDa(s) {
   const namen = [...s.standardMittel.map((m) => m.mittel),
     ...s.eintraege.filter((e) => e.art === 'medikament' && e.am >= ab).map((e) => e.mittel)];
   return [...new Set(namen.map((n) => String(n || '').trim()).filter(Boolean))]
-    .some((n) => (wissenZu(n) || {}).id === 'mph' && formZu(n, s.standardMittel, s.eintraege) === 'oros');
+    .some((n) => (wissenZu(n) || {}).id === 'mph' && formZu(n, s.standardMittel, s.eintraege, heuteISO()) === 'oros');
 }
 
 function wissenBehaelter(s, b) {
@@ -25416,6 +25520,8 @@ function bogenOeffnen(art, id) {
     // Steht die Zeit schon fest – von Hand gesetzt oder, beim Ändern, die
     // des Eintrags? Dann überschreibt die Wahl eines eigenen Mittels sie nicht.
     zeitGesetzt: !!alt,
+    // Die Form des Eintrags gehört zu seinem Namen (siehe formImBogen).
+    ...(alt && art === 'medikament' ? { formFuer: String(alt.mittel || '') } : {}),
   };
   frageEnde();
   zeichne();
@@ -25550,13 +25656,16 @@ function bogenSpeichern() {
   if (b.art === 'medikament') {
     // Die vorgewählte Form gilt, wie sie im Bogen zu sehen war; „ausdrücklich
     // keine" steht bei einem neuen Eintrag gar nicht erst drin.
+    // Eine mitgebrachte Form, die zu einem anderen Namen gehört (siehe
+    // formImBogen), zählt dabei nicht als gewählt.
     const f = formImBogen(store.zustandLesen(), b);
-    if (e.form === undefined && f.form) e.form = f.form;
+    if (f.quelle !== 'gewaehlt') e.form = f.form || undefined;
     if (e.form === null && !b.id) delete e.form;
     // Beim Ändern auch „keine Form" ausdrücklich: Wer ein anderes eigenes
     // Mittel gewählt hat, hat die Form des alten Eintrags verworfen (siehe
     // 'standard-waehlen'), und ein bloß fehlendes Feld ließe sie dort stehen.
     if (e.form === undefined && b.id) e.form = null;
+    if (e.form === undefined) delete e.form;
     /*
      * Zum Essen: Ein Bezug („vor dem Essen" an einer Mahlzeit) sagt es schon,
      * dann gilt keine eigene Angabe. Hat sich die Angabe geändert, bekommt
@@ -25944,7 +26053,7 @@ const AKTION = {
     const b = ui.bogen;
     const e = b && b.entwurf;
     if (!m || !e) return;
-    Object.assign(b, { vorlage: m.id, alsStandard: false, vorlageAendern: false });
+    Object.assign(b, { vorlage: m.id, alsStandard: false, vorlageAendern: false, formSelbst: false });
     delete e.form;
     const zeitSchon = !!(e.tageszeit || e.bezug || b.zeitGesetzt);
     entwurf({
@@ -25979,6 +26088,9 @@ const AKTION = {
     const b = ui.bogen;
     if (!b) return;
     const f = formImBogen(store.zustandLesen(), b);
+    // Hier selbst angetippt: Die Form gilt, auch wenn danach der Name noch
+    // geändert wird.
+    b.formSelbst = true;
     entwurf({ form: f.form === el.dataset.id ? null : el.dataset.id });
   },
   'bogen-essen': (el) => {
@@ -26048,6 +26160,8 @@ const AKTION = {
     if (mittelImBogen(m, am)) {
       bogenOeffnen('medikament');
       ui.bogen.vorlage = m.id;
+      // Die Form des eigenen Mittels gehört zu seinem Namen (siehe formImBogen).
+      ui.bogen.formFuer = m.mittel;
       entwurf({ mittel: m.mittel, dosis: m.dosis, um: '', bezug: m.bezug || null, ...form });
       melden('An welchem Teil des Tages? Unter der Uhrzeit antippen.');
       return;

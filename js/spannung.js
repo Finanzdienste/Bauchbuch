@@ -56,10 +56,12 @@ const MORGEN_BIS = 9 * 60;
 
 /*
  * Was als Einnahme am Morgen gilt: das Fenster des Zeitknopfs „morgens"
- * (5 bis 11 Uhr, js/datum.js). Nur eine Einnahme bis 11 Uhr verschiebt die
- * Grenze für „Kopf am Morgen" – eine am Abend, wie sie bei Guanfacin oder
- * Atomoxetin vorkommt, machte sonst einen Kopfschmerz am Nachmittag zu einem
- * am Morgen.
+ * (5 bis 11 Uhr, js/datum.js). Nur eine Einnahme in diesem Fenster
+ * verschiebt die Grenze für „Kopf am Morgen" – eine am Abend, wie sie bei
+ * Guanfacin oder Atomoxetin vorkommt, machte sonst einen Kopfschmerz am
+ * Nachmittag zu einem am Morgen. Ebenso eine nach Mitternacht: Wer die
+ * Abenddosis um 00:30 mit „jetzt genommen" einträgt, hat sie am neuen Tag
+ * stehen, und jeder Kopfschmerz am Morgen wäre sonst „kein Kopf am Morgen".
  */
 const MORGEN_EINNAHME_VON = KNOPF_TAGESZEIT.morgens.von;
 const MORGEN_EINNAHME_BIS = KNOPF_TAGESZEIT.morgens.bis;
@@ -121,10 +123,10 @@ function morgenKopf(amTag, morgen) {
 }
 
 /*
- * Die Einnahmen am Morgen je Tag: die früheste genaue oder gebundene vor
- * 11 Uhr (`fest`, Minuten seit Mitternacht) und ob eine ungefähre „morgens"
- * dabei war (`offen`). Einnahmen später am Tag spielen für „Kopf am Morgen"
- * keine Rolle.
+ * Die Einnahmen am Morgen je Tag: die früheste genaue oder gebundene
+ * zwischen 5 und 11 Uhr (`fest`, Minuten seit Mitternacht) und ob eine
+ * ungefähre „morgens" dabei war (`offen`). Einnahmen davor oder später am Tag
+ * spielen für „Kopf am Morgen" keine Rolle.
  */
 function morgenEinnahmen(einnahmen) {
   const raus = new Map();
@@ -135,7 +137,8 @@ function morgenEinnahmen(einnahmen) {
       if (tageszeitVon(x.e) === 'morgens') m.offen = true;
     } else {
       const min = (x.t - zeitpunkt(iso, '00:00')) / 60000;
-      if (min < MORGEN_EINNAHME_BIS && (m.fest === null || min < m.fest)) m.fest = min;
+      const amMorgen = min >= MORGEN_EINNAHME_VON && min < MORGEN_EINNAHME_BIS;
+      if (amMorgen && (m.fest === null || min < m.fest)) m.fest = min;
     }
     raus.set(iso, m);
   });

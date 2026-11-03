@@ -507,6 +507,9 @@ const koffein = await page.evaluate(async () => {
     vivimed: lauf(tage('Vivimed mit Coffein', 10)),
     spalt: lauf(tage('Spalt plus Coffein N', 12, 1, true)),
     fremd: lauf(tage('Kopfweg mit Coffein', 12, 1, true)),
+    // Dasselbe mit „Koffein": Bis Fassung 27 zählte jeder solche Name als
+    // Kombinationsmittel – jetzt steht er wie jeder unbekannte da.
+    fremdK: lauf(tage('Kopfschmerztabletten mit Koffein', 12, 1, true)),
     reinKoffein: lauf(tage('Coffeinum N 0,2 g', 12, 1, true)),
   };
 });
@@ -539,6 +542,10 @@ check(koffein.spalt.mitAkut === 12 && koffein.spalt.mitNsar === 12 && koffein.sp
 check(koffein.fremd.mitAkut === 0 && koffein.fremd.unbekannt === 1
   && koffein.fremd.unbekanntListe[0].name === 'Kopfweg mit Coffein' && koffein.fremd.unbekanntListe[0].tage === 12,
   `ein unbekannter Name mit Coffein steht unter „nicht zugeordnet" (${JSON.stringify(koffein.fremd.unbekanntListe)})`);
+check(koffein.fremdK.mitAkut === 0 && koffein.fremdK.f.akut === 0 && !koffein.fremdK.f.uebergebrauch
+  && koffein.fremdK.unbekannt === 1 && koffein.fremdK.unbekanntListe[0].name === 'Kopfschmerztabletten mit Koffein'
+  && koffein.fremdK.unbekanntListe[0].tage === 12,
+`ebenso mit „Koffein" geschrieben: kein Akutmittel, mit Namen unter „nicht zugeordnet" (${JSON.stringify(koffein.fremdK.unbekanntListe)})`);
 check(koffein.reinKoffein.mitAkut === 0 && koffein.reinKoffein.unbekannt === 0 && !koffein.reinKoffein.f.uebergebrauch,
   '„Coffeinum N 0,2 g" ist Koffein als Tablette: kein Akutmittel, nicht unter „nicht zugeordnet"');
 

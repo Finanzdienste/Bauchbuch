@@ -37,7 +37,7 @@ import { PHASEN, phasenBilanz, phasenFrage } from './zyklus.js';
 import { istAdhsMittel, mphForm, wissenZu } from './mittel.js';
 import { formZu, wechselHinweise } from './zusammen.js';
 import {
-  PAUSE_WERTE, adhsAuswertung, essensRhythmus, zeitprofilNahAmMittel,
+  PAUSE_WERTE, a2ZuWenig, adhsAuswertung, essensRhythmus, zeitprofilNahAmMittel,
 } from './adhs.js';
 import { spannungAuswertung } from './spannung.js';
 import { familienVergleiche, grenzeText, hatUrteil } from './vergleich.js';
@@ -205,17 +205,22 @@ function berPaarKern(h) {
   return /[.!?]$/.test(satz) ? satz : `${satz}.`;
 }
 
-/** Die Form eines Methylphenidats in Worten – „nicht angegeben" statt einer Form, die keine ist. */
-function berFormText(name, standardMittel, eintraege) {
-  const f = mphForm(formZu(name, standardMittel, eintraege));
+/**
+ * Die Form eines Methylphenidats in Worten – „nicht angegeben" statt einer
+ * Form, die keine ist. Zum Ende des Berichts bestimmt, wie die Paare darunter
+ * (formZu in js/zusammen.js): Sonst stünde bei einem Paar eine andere Form als
+ * in der Zeile darüber.
+ */
+function berFormText(name, standardMittel, eintraege, bis) {
+  const f = mphForm(formZu(name, standardMittel, eintraege, bis));
   return f && f.id !== 'unbekannt' ? f.kurzname : null;
 }
 
 /** Ein Name im Paar: bei Methylphenidat mit der Form, damit die Praxis weiß, welches. */
-function berPaarName(name, standardMittel, eintraege) {
+function berPaarName(name, standardMittel, eintraege, bis) {
   const g = wissenZu(name);
   if (!g || g.id !== 'mph') return name;
-  const form = berFormText(name, standardMittel, eintraege) || 'Form nicht angegeben';
+  const form = berFormText(name, standardMittel, eintraege, bis) || 'Form nicht angegeben';
   return /methylphenidat/i.test(name) ? `${name} (${form})` : `${name} (Methylphenidat, ${form})`;
 }
 
@@ -339,7 +344,8 @@ function berAdhs(a, rhythmus, { spannungAn, gewichtDa }) {
       saetze.push(`Harter Stuhl (Typ 1–2) an Tagen mit Mittel ${prozent(st.mit.schnitt)} (${st.mit.n} Tage mit `
         + `Stuhlgang), ohne ${prozent(st.ohne.schnitt)} (${st.ohne.n}) – nur beschrieben.`);
     }
-    saetze.push(...a.a2.saetze);
+    // „zu wenige“ nach den Zeilen, die hier stehen (siehe a2ZuWenig).
+    saetze.push(...a2ZuWenig(a.a2, ids), ...a.a2.saetze);
     saetze.forEach((t) => absatz(t, '    ', '    '));
   }
 
@@ -1126,11 +1132,11 @@ export function arztBericht(zustand, von, bis) {
       // eigentliche Mittel.
       const g = wissenZu(v.name);
       if (g && g.id === 'mph') {
-        sag(`    Form: ${berFormText(v.name, zustand.standardMittel, imZeitraum) || 'nicht angegeben'}`);
+        sag(`    Form: ${berFormText(v.name, zustand.standardMittel, imZeitraum, bis) || 'nicht angegeben'}`);
       }
     });
     paare.forEach((h) => {
-      const [a, b] = h.namen.map((n) => berPaarName(n, zustand.standardMittel, eintraege));
+      const [a, b] = h.namen.map((n) => berPaarName(n, zustand.standardMittel, eintraege, bis));
       berAbsatz(`Zusammen eingetragen: ${a} und ${b}. ${berPaarKern(h)}`).forEach(sag);
       berAbsatz(`Frage: ${h.frage}`).forEach(sag);
     });

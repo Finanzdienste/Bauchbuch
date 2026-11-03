@@ -96,18 +96,43 @@ const wMinuten = (um) => {
  * eine fehlende Angabe. Sonst überdeckte ein Eintrag mit „Weiß ich nicht" die
  * Form, die man danach unter „Meine Mittel" wählt – genau dorthin schickt die
  * Karte W1u – und sogar einen Namen, der die Form eindeutig nennt.
+ *
+ * Mit `heute` zählt für ein Mittel, das gerade eingetragen ist (unter „Meine
+ * Mittel" oder in den letzten WECHSEL_TAGE Tagen eingenommen, wie bei den
+ * Paaren), nur eine Form aus diesen Tagen vor „Meine Mittel"; eine ältere
+ * nicht. Eine Hülle von vor einem halben Jahr sagt nichts über die Packung
+ * von heute – sie stäche sonst die Wahl, zu der die Karte W1u rät, und der
+ * Hinweis der Stufe A fehlte. Sagt die jüngste Einnahme dieser Tage nichts
+ * zur Form und steht unter „Meine Mittel" die Kapsel mit zweierlei
+ * Kügelchen, gilt sie auch vor einer anderen Form aus diesen Tagen: im
+ * Zweifel die Form, zu der die Fachinformation die Gegenanzeige nennt.
+ * Ein Mittel, das gerade nicht eingetragen ist, behält die Form seines
+ * letzten Eintrags – sie beschreibt, was damals genommen wurde. Ohne `heute`
+ * (die Rechnungen über das ganze Tagebuch) gilt die zuletzt eingetragene Form.
  */
-export function formZu(name, standardMittel = [], eintraege = []) {
+export function formZu(name, standardMittel = [], eintraege = [], heute = null) {
   const k = wKlein(name);
   if (!k) return 'unbekannt';
   const bekannt = (form) => !!form && form !== 'unbekannt';
-  const mitForm = (eintraege || [])
-    .filter((e) => e && e.art === 'medikament' && wKlein(e.mittel) === k && bekannt(e.form))
+  const eigene = (eintraege || [])
+    .filter((e) => e && e.art === 'medikament' && wKlein(e.mittel) === k)
     .sort((a, b) => (a.am === b.am ? wMinuten(a.um) - wMinuten(b.um) : (a.am < b.am ? -1 : 1)));
-  if (mitForm.length) return mitForm[mitForm.length - 1].form;
-  const gemerkt = (standardMittel || []).find((m) => m && wKlein(m.mittel) === k && bekannt(m.form));
-  if (gemerkt) return gemerkt.form;
-  return formAusName(name) || 'unbekannt';
+  const letzteForm = (liste) => {
+    const mit = liste.filter((e) => bekannt(e.form));
+    return mit.length ? mit[mit.length - 1].form : null;
+  };
+  const meine = (standardMittel || []).filter((m) => m && wKlein(m.mittel) === k);
+  const gemerkt = meine.find((m) => bekannt(m.form));
+  if (heute) {
+    const ab = wVorTagen(heute, WECHSEL_TAGE - 1);
+    const neu = eigene.filter((e) => e.am >= ab && e.am <= heute);
+    if (neu.length || meine.length) {
+      const juengste = neu[neu.length - 1];
+      if (gemerkt && gemerkt.form === 'pellet' && juengste && !bekannt(juengste.form)) return 'pellet';
+      return letzteForm(neu) || (gemerkt && gemerkt.form) || formAusName(name) || 'unbekannt';
+    }
+  }
+  return letzteForm(eigene) || (gemerkt && gemerkt.form) || formAusName(name) || 'unbekannt';
 }
 
 /**
@@ -261,7 +286,7 @@ export function wechselHinweise(standardMittel, eintraege, heute) {
 
   // Methylphenidat und Säureblocker – je nach Form.
   paare('mph', (b) => wIstSaeure(b.name), (a, b) => {
-    const form = formZu(a.name, standardMittel, eintraege);
+    const form = formZu(a.name, standardMittel, eintraege, heute);
     if (form === 'pellet') dazu('W1', a, b, wKarteW1(b.name), W_FRAGE_A);
     else if (form === 'unbekannt') dazu('W1u', a, b, wKarteW1u(a.name, b.name), W_FRAGE_A);
     else if (form === 'sodas') dazu('W3', a, b, KLAER_SATZ, W_FRAGE_B);

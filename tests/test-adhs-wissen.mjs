@@ -279,6 +279,40 @@ check(formZu('Medikinet', [], [ein('Medikinet', 3, { form: 'pellet' }), ein('Med
   && formZu('Medikinet', [], [weissNicht]) === 'unbekannt',
   'eine früher eingetragene Form bleibt stehen; ohne jede Angabe „unbekannt"');
 
+/*
+ * Eine Form aus einer alten Einnahme sagt nichts über die Packung von heute.
+ * Für die Paare zählt wie beim Namen nur, was in den letzten WECHSEL_TAGE
+ * Tagen eingenommen wurde; davor gilt „Meine Mittel". Sonst sticht ein
+ * halbes Jahr alter Eintrag die Wahl, zu der die Karte W1u selbst rät – und
+ * der wichtigste Hinweis (Stufe A) fehlt ganz.
+ */
+const stufen = (std, eintraege) => wechselHinweise(std, eintraege, heute).map((h) => `${h.id}/${h.stufe}`);
+const mphPellet = meine({ mittel: 'Methylphenidat', form: 'pellet' }, 'Pantoprazol');
+const altUndUnbekannt = [ein('Methylphenidat', 186, { form: 'oros' }), ein('Methylphenidat', 1, { form: 'unbekannt' })];
+check(gleich(stufen(mphPellet, altUndUnbekannt), ['W1/A'])
+  && formZu('Methylphenidat', mphPellet, altUndUnbekannt, heute) === 'pellet',
+`die Kügelchen unter „Meine Mittel" gehen vor einer Hülle von vor 186 Tagen → W1 (${stufen(mphPellet, altUndUnbekannt).join(',') || '–'})`);
+check(gleich(stufen(mphPellet, [ein('Methylphenidat', 202, { form: 'sofort' })]), ['W1/A']),
+  `ebenso vor einer nicht retardierten Tablette von vor 202 Tagen → W1 (${stufen(mphPellet, [ein('Methylphenidat', 202, { form: 'sofort' })]).join(',') || '–'})`);
+check(gleich(stufen(meine('Methylphenidat', 'Pantoprazol'), altUndUnbekannt), ['W1u/A']),
+  `ohne Form unter „Meine Mittel" und mit „Weiß ich nicht" zuletzt: W1u, auch wenn vor einem halben Jahr eine Hülle stand (${stufen(meine('Methylphenidat', 'Pantoprazol'), altUndUnbekannt).join(',') || '–'})`);
+check(formZu('Methylphenidat', mphPellet, [ein('Methylphenidat', 3, { form: 'oros' })], heute) === 'oros'
+  && gleich(stufen(mphPellet, [ein('Methylphenidat', 3, { form: 'oros' })]), []),
+'eine Form aus den letzten 30 Tagen geht weiter vor „Meine Mittel" – die neue Packung wird oft zuerst beim Eintrag angegeben');
+/*
+ * Sagt die jüngste Einnahme nichts zur Form, gilt die Kapsel mit zweierlei
+ * Kügelchen unter „Meine Mittel" auch vor einer anderen Form aus den 30
+ * Tagen: Im Zweifel die Form, zu der die Fachinformation die Gegenanzeige nennt.
+ */
+const huelleDannUnbekannt = [ein('Methylphenidat', 10, { form: 'oros' }), ein('Methylphenidat', 1, { form: 'unbekannt' })];
+check(gleich(stufen(mphPellet, huelleDannUnbekannt), ['W1/A'])
+  && gleich(stufen(meine({ mittel: 'Methylphenidat', form: 'sodas' }, 'Pantoprazol'), huelleDannUnbekannt), []),
+`jüngste Einnahme „Weiß ich nicht", davor eine Hülle: die Kügelchen unter „Meine Mittel" gehen vor → W1; eine andere Form dort nicht (${stufen(mphPellet, huelleDannUnbekannt).join(',') || '–'})`);
+// Ein Mittel, das gerade nicht eingetragen ist, behält die Form seines letzten Eintrags (Karte „Was du eingetragen hast").
+check(formZu('Concerta 18', [], [ein('Concerta 18', 200, { form: 'oros' })], heute) === 'oros'
+  && formZu('Methylphenidat', [], [ein('Methylphenidat', 200, { form: 'sofort' })], heute) === 'sofort',
+'ein länger nicht genommenes Mittel behält die zuletzt eingetragene Form');
+
 // Packungsschreibweisen und weitere Säureblocker-Namen ergeben dieselben Paare.
 check(gleich(ergibt(meine('Medikinet-retard', 'Nexium')), ['W1']) && gleich(ergibt(meine('Medikinet® adult', 'Omep 20')), ['W1'])
   && gleich(ergibt(meine('Medikinet adult', 'Rifun 40')), ['W1']),

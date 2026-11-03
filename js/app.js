@@ -50,8 +50,8 @@ import {
 } from './mittel.js';
 import { WECHSEL_TAGE, formZu, wechselHinweise } from './zusammen.js';
 import {
-  ESSEN_GILT_MIN, PAUSE_GRUENDE, adhsAuswertung, adhsEinnahmen, ausloeserNahAmMittel, ausloeserNahSatz,
-  essenZurEinnahme, istStimulans, zeitprofilNahAmMittel,
+  ESSEN_GILT_MIN, PAUSE_GRUENDE, a2ZuWenig, adhsAuswertung, adhsEinnahmen, ausloeserNahAmMittel,
+  ausloeserNahSatz, essenZurEinnahme, istStimulans, zeitprofilNahAmMittel,
 } from './adhs.js';
 import { V3_IDS, spannungAuswertung } from './spannung.js';
 import { grenzeText, hatUrteil } from './vergleich.js';
@@ -2952,7 +2952,8 @@ function artAnteilVon(s, arten) {
  *
  * Manche Tage und Mittel zählen seitdem anders: ein Tag mit nur einem
  * ADHS-Mittel ist eine Lücke, Koffein als Tablette kein Schmerzmittel, jedes
- * Schmerzmittel mit Koffein ein Kombinationsmittel, und mehr Namen werden als
+ * erkannte Schmerzmittel mit Koffein ein Kombinationsmittel, ein Name mit
+ * Koffein ohne erkannten Wirkstoff gar nichts mehr, und mehr Namen werden als
  * Säureblocker erkannt. Wer das nicht gesagt bekommt, merkt es nur daran, dass
  * sich eine Zahl still verschoben hat – und traut danach keiner mehr. Jeder
  * Punkt steht nur, wenn er dieses Tagebuch betrifft, und mit seiner Zahl.
@@ -2987,8 +2988,28 @@ function v28Punkte(s) {
   }).map((e) => String(e.mittel).trim()))];
   if (kombiNamen.length) {
     const para = mittel.some((e) => gruppe(e.mittel) === 'kombipara' && klein(e.mittel).includes('koffein'));
-    punkte.push('Schmerzmittel mit Koffein zählen jetzt alle als Kombinationsmittel, mit der Grenze von etwa zehn Tagen im Monat'
-      + `${para ? '; Paracetamol mit Koffein zählt für den Magen nicht mehr als NSAR' : ''} (${kombiNamen.join(', ')}).`);
+    punkte.push('Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel, mit der '
+      + `Grenze von etwa zehn Tagen im Monat${para ? '; Paracetamol mit Koffein zählt für den Magen nicht mehr als NSAR' : ''} `
+      + `(${kombiNamen.join(', ')}).`);
+  }
+  /*
+   * Und was mit „Koffein" bisher ein Kombinationsmittel war, jetzt aber keine
+   * Gruppe hat („Kopfschmerztabletten mit Koffein"): Die Fassung 27 zählte
+   * jeden Namen mit „Koffein" so, für den Kopf mit der Grenze zehn und für den
+   * Magen als NSAR. Jetzt zählt er nirgends, weil offen ist, was darin steckt –
+   * ohne diesen Punkt sänke die Zahl für den Übergebrauch still. Mit „Coffein"
+   * kannte schon die Fassung 27 ihn nicht; auf der Haut zählte er nie.
+   */
+  const fremd = [...new Set(mittel.filter((e) => {
+    const k = klein(e.mittel);
+    return k.includes('koffein') && !/(gel|salbe|creme|pflaster)\b/.test(k) && !gruppe(e.mittel);
+  }).map((e) => String(e.mittel).trim()))];
+  if (fremd.length) {
+    const eins = fremd.length === 1;
+    punkte.push(`${undListe(fremd)} ${eins ? 'zählte' : 'zählten'} bisher als Kombinationsmittel – für den Kopf mit `
+      + 'der Grenze von etwa zehn Tagen im Monat, für den Magen wie ein NSAR. '
+      + `${eins ? 'Es zählt' : 'Sie zählen'} jetzt nicht mehr mit: Die App erkennt den Wirkstoff darin nicht. `
+      + `Mit dem Wirkstoff im Namen ordnet sie ${eins ? 'es' : 'sie'} wieder zu.`);
   }
   const saeure = [...new Set([...mittel.map((e) => e.mittel), ...s.standardMittel.map((m) => m.mittel)]
     .filter((n) => ['ppi', 'antazida'].includes(gruppe(n)) && NEUE_SAEURE_NAMEN.test(klein(n)))
@@ -3436,7 +3457,7 @@ function adhsKarte(s, d) {
       <ul class="wartend">${zeile('Tage ohne ADHS-Mittel', `${a.a2.alleTage}${gruende ? ` (${gruende})` : ''}`)}</ul>
       ${funde ? `<ul class="funde">${funde}</ul>` : ''}
       ${ohneUrteil}
-      ${kleinSaetze([stuhl, ...a.a2.saetze])}`);
+      ${kleinSaetze([stuhl, ...a2ZuWenig(a.a2, ids), ...a.a2.saetze])}`);
   }
 
   /* A3 */
@@ -5243,7 +5264,7 @@ function mittelKarte(s) {
     ${meine.length ? `<p class="feld-name">Was du eingetragen hast</p>
       <ul class="wartend">${meine.map((m) => {
         const g = wissenZu(m.name);
-        const form = g && g.id === 'mph' ? mphForm(formZu(m.name, s.standardMittel, s.eintraege)) : null;
+        const form = g && g.id === 'mph' ? mphForm(formZu(m.name, s.standardMittel, s.eintraege, heuteISO())) : null;
         return `<li>
           <span>${esc(m.name)}<span class="zeile-tags">${g ? esc(g.kurz) : 'nicht in der Übersicht – frag in der Apotheke nach'}</span>${form ? `<span class="zeile-tags">Form: ${esc(form.kurzname)}</span>` : ''}</span>
           <span class="klein">${mehrzahl(m.anzahl, 'Mal', 'Mal')}</span>
@@ -5776,12 +5797,23 @@ function merkenAuffrischen() {
  * Die Form im Bogen: { form, quelle }. Gewählt ist gewählt (auch null –
  * ausdrücklich keine); sonst die des eigenen Mittels, sonst die, die der Name
  * eindeutig nennt. Nur bei Methylphenidat.
+ *
+ * Eine Form, die der Bogen mitgebracht hat – vom geöffneten Eintrag oder vom
+ * Tipp auf ein eigenes Mittel –, gehört zu dessen Namen (`formFuer`). Steht
+ * jetzt ein anderer Name da, gilt sie nicht mehr als gewählt: Aus „Concerta"
+ * mit Hülle wird „Medikinet retard" sonst eine Kapsel mit Hülle, und der
+ * Hinweis zum Säureblocker (Stufe A) fehlte. Vorgewählt wird dann neu, nach
+ * dem eigenen Mittel oder dem Namen, mit dem Zusatz „vorgewählt …". Wer die
+ * Form in diesem Bogen selbst angetippt hat (`formSelbst`), behält sie. Kommt
+ * der alte Name zurück, gilt auch die Form wieder – nichts wird beim Tippen
+ * gelöscht.
  */
 function formImBogen(s, b) {
   const e = b.entwurf;
   const g = wissenZu(e.mittel);
   if (!g || g.id !== 'mph') return { form: null, quelle: null };
-  if (e.form !== undefined) return { form: e.form, quelle: 'gewaehlt' };
+  const zumNamen = b.formSelbst || b.formFuer === undefined || gleichText(b.formFuer, e.mittel);
+  if (e.form !== undefined && zumNamen) return { form: e.form, quelle: 'gewaehlt' };
   const ref = mittelVorlageVon(s, b);
   if (ref && ref.form) return { form: ref.form, quelle: 'gemerkt' };
   const ausName = formAusName(e.mittel);
@@ -5860,7 +5892,7 @@ function huelleDa(s) {
   const namen = [...s.standardMittel.map((m) => m.mittel),
     ...s.eintraege.filter((e) => e.art === 'medikament' && e.am >= ab).map((e) => e.mittel)];
   return [...new Set(namen.map((n) => String(n || '').trim()).filter(Boolean))]
-    .some((n) => (wissenZu(n) || {}).id === 'mph' && formZu(n, s.standardMittel, s.eintraege) === 'oros');
+    .some((n) => (wissenZu(n) || {}).id === 'mph' && formZu(n, s.standardMittel, s.eintraege, heuteISO()) === 'oros');
 }
 
 function wissenBehaelter(s, b) {
@@ -6563,6 +6595,8 @@ function bogenOeffnen(art, id) {
     // Steht die Zeit schon fest – von Hand gesetzt oder, beim Ändern, die
     // des Eintrags? Dann überschreibt die Wahl eines eigenen Mittels sie nicht.
     zeitGesetzt: !!alt,
+    // Die Form des Eintrags gehört zu seinem Namen (siehe formImBogen).
+    ...(alt && art === 'medikament' ? { formFuer: String(alt.mittel || '') } : {}),
   };
   frageEnde();
   zeichne();
@@ -6697,13 +6731,16 @@ function bogenSpeichern() {
   if (b.art === 'medikament') {
     // Die vorgewählte Form gilt, wie sie im Bogen zu sehen war; „ausdrücklich
     // keine" steht bei einem neuen Eintrag gar nicht erst drin.
+    // Eine mitgebrachte Form, die zu einem anderen Namen gehört (siehe
+    // formImBogen), zählt dabei nicht als gewählt.
     const f = formImBogen(store.zustandLesen(), b);
-    if (e.form === undefined && f.form) e.form = f.form;
+    if (f.quelle !== 'gewaehlt') e.form = f.form || undefined;
     if (e.form === null && !b.id) delete e.form;
     // Beim Ändern auch „keine Form" ausdrücklich: Wer ein anderes eigenes
     // Mittel gewählt hat, hat die Form des alten Eintrags verworfen (siehe
     // 'standard-waehlen'), und ein bloß fehlendes Feld ließe sie dort stehen.
     if (e.form === undefined && b.id) e.form = null;
+    if (e.form === undefined) delete e.form;
     /*
      * Zum Essen: Ein Bezug („vor dem Essen" an einer Mahlzeit) sagt es schon,
      * dann gilt keine eigene Angabe. Hat sich die Angabe geändert, bekommt
@@ -7091,7 +7128,7 @@ const AKTION = {
     const b = ui.bogen;
     const e = b && b.entwurf;
     if (!m || !e) return;
-    Object.assign(b, { vorlage: m.id, alsStandard: false, vorlageAendern: false });
+    Object.assign(b, { vorlage: m.id, alsStandard: false, vorlageAendern: false, formSelbst: false });
     delete e.form;
     const zeitSchon = !!(e.tageszeit || e.bezug || b.zeitGesetzt);
     entwurf({
@@ -7126,6 +7163,9 @@ const AKTION = {
     const b = ui.bogen;
     if (!b) return;
     const f = formImBogen(store.zustandLesen(), b);
+    // Hier selbst angetippt: Die Form gilt, auch wenn danach der Name noch
+    // geändert wird.
+    b.formSelbst = true;
     entwurf({ form: f.form === el.dataset.id ? null : el.dataset.id });
   },
   'bogen-essen': (el) => {
@@ -7195,6 +7235,8 @@ const AKTION = {
     if (mittelImBogen(m, am)) {
       bogenOeffnen('medikament');
       ui.bogen.vorlage = m.id;
+      // Die Form des eigenen Mittels gehört zu seinem Namen (siehe formImBogen).
+      ui.bogen.formFuer = m.mittel;
       entwurf({ mittel: m.mittel, dosis: m.dosis, um: '', bezug: m.bezug || null, ...form });
       melden('An welchem Teil des Tages? Unter der Uhrzeit antippen.');
       return;

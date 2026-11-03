@@ -362,8 +362,10 @@ const umbenennen = async (name) => {
   return (await speicher()).eintraege.find((e) => e.id === ritalin.id) || {};
 };
 let e1 = await umbenennen('Medikinet retard');
-check(e1.form === 'sodas' && e1.essen === 'mit' && e1.essenGesetzt > 0,
-  'von einem Methylphenidat zum anderen bleiben Form und Essensangabe');
+// Die Form gehörte zu „Ritalin Adult": Beim neuen Namen gilt die, die er
+// nennt (siehe Abschnitt 12). Die Essensangabe gehört zur Einnahme und bleibt.
+check(e1.form === 'pellet' && e1.essen === 'mit' && e1.essenGesetzt > 0,
+  `von einem Methylphenidat zum anderen: die Form folgt dem neuen Namen, die Essensangabe bleibt (${e1.form}, ${e1.essen})`);
 e1 = await umbenennen('Strattera');
 check(e1.form === null && e1.essen === 'mit',
   `zu einem ADHS-Mittel ohne Formen: die Form geht, die Essensangabe bleibt (${e1.form}, ${e1.essen})`);
@@ -560,6 +562,70 @@ check(teil.r1.id === teil.id && teil.nachForm.form === 'sofort' && teil.nachForm
   `nur die Form: Name, Dosis und Zeit bleiben (${JSON.stringify(teil.r1)}, ${teil.nachForm.mittel} ${teil.nachForm.dosis} ${teil.nachForm.form})`);
 check(teil.r2.id === teil.id && teil.nachName.mittel === 'Medikinet' && teil.nachName.form === null,
   `ein neuer Name ohne Form: die alte Form geht mit dem alten Namen (${teil.nachName.mittel}, ${teil.nachName.form})`);
+
+/* ---------- 12. Die Form folgt dem Namen auch beim Ändern eines Eintrags ---------- */
+
+/*
+ * Ein gespeicherter Eintrag bringt seine Form in den Bogen mit. Tippt man dort
+ * einen anderen Namen ein, gehörte sie zum alten Präparat: Sie darf nicht als
+ * „gewählt" stehen bleiben, sonst landet die Hülle von Concerta bei einer
+ * Kapsel mit zweierlei Kügelchen – und der Hinweis der Stufe A fehlt.
+ */
+// Erst schreiben lassen, was oben noch aussteht – sonst überschreibt es den
+// neuen Stand beim Neuladen (pagehide).
+await page.waitForTimeout(300);
+await page.evaluate(([k, g]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true,
+  tab: 'heute',
+  eintraege: [
+    { id: 'cg', art: 'medikament', am: g, um: '07:30', mittel: 'Concerta', dosis: '18 mg', form: 'oros' },
+    { id: 'cr', art: 'medikament', am: g, um: '19:00', mittel: 'Ritalin Adult', dosis: '10 mg', form: 'sodas' },
+    { id: 'fy', art: 'essen', am: g, um: '07:10', was: 'Müsli', zutaten: [], portion: 'normal' },
+  ],
+  tage: {},
+  standardMittel: [{ id: 'nx', mittel: 'Nexium', dosis: '20 mg', tageszeit: null, bezug: null, form: null }],
+})), [KEY, gestern]);
+await page.reload({ waitUntil: 'networkidle' });
+await page.locator('[data-act="tag-blaettern"][data-d="-1"]').click();
+await kurz();
+await page.locator('[data-act="bearbeiten"][data-id="cg"]').click();
+await kurz();
+check(JSON.stringify(await gedrueckt()) === '["oros"]', 'beim Ändern steht zuerst die Form des Eintrags da');
+await page.locator('#bogenMittel').fill('Medikinet retard');
+await kurz();
+const formTeil = async () => ((await page.locator('.bogen-form').innerText()) || '').replace(/\s+/g, ' ');
+check(JSON.stringify(await gedrueckt()) === '["pellet"]' && (await formTeil()).includes('vorgewählt nach dem Namen'),
+  `ein anderer Name: die Form des alten Präparats gilt nicht mehr, vorgewählt wird nach dem neuen (${(await gedrueckt()).join(', ')})`);
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(250);
+const umbenannt = (await speicher()).eintraege.find((e) => e.id === 'cg') || {};
+check(umbenannt.mittel === 'Medikinet retard' && umbenannt.form === 'pellet',
+  `gespeichert mit der Form des neuen Namens (${umbenannt.mittel}, ${umbenannt.form})`);
+await page.locator('[data-act="tag-blaettern"][data-d="1"]').click();
+await kurz();
+check(await page.locator('.wechsel-karte').count() === 1
+  && (await page.locator('.wechsel-karte').innerText()).includes('Kapsel mit zweierlei Kügelchen und Nexium'),
+'und auf „Tag" steht der Hinweis der Stufe A zu Kügelchen und Säureblocker');
+// Gegenproben: Derselbe Name (nur anders geschrieben) behält die Form; eine im
+// Bogen selbst angetippte Form bleibt auch bei einem neuen Namen.
+await page.locator('[data-act="tag-blaettern"][data-d="-1"]').click();
+await kurz();
+await page.locator('[data-act="bearbeiten"][data-id="cr"]').click();
+await kurz();
+await page.locator('#bogenMittel').fill('ritalin adult ');
+await kurz();
+check(JSON.stringify(await gedrueckt()) === '["sodas"]' && !(await formTeil()).includes('vorgewählt'),
+  'derselbe Name, nur anders geschrieben: die Form des Eintrags bleibt gewählt');
+await page.locator('[data-act="bogen-form"][data-id="sofort"]').click();
+await kurz();
+await page.locator('#bogenMittel').fill('Methylphenidat');
+await kurz();
+check(JSON.stringify(await gedrueckt()) === '["sofort"]', 'eine hier angetippte Form bleibt auch mit einem neuen Namen');
+await page.locator('[data-act="bogen-speichern"]').click();
+await page.waitForTimeout(250);
+const angetippt = (await speicher()).eintraege.find((e) => e.id === 'cr') || {};
+check(angetippt.mittel === 'Methylphenidat' && angetippt.form === 'sofort',
+  `gespeichert mit der angetippten Form (${angetippt.mittel}, ${angetippt.form})`);
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

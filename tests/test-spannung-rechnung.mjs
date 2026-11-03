@@ -137,6 +137,18 @@ const verteilt = (n, ab = 0, schritt = 3) => Array.from({ length: n }, (_, k) =>
   check(fall((d) => [kopf(d, '04:30')], ungefaehr).schnitt === 1
     && fall((d) => [kopf(d, '11:30')], ungefaehr).schnitt === 0,
   'V1a: vor 5 Uhr liegt ein Kopfschmerz sicher vor einer Einnahme „morgens“, ab 11 Uhr sicher danach');
+  // Eine Abenddosis, die erst nach Mitternacht eingetragen ist („jetzt
+  // genommen“ um 00:30), ist keine Einnahme am Morgen: Das Fenster „morgens“
+  // beginnt um 5 Uhr. Sonst wäre jeder Kopfschmerz am Morgen ein „kein Kopf“.
+  const nachMitternacht = (um, name) => (d) => mittelAm(d, um, name);
+  check(fall((d) => [nachMitternacht('00:30', 'Intuniv')(d), kopf(d, '07:00')]).schnitt === 1,
+    'V1a: eine Einnahme um 00:30 verschiebt die Grenze nicht – ein Kopfschmerz um 7 Uhr ist einer am Morgen');
+  check(fall((d) => [nachMitternacht('01:15', 'Strattera')(d), kopf(d, '08:00')]).schnitt === 1,
+    'V1a: ebenso eine um 01:15 mit einem Kopfschmerz um 8 Uhr');
+  check(fall((d) => [nachMitternacht('00:30', 'Intuniv')(d), kopf(d, '06:00')], (d) => mittelAm(d, '07:30', 'Ritalin Adult')).schnitt === 1,
+    'V1a: mit einer Einnahme um 00:30 und einer um 07:30 gilt 07:30 als Grenze – ein Kopfschmerz um 6 Uhr zählt');
+  check(fall((d) => [nachMitternacht('00:30', 'Strattera')(d), kopf(d, '04:00')], ungefaehr).schnitt === 1,
+    'V1a: mit einer Einnahme um 00:30 und einer ungefähr „morgens“ liegt ein Kopfschmerz um 4 Uhr sicher davor');
 }
 {
   // Der laufende Morgen zählt für „Kopf am Morgen“ noch nicht: Um 6:40 sind

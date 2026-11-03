@@ -427,6 +427,53 @@ function a1NullTagebuch(saat) {
     `ein Zusatzmittel, zum ersten Mal an einem Tag ohne Stimulans: kein Neubeginn (ab ${c.von}, am Tag danach ab ${c2.von})`);
 }
 {
+  /*
+   * Ein abgesetztes Stimulans ist nicht mehr das laufende Mittel – auch wenn
+   * kein ganz neues Mittel dazukommt. (a) Das Zweitmittel läuft weiter, das
+   * Stimulans nicht. (b) Zurück auf ein Mittel ohne Stimulans, das schon
+   * früher genommen wurde. Sonst stünde das Stimulans in Karte und Bericht als
+   * laufend da, ohne „Einnahmen bis“, und A2 und A3 rechneten über Monate alte
+   * Tage.
+   */
+  const l = [];
+  for (let i = 0; i < 60; i++) {
+    const d = tagN(i);
+    l.push(mittel(d, '07:30', { mittel: 'Ritalin Adult' }), mittel(d, '20:00', { mittel: 'Intuniv' }), essen(d, '07:10'));
+  }
+  for (let i = 60; i < 119; i++) l.push(mittel(tagN(i), '20:00', { mittel: 'Intuniv' }), essen(tagN(i), '07:10'));
+  const a = auswerten(l);
+  const mph = a.a1.alle.find((x) => x.schluessel === 'mph:sodas');
+  check(a.abschnitt.von === tagN(60) && a.abschnitt.namen.join() === 'Intuniv' && a.abschnitt.tage === 59
+    && a.a2 === null && a.a3 === null,
+  `(a) Stimulans abgesetzt, das Zweitmittel läuft weiter: der Abschnitt ist das Zweitmittel (${a.abschnitt.namen.join(', ')} ab ${a.abschnitt.von}, ${a.abschnitt.tage} Tage)`);
+  check(mph && !mph.imAbschnitt && mph.letzte === tagN(59),
+    `und der Befund zum Stimulans trägt „Einnahmen bis“ (${mph ? `${mph.imAbschnitt}, ${mph.letzte}` : 'kein Befund'})`);
+  const b = [];
+  for (let i = 0; i < 20; i++) b.push(mittel(tagN(i), '08:00', { mittel: 'Strattera' }));
+  for (let i = 20; i < 80; i++) b.push(mittel(tagN(i), '07:30', { mittel: 'Ritalin Adult' }));
+  for (let i = 80; i < 120; i++) b.push(mittel(tagN(i), '08:00', { mittel: 'Strattera' }));
+  const r = adhsAuswertung({ eintraege: b, tage: {}, heute: ENDE, jetzt: jetztSpaet });
+  check(r.abschnitt.von === tagN(80) && r.abschnitt.tage === 40 && r.abschnitt.namen.join() === 'Strattera'
+    && r.a2 === null && r.a3 === null,
+  `(b) zurück auf ein früher genommenes Mittel ohne Stimulans: der Abschnitt beginnt dort, A2 und A3 fallen weg (${r.abschnitt.namen.join(', ')} ab ${r.abschnitt.von}, ${r.abschnitt.tage} Tage)`);
+  // Schon nach einer Woche: Das frühere Mittel kam im Abschnitt des
+  // Stimulans nicht vor – ein Wechsel, nicht erst nach zwei Wochen.
+  const r7 = adhsAuswertung({ eintraege: b.filter((e) => e.am < tagN(87)), tage: {}, heute: ENDE, jetzt: jetztSpaet });
+  check(r7.abschnitt.von === tagN(80) && r7.abschnitt.tage === 7 && r7.a2 === null,
+    `ebenso nach sieben Tagen zurück auf das frühere Mittel (${r7.abschnitt.namen.join(', ')} ab ${r7.abschnitt.von}, ${r7.abschnitt.tage} Tage)`);
+  // Gegenproben: Eine Pause von zehn Tagen mit durchlaufendem Zweitmittel ist
+  // kein Absetzen; und wer danach mit demselben Stimulans weitermacht, ist im
+  // selben Abschnitt wie vorher.
+  const kurz = l.filter((e) => e.am < tagN(70));
+  const k = auswerten(kurz);
+  check(k.abschnitt.von === tagN(0) && k.abschnitt.namen.join() === 'Intuniv,Ritalin Adult',
+    `zehn Tage nur mit dem Zweitmittel: noch derselbe Abschnitt (${k.abschnitt.namen.join(', ')} ab ${k.abschnitt.von})`);
+  const weiter = [...l, ...[119, 120, 121].map((i) => mittel(tagN(i), '07:30', { mittel: 'Ritalin Adult' }))];
+  const w = auswerten(weiter);
+  check(w.abschnitt.von === tagN(0) && w.abschnitt.namen.join() === 'Intuniv,Ritalin Adult',
+    `nach der Pause wieder dasselbe Stimulans: derselbe Abschnitt wie vorher (${w.abschnitt.namen.join(', ')} ab ${w.abschnitt.von})`);
+}
+{
   // „Weiß ich nicht“ ist keine Form, sondern eine fehlende: Wird die Form
   // später angegeben – wozu der Hinweis W1u auffordert –, ist das kein
   // Wechsel. Der Abschnitt bleibt, A1 bleibt ein Mittel.
@@ -594,11 +641,17 @@ function kopfTagebuch(saat, p = [0.15, 0.6]) {
 
 /* ---------- 6. R9: keine Zielzahl auf der Seite „ohne" ---------- */
 
+/*
+ * Die Sätze unter A2, wie Karte und Bericht sie zeigen: „zu wenige“ nach den
+ * gezeigten Zeilen (ohne den Schalter für Kiefer und Nacken), dann die übrigen.
+ */
+const A2_GEZEIGT = ['bauch', 'kopf', 'schlaf'];
+const a2Saetze = (x) => [...adhs.a2ZuWenig(x.a2, A2_GEZEIGT), ...x.a2.saetze];
 {
   const { liste, tage } = a2Tagebuch({ mit: werktage(20), ohne: werktage(3, 40) });
   const a = auswerten(liste, tage);
-  check(a.a2.saetze[0] === 'Tage ohne ADHS-Mittel bisher: 3 – zu wenige für einen Vergleich.'
-    && a.a2.saetze.includes(WEGLASS_SATZ), 'zu wenige Tage ohne: die bisherige Zahl und der Satz, dass es keinen Grund gibt, etwas wegzulassen');
+  check(a2Saetze(a)[0] === 'Tage ohne ADHS-Mittel bisher: 3 – zu wenige für einen Vergleich.'
+    && a2Saetze(a).includes(WEGLASS_SATZ), 'zu wenige Tage ohne: die bisherige Zahl und der Satz, dass es keinen Grund gibt, etwas wegzulassen');
   const wenig = auswerten(a1Grund().filter((e) => !(e.essen === 'ohne' && e.am > tagN(9))));
   const s = wenig.a1.haupt.saetze;
   // Zeichengleich: Ein angehängter Zielteil („… (3 von 5 nötigen).“) fiele
@@ -606,10 +659,10 @@ function kopfTagebuch(saat, p = [0.15, 0.6]) {
   check(s[0] === 'Bisher 20-mal mit, 3-mal ohne Essen angegeben – zu wenige Einnahmen ohne Essen für einen Vergleich.'
     && s.includes(WEGLASS_SATZ),
   `A1 mit zu wenigen Einnahmen ohne Essen: bisherige Zahlen und derselbe Satz (${s[0]})`);
-  const weglass = [a.a2.saetze[0], s[0]];
+  const weglass = [a2Saetze(a)[0], s[0]];
   const xy = weglass.filter((t) => X_VON_Y.test(t) || ZIELZAHL.test(t));
   check(xy.length === 0, `auf der Seite „ohne“ kein „x von y“ und keine Zielzahl${xy.length ? `: ${xy[0]}` : ''}`);
-  const texte = [...alleSaetze(a), ...alleSaetze(wenig)];
+  const texte = [...alleSaetze(a), ...a2Saetze(a), ...alleSaetze(wenig)];
   const ziel = texte.filter((t) => ZIELZAHL.test(t));
   check(ziel.length === 0, `nirgends eine Zielzahl („braucht 8“, „noch 5“, „nötig: 12“, „es fehlen 2“, „mindestens 8“)${ziel.length ? `: ${ziel[0]}` : ''}`);
   check(['braucht 8', 'noch 5', 'nötig: 12', 'es fehlen 2', 'mindestens 8', '(3 von 5 nötigen)', '5 nötig']
@@ -623,15 +676,68 @@ function kopfTagebuch(saat, p = [0.15, 0.6]) {
   werktage(10, 60).forEach((i) => { tage[tagN(i)] = { adhsPause: 'vergessen' }; });
   const a = auswerten(liste, tage);
   check(!a.a2.zeilen.bauch.genug && !a.a2.zeilen.kopf.genug
-    && a.a2.saetze[0] === 'Tage ohne ADHS-Mittel bisher: 10, davon gewertet 0 – zu wenige für einen Vergleich.'
-    && a.a2.saetze.includes(WEGLASS_SATZ),
-  `R9: zehn angegebene, aber nicht notierte Tage ohne Mittel – „zu wenige“ und der Satz zum Weglassen (${a.a2.saetze[0]})`);
-  check(!alleSaetze(a).some((t) => ZIELZAHL.test(t)) && !X_VON_Y.test(a.a2.saetze[0]), 'auch dort keine Zielzahl');
+    && a2Saetze(a)[0] === 'Tage ohne ADHS-Mittel bisher: 10, davon gewertet 0 – zu wenige für einen Vergleich.'
+    && a2Saetze(a).includes(WEGLASS_SATZ),
+  `R9: zehn angegebene, aber nicht notierte Tage ohne Mittel – „zu wenige“ und der Satz zum Weglassen (${a2Saetze(a)[0]})`);
+  check(![...alleSaetze(a), ...a2Saetze(a)].some((t) => ZIELZAHL.test(t)) && !X_VON_Y.test(a2Saetze(a)[0]), 'auch dort keine Zielzahl');
   // Genug Tage ohne, aber zu wenige mit: Der Satz meinte die falsche Seite.
   const w = a2Tagebuch({ mit: werktage(5), ohne: werktage(14, 40) });
   const b = auswerten(w.liste, w.tage);
-  check(!b.a2.zeilen.bauch.genug && !b.a2.saetze.some((t) => t.includes('zu wenige')),
+  check(!b.a2.zeilen.bauch.genug && !a2Saetze(b).some((t) => t.includes('zu wenige')),
     'fehlen nur Tage mit Mittel, steht kein „zu wenige Tage ohne“');
+}
+{
+  /*
+   * Schlaf, Kiefer und gepresst brauchen keinen für Bauch oder Kopf notierten
+   * Tag – nur einen Wert. Ein Tag ohne Mittel, an dem nur die Spannungsfragen
+   * beantwortet sind und die Nacht danach bewertet ist, fehlt bei Bauch und
+   * Kopf und zählt beim Schlaf. Dann darf neben dem Schlafvergleich nicht
+   * „zu wenige für einen Vergleich“ stehen: „zu wenige“ gilt nur, wenn keine
+   * der angezeigten Zeilen auf der Seite „ohne“ genug Tage hat.
+   */
+  const nurSpannung = (felder) => {
+    const liste = [];
+    const tage = {};
+    const setze = (iso, x) => { tage[iso] = { ...(tage[iso] || {}), ...x }; };
+    const ohne = [];
+    const mit = [];
+    for (let i = 0; i < 140; i++) {
+      if (i % 9 === 4 && i >= 9 && ohne.length < 14) ohne.push(i);
+      else if (i % 9 !== 3) mit.push(i);
+    }
+    mit.forEach((i) => {
+      const d = tagN(i);
+      liste.push(mittel(d, '07:30', { mittel: i % 2 ? 'Elvanse' : 'Elvanse 30' }), stuhl(d));
+      setze(d, felder.mit);
+      if (felder.nacht) setze(tagN(i + 1), felder.nacht);
+    });
+    ohne.forEach((i) => {
+      setze(tagN(i), { adhsPause: 'geplant', ...felder.ohne });
+      if (felder.nacht) setze(tagN(i + 1), felder.nacht);
+    });
+    return auswerten(liste, tage);
+  };
+  const a = nurSpannung({ mit: {}, ohne: { verspannt: 1, kiefer: 1 }, nacht: { schlaf: 1 } });
+  const z = a.a2.zeilen;
+  check(z.bauch.ohne.n === 0 && z.kopf.ohne.n === 0 && z.schlaf.genug && z.schlaf.ohne.n === 14,
+    `Tage ohne Mittel nur mit Spannungsfragen: Bauch und Kopf ohne, Schlaf mit genug Tagen (${z.bauch.ohne.n}/${z.kopf.ohne.n}/${z.schlaf.ohne.n})`);
+  const sichtbar = ['bauch', 'kopf', 'schlaf'];
+  check(adhs.a2ZuWenig(a.a2, sichtbar).length === 0 && !a.a2.saetze.some((t) => t.includes('zu wenige')),
+    `neben dem Schlafvergleich steht kein „zu wenige für einen Vergleich“ (${adhs.a2ZuWenig(a.a2, sichtbar)[0] || '–'})`);
+  check(adhs.a2ZuWenig(a.a2, ['bauch', 'kopf'])[0] === 'Tage ohne ADHS-Mittel bisher: 14, davon gewertet 0 – zu wenige für einen Vergleich.',
+    'nur Bauch und Kopf gezeigt: dann steht der Satz, mit der Zahl der gewerteten');
+  check(a.a2.saetze.some((t) => t.includes('keine Zufallsauswahl')), 'der Pflichtvorbehalt zu Tagen „wegen Beschwerden“ bleibt');
+  // Gepresst hat genug, wird aber nur mit dem Schalter gezeigt: Ohne ihn darf
+  // die verdeckte Zeile den Satz nicht unterdrücken – mit ihm steht er nicht.
+  const b = nurSpannung({ mit: { gepresst: 0 }, ohne: { verspannt: 2, gepresst: 1 } });
+  check(b.a2.zeilen.gepresst.genug && b.a2.zeilen.gepresst.ohne.n === 14,
+    `nur gepresst hat genug Tage ohne Mittel (${b.a2.zeilen.gepresst.mit.n}/${b.a2.zeilen.gepresst.ohne.n})`);
+  const ohneSchalter = adhs.a2ZuWenig(b.a2, sichtbar);
+  check(ohneSchalter[0] === 'Tage ohne ADHS-Mittel bisher: 14, davon gewertet 0 – zu wenige für einen Vergleich.'
+    && ohneSchalter.includes(WEGLASS_SATZ),
+  `ohne Schalter für Kiefer und Nacken: „zu wenige“ steht, denn keine gezeigte Zeile hat genug (${ohneSchalter[0] || '–'})`);
+  check(adhs.a2ZuWenig(b.a2, [...sichtbar, 'kiefer', 'gepresst']).length === 0,
+    'mit dem Schalter steht der Vergleich zu gepresst da – und kein „zu wenige“');
 }
 {
   // Die Zahl vorn ist die Summe der Gründe in der Klammer.
