@@ -36,7 +36,7 @@ const browser = await chromium.launch();
 const fehler = [];
 const GRUND = {
   begruesst: true, tab: 'heute', alterName: null, startbildschirmWeg: true, unterleibGefragt: true,
-  lastBackup: { on: TAG, anzahl: 1 }, v28Gesagt: true, tage: {}, standardMittel: [],
+  lastBackup: { on: TAG, anzahl: 1 }, v28Gesagt: true, v29Gesagt: true, tage: {}, standardMittel: [],
   eintraege: [{ id: 'f1', art: 'essen', am: TAG, um: '19:00', was: 'Suppe', zutaten: [], portion: 'normal' }],
 };
 

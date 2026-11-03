@@ -303,3 +303,89 @@ export function wechselHinweise(standardMittel, eintraege, heute) {
 
   return raus.sort((x, y) => W_RANG[x.stufe] - W_RANG[y.stufe]);
 }
+
+/* ---------- Die Rückfrage auf „Tag" ---------- */
+
+/*
+ * Die Formen, bei denen ein Säureblocker einen Hinweis ergibt – dieselben
+ * Zweige wie oben in wechselHinweise (pellet → W1, unbekannt → W1u,
+ * sodas → W3, sofort und retardtab → W4). Bei der Hülle (oros) und Equasym
+ * steht dort nichts; dann wäre die Frage nach dem Säureblocker eine ohne
+ * Folge. tests/test-adhs-wissen.mjs prüft je Form, dass beides übereinstimmt.
+ */
+const W_FORM_MIT_SAEURE = ['pellet', 'unbekannt', 'sodas', 'sofort', 'retardtab'];
+
+/** Ist das ein Mittel gegen Magensäure – so, wie die Paare es zählen? */
+export const istSaeureMittel = (name) => wIstSaeure(name);
+
+/*
+ * Was die Rückfrage auf „Tag" (js/app.js) unter „Ja" zur Wahl stellt: Namen,
+ * die die Erkennung schon kennt – Wirkstoffe und Packungsnamen aus
+ * MITTEL_WISSEN (ppi, h2, antazida, alginat) und Natron (W_NATRON). Jeder
+ * davon muss istSaeureMittel() sein; tests/test-adhs-wissen.mjs prüft das.
+ */
+export const SAEURE_WAHL = ['Pantoprazol', 'Pantozol', 'Omeprazol', 'Esomeprazol', 'Nexium',
+  'Famotidin', 'Rennie', 'Maaloxan', 'Riopan', 'Talcid', 'Gaviscon', 'Natron'];
+
+/*
+ * Der Schlüssel eines Namens für die Rückfrage: klein, auf W_SCHLUESSEL_NAME
+ * Zeichen gekürzt und danach noch einmal getrimmt – sonst endete er nach dem
+ * Kürzen auf einem Leerzeichen, fiele beim Einlesen weg, und keine Antwort
+ * wirkte mehr. js/store.js hat dieselbe Rechnung (dort ohne Import);
+ * tests/test-sicherung.mjs prüft, dass beide gleich rechnen.
+ */
+export const rueckfrageSchluessel = (name) => wKlein(name).slice(0, W_SCHLUESSEL_NAME).trim();
+
+/**
+ * Was zu einem eingetragenen Methylphenidat fehlt, damit die Paare oben
+ * vollständig sind. Für die Rückfrage auf „Tag".
+ *
+ * Eingetragen heißt dasselbe wie bei den Paaren (wEingetragen): „Meine
+ * Mittel" oder eine Einnahme in den letzten WECHSEL_TAGE Tagen, in derselben
+ * Reihenfolge. Je Schlüssel zählt der erste Name, wie beim Entdoppeln der
+ * Paare.
+ *
+ *   form         formZu(name, …, heute)
+ *   saeureDa     ein Mittel gegen Magensäure ist eingetragen (wIstSaeure,
+ *                also mit Natron). Mit form 'unbekannt' steht dann W1u.
+ *   fehltForm    form ist 'unbekannt', und „Weiß ich nicht" steht weder bei
+ *                einem eigenen Mittel dieses Namens noch bei seiner jüngsten
+ *                Einnahme der letzten WECHSEL_TAGE Tage.
+ *   fehltSaeure  !saeureDa und form steht in W_FORM_MIT_SAEURE.
+ *
+ * Alle Methylphenidat-Namen, auch ohne offene Frage; die Anzeige filtert.
+ * Sätze stehen hier keine – was die Karte sagt, steht in js/app.js und
+ * stellt nichts Neues fest.
+ *
+ * @returns {{ name: string, schluessel: string, form: string, saeureDa: boolean,
+ *   fehltForm: boolean, fehltSaeure: boolean }[]}
+ */
+export function mphRueckfragen(standardMittel, eintraege, heute) {
+  const namen = wEingetragen(standardMittel, eintraege, heute);
+  const saeureDa = namen.some((n) => wIstSaeure(n));
+  const ab = wVorTagen(heute, WECHSEL_TAGE - 1);
+  const schon = new Set();
+  const raus = [];
+  namen.filter((name) => wGruppe(name) === 'mph').forEach((name) => {
+    const schluessel = rueckfrageSchluessel(name);
+    if (!schluessel || schon.has(schluessel)) return;
+    schon.add(schluessel);
+    const k = wKlein(name);
+    const form = formZu(name, standardMittel, eintraege, heute);
+    const juengste = (eintraege || [])
+      .filter((e) => e && e.art === 'medikament' && wKlein(e.mittel) === k && e.am >= ab && e.am <= heute)
+      .sort((a, b) => (a.am === b.am ? wMinuten(a.um) - wMinuten(b.um) : (a.am < b.am ? -1 : 1)))
+      .pop();
+    const weissNicht = (standardMittel || []).some((m) => m && wKlein(m.mittel) === k && m.form === 'unbekannt')
+      || !!(juengste && juengste.form === 'unbekannt');
+    raus.push({
+      name,
+      schluessel,
+      form,
+      saeureDa,
+      fehltForm: form === 'unbekannt' && !weissNicht,
+      fehltSaeure: !saeureDa && W_FORM_MIT_SAEURE.includes(form),
+    });
+  });
+  return raus;
+}

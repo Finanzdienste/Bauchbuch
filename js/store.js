@@ -167,6 +167,25 @@ const VORGABE = {
    */
   wechselGelesen: [],
   /*
+   * Antworten auf die Rückfrage zu Methylphenidat auf „Tag" (Fassung 29,
+   * siehe rueckfrageKarte in js/app.js): je Name, klein, auf RUECKFRAGE_NAME
+   * Zeichen gekürzt und getrimmt (rueckfrageSchluessel in js/zusammen.js),
+   *   { nie, form, saeure }
+   *   nie     „Nicht mehr fragen"
+   *   form    'weissnicht' oder null. Eine Form steht nie hier, sondern beim
+   *           Mittel oder bei der Einnahme – dort, wo formZu sie liest.
+   *   saeure  'nein', 'ja' (auch ein Name, den die Erkennung nicht kennt)
+   *           oder null
+   * An welchen Tagen die Karte stand, steht nicht hier, sondern im
+   * Gerätespeicher (gezeigtLesen): Ansehen schreibt nie ins Tagebuch.
+   */
+  mphRueckfrage: {},
+  /*
+   * Die einmalige Karte „Neu: Hinweise zu zwei Mitteln zusammen" auf „Tag" –
+   * gelesen? Ein neuer Stand gilt als gesagt (siehe neuerStand), wie v28Gesagt.
+   */
+  v29Gesagt: false,
+  /*
    * Seit wann die Beschwerden bestehen, als 'YYYY-MM'.
    *
    * Die eine Angabe, die aus dem Tagebuch grundsätzlich nicht hervorgeht: Es
@@ -342,7 +361,7 @@ const VORGABE = {
 const EINSTELLUNGEN = [
   'fenster', 'mindestFaelle', 'tagesfragen', 'theme', 'atemUebung', 'atemRunden',
   'ton', 'abnehmenGewollt', 'unterleibGefragt', 'beschwerdenSeit',
-  'wasserZeigen', 'wasserGlas', 'adhsAn', 'spannungAn', 'v28Gesagt',
+  'wasserZeigen', 'wasserGlas', 'adhsAn', 'spannungAn', 'v28Gesagt', 'v29Gesagt',
 ];
 
 /** Die dreiwertigen Schalter – siehe adhsAn in VORGABE. */
@@ -356,6 +375,89 @@ const schalterWert = (v) => (v === true || v === false ? v : null);
  * je 80 Zeichen.
  */
 const WECHSEL_SCHLUESSEL_LAENGE = 170;
+
+/*
+ * Die Rückfrage zu Methylphenidat (Fassung 29). Hier vor laden(), nicht bei
+ * ihren Funktionen weiter unten: laden() läuft beim Laden des Moduls, und
+ * eine spätere const läge dort noch in der toten Zone – der Fehler fiele in
+ * laden()s catch, und die App begänne mit einem leeren Tagebuch.
+ */
+/** = W_SCHLUESSEL_NAME in js/zusammen.js; tests/test-sicherung.mjs prüft die Gleichheit. */
+export const RUECKFRAGE_NAME = 80;
+/** So viele Namen merkt sich die Rückfrage höchstens – die jüngsten. */
+const RUECKFRAGE_HOECHSTENS = 50;
+/** Der Gerätespeicher für „was stand wann auf Tag" – nicht im Tagebuch, nicht in Sicherungen. */
+const GEZEIGT_KEY = `${KEY}.gezeigt`;
+/** Wie rueckfrageSchluessel in js/zusammen.js – der Speicher importiert keine Rechenschicht. */
+const rfSchluessel = (name) => String(name || '').toLowerCase().trim().slice(0, RUECKFRAGE_NAME).trim();
+const istObjekt = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+
+/** Ein Schlüssel, wie rfSchluessel ihn ergibt: klein, getrimmt, 1 bis 80 Zeichen. */
+function rueckfrageSchluesselGut(k) {
+  return typeof k === 'string' && k.length >= 1 && k.length <= RUECKFRAGE_NAME
+    && k === k.trim() && k === k.toLowerCase();
+}
+
+/**
+ * Die Antworten auf die Rückfrage so, wie sie gespeichert werden. Was es
+ * nicht gibt, fällt weg, statt umgedeutet zu werden; ein Name ohne jede
+ * Antwort ebenso. Die letzten RUECKFRAGE_HOECHSTENS Namen bleiben.
+ */
+function rueckfrageSauber(roh) {
+  if (!istObjekt(roh)) return {};
+  const paare = [];
+  Object.entries(roh).forEach(([k, v]) => {
+    if (!rueckfrageSchluesselGut(k) || !istObjekt(v)) return;
+    const r = {
+      nie: v.nie === true,
+      form: v.form === 'weissnicht' ? 'weissnicht' : null,
+      saeure: v.saeure === 'nein' || v.saeure === 'ja' ? v.saeure : null,
+    };
+    if (r.nie || r.form || r.saeure) paare.push([k, r]);
+  });
+  return Object.fromEntries(paare.slice(-RUECKFRAGE_HOECHSTENS));
+}
+
+/** Zwei Stände: Was auf einem Gerät beantwortet ist, bleibt beantwortet – hier zuerst. */
+function rueckfrageVereint(hier, dazu) {
+  const raus = { ...rueckfrageSauber(hier) };
+  Object.entries(rueckfrageSauber(dazu)).forEach(([k, b]) => {
+    const a = raus[k];
+    raus[k] = a ? { nie: a.nie || b.nie, form: a.form || b.form, saeure: a.saeure || b.saeure } : b;
+  });
+  return raus;
+}
+
+/*
+ * Für die Sicherung nur die Antworten zu Namen, die im Tagebuch noch
+ * vorkommen – unter „Meine Mittel" oder in einem Eintrag. Sonst stünde der
+ * Name eines längst gelöschten Mittels in jeder Sicherung. Auf dem Gerät
+ * bleibt der Stand, wie er ist; kommt der Name zurück, ist er ein neues
+ * Mittel und wird neu gefragt.
+ */
+function rueckfrageBehalten(s) {
+  const da = new Set([
+    ...(s.standardMittel || []).map((m) => rfSchluessel(m && m.mittel)),
+    ...(s.eintraege || []).filter((e) => e && e.art === 'medikament').map((e) => rfSchluessel(e.mittel)),
+  ]);
+  return Object.fromEntries(Object.entries(s.mphRueckfrage || {}).filter(([k]) => da.has(k)));
+}
+
+/**
+ * Der Gerätespeicher, gesäubert: { am, zu, tage }.
+ *   am    an welchem Tag die Karte „Neu" sichtbar stand
+ *   zu    an welchem Tag „Später" oder „Nicht mehr fragen" getippt wurde
+ *   tage  je Name die (höchstens zwei) Tage, an denen die Rückfrage sichtbar stand
+ */
+function gezeigtSauber(roh) {
+  const g = istObjekt(roh) ? roh : {};
+  const tage = Object.entries(istObjekt(g.tage) ? g.tage : {})
+    .filter(([k, v]) => rueckfrageSchluesselGut(k) && Array.isArray(v))
+    .map(([k, v]) => [k, [...new Set(v.filter(istISO))].sort().slice(0, 2)])
+    .filter(([, v]) => v.length)
+    .slice(-RUECKFRAGE_HOECHSTENS);
+  return { am: istISO(g.am) ? g.am : null, zu: istISO(g.zu) ? g.zu : null, tage: Object.fromEntries(tage) };
+}
 
 /*
  * Was zu diesem Gerät gehört und nicht zum Tagebuch. Eine Sicherung trägt
@@ -377,7 +479,7 @@ const klon = (o) => JSON.parse(JSON.stringify(o));
  * false; kommen ältere Einträge über eine Sicherung dazu, siehe
  * zusammenfuehren().
  */
-const neuerStand = () => ({ ...klon(VORGABE), v28Gesagt: true });
+const neuerStand = () => ({ ...klon(VORGABE), v28Gesagt: true, v29Gesagt: true });
 
 /**
  * Jede Idee bekommt ihr eigenes `geschickt`.
@@ -428,6 +530,9 @@ function laden() {
     if (typeof s.v28Gesagt !== 'boolean') s.v28Gesagt = false;
     s.wechselGelesen = Array.isArray(s.wechselGelesen)
       ? s.wechselGelesen.filter((x) => typeof x === 'string') : [];
+    // Die Felder der Fassung 29 – ebenso: fehlt eins, gilt die Vorgabe.
+    if (typeof s.v29Gesagt !== 'boolean') s.v29Gesagt = false;
+    s.mphRueckfrage = rueckfrageSauber(s.mphRueckfrage);
     return s;
   } catch {
     // Unlesbar oder gar kein Speicher: Auch das ist ein neuer Anfang.
@@ -1483,8 +1588,13 @@ export function ideeLoeschen(id) {
 
 /* ---------- Sicherung ---------- */
 
+/*
+ * Die Antworten auf die Rückfrage nur zu Namen, die noch vorkommen (siehe
+ * rueckfrageBehalten). Der Schlüssel bleibt an seiner Stelle; der Stand
+ * selbst bleibt unverändert.
+ */
 export function alsJSON() {
-  return JSON.stringify(zustand, null, 2);
+  return JSON.stringify({ ...zustand, mphRueckfrage: rueckfrageBehalten(zustand) }, null, 2);
 }
 
 /**
@@ -1587,6 +1697,9 @@ function sicherungLesen(text) {
   // einem Umzug oder Einlesen wieder.
   frisch.wechselGelesen = frisch.wechselGelesen
     .filter((x) => typeof x === 'string' && x.length <= WECHSEL_SCHLUESSEL_LAENGE).slice(-50);
+  // Die Antworten auf die Rückfrage (Fassung 29). v29Gesagt nimmt die
+  // Schleife oben schon nur als Wahrheitswert.
+  frisch.mphRueckfrage = rueckfrageSauber(gelesen.mphRueckfrage);
   // Tageszeit und Bezug nur aus den Knöpfen – ein Wert, den es dort nicht
   // gibt, würde beim Eintragen keine Uhrzeit ergeben, sondern gar keine.
   frisch.standardMittel = mittelEindeutig(frisch.standardMittel
@@ -1846,6 +1959,8 @@ function zusammenfuehren(hier, dazu) {
   // Was auf einem Gerät gelesen wurde, ist gelesen – ein Hinweis, den man
   // schon weggetippt hat, soll nach dem Umzug nicht wiederkommen.
   neu.wechselGelesen = [...new Set([...(hier.wechselGelesen || []), ...(dazu.wechselGelesen || [])])];
+  // Ebenso die Antworten auf die Rückfrage: je Name vereinigt.
+  neu.mphRueckfrage = rueckfrageSauber(rueckfrageVereint(hier.mphRueckfrage, dazu.mphRueckfrage));
   // Ohne Kürzen auf STANDARD_HOECHSTENS: Was in einer Sicherung steht, geht
   // beim Zusammenführen nicht still verloren. Die Grenze gilt fürs Merken.
   // Erst nach der Kennung: Dieselbe Kennung ist dasselbe Mittel, auch wenn
@@ -1879,6 +1994,8 @@ function zusammenfuehren(hier, dazu) {
    */
   const schonHier = new Set(hier.eintraege.map((e) => e.id));
   if (dazu.v28Gesagt !== true && dazu.eintraege.some((e) => !schonHier.has(e.id))) neu.v28Gesagt = false;
+  // Dieselbe Regel für die Karte „Neu" der Fassung 29.
+  if (dazu.v29Gesagt !== true && dazu.eintraege.some((e) => !schonHier.has(e.id))) neu.v29Gesagt = false;
   neu.begruesst = true;
   return neu;
 }
@@ -1966,8 +2083,86 @@ export function allesLoeschen() {
   // weiß, was die App ist.
   zustand.begruesst = true;
   try { localStorage.removeItem(KEY); } catch { /* dann eben nicht */ }
+  // Auch, was auf „Tag" wann stand – es gehört zu Mitteln, die es nicht mehr gibt.
+  try { localStorage.removeItem(GEZEIGT_KEY); } catch { /* dann eben nicht */ }
   merke();
   melde();
+}
+
+/* ---------- Die Rückfrage zu Methylphenidat (Fassung 29) ---------- */
+
+/**
+ * Dieselbe Antwort bei mehreren Namen setzen – „Nein" zum Säureblocker gilt
+ * etwa für alle Namen, bei denen danach gefragt würde. Gesäubert wie beim
+ * Einlesen; ein Name ohne jede Antwort fällt weg. Ein beantworteter Name
+ * rückt nach hinten: Behalten werden die jüngsten.
+ */
+export function rueckfrageSetzen(schluessel, patch) {
+  const neu = { ...(zustand.mphRueckfrage || {}) };
+  (Array.isArray(schluessel) ? schluessel : []).forEach((k) => {
+    if (!rueckfrageSchluesselGut(k)) return;
+    const alt = neu[k] || { nie: false, form: null, saeure: null };
+    delete neu[k];
+    neu[k] = { ...alt, ...(patch || {}) };
+  });
+  zustand.mphRueckfrage = rueckfrageSauber(neu);
+  merke();
+  melde();
+}
+
+/** Der Gerätespeicher „was stand wann auf Tag" – immer gültig, auch ohne Speicher. */
+export function gezeigtLesen() {
+  try {
+    return gezeigtSauber(JSON.parse(localStorage.getItem(GEZEIGT_KEY)));
+  } catch {
+    return { am: null, zu: null, tage: {} };
+  }
+}
+
+/*
+ * Lesen, ändern, nur bei echter Änderung schreiben – direkt in den eigenen
+ * Schlüssel, ohne merke() und ohne melde(): Ein Stempel nach dem Zeichnen
+ * zeichnet nicht noch einmal, und er schreibt nie den Tagebuchstand (ein
+ * veralteter zweiter Tab überschriebe sonst den neueren). Scheitert das
+ * Schreiben, kommt die Karte eben noch einmal; mehr passiert nicht.
+ */
+function gezeigtAendern(fn) {
+  try {
+    const vorher = gezeigtLesen();
+    const nachher = gezeigtSauber(fn(klon(vorher)));
+    if (JSON.stringify(nachher) === JSON.stringify(vorher)) return;
+    localStorage.setItem(GEZEIGT_KEY, JSON.stringify(nachher));
+  } catch { /* siehe oben */ }
+}
+
+/**
+ * Die Rückfrage zu diesen Namen und/oder die Karte „Neu" stand heute
+ * sichtbar da. Je Name höchstens zwei Tage; „Neu" nur am ersten.
+ */
+export function gezeigtMerken(iso, schluessel = [], neu = false) {
+  if (!istISO(iso)) return;
+  gezeigtAendern((g) => {
+    (Array.isArray(schluessel) ? schluessel : []).forEach((k) => {
+      if (!rueckfrageSchluesselGut(k)) return;
+      const tage = g.tage[k] || [];
+      if (!tage.includes(iso) && tage.length < 2) g.tage[k] = [...tage, iso];
+    });
+    if (neu && !g.am) g.am = iso;
+    return g;
+  });
+}
+
+/** „Später" oder „Nicht mehr fragen": heute keine Rückfrage mehr (null hebt das auf). */
+export function rueckfrageZu(iso) {
+  gezeigtAendern((g) => ({ ...g, zu: istISO(iso) ? iso : null }));
+}
+
+/** Der heutige Tag zählt nicht – „Ja" scheiterte an einem vollen „Meine Mittel". */
+export function gezeigtZuruecknehmen(iso) {
+  gezeigtAendern((g) => ({
+    ...g,
+    tage: Object.fromEntries(Object.entries(g.tage).map(([k, t]) => [k, t.filter((x) => x !== iso)])),
+  }));
 }
 
 /*

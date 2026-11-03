@@ -592,6 +592,283 @@ await page.reload({ waitUntil: 'networkidle' });
 check(JSON.stringify((await zustand()).wechselGelesen) === JSON.stringify(['W1|a|b']),
   'aus einer Liste mit Fremdem bleiben nur die Zeichenketten');
 
+/* ---------- Die Angaben der Fassung 29 ---------- */
+
+/*
+ * Die Antworten auf die Rückfrage zu Methylphenidat (`mphRueckfrage`, je
+ * Name) und die einmalige Karte „Neu" (`v29Gesagt`) reisen mit der Sicherung.
+ * Wann eine Karte auf „Tag" stand, steht nicht im Tagebuch, sondern in einem
+ * eigenen Gerätespeicher – und reist nie mit.
+ */
+const GEZEIGT = `${KEY}.gezeigt`;
+const rohLesen = (k) => page.evaluate((x) => localStorage.getItem(x), k);
+const sicherungsText = async () => {
+  await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+  await page.waitForTimeout(200);
+  await page.locator('[data-act="sicherung-text"]').click();
+  await page.waitForTimeout(250);
+  const t = await page.locator('.bericht').inputValue();
+  await page.locator('[data-act="sicherung-zu"]').click();
+  await page.waitForTimeout(150);
+  return t;
+};
+const setzeStand = async (s, gezeigt = null) => {
+  await page.evaluate(async ([k, g, z, gz]) => {
+    const st = await import('/js/store.js');
+    st.sofortSchreiben();
+    localStorage.setItem(k, JSON.stringify(z));
+    if (gz === null) localStorage.removeItem(g); else localStorage.setItem(g, gz);
+  }, [KEY, GEZEIGT, s, gezeigt]);
+  await page.reload({ waitUntil: 'networkidle' });
+};
+
+// 1. Hin und zurück.
+const stand29 = {
+  begruesst: true,
+  tab: 'mehr',
+  v28Gesagt: true,
+  v29Gesagt: true,
+  eintraege: [{ id: 'r1', am: vorTagen(1), um: '07:30', art: 'medikament', mittel: 'Methylphenidat', dosis: '10 mg' }],
+  tage: {},
+  standardMittel: [{ id: 'r2', mittel: 'Medikinet', dosis: '10 mg', tageszeit: 'morgens', bezug: null }],
+  wechselGelesen: ['W1u|medikinet|rennie'],
+  mphRueckfrage: {
+    medikinet: { nie: true, form: null, saeure: 'nein' },
+    methylphenidat: { form: 'weissnicht' },
+  },
+};
+await setzeStand(stand29, JSON.stringify({ am: vorTagen(0), zu: null, tage: { methylphenidat: [vorTagen(0)] } }));
+const vor29 = await zustand();
+check(JSON.stringify(vor29.mphRueckfrage) === JSON.stringify({
+  medikinet: { nie: true, form: null, saeure: 'nein' },
+  methylphenidat: { nie: false, form: 'weissnicht', saeure: null },
+}) && vor29.v29Gesagt === true,
+`Fassung 29: die Antworten laden, jede mit allen drei Feldern (${JSON.stringify(vor29.mphRueckfrage)})`);
+const text29 = await sicherungsText();
+const json29 = JSON.parse(text29);
+check(JSON.stringify(json29.mphRueckfrage) === JSON.stringify(vor29.mphRueckfrage) && json29.v29Gesagt === true,
+  'die Sicherung trägt die Antworten und v29Gesagt');
+check(!('gezeigt' in json29) && !('v29Am' in json29)
+  && Object.values(json29.mphRueckfrage).every((r) => !('tage' in r) && !('am' in r)),
+'aber nicht, wann eine Karte stand – weder „gezeigt" noch Tage an einer Antwort');
+await page.locator('[data-act="alles-weg"]').click();
+await page.waitForTimeout(300);
+const leer29 = await zustand();
+check(leer29.v29Gesagt === true && JSON.stringify(leer29.mphRueckfrage) === '{}' && (await rohLesen(GEZEIGT)) === null,
+  `„Alles löschen": neuer Anfang mit v29Gesagt true, ohne Antworten, der Gerätespeicher ist weg (${leer29.v29Gesagt}, ${JSON.stringify(leer29.mphRueckfrage)})`);
+await einfuegen(text29);
+const nach29 = await zustand();
+check(JSON.stringify(nach29.mphRueckfrage) === JSON.stringify(vor29.mphRueckfrage) && nach29.v29Gesagt === true
+  && JSON.stringify(nach29.wechselGelesen) === JSON.stringify(vor29.wechselGelesen),
+'eingelesen: Antworten, v29Gesagt und gelesene Hinweise wie vorher');
+check(JSON.stringify(nach29.eintraege) === JSON.stringify(vor29.eintraege)
+  && JSON.stringify(nach29.standardMittel) === JSON.stringify(vor29.standardMittel),
+'Einträge und eigene Mittel zeichengleich');
+
+// 2. Eine Antwort zu einem Namen, der nirgends mehr steht, reist nicht mit.
+await setzeStand({
+  ...stand29,
+  mphRueckfrage: { ...stand29.mphRueckfrage, ritalin: { nie: true } },
+});
+const json29b = JSON.parse(await page.evaluate(async () => (await import('/js/store.js')).alsJSON()));
+const z29b = await zustand();
+check(!('ritalin' in json29b.mphRueckfrage) && 'medikinet' in json29b.mphRueckfrage && 'methylphenidat' in json29b.mphRueckfrage,
+  `eine Antwort zu einem Namen, den es im Tagebuch nicht mehr gibt, fehlt in der Sicherung (${Object.keys(json29b.mphRueckfrage).join(', ')})`);
+check('ritalin' in z29b.mphRueckfrage && JSON.stringify(Object.keys(json29b)) === JSON.stringify(Object.keys(z29b)),
+  'auf dem Gerät bleibt sie stehen, und die Sicherung hat dieselben Schlüssel in derselben Reihenfolge');
+check(JSON.stringify(json29b.wechselGelesen) === JSON.stringify(stand29.wechselGelesen),
+  'gelesene Hinweise reisen unverändert mit');
+
+// 3. Unsinn fällt weg, statt umgedeutet zu werden.
+const viele = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`mittel ${i}`, { saeure: 'nein' }]));
+await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+await page.waitForTimeout(150);
+await page.locator('[data-act="alles-weg"]').click();
+await page.waitForTimeout(300);
+await einfuegen(JSON.stringify({
+  begruesst: true,
+  eintraege: [{ id: 'x1', am: vorTagen(1), um: '08:00', art: 'notiz', text: 'x' }],
+  v29Gesagt: 'ja',
+  mphRueckfrage: {
+    Medikinet: { nie: true },
+    'ritalin ': { nie: true },
+    [`m${'x'.repeat(80)}`]: { nie: true },
+    a: { nie: 'ja', saeure: 'nein' },
+    b: { form: 'pellet', saeure: 'ja' },
+    c: { form: 'beantwortet', nie: true },
+    d: { saeure: 1, form: 'weissnicht' },
+    e: { nie: false, form: null, saeure: null },
+    f: 'kaputt',
+    ...viele,
+  },
+}));
+const zu29 = await zustand();
+const rfU = zu29.mphRueckfrage;
+check(zu29.v29Gesagt === false, `v29Gesagt: 'ja' gilt als nicht gelesen (${zu29.v29Gesagt})`);
+check(!('Medikinet' in rfU) && !('ritalin ' in rfU) && !Object.keys(rfU).some((k) => k.length > 80),
+  'Schlüssel mit Großbuchstaben, Leerzeichen am Ende oder über 80 Zeichen fallen weg');
+check(Object.keys(rfU).length === 50 && 'mittel 59' in rfU && !('mittel 9' in rfU) && !('a' in rfU),
+  `höchstens fünfzig Namen, die jüngsten (${Object.keys(rfU).length})`);
+await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+await page.waitForTimeout(150);
+await page.locator('[data-act="alles-weg"]').click();
+await page.waitForTimeout(300);
+await einfuegen(JSON.stringify({
+  begruesst: true,
+  eintraege: [{ id: 'x1', am: vorTagen(1), um: '08:00', art: 'notiz', text: 'x' }],
+  mphRueckfrage: {
+    a: { nie: 'ja', saeure: 'nein' },
+    b: { form: 'pellet', saeure: 'ja' },
+    c: { form: 'beantwortet', nie: true },
+    d: { saeure: 1, form: 'weissnicht' },
+    e: { nie: false, form: null, saeure: null },
+    f: 'kaputt',
+  },
+}));
+check(JSON.stringify((await zustand()).mphRueckfrage) === JSON.stringify({
+  a: { nie: false, form: null, saeure: 'nein' },
+  b: { nie: false, form: null, saeure: 'ja' },
+  c: { nie: true, form: null, saeure: null },
+  d: { nie: false, form: 'weissnicht', saeure: null },
+}), `nie nur true, form nur 'weissnicht', saeure nur 'nein'/'ja'; ein Eintrag ohne Wert fällt weg (${JSON.stringify((await zustand()).mphRueckfrage)})`);
+for (const kaputt of ['"kaputt"', '[]', '[{"nie":true}]', 'null', '5']) {
+  await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+  await page.waitForTimeout(150);
+  await page.locator('[data-act="alles-weg"]').click();
+  await page.waitForTimeout(300);
+  await einfuegen(`{"begruesst":true,"eintraege":[{"id":"x1","am":"${vorTagen(1)}","um":"08:00","art":"notiz","text":"x"}],"mphRueckfrage":${kaputt}}`);
+  check(JSON.stringify((await zustand()).mphRueckfrage) === '{}' && (await zustand()).eintraege.length === 1,
+    `mphRueckfrage: ${kaputt} gilt als leer`);
+}
+// Dasselbe beim Laden aus dem Speicher.
+await setzeStand({ begruesst: true, tab: 'heute', eintraege: [], tage: {}, mphRueckfrage: ['x'], v29Gesagt: 3 });
+check(JSON.stringify((await zustand()).mphRueckfrage) === '{}' && (await zustand()).v29Gesagt === false,
+  'beim Laden: eine Liste statt Antworten gilt als leer, v29Gesagt vom falschen Typ als false');
+
+// 4. Ein Stand der Fassung 28 lädt, ohne dass etwas umgeschrieben wird.
+const eintraege28 = [
+  { id: 'w1', am: vorTagen(2), um: '07:30', art: 'medikament', mittel: 'Medikinet', dosis: '10 mg', form: 'unbekannt' },
+  { id: 'w2', am: vorTagen(1), um: '12:00', art: 'essen', was: 'Reis', zutaten: [{ id: 'reis', rolle: 'haupt' }], portion: 'normal' },
+  { id: 'w3', am: vorTagen(0), um: '08:00', art: 'notiz', text: 'ein Tag' },
+];
+await setzeStand({ begruesst: true, tab: 'heute', eintraege: eintraege28, tage: {}, v28Gesagt: true });
+const z28b = await zustand();
+check(JSON.stringify(z28b.mphRueckfrage) === '{}' && z28b.v29Gesagt === false,
+  'ein Stand der Fassung 28 lädt mit leeren Antworten und v29Gesagt false');
+check(JSON.stringify(z28b.eintraege) === JSON.stringify(eintraege28),
+  `und alle Einträge vollzählig und zeichengleich (${z28b.eintraege.length})`);
+
+// 5. Zusammenführen: Was auf einem Gerät beantwortet ist, bleibt beantwortet.
+await setzeStand({
+  begruesst: true,
+  tab: 'mehr',
+  v29Gesagt: true,
+  eintraege: [{ id: 'h1', am: vorTagen(1), um: '07:30', art: 'medikament', mittel: 'Medikinet', dosis: '' }],
+  tage: {},
+  mphRueckfrage: { medikinet: { saeure: 'nein' } },
+});
+await einfuegen(JSON.stringify({
+  eintraege: [{ id: 'd1', am: vorTagen(2), um: '07:30', art: 'medikament', mittel: 'Ritalin', dosis: '' }],
+  v29Gesagt: true,
+  mphRueckfrage: { medikinet: { nie: true }, ritalin: { form: 'weissnicht' } },
+}));
+const zv = await zustand();
+check(JSON.stringify(zv.mphRueckfrage) === JSON.stringify({
+  medikinet: { nie: true, form: null, saeure: 'nein' },
+  ritalin: { nie: false, form: 'weissnicht', saeure: null },
+}), `zusammengeführt: Antworten je Name vereinigt (${JSON.stringify(zv.mphRueckfrage)})`);
+
+// 6. Die Karte „Neu" kommt wieder, wenn ältere Einträge dazukommen.
+const neuerAnfang = async () => {
+  await page.locator('[data-act="tab"][data-tab="mehr"]').click();
+  await page.waitForTimeout(150);
+  await page.locator('[data-act="alles-weg"]').click();
+  await page.waitForTimeout(300);
+  await page.evaluate(async (am) => {
+    const st = await import('/js/store.js');
+    st.eintraegeZurueck([{ id: 'n1', am, um: '09:00', art: 'notiz', text: 'neu hier' }]);
+    st.sofortSchreiben();
+  }, vorTagen(0));
+};
+await neuerAnfang();
+check((await zustand()).v29Gesagt === true, 'ein neuer Stand gilt als gesagt');
+await einfuegen(JSON.stringify({
+  eintraege: [{ id: 'alt1', am: vorTagen(20), um: '09:00', art: 'notiz', text: 'von früher' }],
+  v28Gesagt: true,
+}));
+check((await zustand()).v29Gesagt === false,
+  'kommen aus einer Sicherung der Fassung 28 Einträge dazu, gilt die Karte „Neu" wieder als ungelesen');
+await neuerAnfang();
+await einfuegen(JSON.stringify({
+  eintraege: [{ id: 'n1', am: vorTagen(0), um: '09:00', art: 'notiz', text: 'neu hier' }],
+}));
+check((await zustand()).v29Gesagt === true, 'nur dieselben Einträge noch einmal: bleibt gesagt');
+
+// 7. store.js und js/zusammen.js rechnen den Schlüssel gleich.
+const NAMEN29 = [
+  'Medikinet', '  Medikinet adult  ', 'MEDIKINET Retard', 'Methylphenidat-ratiopharm 10 mg',
+  `Methylphenidat ${'x'.repeat(64)} Rest`, `Ritalin ${'y'.repeat(120)}`, 'Ritalin® LA', 'Kinecteen 18',
+  'Équasym Retard', 'mph retard',
+];
+const gleichGerechnet = await page.evaluate(async (namen) => {
+  const st = await import('/js/store.js');
+  const zu = await import('/js/zusammen.js');
+  const schluessel = namen.map((n) => zu.rueckfrageSchluessel(n));
+  st.eintraegeZurueck(namen.map((n, i) => ({ id: `g${i}`, am: '2026-01-01', um: '08:00', art: 'medikament', mittel: n, dosis: '' })));
+  st.rueckfrageSetzen(schluessel, { nie: true });
+  const imSpeicher = Object.keys(st.zustandLesen().mphRueckfrage);
+  const inSicherung = Object.keys(JSON.parse(st.alsJSON()).mphRueckfrage);
+  return {
+    gleich: st.RUECKFRAGE_NAME === zu.W_SCHLUESSEL_NAME,
+    fehlt: schluessel.filter((k) => !imSpeicher.includes(k) || !inSicherung.includes(k)),
+    leer80: schluessel[4].length,
+  };
+}, NAMEN29);
+check(gleichGerechnet.gleich && gleichGerechnet.fehlt.length === 0 && gleichGerechnet.leer80 === 79,
+  `store.js und js/zusammen.js rechnen den Schlüssel gleich – sonst fehlte eine Antwort in der Sicherung (${JSON.stringify(gleichGerechnet)})`);
+
+// 8. Ein langer Name, dessen 80. Zeichen ein Leerzeichen ist: Die Antwort wirkt.
+const LANG29 = 'Methylphenidat-ratiopharm 10 mg Tabletten, morgens eine und mittags eine halbe, laut Plan der Praxis';
+await setzeStand({
+  begruesst: true,
+  tab: 'heute',
+  v28Gesagt: true,
+  v29Gesagt: true,
+  adhsAn: false,
+  spannungAn: false,
+  lastBackup: { on: vorTagen(0), anzahl: 1 },
+  eintraege: [{ id: 'lg', am: vorTagen(1), um: '07:30', art: 'medikament', mittel: LANG29, dosis: '' }],
+  tage: {},
+});
+check(await page.locator('.rueckfrage-karte').count() === 1, 'zum langen Namen steht zuerst die Rückfrage');
+await page.evaluate(async (n) => {
+  const st = await import('/js/store.js');
+  const zu = await import('/js/zusammen.js');
+  st.rueckfrageSetzen([zu.rueckfrageSchluessel(n)], { nie: true });
+  st.sofortSchreiben();
+}, LANG29);
+await page.reload({ waitUntil: 'networkidle' });
+const lgK = Object.keys((await zustand()).mphRueckfrage);
+check(lgK.length === 1 && lgK[0].length === 79 && (await zustand()).mphRueckfrage[lgK[0]].nie === true
+  && await page.locator('.rueckfrage-karte').count() === 0,
+`„Nicht mehr fragen" zum langen Namen übersteht das Neuladen, und die Karte bleibt weg (${lgK.map((k) => k.length)})`);
+
+// 9. Ein beschädigter Gerätespeicher richtet nichts an.
+for (const kaputt of ['x', JSON.stringify({ tage: { A: ['x'], b: 'y', c: [5] }, am: 5, zu: 'gestern' })]) {
+  const vorF = fehler.length;
+  // Auf „Mehr", damit das Lesen nicht schon ein Stempel von „Tag" ist.
+  await setzeStand({ ...stand29, tab: 'mehr' }, kaputt);
+  const g = await page.evaluate(async () => {
+    const st = await import('/js/store.js');
+    return typeof st.gezeigtLesen === 'function' ? st.gezeigtLesen() : null;
+  });
+  await page.locator('[data-act="tab"][data-tab="heute"]').click();
+  await page.waitForTimeout(200);
+  check(JSON.stringify(g) === JSON.stringify({ am: null, zu: null, tage: {} }) && fehler.length === vorF
+    && await page.locator('.rueckfrage-karte').count() === 1,
+  `ein beschädigter Gerätespeicher gilt als leer, „Tag" zeichnet weiter samt Rückfrage (${JSON.stringify(g)})`);
+}
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await page.screenshot({ path: `${SHOT}/umzug.png`, fullPage: true });
 await browser.close();

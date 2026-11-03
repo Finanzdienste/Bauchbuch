@@ -92,7 +92,7 @@ const fehler = [];
     try { if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify(s)); } catch { /* about:blank */ }
   }, [KEY, {
     begruesst: true, tab: 'muster', alterName: null, startbildschirmWeg: true, unterleibGefragt: true,
-    lastBackup: { on: HEUTE, anzahl: 1 }, sicherungSpaeter: '2999-01-01', v28Gesagt: true,
+    lastBackup: { on: HEUTE, anzahl: 1 }, sicherungSpaeter: '2999-01-01', v28Gesagt: true, v29Gesagt: true,
     adhsAn: true, spannungAn: null, eintraege, tage, standardMittel: [],
   }]);
   const page = await ctx.newPage();

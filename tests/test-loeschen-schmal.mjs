@@ -246,7 +246,7 @@ const musterStand = (() => {
   }
   return {
     begruesst: true, tab: 'muster', alterName: null, startbildschirmWeg: true, sicherungSpaeter: '2999-01-01',
-    adhsAn: true, spannungAn: true, v28Gesagt: true,
+    adhsAn: true, spannungAn: true, v28Gesagt: true, v29Gesagt: true,
     tagesfragen: ['stimmung', 'stress', 'verspannt', 'gepresst', 'schlaf', 'schiene', 'kiefer'],
     eintraege, tage, fenster: 4, mindestFaelle: 5,
   };

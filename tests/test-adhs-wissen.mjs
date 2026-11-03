@@ -27,10 +27,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ROOT, pruefer } from './umgebung.mjs';
 import {
-  ADHS_MITTEL, ADHS_NAMEN, KLAER_SATZ, MPH_FORMEN, SONSTIGE_MITTEL, WEITERE_MITTEL,
+  ADHS_MITTEL, ADHS_NAMEN, KLAER_SATZ, MITTEL_WISSEN, MPH_FORMEN, SONSTIGE_MITTEL, WEITERE_MITTEL,
   adhsGruppe, formAusName, istAdhsMittel, mphForm, wissenZu,
 } from '../js/mittel.js';
 import { WECHSEL_TAGE, formZu, wechselHinweise } from '../js/zusammen.js';
+// Als Namensraum dazu: Die Prüfungen der Rückfrage (Abschnitt 8) sollen rot
+// werden, wenn etwas fehlt – nicht die ganze Datei beim Laden abbrechen.
+import * as zusammen from '../js/zusammen.js';
 import { MASSAGE_HINWEIS } from '../js/aktivitaet.js';
 import { plusTage } from '../js/datum.js';
 
@@ -411,5 +414,116 @@ check(probe('massage', 'aktivitaet.js', (t) => t.replace('sind ein Notfall: 112.
 check(probe('umbenannt', 'mittel.js', (t) => t.replace('export const MPH_FORMEN = [', 'export const FORMEN = [')) === 1,
   'Wächter: und eine umbenannte Liste – sie wäre nicht mehr auffindbar');
 rmSync(ort, { recursive: true, force: true });
+
+/* ---------- 8. Die Rückfrage zu Methylphenidat ---------- */
+
+/*
+ * Was zu einem eingetragenen Methylphenidat fehlt, damit die Paare oben
+ * vollständig sind: die Form oder ein Mittel gegen Magensäure. Danach fragt
+ * die Karte auf „Tag" (tests/test-rueckfrage.mjs) – und nur danach. Eine
+ * Frage, deren Antwort an keinem Hinweis etwas ändert, wäre Drängeln.
+ */
+check(typeof zusammen.mphRueckfragen === 'function', 'js/zusammen.js hat mphRueckfragen()');
+const rf = typeof zusammen.mphRueckfragen === 'function' ? zusammen.mphRueckfragen : () => [];
+const istSaeure = typeof zusammen.istSaeureMittel === 'function' ? zusammen.istSaeureMittel : () => null;
+const schl = typeof zusammen.rueckfrageSchluessel === 'function' ? zusammen.rueckfrageSchluessel : () => null;
+const WAHL = Array.isArray(zusammen.SAEURE_WAHL) ? zusammen.SAEURE_WAHL : [];
+const kurzRf = (liste) => liste.map((x) => [x.name, x.form, x.fehltForm, x.fehltSaeure, x.saeureDa]);
+const nurEins = (std, eintraege = []) => {
+  const l = rf(std, eintraege, heute);
+  return l.length === 1 ? l[0] : {};
+};
+
+// 1. Medikinet ohne Form und ohne Säureblocker: beides fehlt.
+const r1 = rf(meine('Medikinet'), [], heute);
+check(r1.length === 1 && r1[0].name === 'Medikinet' && r1[0].schluessel === 'medikinet'
+  && r1[0].form === 'unbekannt' && r1[0].fehltForm === true && r1[0].fehltSaeure === true && r1[0].saeureDa === false,
+`Medikinet allein: Form und Säureblocker fehlen (${JSON.stringify(kurzRf(r1))})`);
+// 2. Die Form steht im Namen.
+const r2 = nurEins(meine('Medikinet adult'));
+check(r2.fehltForm === false && r2.fehltSaeure === true && r2.form === 'pellet',
+  `Medikinet adult: die Form steht im Namen, es fehlt nur der Säureblocker (${r2.form}, ${r2.fehltForm}, ${r2.fehltSaeure})`);
+// 3. Hülle und Equasym: kein Hinweis, also keine Frage.
+const r3a = nurEins(meine('Concerta'));
+const r3b = nurEins(meine('Equasym Retard'));
+check(r3a.fehltForm === false && r3a.fehltSaeure === false && r3b.fehltForm === false && r3b.fehltSaeure === false,
+  'Concerta und Equasym Retard: keine Frage – mit einem Säureblocker gäbe es dort keinen Hinweis');
+// 4. Säureblocker da, Form fehlt – auch Natron zählt.
+const r4a = nurEins(meine('Medikinet', 'Pantoprazol'));
+const r4b = nurEins(meine('Medikinet', 'Kaiser Natron'));
+check(r4a.fehltForm === true && r4a.fehltSaeure === false && r4a.saeureDa === true
+  && r4b.fehltForm === true && r4b.fehltSaeure === false && r4b.saeureDa === true,
+'Medikinet mit Pantoprazol oder Kaiser Natron: nur die Form fehlt');
+check(rf(meine('Medikinet', 'Pantoprazol'), [], heute).length === 1,
+  'gelistet wird nur das Methylphenidat, nicht der Säureblocker');
+// 5. Eingetragen wie bei den Paaren: eine Einnahme vor 40 Tagen zählt nicht, vor 29 schon.
+check(nurEins(meine('Medikinet adult'), [ein('Pantoprazol', 40)]).fehltSaeure === true
+  && nurEins(meine('Medikinet adult'), [ein('Pantoprazol', 29)]).fehltSaeure === false,
+'ein Säureblocker vor 40 Tagen ist nicht eingetragen, einer vor 29 Tagen schon');
+// 6. Auf der Haut ist kein Mittel gegen Magensäure.
+check(nurEins(meine('Medikinet adult', 'Pantoprazol Creme')).fehltSaeure === true,
+  'Pantoprazol Creme zählt nicht als Säureblocker');
+// 7. Nur eine Einnahme: dasselbe Fenster.
+check(rf([], [ein('Methylphenidat', WECHSEL_TAGE - 1)], heute).length === 1
+  && rf([], [ein('Methylphenidat', WECHSEL_TAGE)], heute).length === 0,
+`eine Einnahme vor ${WECHSEL_TAGE - 1} Tagen ist eingetragen, eine vor ${WECHSEL_TAGE} nicht`);
+// 8. Reihenfolge wie bei den Paaren: „Meine Mittel" zuerst.
+check(gleich(rf(meine('Medikinet'), [ein('Methylphenidat', 2)], heute).map((x) => x.name), ['Medikinet', 'Methylphenidat']),
+  'zwei Namen: „Meine Mittel" vor der Einnahme');
+// 9. „Weiß ich nicht" ist eine Antwort – an der richtigen Stelle.
+check(nurEins(meine({ mittel: 'Medikinet', form: 'unbekannt' })).fehltForm === false,
+  '„Weiß ich nicht" unter „Meine Mittel": die Form wird nicht mehr gefragt');
+check(nurEins([], [ein('Medikinet', 3), ein('Medikinet', 1, { form: 'unbekannt' })]).fehltForm === false,
+  '„Weiß ich nicht" bei der jüngsten Einnahme: ebenso');
+const r9 = nurEins([], [ein('Medikinet', 3, { form: 'unbekannt' }), ein('Medikinet', 1)]);
+check(r9.fehltForm === true && r9.fehltSaeure === true,
+  'nur bei einer älteren Einnahme „Weiß ich nicht", die jüngste ohne Form: wieder gefragt');
+// 10. Gleichlauf mit den Paaren: gefragt wird nach dem Säureblocker genau dann,
+// wenn ein Säureblocker einen Hinweis ergäbe.
+const gleichlauf = MPH_FORMEN.filter((f) => {
+  const fehlt = nurEins(meine({ mittel: 'Medikinet', form: f.id })).fehltSaeure === true;
+  const hinweis = wechselHinweise(meine({ mittel: 'Medikinet', form: f.id }, 'Pantoprazol'), [], heute)
+    .some((h) => h.namen.includes('Medikinet'));
+  return fehlt !== hinweis;
+});
+check(rf(meine('Medikinet'), [], heute).length === 1 && gleichlauf.length === 0,
+  `je Form: Säurefrage genau dann, wenn es mit einem Säureblocker einen Hinweis gäbe${gleichlauf.length ? ` – nicht bei ${gleichlauf.map((f) => f.id).join(', ')}` : ''}`);
+// 11. istSaeureMittel ist dieselbe Erkennung wie bei den Paaren.
+const SAEURE_PROBE = ['Pantoprazol', 'Rennie', 'Gaviscon', 'Famotidin', 'Kaiser Natron', 'Iberogast', 'Ibuprofen', 'Pantoprazol Creme'];
+const abweichend = SAEURE_PROBE.filter((n) => istSaeure(n)
+  !== ergibt(meine('Medikinet adult', n)).includes('W1'));
+check(abweichend.length === 0 && istSaeure('Pantoprazol') === true && istSaeure('Ibuprofen') === false,
+  `istSaeureMittel() wie die Paare${abweichend.length ? ` – anders: ${abweichend.join(', ')}` : ''}`);
+// 12. Die Wahl unter „Ja": nur Namen, die die Erkennung schon kennt.
+const BEISPIELE = new Set(MITTEL_WISSEN.filter((g) => ['ppi', 'h2', 'antazida', 'alginat'].includes(g.id))
+  .flatMap((g) => g.beispiele));
+const fremdeWahl = WAHL.filter((n) => !istSaeure(n) || !(BEISPIELE.has(n) || n === 'Natron'));
+check(WAHL.length >= 8 && fremdeWahl.length === 0 && new Set(WAHL.map((n) => n.toLowerCase())).size === WAHL.length,
+  `SAEURE_WAHL: ${WAHL.length} Namen, jeder erkannt und aus den Beispielen der App, keiner doppelt${fremdeWahl.length ? ` – nicht: ${fremdeWahl.join(', ')}` : ''}`);
+check(['Pantoprazol', 'Omeprazol', 'Esomeprazol', 'Famotidin'].every((n) => WAHL.includes(n))
+  && WAHL.some((n) => (wissenZu(n) || {}).id === 'antazida'),
+'darunter Pantoprazol, Omeprazol, Esomeprazol, Famotidin und ein Antazidum');
+// 13. Der Schlüssel: klein, gekürzt, getrimmt – auch nach dem Kürzen.
+const mitLeer80 = `Methylphenidat ${'x'.repeat(64)} Rest`;
+const k80 = schl(mitLeer80);
+check(schl('  Medikinet  ') === 'medikinet' && typeof k80 === 'string' && k80.length === 79 && k80 === k80.trim(),
+  `rueckfrageSchluessel: klein und getrimmt, auch wenn das 80. Zeichen ein Leerzeichen ist (${k80 && k80.length})`);
+const langA = `Methylphenidat ${'a'.repeat(65)}Erste`;
+const langB = `Methylphenidat ${'a'.repeat(65)}Zweite`;
+const r13 = rf([], [ein(langA, 3), ein(langB, 2)], heute);
+check(schl(langA) === schl(langB) && String(schl(langA) || '').length === 80 && r13.length === 1 && r13[0].name === langA,
+  `zwei Namen, gleich bis Zeichen 80: ein Schlüssel, ein Eintrag mit dem ersten Namen (${r13.length})`);
+// 14. Rein: Eingaben bleiben, wie sie sind.
+const tiefFrieren = (o) => {
+  Object.values(o).forEach((v) => { if (v && typeof v === 'object') tiefFrieren(v); });
+  return Object.freeze(o);
+};
+const stdRein = meine('Medikinet', { mittel: 'Ritalin', form: 'unbekannt' });
+const einRein = [ein('Methylphenidat', 4, { form: 'pellet' }), ein('Medikinet', 2), ein('Nexium', 1)];
+const vorherRein = JSON.stringify([stdRein, einRein]);
+let wirft = false;
+try { rf(tiefFrieren(stdRein), tiefFrieren(einRein), heute); } catch { wirft = true; }
+check(!wirft && JSON.stringify([stdRein, einRein]) === vorherRein && rf(stdRein, einRein, heute).length === 3,
+  'mphRueckfragen verändert seine Eingaben nicht (tief eingefroren, kein Fehler)');
 
 ende();

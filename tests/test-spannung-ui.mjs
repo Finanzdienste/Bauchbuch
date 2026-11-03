@@ -37,7 +37,7 @@ const browser = await chromium.launch();
 const fehler = [];
 const GRUND = {
   begruesst: true, tab: 'heute', alterName: null, startbildschirmWeg: true, unterleibGefragt: true,
-  lastBackup: { on: HEUTE, anzahl: 1 }, v28Gesagt: true, tage: {}, eintraege: [], standardMittel: [],
+  lastBackup: { on: HEUTE, anzahl: 1 }, v28Gesagt: true, v29Gesagt: true, tage: {}, eintraege: [], standardMittel: [],
 };
 const VIER = ['verspannt', 'gepresst', 'schiene', 'kiefer'];
 

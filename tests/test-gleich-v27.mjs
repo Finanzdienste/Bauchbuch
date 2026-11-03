@@ -12,7 +12,10 @@
  *   * die Fassungsnummer, falls eine dasteht,
  *   * und einmal, bis „Gelesen", oben auf „Muster" die Karte „Was sich an
  *     deinen Zahlen geändert hat" – sie betrifft jeden, dessen Zahlen sich
- *     verschoben haben, ob mit Schalter oder ohne.
+ *     verschoben haben, ob mit Schalter oder ohne,
+ *   * und einmal, bis „Gelesen", oben auf „Tag" die Karte „Neu: Hinweise zu
+ *     zwei Mitteln zusammen" (Fassung 29) – für jedes Tagebuch, das schon
+ *     Einträge hatte.
  *
  * Verglichen wird mit dem Gold (tests/gold/v27-ansichten.json): derselbe
  * Speicherstand, dieselbe Uhr, dieselbe iPhone-Kennung, als App vom
@@ -47,7 +50,23 @@ function bereinigt(ansichten) {
   raus.verlauf = ansichten.verlauf.map((z) => (z === 'nichts eingetragen oder zum Bauch nichts' ? 'nichts eingetragen' : z));
   const muster = ohneBlock(ansichten.muster, 'Was sich an deinen Zahlen geändert hat', 'Gelesen');
   raus.muster = muster.block ? muster.zeilen.filter((z, i) => !(i === muster.zeilen.indexOf('Gelesen'))) : ansichten.muster;
-  return { raus, mehrKarte: mehr.block, musterKarte: muster.block };
+  const neu = neuKarteRaus(ansichten.heute);
+  raus.heute = neu.zeilen;
+  return { raus, mehrKarte: mehr.block, musterKarte: muster.block, neuKarte: neu.block, neuMal: neu.mal };
+}
+
+/*
+ * Die Karte „Neu" auf „Tag": von ihrer Überschrift bis einschließlich der
+ * Zeile mit „Gelesen". Stehen beide Knöpfe in einer Zeile, endet sie dort.
+ */
+function neuKarteRaus(zeilen) {
+  const titel = 'Neu: Hinweise zu zwei Mitteln zusammen';
+  const mal = zeilen.filter((z) => z === titel).length;
+  const i = zeilen.indexOf(titel);
+  if (i < 0) return { zeilen, block: null, mal };
+  const j = zeilen.findIndex((z, n) => n > i && /(^|\s)Gelesen$/.test(z));
+  if (j < 0) return { zeilen, block: null, mal };
+  return { zeilen: [...zeilen.slice(0, i), ...zeilen.slice(j + 1)], block: zeilen.slice(i, j + 1), mal };
 }
 
 function vergleiche(name, ist, soll) {
@@ -60,11 +79,12 @@ function vergleiche(name, ist, soll) {
 /* ---------- 1. Beide Schalter nie entschieden, Hinweiskarte gelesen ---------- */
 
 {
-  const zustand = { ...ansichtsZustand(), v28Gesagt: true };
+  const zustand = { ...ansichtsZustand(), v28Gesagt: true, v29Gesagt: true };
   check(zustand.adhsAn === undefined && zustand.spannungAn === undefined,
     'der Stand des Golds kennt die Schalter nicht – sie gelten als nie entschieden');
   const jetzt = await ansichtenLesen({ wurzel: ROOT, port: PORT, zustand });
-  const { raus, mehrKarte, musterKarte } = bereinigt(jetzt);
+  const { raus, mehrKarte, musterKarte, neuMal } = bereinigt(jetzt);
+  check(neuMal === 0, 'nach „Gelesen" steht oben auf „Tag" keine Karte „Neu"');
   check(Array.isArray(mehrKarte) && mehrKarte.includes('ADHS') && mehrKarte.includes('Kiefer, Nacken, Schiene'),
     'unter „Mehr" steht die neue Karte mit beiden Schaltern');
   check(mehrKarte && !mehrKarte.some((z) => z.startsWith('✓')), 'beide aus – nur bei true stünde ein Häkchen');
@@ -77,7 +97,15 @@ function vergleiche(name, ist, soll) {
 
 {
   const jetzt = await ansichtenLesen({ wurzel: ROOT, port: PORT, zustand: ansichtsZustand() });
-  const { raus, musterKarte } = bereinigt(jetzt);
+  const { raus, musterKarte, neuKarte, neuMal } = bereinigt(jetzt);
+  /*
+   * Das Tagebuch des Golds hat kein Methylphenidat – also weder eine
+   * Rückfrage noch W1 –, und es hat Einträge aus der Zeit vor der Fassung 29:
+   * Oben auf „Tag" steht genau einmal die Karte „Neu".
+   */
+  check(neuMal === 1 && Array.isArray(neuKarte) && neuKarte.some((z) => z.includes('Zu „Meine Mittel“'))
+    && neuKarte.some((z) => /(^|\s)Gelesen$/.test(z)),
+  `oben auf „Tag" genau einmal die Karte „Neu", mit „Zu „Meine Mittel““ und „Gelesen" (${neuMal})`);
   check(jetzt.muster[0] === 'Was sich an deinen Zahlen geändert hat',
     `die Hinweiskarte steht ganz oben auf „Muster" (${jetzt.muster[0]})`);
   // Das Tagebuch des Golds hat Kopfschmerzen, aber kein ADHS-Mittel, kein

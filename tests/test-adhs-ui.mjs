@@ -52,7 +52,7 @@ const fehler = [];
 
 const GRUND = {
   begruesst: true, tab: 'heute', alterName: null, startbildschirmWeg: true, unterleibGefragt: true,
-  lastBackup: { on: HEUTE, anzahl: 1 }, v28Gesagt: true, tage: {},
+  lastBackup: { on: HEUTE, anzahl: 1 }, v28Gesagt: true, v29Gesagt: true, tage: {},
 };
 
 /** Ein iPhone mit der App vom Home-Bildschirm, diesem Stand und dieser Uhr. */
@@ -598,6 +598,11 @@ const knopfSagt = (page, id) => page.locator(`[data-act="standard-eintragen"][da
   });
   check((await text(page, '.wechsel-karte')).includes('Methylphenidat (Methylphenidat) und Maaloxan'),
     'ohne Form steht die Karte W1u');
+  // Darunter fragt die Rückfrage (Fassung 29) nach der Form – sie ist keine
+  // weitere Hinweiskarte und zählt nicht als eine.
+  check(await zahl(page, '.wechsel-karte') === 1 && await zahl(page, '.rueckfrage-karte') === 1
+    && await zahl(page, '.rueckfrage-karte.wechsel-karte') === 0,
+  'die Rückfrage zur Form zählt nicht als Hinweiskarte (.wechsel-karte)');
   await tab(page, 'mehr');
   check(await page.locator('[data-act="mph-form"]').count() === 7, 'unter „Meine Mittel" die Formwahl');
   await tipp(page, '[data-act="mph-form"][data-id="sodas"]');

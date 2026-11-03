@@ -854,6 +854,22 @@ details.wissen p { margin-top: 6px; overflow-wrap: anywhere; }
 .v28-liste { margin: 6px 0 10px; padding-left: 18px; font-size: 14px; }
 .v28-liste li { margin-bottom: 6px; overflow-wrap: anywhere; }
 .angebot .reihe { margin: 8px 0 4px; }
+/* Die Rückfrage und die Karte „Neu" (Fassung 29). Lange Namen brechen um,
+   statt die Karte bei 320 Pixeln über den Rand zu schieben. */
+.rueckfrage-karte h3, .rueckfrage-karte .klein, .neu-karte .klein { overflow-wrap: anywhere; }
+.rueckfrage-kopf { margin: 0 0 2px; color: var(--muted); }
+.rueckfrage-karte h3 { margin-top: 0; }
+.rueckfrage-karte .reihe, .neu-karte .reihe { margin: 8px 0 4px; flex-wrap: wrap; }
+/* „Später" links, „Nicht mehr fragen" rechts – nicht Daumen an Daumen. */
+.rueckfrage-weg { justify-content: space-between; }
+.rueckfrage-eigen { flex-wrap: nowrap; }
+.rueckfrage-eigen .feld { flex: 1 1 0; min-width: 0; }
+/* Die sieben Formen tragen die Bezeichnungen wie im Bogen und sind lang; bei
+   320 Pixeln brechen drei davon um. Nur hier rücken die Marken etwas enger –
+   die Höhe von 34 Pixeln je Knopf bleibt (.marken-eng .marke) –, damit die
+   Formfrage samt „Nicht mehr fragen" auf ein kleines Telefon passt. */
+.rueckfrage-karte .marken { gap: 4px; }
+.rueckfrage-karte .marken-eng .marke { padding: 5px 9px; line-height: 1.25; }
 
 /* ---------- Willkommen ---------- */
 .willkommen { max-width: 480px; margin: 20px auto; }
