@@ -15,7 +15,11 @@
  *      erreichbar), ein neuer Name ist ein neues Mittel. Ohne Ausnahme –
  *      auch nicht über Nacht in einem Zwischenschritt oder bei vollem
  *      „Meine Mittel".
- *   2a. Ein Doppeltipp beantwortet nicht gleich den nächsten Schritt.
+ *   2a. Ein Doppeltipp beantwortet nicht gleich den nächsten Schritt –
+ *       auch nicht, wenn die Karte nach einem Tipp darüber („Gelesen",
+ *       „Später") unter den Finger rückt.
+ *   2b. „Ja, merken" legt nur die Form ab, die jetzt an der Einnahme steht.
+ *   2c. Jede sichtbare Beschriftung steht auch im zugänglichen Namen.
  *   3. Nie mehr als die bestehenden Karten zulassen: W1/W1u und das Angebot
  *      werden nie verdrängt.
  *   4. Die Karte „Neu" einmal, nie bei einem neuen Tagebuch.
@@ -348,8 +352,9 @@ const davor = (page, a, b) => page.evaluate(([x, y]) => {
   await page.locator('#rueckfrageName').fill('Magentropfen');
   await tipp(page, `${KARTE} [data-act="rueckfrage-eigen"]`);
   check(await frage(page) === F_PRUEFEN, 'ein unbekannter Name: erst die Nachfrage');
-  check(await page.locator(`${KARTE} [data-act="rueckfrage-trotzdem"]`).getAttribute('aria-label') === '„Magentropfen“ trotzdem unter „Meine Mittel“ anlegen',
-    '„Trotzdem so anlegen" nennt den Namen');
+  check(await page.locator(`${KARTE} [data-act="rueckfrage-trotzdem"]`).getAttribute('aria-label')
+    === 'Trotzdem so anlegen – „Magentropfen“ unter „Meine Mittel“',
+  '„Trotzdem so anlegen" nennt den Namen – mit der Beschriftung vorn');
   await tipp(page, `${KARTE} [data-act="rueckfrage-trotzdem"]`);
   const s = await speicher(page);
   check(s.standardMittel.some((m) => m.mittel === 'Magentropfen' && m.dosis === '')
@@ -394,9 +399,11 @@ const STAND4 = {
   check(await frage(page) === F_MERKEN && await zahl(page, `${KARTE} [data-act="rueckfrage-merken"]`) === 1
     && (await text(page, `${KARTE} [data-act="rueckfrage-nicht-merken"]`)) === 'Nicht merken',
   'die Karte bietet an, das Mittel unter „Meine Mittel" zu merken');
+  // Die Ansage beginnt mit der Beschriftung: „Tippe auf Nicht merken" der
+  // Sprachsteuerung sucht nach dem zugänglichen Namen (WCAG 2.5.3).
   check(await page.locator(`${KARTE} [data-act="rueckfrage-nicht-merken"]`).getAttribute('aria-label')
-    === 'Nicht unter „Meine Mittel“ anlegen – die Form bleibt bei der Einnahme',
-  '„Nicht merken" sagt, was bleibt – und verspricht nicht „nur diese Einnahme"');
+    === 'Nicht merken – die Form bleibt bei der Einnahme',
+  '„Nicht merken" sagt, was bleibt – mit der Beschriftung vorn, ohne „nur diese Einnahme"');
   const merkenText = await kartenText(page);
   // formZu liest die jüngste bekannte Form der letzten 30 Tage – auch für
   // spätere Einnahmen ohne Formangabe. Der Text sagt das, statt „nur diese".
@@ -436,8 +443,9 @@ const STAND4 = {
   // b) Ja, merken – dann gilt die Form dauerhaft.
   const { ctx, page } = await iphone(STAND4);
   await tipp(page, form('pellet'));
-  check(await page.locator(`${KARTE} [data-act="rueckfrage-merken"]`).getAttribute('aria-label') === 'Methylphenidat mit dieser Form unter „Meine Mittel“ anlegen',
-    '„Ja, merken" sagt, was es anlegt');
+  check(await page.locator(`${KARTE} [data-act="rueckfrage-merken"]`).getAttribute('aria-label')
+    === 'Ja, merken – Methylphenidat mit dieser Form unter „Meine Mittel“ anlegen',
+  '„Ja, merken" sagt, was es anlegt – mit der Beschriftung vorn');
   await tipp(page, `${KARTE} [data-act="rueckfrage-merken"]`);
   const s = await speicher(page);
   const neu = s.standardMittel.find((x) => x.mittel === 'Methylphenidat');
@@ -449,6 +457,63 @@ const STAND4 = {
   await tagWechsel(page, tag(31));
   check((await text(page, '.wechsel-karte')).includes('Kapsel mit zweierlei Kügelchen und Pantoprazol') && await zahl(page, KARTE) === 0,
     '31 Tage später steht W1 weiter, ohne Rückfrage');
+  await ctx.close();
+}
+/*
+ * c) Vertippt und im Bogen korrigiert, während MERKEN noch dasteht: „Ja,
+ * merken" darf nie eine Form unter „Meine Mittel" legen, die nicht mehr an
+ * der Einnahme steht – der Knopf trüge sie in jede neue Einnahme weiter, und
+ * W1 verschwände ohne Meldung. MERKEN gilt nur, solange an der Einnahme genau
+ * die beantwortete Form steht und der Name nicht schon unter „Meine Mittel"
+ * steht.
+ */
+const STAND4C = {
+  eintraege: [NOTIZ, nimmt('e1', 'Medikinet', HEUTE)],
+  standardMittel: [meins('p1', 'Pantoprazol', { dosis: '40 mg' })],
+};
+for (const [was, schritte, formDanach] of [
+  ['auf „Kapsel mit zweierlei Kügelchen“ korrigiert', ['pellet'], 'pellet'],
+  ['auf „Weiß ich nicht“ gestellt', ['unbekannt'], 'unbekannt'],
+  ['korrigiert und „Als mein Mittel merken“', ['pellet', 'merken'], 'pellet'],
+  // Die Form bleibt, aber der Name steht jetzt unter „Meine Mittel": Dort gilt sie.
+  ['nur „Als mein Mittel merken“', ['merken'], 'oros'],
+]) {
+  const { ctx, page } = await iphone(STAND4C);
+  await tipp(page, form('oros'));
+  check(await frage(page) === F_MERKEN && await zahl(page, '.wechsel-karte') === 0, `${was}: nach dem Fehltipp „Hülle" steht MERKEN`);
+  await tipp(page, '[data-act="bearbeiten"][data-id="e1"]');
+  for (const sch of schritte) {
+    await tipp(page, sch === 'merken' ? '[data-act="standard-umschalten"]' : `[data-act="bogen-form"][data-id="${sch}"]`);
+  }
+  await tipp(page, '[data-act="bogen-speichern"]');
+  const s = await speicher(page);
+  const e1 = s.eintraege.find((e) => e.id === 'e1');
+  const mm = s.standardMittel.filter((m) => m.mittel === 'Medikinet');
+  check(e1.form === formDanach && await zahl(page, `${KARTE} [data-act="rueckfrage-merken"]`) === 0,
+    `${was}: MERKEN ist weg (Form an der Einnahme: ${e1.form})`);
+  check(schritte.includes('merken')
+    ? mm.length === 1 && mm[0].form === formDanach
+    : mm.length === 0,
+  `${was}: unter „Meine Mittel" steht nur, was im Bogen gewählt war (${JSON.stringify(mm.map((m) => m.form))})`);
+  if (schritte[0] === 'pellet') {
+    check((await text(page, '.wechsel-karte')).includes('Kapsel mit zweierlei Kügelchen und Pantoprazol'), `${was}: W1 steht`);
+  }
+  await ctx.close();
+}
+{
+  // Die Einnahme ändert sich, bevor das Neuzeichnen die Karte erreicht: Auch
+  // ein Tipp auf den noch stehenden Knopf legt nichts mit der alten Form an.
+  const { ctx, page } = await iphone(STAND4C);
+  await tipp(page, form('oros'));
+  await page.evaluate(async () => {
+    const st = await import('/js/store.js');
+    st.eintragAendern('e1', { form: 'pellet' });
+    document.querySelector('.rueckfrage-karte [data-act="rueckfrage-merken"]').click();
+  });
+  await page.waitForTimeout(RUHE);
+  const s = await speicher(page);
+  check(!s.standardMittel.some((m) => m.mittel === 'Medikinet') && s.eintraege.find((e) => e.id === 'e1').form === 'pellet',
+    `„Ja, merken" auf dem Knopf von vorher: nichts angelegt (${JSON.stringify(s.standardMittel.map((m) => [m.mittel, m.form]))})`);
   await ctx.close();
 }
 
@@ -764,7 +829,8 @@ const STAND13 = {
     .filter((n) => new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}])`, 'iu').test(ganz));
   check(gleich([...new Set(namen)], ['Methylphenidat']), `als Mittelname nur der allgemeine „Methylphenidat" (${namen.join(', ')})`);
   check(await page.locator('[data-act="v29-gelesen"]').getAttribute('aria-label') === 'Neuigkeit gelesen'
-    && (await text(page, '[data-act="v29-meine-mittel"]')) === 'Zu „Meine Mittel“',
+    && (await text(page, '[data-act="v29-meine-mittel"]')) === 'Zu „Meine Mittel“'
+    && await page.locator('[data-act="v29-meine-mittel"]').getAttribute('aria-label') === 'Zu „Meine Mittel“ unter „Mehr“ – dort ein Mittel anlegen',
   'Knöpfe: „Zu „Meine Mittel““ und „Gelesen" mit Ansage');
   check((await gezeigt(page)).am === HEUTE, 'gestempelt');
   check(await breitOk(page), 'die Karte „Neu" passt in 320 Pixel');
@@ -951,6 +1017,28 @@ const VOLL = { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult
   check(spaeter === 1, `„Später" gab es genau einmal (${spaeter})`);
   await ctx.close();
 }
+// Die Karte „Neu" bei vollem „Meine Mittel": derselbe Weg wie bei der
+// Rückfrage – die Liste, kein Formular, das nicht speichern kann.
+const VOLL_NEU = {
+  v29Gesagt: undefined, eintraege: [NOTIZ], standardMittel: [meins('p1', 'Pantoprazol'), ...ANDERE.map((n, i) => meins(`a${i}`, n))],
+};
+{
+  const { ctx, page } = await iphone(VOLL_NEU);
+  check(await zahl(page, '.neu-karte') === 1 && await zahl(page, KARTE) === 0, 'zwölf eigene Mittel, kein Methylphenidat: die Karte „Neu"');
+  check(await page.locator('[data-act="v29-meine-mittel"]').getAttribute('aria-label') === 'Zu „Meine Mittel“ unter „Mehr“',
+    'bei vollem „Meine Mittel" kündigt der Knopf kein Anlegen an');
+  await tipp(page, '[data-act="v29-meine-mittel"]');
+  await kurz(page);
+  const s = await speicher(page);
+  check(s.tab === 'mehr' && s.v29Gesagt === true && await zahl(page, '#meineMittel') === 1,
+    'Karte „Neu", voll: zu „Meine Mittel", als gelesen vermerkt');
+  check(await zahl(page, '#meineMittel .mittel-formular') === 0 && await zahl(page, '#mmName') === 0
+    && (await text(page, '#meineMittel')).includes('Mehr als 12 passen nicht.'),
+  'Karte „Neu", voll: kein Formular für ein neues Mittel, sondern der Satz zum vollen Stand');
+  check(await page.evaluate(() => document.activeElement === document.querySelector('#meineMittel h3')),
+    'Karte „Neu", voll: der Fokus steht auf der Überschrift „Meine Mittel"');
+  await ctx.close();
+}
 
 /* ---------- 16b. Doppeltipp: der zweite Tipp beantwortet nicht den nächsten Schritt ---------- */
 
@@ -1002,6 +1090,139 @@ for (const [vp, wie] of [[IPHONE, '390'], [{ width: 320, height: 640 }, '320']])
     await meldung(page);
     await ctx.close();
   }
+}
+/*
+ * Auch ein Tipp auf eine Karte darüber lässt die Rückfrage oder die Karte
+ * „Neu" dorthin rücken, wo eben der Finger war: „Gelesen" bei W1/W1u,
+ * „Später" bei der Sicherung. Der zweite Tipp darf dort nichts beantworten.
+ */
+const VIELE = Array.from({ length: 16 }, (_, i) => ({ id: `v${i}`, art: 'notiz', am: tag(-i), um: '07:00', text: 'x' }));
+for (const [vp, wie] of [[{ width: 320, height: 640 }, '320'], [{ width: 414, height: 896 }, '414']]) {
+  {
+    // W1u, direkt darunter die Formfrage – beides zu „Meine Mittel".
+    const { ctx, page } = await iphone({
+      eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet'), meins('p1', 'Pantoprazol')],
+    }, { viewport: vp });
+    check(await zahl(page, '.wechsel-karte') === 1 && await frage(page) === F_FORM, `${wie}: W1u, darunter die Formfrage`);
+    await doppel(page, '.wechsel-karte [data-act="wechsel-gelesen"]');
+    const s = await speicher(page);
+    check(!s.standardMittel.find((m) => m.id === 's1').form && await frage(page) === F_FORM && (s.wechselGelesen || []).length === 1,
+      `${wie}: Doppeltipp auf „Gelesen" von W1u – gelesen, keine Form gespeichert, die Formfrage steht (${s.standardMittel.find((m) => m.id === 's1').form})`);
+    await ctx.close();
+  }
+  {
+    // W1u und das Angebot: Die Rückfrage wartet und erscheint erst nach „Gelesen".
+    const { ctx, page } = await iphone({
+      adhsAn: null, eintraege: [NOTIZ, nimmt('e1', 'Methylphenidat', HEUTE)],
+      standardMittel: [meins('p1', 'Pantoprazol', { dosis: '40 mg' })],
+    }, { viewport: vp });
+    check(await zahl(page, '.wechsel-karte') === 1 && await zahl(page, '.angebot') === 1 && await zahl(page, KARTE) === 0,
+      `${wie}: W1u und das Angebot, die Rückfrage wartet`);
+    await doppel(page, '.wechsel-karte [data-act="wechsel-gelesen"]');
+    const s = await speicher(page);
+    const e1 = s.eintraege.find((e) => e.id === 'e1');
+    check(!e1.form && await frage(page) === F_FORM,
+      `${wie}: Doppeltipp auf „Gelesen", die Rückfrage erscheint – keine Form an der Einnahme (${e1.form})`);
+    await ctx.close();
+  }
+  {
+    // Die Sicherung über der Formfrage.
+    const { ctx, page } = await iphone({
+      eintraege: [...VIELE, nimmt('e1', 'Methylphenidat', HEUTE)], standardMittel: [], lastBackup: null,
+    }, { viewport: vp });
+    check(await zahl(page, '[data-act="sicherung-spaeter"]') === 1 && await frage(page) === F_FORM,
+      `${wie}: die Sicherungskarte, darunter die Formfrage`);
+    await doppel(page, '[data-act="sicherung-spaeter"]');
+    const s = await speicher(page);
+    const e1 = s.eintraege.find((e) => e.id === 'e1');
+    check(!e1.form && await frage(page) === F_FORM,
+      `${wie}: Doppeltipp auf „Später" der Sicherung – keine Form an der Einnahme (${e1.form})`);
+    await ctx.close();
+  }
+  {
+    // W1 offen, die Karte „Neu" wartet und erscheint nach „Gelesen".
+    const { ctx, page } = await iphone({
+      v29Gesagt: undefined, eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult'), meins('s2', 'Pantoprazol')],
+    }, { viewport: vp });
+    await doppel(page, '.wechsel-karte [data-act="wechsel-gelesen"]');
+    const s = await speicher(page);
+    check(s.v29Gesagt !== true && s.tab === 'heute' && await zahl(page, '.neu-karte') === 1,
+      `${wie}: Doppeltipp auf „Gelesen" von W1 – die Karte „Neu" steht, nicht weggetippt`);
+    await ctx.close();
+  }
+}
+{
+  // Ein Tipp, der die Karte nicht bewegt – einen Bogen öffnen und schließen –, bleibt ohne Pause.
+  // So hoch, dass nichts gerollt werden muss: Rollt der Test zum Knopf, wandert die Karte ohnehin.
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet')] },
+    { viewport: { width: 390, height: 1400 } });
+  const oben = await page.locator(KARTE).evaluate((k) => Math.round(k.getBoundingClientRect().top));
+  await page.locator('[data-act="neu"][data-art="notiz"]').first().click();
+  await kurz(page);
+  await page.locator('button.bogen-zu').click();
+  await kurz(page);
+  check(await zahl(page, KARTE) === 1 && await page.locator(KARTE).evaluate((k) => Math.round(k.getBoundingClientRect().top)) === oben,
+    'Bogen auf und zu: die Karte steht wie vorher');
+  await page.locator(form('pellet')).click();
+  await kurz(page);
+  check((await speicher(page)).standardMittel[0].form === 'pellet', 'ein bewusster Tipp 150 ms danach zählt');
+  await ctx.close();
+}
+{
+  // Rückt die Karte nach „Gelesen" unter den Finger, sind nur ihre Knöpfe kurz gesperrt –
+  // was sonst auf „Tag" steht, war vorher schon da und bleibt sofort antippbar.
+  const { ctx, page } = await iphone({
+    eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet'), meins('p1', 'Pantoprazol')],
+  }, { viewport: { width: 320, height: 640 } });
+  await page.locator('.wechsel-karte [data-act="wechsel-gelesen"]').click();
+  await kurz(page);
+  await page.locator('[data-act="tag-blaettern"][data-d="-1"]').click();
+  await kurz(page);
+  // Einen Tag zurück: „Tag vor" ist jetzt antippbar, und die Karte steht nur heute.
+  check(await page.locator('[data-act="tag-blaettern"][data-d="1"]').isEnabled() && await zahl(page, KARTE) === 0,
+    'nach „Gelesen" geht ein Tipp auf „Tag" außerhalb der Karte 150 ms später sofort');
+  await ctx.close();
+}
+
+/* ---------- 16c. Was man sieht, steht auch in der Ansage ---------- */
+
+/*
+ * Die Sprachsteuerung findet einen Knopf über seinen zugänglichen Namen:
+ * „Tippe auf Nicht merken" geht ins Leere, wenn das aria-label „merken"
+ * nicht enthält (WCAG 2.5.3, Label in Name). Jeder Knopf der Rückfrage und
+ * der Karte „Neu" trägt seine Beschriftung im Namen – in jedem Schritt.
+ */
+{
+  const { ctx, page } = await iphone(null, { viewport: IPHONE });
+  const ohne = [];
+  let knoepfe = 0;
+  for (const [was, z, schritte] of [
+    ['FORM', { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet')] }, []],
+    ['SAEURE', { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')] }, []],
+    ['WELCHES', { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')] }, ['ja']],
+    ['WELCHES voll', VOLL, ['ja']],
+    ['PRUEFEN', { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')] }, ['ja', 'pruefen']],
+    ['MERKEN', STAND4, ['pellet']],
+    ['Neu', STAND13, []],
+    ['Neu voll', VOLL_NEU, []],
+  ]) {
+    await stand(page, z);
+    for (const sch of schritte) {
+      if (sch === 'ja') await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+      if (sch === 'pellet') await tipp(page, form('pellet'));
+      if (sch === 'pruefen') {
+        await page.locator('#rueckfrageName').fill('Säurex');
+        await tipp(page, `${KARTE} [data-act="rueckfrage-eigen"]`);
+      }
+    }
+    const paare = await page.evaluate(() => [...document.querySelectorAll('.rueckfrage-karte button, .neu-karte button')]
+      .map((b) => [b.innerText.replace(/\s+/g, ' ').trim(), (b.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim()]));
+    knoepfe += paare.length;
+    paare.filter(([t, a]) => a && !a.toLowerCase().includes(t.toLowerCase())).forEach(([t, a]) => ohne.push(`${was}: ${t} ⇒ ${a}`));
+  }
+  check(knoepfe >= 35, `geprüft: ${knoepfe} Knöpfe in acht Zuständen`);
+  check(ohne.length === 0, `jede Beschriftung steht im zugänglichen Namen${ohne.length ? `: ${ohne.join(' | ')}` : ''}`);
+  await ctx.close();
 }
 
 /* ---------- 17. Der Ton ---------- */

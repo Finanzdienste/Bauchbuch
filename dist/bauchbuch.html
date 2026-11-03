@@ -19429,7 +19429,8 @@ const ui = {
    * an dem der Schritt begann; er gilt nur an diesem Tag (rueckfrageSchritt).
    */
   rueckfrage: null,
-  // Kurz nach einer Antwort auf „Tag" zählt kein Tipp – siehe nachtippSperren().
+  // Kurz nach einer Antwort auf „Tag" zählt kein Tipp – siehe nachtippSperren():
+  // false, 'inhalt' (ganz #view) oder 'karte' (nur in der Rückfrage und der Karte „Neu").
   nachtipp: false,
   // Was das letzte Zeichnen von „Tag" als gezeigt meldet, bis es gestempelt
   // ist – siehe gezeigtStempeln().
@@ -19950,11 +19951,11 @@ function mittelFeldFokus() {
  * größerer Schrift bricht die Kopfleiste um. Der Fokus geht danach ins
  * Namensfeld, ohne die Seite noch einmal zu verschieben.
  *
- * Mit { formular: false } (die Rückfrage bei vollem „Meine Mittel") bleibt
- * das Formular zu: Gebraucht wird dort die Liste mit den Knöpfen zum
- * Entfernen und der Satz zum vollen Stand, nicht ein Feld für ein Mittel,
- * das nicht mehr hineinpasst. Der Fokus geht dann auf die Überschrift.
- * Ein offenes Formular zum Ändern eines Mittels bleibt offen.
+ * Mit { formular: false } (die Rückfrage und die Karte „Neu" bei vollem
+ * „Meine Mittel") bleibt das Formular zu: Gebraucht wird dort die Liste mit
+ * den Knöpfen zum Entfernen und der Satz zum vollen Stand, nicht ein Feld
+ * für ein Mittel, das nicht mehr hineinpasst. Der Fokus geht dann auf die
+ * Überschrift. Ein offenes Formular zum Ändern eines Mittels bleibt offen.
  */
 function meineMittelZeigen({ formular = true } = {}) {
   store.einstellen('tab', 'mehr');
@@ -20380,7 +20381,7 @@ function tagAnsicht(s) {
 
   return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + jetztZeile(s, iso) + sicherungKarte(iso) + wechselKarte(s, iso)
-    + (mitFrage ? rueckfrageKarte(frage, s) : '') + (mitNeu ? v29Karte() : '')
+    + (mitFrage ? rueckfrageKarte(frage, s) : '') + (mitNeu ? v29Karte(s) : '')
     + planZeile(s, iso) + versuchZeile(s, iso)
     + provokationZeile(s, iso) + bilanz + zyklusZeile + kopfNachtragKarte(s, iso)
     + (heute ? ratKarte(s) + angebot : '') + schnellReihe + mittelReihe
@@ -20642,7 +20643,7 @@ function rueckfrageHeute(s, g) {
   if (u) {
     const y = alle.find((z) => z.schluessel === u.schluessel);
     const gilt = !!y && !y.r.nie && (u.schritt === 'merken'
-      ? !!store.eintragVon(u.einnahme)
+      ? !!merkenEinnahme(s, y, u)
       : (u.schritt === 'welches' || u.schritt === 'pruefen') && y.frage === 'saeure');
     if (gilt) {
       x = y;
@@ -20683,6 +20684,23 @@ function rueckfrageOffen(s, k) {
  */
 const alleOffenSaeure = (s) => rueckfragenMit(s)
   .filter((x) => x.fehltSaeure && !x.r.saeure && !x.r.nie).map((x) => x.schluessel);
+
+/*
+ * Die Einnahme, deren Form MERKEN unter „Meine Mittel" legen würde – oder
+ * null, wenn der Schritt nicht mehr gilt. Er gilt nur, solange an der
+ * Einnahme noch genau die beantwortete Form steht, die Einnahme noch zu
+ * diesem Namen gehört und der Name nicht inzwischen unter „Meine Mittel"
+ * steht. Wer sich vertippt und die Einnahme im Bogen korrigiert, bekäme
+ * sonst mit „Ja, merken" die alte Form dorthin – der Knopf trüge sie in jede
+ * neue Einnahme weiter, und ein Hinweis verschwände ohne Meldung. Steht der
+ * Name schon unter „Meine Mittel" (etwa über „Als mein Mittel merken" im
+ * Bogen), gilt die Form von dort; MERKEN überschreibt sie nie.
+ */
+function merkenEinnahme(s, y, u) {
+  const e = store.eintragVon(u.einnahme);
+  if (!e || e.art !== 'medikament' || !gleichText(e.mittel, y.name) || !u.form || e.form !== u.form) return null;
+  return s.standardMittel.some((m) => gleichText(m.mittel, y.name)) ? null : e;
+}
 
 /** Die jüngste Einnahme dieses Namens in den letzten WECHSEL_TAGE Tagen – dort liest formZu. */
 function juengsteEinnahme(s, name) {
@@ -20762,7 +20780,9 @@ function saeureWahl(s) {
  * (#rueckfrageFrage); dorthin geht nach einer Antwort der Fokus. Die
  * Formknöpfe sind Aktionen, keine Umschalter – ohne aria-pressed, nichts
  * vorgewählt –, und tragen die Bezeichnungen wie im Bogen und unter „Meine
- * Mittel".
+ * Mittel". Ein aria-label enthält immer die sichtbare Beschriftung, meist
+ * vorn: Die Sprachsteuerung sucht einen Knopf über seinen Namen, und
+ * „Tippe auf Nicht merken" ginge sonst ins Leere.
  */
 function rueckfrageKarte(f, s) {
   const { x, schritt, erster } = f;
@@ -20805,9 +20825,9 @@ function rueckfrageKarte(f, s) {
       Einnahme ${WECHSEL_TAGE} Tage lang, auch für weitere Einnahmen ohne Formangabe. Dauerhaft gilt sie, wenn
       ${name} unter „Meine Mittel“ steht. Dort trägt dann auch ein Tipp auf „Tag“ eine Einnahme ein.</p>
       <div class="reihe">${knopf('rueckfrage-merken', 'Ja, merken', 'btn-primary',
-    mitK(`aria-label="${esc(`${x.name} mit dieser Form unter „Meine Mittel“ anlegen`)}"`))}
+    mitK(`aria-label="${esc(`Ja, merken – ${x.name} mit dieser Form unter „Meine Mittel“ anlegen`)}"`))}
         ${knopf('rueckfrage-nicht-merken', 'Nicht merken', 'btn-ghost',
-    mitK('aria-label="Nicht unter „Meine Mittel“ anlegen – die Form bleibt bei der Einnahme"'))}</div>`;
+    mitK('aria-label="Nicht merken – die Form bleibt bei der Einnahme"'))}</div>`;
   } else if (schritt === 'welches') {
     frage = 'Welches Mittel gegen Magensäure?';
     const zurueck = knopf('rueckfrage-zurueck', 'Zurück', 'btn-ghost btn-klein', mitK());
@@ -20834,7 +20854,7 @@ function rueckfrageKarte(f, s) {
       den.</p>
       <div class="reihe">${knopf('rueckfrage-aendern', 'Namen ändern', 'btn-primary', mitK())}
         ${knopf('rueckfrage-trotzdem', 'Trotzdem so anlegen', 'btn-ghost',
-    mitK(`aria-label="${esc(`„${u.eigen}“ trotzdem unter „Meine Mittel“ anlegen`)}"`))}</div>`;
+    mitK(`aria-label="${esc(`Trotzdem so anlegen – „${u.eigen}“ unter „Meine Mittel“`)}"`))}</div>`;
   }
   const weg = schritt === 'form' || schritt === 'saeure'
     ? `<div class="reihe rueckfrage-weg">
@@ -20923,7 +20943,11 @@ function v29Offen(s, g) {
  * wichtig es ist – „die wichtigen stehen oben" erklärte die übrigen still
  * für unwichtig, und oft steht über dieser Karte gar keiner.
  */
-function v29Karte() {
+function v29Karte(s) {
+  // Ist „Meine Mittel" voll, führt der Knopf zur Liste (siehe 'v29-meine-mittel')
+  // und kündigt kein Anlegen an.
+  const zuMeinen = s.standardMittel.length >= store.STANDARD_HOECHSTENS
+    ? 'Zu „Meine Mittel“ unter „Mehr“' : 'Zu „Meine Mittel“ unter „Mehr“ – dort ein Mittel anlegen';
   return `<div class="karte hinweis neu-karte" role="region" aria-labelledby="neuTitel">
     <h3 id="neuTitel">Neu: Hinweise zu zwei Mitteln zusammen</h3>
     <p class="klein">Zu einigen wenigen Paaren von Mitteln zeigt Body Check jetzt einen Hinweis, vor allem
@@ -20935,7 +20959,7 @@ function v29Karte() {
       ${WECHSEL_TAGE} Tagen notiert. Was du regelmäßig nimmst, kannst du unter „Meine Mittel“ anlegen. Eine
       Einnahme wird dabei nicht notiert. Alles bleibt auf diesem Gerät.</p>
     <div class="reihe">
-      ${knopf('v29-meine-mittel', 'Zu „Meine Mittel“', 'btn-primary', 'aria-label="Zu „Meine Mittel“ unter „Mehr“ – dort ein Mittel anlegen"')}
+      ${knopf('v29-meine-mittel', 'Zu „Meine Mittel“', 'btn-primary', `aria-label="${zuMeinen}"`)}
       ${knopf('v29-gelesen', 'Gelesen', 'btn-ghost', 'aria-label="Neuigkeit gelesen"')}
     </div>
   </div>`;
@@ -27072,9 +27096,10 @@ const AKTION = {
     store.einstellen('v29Gesagt', true);
     zeichne();
   },
+  // Bei vollem „Meine Mittel" die Liste ohne Formular – wie bei der Rückfrage.
   'v29-meine-mittel': () => {
     store.einstellen('v29Gesagt', true);
-    meineMittelZeigen();
+    meineMittelZeigen({ formular: store.zustandLesen().standardMittel.length < store.STANDARD_HOECHSTENS });
   },
   /*
    * Die Rückfrage zu Methylphenidat (siehe rueckfrageKarte). Jede Antwort
@@ -27126,13 +27151,15 @@ const AKTION = {
     rueckfrageFokus();
     zeichne();
   },
+  // Gelegt wird die Form, die jetzt an der Einnahme steht – und nur, solange
+  // sie die beantwortete ist (merkenEinnahme). Sonst ist der Schritt vorbei.
   'rueckfrage-merken': () => {
     const u = ui.rueckfrage;
     const s = store.zustandLesen();
     ui.rueckfrage = null;
     const x = u && u.schritt === 'merken' ? rueckfrageOffen(s, u.schluessel) : null;
-    const e = x ? store.eintragVon(u.einnahme) : null;
-    const f = e ? MPH_FORMEN.find((m) => m.id === u.form) : null;
+    const e = x ? merkenEinnahme(s, x, u) : null;
+    const f = e ? MPH_FORMEN.find((m) => m.id === e.form) : null;
     if (!f) { zeichne(); return; }
     const res = store.standardMerken({
       mittel: x.name, dosis: e.dosis || '', tageszeit: null, bezug: null, form: f.id,
@@ -27142,8 +27169,9 @@ const AKTION = {
       zeichne();
       return;
     }
-    if (res.schon) store.standardAendern(res.id, { form: f.id });
-    melden(`${x.name} steht jetzt bei deinen Mitteln, mit der Form „${f.kurzname}“.`);
+    if (res.fehler) { zeichne(); return; }
+    melden(res.schon ? `${x.name} steht schon bei deinen Mitteln.`
+      : `${x.name} steht jetzt bei deinen Mitteln, mit der Form „${f.kurzname}“.`);
     rueckfrageFokus();
     zeichne();
   },
@@ -28239,10 +28267,37 @@ const AKTION = {
 const NACHTIPP_MS = 500;
 const NACH_ANTWORT = /^(rueckfrage-|v29-)/;
 let nachtippUhr = 0;
-function nachtippSperren() {
-  ui.nachtipp = true;
+function nachtippSperren(umfang = 'inhalt') {
+  // Eine laufende Sperre des ganzen Inhalts wird nie zu einer engeren.
+  ui.nachtipp = ui.nachtipp === 'inhalt' ? 'inhalt' : umfang;
   clearTimeout(nachtippUhr);
   nachtippUhr = setTimeout(() => { ui.nachtipp = false; }, NACHTIPP_MS);
+}
+
+/*
+ * Dasselbe von oben: Nach „Gelesen" bei W1/W1u, „Später" bei der Sicherung,
+ * einer Antwort auf ein Angebot oder dem Eintragen im Bogen rückt die
+ * Rückfrage oder die Karte „Neu" nach oben oder erscheint erst – und liegt
+ * dann dort, wo eben der Finger war. Ein Doppeltipp auf „Gelesen" wählte
+ * sonst eine Form, die niemand gewählt hat. Deshalb sperrt auch ein Tipp im
+ * Inhalt, nach dem eine dieser Karten neu dasteht oder sich verschoben hat
+ * und jetzt unter dem Finger liegt (NACHTIPP_RAND Pixel Spielraum) – aber
+ * nur die Knöpfe dieser Karten ('karte'): Was sonst auf „Tag" steht, war
+ * vorher schon da und bleibt sofort antippbar. Gar nicht gesperrt wird nach
+ * einem Tipp, der die Karten nicht bewegt, nach einem, nach dem ein Bogen
+ * offen ist – dann liegt der Finger auf dem Bogen –, und nach einem
+ * Tastendruck.
+ */
+const NACHTIPP_RAND = 24;
+const V29_KARTEN = '.rueckfrage-karte, .neu-karte';
+const v29Lagen = () => [...viewEl.querySelectorAll(V29_KARTEN)].map((k) => {
+  const r = k.getBoundingClientRect();
+  return { neu: k.classList.contains('neu-karte'), oben: Math.round(r.top), r };
+});
+function v29UnterDemFinger(vorher, x, y) {
+  return v29Lagen().some((k) => !vorher.some((v) => v.neu === k.neu && v.oben === k.oben)
+    && x >= k.r.left - NACHTIPP_RAND && x <= k.r.right + NACHTIPP_RAND
+    && y >= k.r.top - NACHTIPP_RAND && y <= k.r.bottom + NACHTIPP_RAND);
 }
 
 document.addEventListener('click', (ev) => {
@@ -28253,9 +28308,21 @@ document.addEventListener('click', (ev) => {
   // Textfelder tragen ebenfalls data-act, ihre Werte kommen über 'input'.
   if (el.matches('input, textarea')) return;
   ev.preventDefault();
-  if (ui.nachtipp && viewEl.contains(el)) return;
+  const imInhalt = viewEl.contains(el);
+  if (imInhalt && (ui.nachtipp === 'inhalt' || (ui.nachtipp === 'karte' && el.closest(V29_KARTEN)))) return;
+  // Nur bei Tipp oder Klick (detail > 0): Ein Tastendruck hat keinen Finger,
+  // der liegen bliebe, und keinen Klickpunkt.
+  const vorher = imInhalt && ev.detail > 0 ? v29Lagen() : null;
   fn(el);
-  if (NACH_ANTWORT.test(el.dataset.act)) nachtippSperren();
+  if (NACH_ANTWORT.test(el.dataset.act)) {
+    nachtippSperren();
+  } else if (vorher) {
+    // zeichne() malt in einer Mikroaufgabe; diese hier kommt danach dran.
+    const { clientX: x, clientY: y } = ev;
+    queueMicrotask(() => {
+      if (!ui.bogen && v29UnterDemFinger(vorher, x, y)) nachtippSperren('karte');
+    });
+  }
 });
 
 /*
