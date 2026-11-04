@@ -26,7 +26,8 @@
  *       Namen, dessen Säurefrage heute noch kommt.
  *   2c. Jede sichtbare Beschriftung steht auch im zugänglichen Namen.
  *   2d. Zwei Namen nacheinander: Die Formfrage nennt das Mittel, jede
- *       Meldung auch, und springt die Karte, sagt die Meldung „Jetzt zu …".
+ *       Meldung zu einem Namen auch, und springt die Karte, sagt die Meldung
+ *       „Jetzt zu …".
  *       „Nein" gilt für jeden Namen, der schon dasteht, und ein Name, der
  *       nur kein Mittel gegen Magensäure ist, heißt nie „unbekannt".
  *   3. Nie mehr als die bestehenden Karten zulassen: W1/W1u und das Angebot
@@ -41,6 +42,7 @@
  */
 import { chromium } from 'playwright';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { ROOT, KEY, SHOT, pruefer } from './umgebung.mjs';
 import { kopieServer } from './vorrat.mjs';
 import { fmtDatum, plusTage } from '../js/datum.js';
@@ -922,6 +924,23 @@ const STAND10 = {
   await ctx.close();
 }
 {
+  // Zwei Mittel gegen Magensäure: Beide Hinweise fallen weg, und die Meldung nennt beide.
+  const { ctx, page } = await iphone({
+    eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet'), meins('s2', 'Pantoprazol'), meins('s3', 'Rennie')],
+  }, { viewport: IPHONE });
+  check(await zahl(page, '.wechsel-karte') === 2 && await zahl(page, KARTE) === 0, 'zwei Hinweise W1u, die Rückfrage wartet');
+  await tipp(page, '.wechsel-karte [data-act="wechsel-gelesen"]');
+  await page.waitForTimeout(RUHE);
+  await meldung(page);
+  await tipp(page, form('oros'));
+  const m = await meldung(page);
+  check(await zahl(page, '.wechsel-karte') === 0 && m.includes('deinen Mitteln gegen Magensäure (Pantoprazol und Rennie)')
+    && m.includes('kennt Body Check keinen Hinweis') && !m.includes('deinem Mittel gegen Magensäure') && !m.includes('beides')
+    && !/passt (gut|zusammen)\b|unbedenklich/.test(m),
+  `Hülle bei zwei Mitteln gegen Magensäure: die Meldung in der Mehrzahl, mit beiden Namen (${m})`);
+  await ctx.close();
+}
+{
   const { ctx, page } = await iphone(STAND10);
   await tipp(page, form('sodas'));
   const m = await meldung(page);
@@ -1150,6 +1169,21 @@ const STAND13 = {
   check((await speicher(page)).standardMittel[0].form === 'pellet'
     && (await meldung(page)).startsWith('Form von Medikinet: Kapsel mit zweierlei Kügelchen.'),
   '00:01 getippt: die Antwort gilt trotzdem');
+  // Danach zeigt „Tag" den neuen Tag – nicht mehr „gestern", wo die Karte stand.
+  check(await page.locator('.tag-datum').inputValue() === tag(1),
+    `danach zeigt „Tag" den neuen Tag (${await page.locator('.tag-datum').inputValue()})`);
+  await ctx.close();
+}
+{
+  // 23:59 „Ja", 0:01 Pantoprazol: Die Meldung sagt „oben auf „Tag““ – und dort steht W1 dann auch.
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')] }, { zeit: um('23:59') });
+  await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+  await page.clock.setFixedTime(um('00:01', tag(1)));
+  await tipp(page, `${KARTE} [data-act="rueckfrage-name"][data-name="Pantoprazol"]`);
+  const m = await meldung(page);
+  check(m.endsWith(HINWEIS_OBEN) && await page.locator('.tag-datum').inputValue() === tag(1) && await zahl(page, '.wechsel-karte') === 1,
+    `über Mitternacht angelegt: „Tag" zeigt den neuen Tag, und der Hinweis, auf den die Meldung zeigt, steht da `
+    + `(${await page.locator('.tag-datum').inputValue()}, ${await zahl(page, '.wechsel-karte')} Hinweis; ${m})`);
   await ctx.close();
 }
 
@@ -1697,6 +1731,27 @@ const meldungAn = (page) => page.evaluate(() => document.getElementById('toast')
   check(gleich(s.mphRueckfrage, vorher.mphRueckfrage) && gleich(s.standardMittel, vorher.standardMittel)
     && (await gezeigt(page)).zu !== HEUTE && await frage(page) === F_SAEURE && !(await meldungAn(page)),
   `ein Tipp auf die Meldung: nichts gespeichert, die Säurefrage steht, die Meldung ist zu (${JSON.stringify(s.mphRueckfrage)})`);
+  await ctx.close();
+}
+{
+  // „Gelesen" bei W1u, 320×568: Die Rückfrage rückt unter den Finger und unter
+  // die Meldung „Gelesen. …" – auch diese Meldung fängt den Tipp ab.
+  const { ctx, page } = await iphone(STAND10, { viewport: KLEIN });
+  const gelesen = page.locator('.wechsel-karte [data-act="wechsel-gelesen"]');
+  await gelesen.scrollIntoViewIfNeeded();
+  const g = await gelesen.boundingBox();
+  await page.touchscreen.tap(g.x + g.width / 2, g.y + g.height / 2);
+  await page.waitForTimeout(700);
+  const p = await unterDerMeldung(page);
+  check(!!p && /^rueckfrage-/.test(p.act) && await frage(page) === fForm('Methylphenidat'),
+    `320×568, „Gelesen" bei W1u: die Meldung verdeckt einen Knopf der Rückfrage (${p ? p.was : 'keinen'})`);
+  const vorher = await speicher(page);
+  if (p) await page.touchscreen.tap(p.x, p.y);
+  await page.waitForTimeout(300);
+  const s = await speicher(page);
+  check(gleich(s.standardMittel, vorher.standardMittel) && gleich(s.mphRueckfrage, vorher.mphRueckfrage)
+    && (await gezeigt(page)).zu !== HEUTE && await frage(page) === fForm('Methylphenidat') && !(await meldungAn(page)),
+  `ein Tipp auf diese Meldung beantwortet die Frage darunter nicht und schließt sie (${JSON.stringify(s.mphRueckfrage)})`);
   await ctx.close();
 }
 {
@@ -2281,6 +2336,12 @@ const imSpeicherDerSeite = (page) => page.evaluate(async () => (await import('/j
   // Ein Datum endet auf einem Punkt; ein Satz dahinter bekommt keinen zweiten (siehe 4e).
   const doppelt = alle.filter((t) => t.includes('..'));
   check(doppelt.length === 0, `nirgends zwei Punkte hintereinander${doppelt.length ? `: ${doppelt[0]}` : ''}`);
+  // Die README verspricht keinen Namen in jeder Meldung: „Nein" gilt für alle
+  // Namen und nennt deshalb keinen (Abschnitt 2d).
+  let readme = '';
+  try { readme = readFileSync(path.join(PRUEFLING, 'README.md'), 'utf8').replace(/\s+/g, ' '); } catch { /* Kopie ohne README */ }
+  check(meldungen.includes(NEIN_MELDUNG) && !readme.includes('Jede Meldung nach einer Antwort nennt das Mittel'),
+    'die README sagt nicht, jede Meldung nach einer Antwort nenne das Mittel – die nach „Nein" nennt keins');
 }
 
 /* ---------- 18. Breite, Höhe, Bilder ---------- */

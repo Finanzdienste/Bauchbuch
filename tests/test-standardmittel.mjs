@@ -627,6 +627,72 @@ const angetippt = (await speicher()).eintraege.find((e) => e.id === 'cr') || {};
 check(angetippt.mittel === 'Methylphenidat' && angetippt.form === 'sofort',
   `gespeichert mit der angetippten Form (${angetippt.mittel}, ${angetippt.form})`);
 
+/* ---------- 13. Zwei Mittel nacheinander, mit dem Finger ---------- */
+
+/*
+ * Morgens zwei eigene Mittel hintereinander antippen, ohne zu rollen. Nach
+ * dem ersten Eintrag des Tages erscheinen darüber „beschwerdefrei" und „Für
+ * heute", die Reihe rückt nach unten – auf einem iPhone mit 390 Pixeln genau
+ * unter die Meldung „… eingetragen." Der zweite Tipp trägt trotzdem ein: Die
+ * Meldung eines gewöhnlichen Knopfs lässt Tipps durch (nur nach einer Antwort
+ * auf die Rückfrage fängt sie sie ab, siehe test-rueckfrage 16g).
+ */
+{
+  const TAG = '2026-03-10';
+  const KENNUNG = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 '
+    + '(KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1';
+  const mein = (id, mittel, dosis = '') => ({ id, mittel, dosis, tageszeit: null, bezug: null });
+  const stand = {
+    begruesst: true, tab: 'heute', alterName: null, startbildschirmWeg: true, unterleibGefragt: true,
+    lastBackup: { on: TAG, anzahl: 1 }, v28Gesagt: true, v29Gesagt: true, adhsAn: false, spannungAn: false, tage: {},
+    standardMittel: [mein('m1', 'Ibuprofen', '400 mg'), mein('m2', 'Pantoprazol', '20 mg'), mein('m3', 'Vitamin D')],
+    eintraege: [{ id: 'n1', art: 'notiz', am: '2026-03-09', um: '07:00', text: 'Notiz' }],
+  };
+  const reihe = [];
+  let bedeckt = 0;
+  let daneben = 0;
+  for (const viewport of [{ width: 390, height: 844 }, { width: 393, height: 852 }]) {
+    const fctx = await browser.newContext({
+      viewport, userAgent: KENNUNG, serviceWorkers: 'block', hasTouch: true, isMobile: true,
+      timezoneId: 'Europe/Berlin', locale: 'de-DE',
+    });
+    await fctx.addInitScript(([k, s]) => {
+      Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true, configurable: true });
+      try { if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify(s)); } catch { /* about:blank */ }
+    }, [KEY, stand]);
+    const fp = await fctx.newPage();
+    fp.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
+    await fp.clock.setFixedTime(new Date(`${TAG}T08:10:00+01:00`));
+    await fp.goto(kopie.adresse, { waitUntil: 'networkidle' });
+    await fp.waitForTimeout(200);
+    const mitte = (id) => fp.$eval(`[data-act="standard-eintragen"][data-id="${id}"]`, (k) => {
+      const r = k.getBoundingClientRect();
+      const t = document.getElementById('toast');
+      const m = t.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      return { x, y, unterMeldung: t.classList.contains('an') && x > m.left && x < m.right && y > m.top && y < m.bottom };
+    });
+    const a = await mitte('m1');
+    await fp.touchscreen.tap(a.x, a.y);
+    await fp.waitForTimeout(900);
+    const b = await mitte('m2');
+    if (b.unterMeldung) bedeckt += 1;
+    await fp.touchscreen.tap(b.x, b.y);
+    await fp.waitForTimeout(400);
+    const namen = await fp.evaluate(async ([k, t]) => {
+      const st = await import('/js/store.js');
+      st.sofortSchreiben();
+      return JSON.parse(localStorage.getItem(k)).eintraege.filter((e) => e.am === t && e.art === 'medikament').map((e) => e.mittel);
+    }, [KEY, TAG]);
+    reihe.push(`${viewport.width}×${viewport.height}: ${namen.join(', ') || 'nichts'}${b.unterMeldung ? ' (unter der Meldung)' : ''}`);
+    if (namen.join() !== 'Ibuprofen,Pantoprazol') daneben += 1;
+    await fctx.close();
+  }
+  check(daneben === 0 && bedeckt > 0,
+    `zwei Mittel nacheinander, ohne Rollen: beide eingetragen, auch wenn die Meldung des ersten über dem zweiten liegt (${reihe.join(' | ')})`);
+}
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();
 await kopie.zu();

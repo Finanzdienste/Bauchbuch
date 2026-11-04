@@ -564,6 +564,45 @@ async function mitFinger(stand, viewport) {
   check(faelle === 6 && daneben.length === 0,
     `knapp über den Reitern zählt jeder Tipp auf „−" und „+", und die Meldung liegt nie über dem Knopf (${faelle} Fälle`
     + `${daneben.length ? `; daneben: ${daneben.join(' | ')}` : ''})`);
+
+  /*
+   * Vertippt: „+", gleich danach „−". Auf breiten iPhones liegt die Meldung
+   * von „+" über „−" und der Zahl, ohne „+" zu berühren. Der Tipp auf „−"
+   * zählt trotzdem – die Meldung eines Zählknopfs lässt Tipps durch.
+   */
+  const falsch = [];
+  let faelle2 = 0;
+  let ueberMinus = 0;
+  for (const [vp, start] of [
+    [{ width: 414, height: 896 }, 1], [{ width: 414, height: 896 }, 3], [{ width: 430, height: 932 }, 3],
+    [{ width: 390, height: 844 }, 0],
+  ]) {
+    for (const abstand of [120, 350]) {
+      const { ctx, page } = await mitFinger(mitWasser(start), vp);
+      await page.waitForTimeout(200);
+      await page.evaluate(() => {
+        const r = document.querySelector('.wasser').getBoundingClientRect();
+        const unten = document.getElementById('tabbar').getBoundingClientRect().top;
+        window.scrollBy(0, r.bottom - (unten - 12));
+      });
+      await page.waitForTimeout(150);
+      const plus = await page.locator('#wasserMehr').boundingBox();
+      const minus = await page.locator('#wasserWeniger').boundingBox();
+      await page.touchscreen.tap(plus.x + plus.width / 2, plus.y + plus.height / 2);
+      await page.waitForTimeout(abstand);
+      if (await ueberdeckt(page, '#wasserWeniger')) ueberMinus += 1;
+      await page.touchscreen.tap(minus.x + minus.width / 2, minus.y + minus.height / 2);
+      await page.waitForTimeout(400);
+      const n = wasserVon((await speicher(page)).tage[heute]);
+      const m = (await page.locator('#toast').textContent()) || '';
+      faelle2 += 1;
+      if (n !== start || !m.includes('zurückgenommen')) falsch.push(`${vp.width}×${vp.height} ab ${start}, ${abstand} ms: ${n} – „${m}"`);
+      await ctx.close();
+    }
+  }
+  check(faelle2 === 8 && falsch.length === 0 && ueberMinus > 0,
+    `„+", gleich danach „−": die Zahl ist wieder die alte, auch wenn die Meldung von „+" über „−" liegt (${faelle2} Fälle, `
+    + `${ueberMinus}× über „−"${falsch.length ? `; daneben: ${falsch.join(' | ')}` : ''})`);
 }
 
 /* ---------- 5. Sicherung, Einlesen, Zusammenführen ---------- */

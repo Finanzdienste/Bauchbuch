@@ -687,8 +687,10 @@ let toastUhr = null;
 function melden(text, knopf = null) {
   toastEl.textContent = text;
   toastEl.classList.toggle('mit-knopf', !!knopf);
-  // Wieder unten – ob sie einem Knopf ausweicht, entscheidet der Klick-Verteiler (meldungAusweichen).
-  toastEl.classList.remove('oben');
+  // Wieder unten und durchlässig – ob sie einem Knopf ausweicht und ob sie
+  // Tipps abfängt, entscheidet der Klick-Verteiler (meldungAusweichen,
+  // nachtippSperren).
+  toastEl.classList.remove('oben', 'deckt');
   meldungNr += 1;
   if (knopf) {
     const k = document.createElement('button');
@@ -720,8 +722,8 @@ function meldungZu() {
 }
 
 /*
- * Eine Meldung fängt Tipps ab, solange sie zu sehen ist (siehe beim
- * Klick-Verteiler) – und noch einen Augenblick danach: während sie
+ * Fängt eine Meldung Tipps ab (nach einer Antwort, siehe beim
+ * Klick-Verteiler), dann auch noch einen Augenblick danach: während sie
  * ausblendet (css/styles.css, 0,18 s), und nach einem Tipp, der sie schloss,
  * NACHTIPP_MS lang. Sonst ginge der zweite Tipp eines Doppeltipps durch die
  * eben verschwundene Meldung auf den Knopf darunter, den noch niemand
@@ -747,8 +749,7 @@ function meldungNachlauf(ms) {
  * Eine Meldung ohne Knopf legt sich nicht über den Knopf, der sie eben
  * ausgelöst hat und noch unter dem Finger steht – sie zeigt sich dann oben,
  * wie bei offenem Bogen. Wer zählt („+" und „−" beim Wasser), tippt dieselbe
- * Stelle gleich noch einmal, und den Knopf hat er eben noch gesehen; lag die
- * Meldung darüber, schloss jeder zweite Tipp nur sie, und ein Glas fehlte.
+ * Stelle gleich noch einmal und soll den Knopf dabei sehen.
  * „Derselbe Knopf" heißt: dieselbe Aktion mit denselben Angaben (data-*) an
  * der Stelle des Tipps, nach dem Neuzeichnen. Springt die Karte nach einer
  * Antwort zum nächsten Schritt, steht dort ein anderer Knopf, und die
@@ -1738,10 +1739,10 @@ function wannText(am) {
  */
 const satzEnde = (t) => (t.endsWith('.') ? t : `${t}.`);
 
-/** Alle Paare mit ihrer Stufe, je Schlüssel – zum Vergleich vor und nach einer Antwort. */
+/** Alle Paare je Schlüssel (mit Stufe und Namen) – zum Vergleich vor und nach einer Antwort. */
 const wechselAlle = () => {
   const s = store.zustandLesen();
-  return new Map(wechselHinweise(s.standardMittel, s.eintraege, heuteISO()).map((h) => [h.schluessel, h.stufe]));
+  return new Map(wechselHinweise(s.standardMittel, s.eintraege, heuteISO()).map((h) => [h.schluessel, h]));
 };
 
 /**
@@ -1753,7 +1754,10 @@ const wechselAlle = () => {
  *   3. sonst ist ein Paar der Stufe A weggefallen (W1u → Hülle oder
  *      Equasym): dass Body Check dazu keinen Hinweis kennt – und dass das
  *      nicht heißt, dass beides zusammenpasst. Sonst verschwände W1u
- *      kommentarlos, und das läse sich wie eine Entwarnung.
+ *      kommentarlos, und das läse sich wie eine Entwarnung. Fallen mehrere
+ *      weg (zwei Mittel gegen Magensäure), in der Mehrzahl und mit den
+ *      Namen: Wer nur die Karte zum einen gesehen hat, erführe sonst nicht,
+ *      dass auch das andere gemeint ist.
  *   4. sonst nichts. Nie ein Satz wie „passt".
  */
 function hinweisZusatz(vorher, vorherAlle) {
@@ -1761,9 +1765,16 @@ function hinweisZusatz(vorher, vorherAlle) {
   if (satz) return satz;
   const jetzt = wechselAlle();
   if ([...jetzt.keys()].some((k) => !vorherAlle.has(k))) return ' Ein Hinweis dazu steht unter „Mehr“ › „Meine Mittel“.';
-  if ([...vorherAlle].some(([k, stufe]) => stufe === 'A' && !jetzt.has(k))) {
+  // Bei W1 und W1u steht das Mittel gegen Magensäure an zweiter Stelle.
+  const weg = [...new Set([...vorherAlle].filter(([k, h]) => h.stufe === 'A' && !jetzt.has(k)).map(([, h]) => h.namen[1]))];
+  if (weg.length === 1) {
     return ' Zu dieser Form und deinem Mittel gegen Magensäure kennt Body Check keinen Hinweis. '
       + 'Das heißt nicht, dass beides zusammenpasst – fragen kannst du in Apotheke oder Praxis.';
+  }
+  if (weg.length > 1) {
+    const namen = `${weg.slice(0, -1).join(', ')} und ${weg[weg.length - 1]}`;
+    return ` Zu dieser Form und deinen Mitteln gegen Magensäure (${namen}) kennt Body Check keinen Hinweis. `
+      + 'Das heißt nicht, dass sie mit dieser Form zusammenpassen – fragen kannst du in Apotheke oder Praxis.';
   }
   return '';
 }
@@ -8300,7 +8311,7 @@ const AKTION = {
   /*
    * „Später" und „Nicht mehr fragen": für heute keine Rückfrage mehr, auch
    * nicht zu einem zweiten Namen. Die Meldung nennt das Mittel, wie jede
-   * Meldung nach einer Antwort: Die Woche gilt diesem Namen. Ein
+   * Meldung zu einem einzelnen Namen: Die Woche gilt diesem Namen. Ein
    * Methylphenidat, das an einem späteren Tag unter einem anderen Namen
    * dazukommt, hat eigene Tage – ohne den Namen läse sich die Meldung wie
    * eine Zusage für die ganze Rückfrage.
@@ -9358,6 +9369,9 @@ let nachtippUhr = 0;
 function nachtippSperren(umfang = 'inhalt') {
   // Eine laufende Sperre des ganzen Inhalts wird nie zu einer engeren.
   ui.nachtipp = ui.nachtipp === 'inhalt' ? 'inhalt' : umfang;
+  // Was jetzt unter der Meldung liegt, hat noch niemand gesehen: Bis zur
+  // nächsten Meldung fängt sie Tipps ab (siehe beim Klick auf #toast).
+  toastEl.classList.add('deckt');
   clearTimeout(nachtippUhr);
   nachtippUhr = setTimeout(() => { ui.nachtipp = false; }, NACHTIPP_MS);
 }
@@ -9405,6 +9419,11 @@ document.addEventListener('click', (ev) => {
   const vorher = imInhalt && ev.detail > 0 ? v29Lagen() : null;
   const zeichen = imInhalt && ev.detail > 0 ? knopfZeichen(el) : null;
   const nr = meldungNr;
+  // Über Mitternacht beantwortet: Rückfrage und Karte „Neu" stehen nur auf
+  // dem Tag, der beim Zeichnen heute war. Danach zeigt „Tag" den neuen Tag,
+  // wie nach dem Wiederöffnen – sonst bliebe er auf gestern, und der
+  // Hinweis, auf den die Meldung zeigt („oben auf „Tag““), stünde nicht da.
+  if (el.closest(V29_KARTEN)) tagNachRueckkehr(ui.tag, true);
   fn(el);
   // Ein Finger auf „Rückgängig" in der Meldung: Der zweite Tipp eines
   // Doppeltipps endet an der Stelle der Meldung (meldungNachlauf).
@@ -9427,16 +9446,18 @@ document.addEventListener('click', (ev) => {
 });
 
 /*
- * Eine Meldung verdeckt, was unter ihr steht – und was man nicht sieht, darf
- * man nicht antippen können. Sonst ging ein Tipp auf die Meldung durch sie
- * hindurch auf den Knopf darunter: Nach einer Antwort der Rückfrage liegt
- * dort auf schmalen Bildschirmen oft schon die nächste Frage, mit denselben
- * Knöpfen, und wer die lange Meldung wegtippen wollte, beantwortete sie, ohne
- * sie gesehen zu haben. Darum fängt die Meldung jeden Tipp ab, solange sie zu
- * sehen ist (css/styles.css, .toast.an), und ein Tipp auf sie schließt sie.
- * Eine Meldung mit Knopf („Rückgängig") bleibt dabei stehen – ein Tipp neben
- * den Knopf nähme sonst den einzigen Weg zurück –, und kurz nach einer
- * Antwort (nachtippSperren) bewirkt ein Finger auch hier nichts.
+ * Eine Meldung verdeckt, was unter ihr steht. Meist stand es vorher schon
+ * da – das nächste eigene Mittel, „−" beim Wasser –, und ein Tipp geht durch
+ * sie hindurch auf den Knopf, wie seit jeher. Nach einer Antwort auf die
+ * Rückfrage oder die Karte „Neu" (und wenn eine dieser Karten nach einem
+ * Tipp unter den Finger rückt) liegt dort aber oft schon die nächste Frage,
+ * mit denselben Knöpfen, und wer die lange Meldung wegtippen wollte,
+ * beantwortete sie, ohne sie gesehen zu haben. Dann fängt die Meldung jeden
+ * Tipp ab, bis die nächste kommt (nachtippSperren, css/styles.css .deckt),
+ * und ein Tipp auf sie schließt sie. Eine Meldung mit Knopf („Rückgängig")
+ * bleibt dabei stehen – ein Tipp neben den Knopf nähme sonst den einzigen
+ * Weg zurück –, und kurz nach einer Antwort bewirkt ein Finger auch hier
+ * nichts.
  *
  * Nach dem Schließen fängt sie noch einen Augenblick weiter ab
  * (meldungNachlauf): Der zweite Tipp eines Doppeltipps endet hier, statt
@@ -9557,6 +9578,7 @@ document.addEventListener('keydown', (ev) => {
   // Enter im Namensfeld der Rückfrage legt an wie der Knopf daneben.
   if (ev.key === 'Enter' && !ev.isComposing && ev.target && ev.target.id === 'rueckfrageName') {
     ev.preventDefault();
+    tagNachRueckkehr(ui.tag, true);
     AKTION['rueckfrage-eigen']();
     nachtippSperren();
   }
