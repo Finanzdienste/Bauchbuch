@@ -145,6 +145,9 @@ await setze({
 const alles = await page.locator('#view').textContent();
 check(alles.includes('Pantoprazol'), 'was sie nimmt, steht da');
 check(alles.includes('zuletzt'), 'mit dem Datum der letzten Einnahme');
+// Das Datum („Di, 03.11.") endet schon mit einem Punkt – danach kein zweiter.
+check(/Pantoprazol – zuletzt \S+, \d\d\.\d\d\. Was die Mittel bewirken/.test(alles) && !alles.includes('.. Was die Mittel'),
+  `nach dem Datum genau ein Punkt (${(alles.match(/zuletzt [^·]*?Was die Mittel/) || [''])[0]})`);
 check(
   alles.includes('schlägt bewusst kein Medikament vor'),
   'und der Satz, dass hier bewusst nichts vorgeschlagen wird',
@@ -242,6 +245,80 @@ const saetze = [ohne, bremse, zusatz].flat().flatMap((x) => [x.titel, x.text, x.
   .filter((t) => t !== 'Nimm die Liste mit zum Termin.');
 const geraten2 = saetze.filter((t) => RAT_RE.test(t));
 check(geraten2.length === 0, `kein Satz der Vorschläge trifft den Empfehlungs-Ausdruck${geraten2.length ? `: ${geraten2[0]}` : ''}`);
+
+/* ---------- Zeiten und Daten in deutscher Schreibweise ---------- */
+
+/*
+ * Zwei Schreibweisen, die schon vor der Fassung 29 falsch waren: „Die letzte
+ * Mahlzeit ist 0.4 Stunden her." (englischer Dezimalpunkt, und Bruchteile
+ * einer Stunde liest niemand gern) und „Pantoprazol – zuletzt Mi, 04.11.. Was
+ * die Mittel …" (das Datum endet schon mit einem Punkt). Hier ist festgehalten,
+ * wie es heißen soll: unter einer Stunde in Minuten, ab einer Stunde mit
+ * derselben Zehntelstunde wie vorher, nur mit Komma, und die Einzahl, wo sie
+ * hingehört. Die Rechnung dahinter – ab wann „frisch gegessen" gilt – bleibt.
+ */
+const leerGrund = {
+  eintraege: [], tage: {}, heute: vorTagen(0), eigene: [], bilanz: [],
+  faktoren: {}, phasen: [], mittel: [],
+};
+const sportGrund = (std) => {
+  const s = raete({ ...leerGrund, letzteMahlzeitStunden: std }).find((x) => x.id === 'sport');
+  return s ? s.warum : '';
+};
+const zeiten = [
+  [0, 'Die letzte Mahlzeit war gerade eben.'],
+  [0.005, 'Die letzte Mahlzeit war gerade eben.'],
+  [1 / 60, 'Die letzte Mahlzeit ist 1 Minute her.'],
+  [0.4, 'Die letzte Mahlzeit ist 24 Minuten her.'],
+  [25 / 60, 'Die letzte Mahlzeit ist 25 Minuten her.'],
+  [59 / 60, 'Die letzte Mahlzeit ist 59 Minuten her.'],
+  [1, 'Die letzte Mahlzeit ist 1 Stunde her.'],
+  [61 / 60, 'Die letzte Mahlzeit ist 1 Stunde her.'],
+  [1.5, 'Die letzte Mahlzeit ist 1,5 Stunden her.'],
+  [1.26, 'Die letzte Mahlzeit ist 1,3 Stunden her.'],
+  [1.97, 'Die letzte Mahlzeit ist 2 Stunden her.'],
+];
+zeiten.forEach(([std, soll]) => {
+  const ist = sportGrund(std);
+  check(ist === soll, `${std.toFixed(3)} Stunden: „${soll}"${ist === soll ? '' : ` – steht „${ist}"`}`);
+});
+const alleZeiten = zeiten.map(([std]) => sportGrund(std));
+check(alleZeiten.every((t) => !/\d\.\d/.test(t)), 'in keiner dieser Zeiten ein Dezimalpunkt');
+check(raete({ ...leerGrund, letzteMahlzeitStunden: 2 }).find((x) => x.id === 'sport').titel !== 'Erst in zwei Stunden intensiv',
+  'ab zwei Stunden wie bisher kein „Erst in zwei Stunden intensiv" – die Grenze selbst bleibt');
+
+const mittelText = (mittel) => raete({ ...leerGrund, mittel }).find((x) => x.id === 'mittel').text;
+const mitDatum = mittelText([{ name: 'Pantoprazol', zuletzt: 'Sa, 31.10.' }, { name: 'Omeprazol', zuletzt: 'Mi, 04.11.' }]);
+check(mitDatum === 'Pantoprazol – zuletzt Sa, 31.10. · Omeprazol – zuletzt Mi, 04.11. Was die Mittel bewirken, steht unter „Mehr".',
+  `endet das letzte Datum mit einem Punkt, kommt keiner dazu (${mitDatum})`);
+const ohneDatum = mittelText([{ name: 'Elvanse', zuletzt: 'gestern' }]);
+check(ohneDatum === 'Elvanse – zuletzt gestern. Was die Mittel bewirken, steht unter „Mehr".',
+  `sonst schließt ein Punkt die Liste ab (${ohneDatum})`);
+
+/*
+ * Und in der App, bei fester Uhr: Die Mahlzeit von heute 11:35 ist um 12:00
+ * „25 Minuten her", die von 10:30 „1,5 Stunden". Geprüft wird der sichtbare
+ * Text, nicht nur raete() – der Weg dahin geht über die Uhrzeit des Eintrags.
+ */
+const uhrSeite = await browser.newPage({ viewport: HANDY });
+uhrSeite.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
+await uhrSeite.clock.setFixedTime(new Date(`${heute}T12:00:00`));
+await uhrSeite.goto(URL, { waitUntil: 'networkidle' });
+const mahlzeitUm = async (um) => {
+  await uhrSeite.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, {
+    begruesst: true, tab: 'heute', fenster: 4, mindestFaelle: 5, tage: {},
+    eintraege: [{ id: 'u1', am: heute, um, art: 'essen', was: 'Mittag', portion: 'normal', zutaten: [] }],
+  }]);
+  await uhrSeite.reload({ waitUntil: 'networkidle' });
+  return (await uhrSeite.locator('.rat-sport').textContent()) || '';
+};
+const sport25 = await mahlzeitUm('11:35');
+check(sport25.includes('Die letzte Mahlzeit ist 25 Minuten her.'),
+  `in der App: „Die letzte Mahlzeit ist 25 Minuten her." (${(sport25.match(/Die letzte Mahlzeit[^.]*\.(\d[^.]*\.)?/) || [''])[0]})`);
+const sport90 = await mahlzeitUm('10:30');
+check(sport90.includes('Die letzte Mahlzeit ist 1,5 Stunden her.'),
+  `in der App: „Die letzte Mahlzeit ist 1,5 Stunden her." (${(sport90.match(/Die letzte Mahlzeit[^.]*\.(\d[^.]*\.)?/) || [''])[0]})`);
+await uhrSeite.close();
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

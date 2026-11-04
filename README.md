@@ -1296,6 +1296,16 @@ Die Karte „Was sich an deinen Zahlen geändert hat“ der Fassung 28 steht auf
 „Muster“ und wird für sich gelesen; „Gelesen“ auf der einen Karte lässt die
 andere stehen.
 
+Auf der Karte „Für heute“ sind zwei ältere Schreibfehler berichtigt; die
+Rechnung dahinter bleibt. Wie lange die letzte Mahlzeit her ist, steht unter
+einer Stunde in Minuten („25 Minuten“, darunter „gerade eben“) und ab einer
+Stunde mit derselben Zehntelstunde wie bisher, aber mit Komma („1,5 Stunden“,
+„1 Stunde“) – statt „0.4 Stunden“. Und nach dem Datum der letzten Einnahme
+unter „Was du nimmst“ steht ein Punkt statt zwei. Das Gold der Fassung 27
+bleibt, wie es erzeugt wurde: `tests/test-gleich-v27.mjs` gibt dieser einen
+Zeile vor dem Vergleich ihren zweiten Punkt zurück und prüft für sich, dass
+nur noch einer dasteht.
+
 ### Quellen der Wissenstexte
 
 Jeder Satz mit „laut Fachinformation“, „laut Packungsbeilage“ oder „laut EMA“
@@ -2412,7 +2422,7 @@ den Rückgabewert.
 | `test-zutaten.mjs` | Reihenfolge nach Häufigkeit, Rollen statt Gramm, Umrechnung alter Stände |
 | `test-zyklus.mjs` | Zyklen, Phasen – und das Schweigen ohne Grundlage |
 | `test-bild.mjs` | Warnzeichen kommen durch; Nüchternschmerz wird nicht mit Völlegefühl verwechselt |
-| `test-rat.mjs` | jeder Vorschlag mit Grund, und keine Medikamentenempfehlung |
+| `test-rat.mjs` | jeder Vorschlag mit Grund, und keine Medikamentenempfehlung; „25 Minuten“ und „1,5 Stunden“ statt Dezimalpunkt, nach einem Datum ein Punkt statt zwei |
 | `test-atem.mjs` | Phasenlängen, Ablauf, Abbruch beim Reiterwechsel, stummer Betrieb |
 | `test-app.mjs` | Installieren, Verknüpfungen des Symbols, Druckansicht |
 | `test-stuhl.mjs` | Bristol eintragen, die Anteile, und das Warnzeichen aus dem Stuhlbogen |

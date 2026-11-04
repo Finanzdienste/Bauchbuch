@@ -200,10 +200,13 @@ export function raete(d) {
   /* ---------- Medikamente: kein Rat, sondern der Stand ---------- */
 
   if (d.mittel && d.mittel.length) {
+    // Das Datum der letzten Einnahme („Mi, 04.11.") endet schon mit einem
+    // Punkt; dann schließt er auch den Satz. Ein zweiter stand hier bis zur
+    // Fassung 29 („04.11.. Was die Mittel …").
+    const stand = d.mittel.map((m) => `${m.name} – zuletzt ${m.zuletzt}`).join(' · ');
     raus.push(rat('mittel', 'mittel',
       'Was du nimmst',
-      d.mittel.map((m) => `${m.name} – zuletzt ${m.zuletzt}`).join(' · ')
-      + '. Was die Mittel bewirken, steht unter „Mehr".',
+      `${stand}${stand.endsWith('.') ? '' : '.'} Was die Mittel bewirken, steht unter „Mehr".`,
       'Diese App schlägt bewusst kein Medikament vor: Das hängt an Diagnose, '
       + 'anderen Mitteln und Vorerkrankungen, und nichts davon weiß sie. Nimm '
       + 'die Liste mit zum Termin.',
@@ -211,6 +214,32 @@ export function raete(d) {
   }
 
   return raus.filter(Boolean);
+}
+
+/**
+ * „Die letzte Mahlzeit ist 25 Minuten her." – der Grund unter „Erst in zwei
+ * Stunden intensiv".
+ *
+ * Bis zur Fassung 29 stand hier die Zehntelstunde mit Punkt: „0.4 Stunden".
+ * Jetzt unter einer Stunde in Minuten, darunter „gerade eben" (so zählt
+ * stundenSeitLetzterMahlzeit auch eine Mahlzeit dieser Tageszeit, deren
+ * Knopfzeit noch vor uns liegt), und ab einer Stunde dieselbe Zehntelstunde
+ * wie vorher, nur mit Komma – wie die übrigen Zahlen dieser Karte („7,0 statt
+ * 0,0"). Nicht die Viertelstunden der Jetzt-Zeile („vor 1½ Std."): Die stehen
+ * neben der Uhrzeit, die die genaue Angabe ist; hier gibt es keine, und die
+ * Zahl ab einer Stunde soll bleiben, was sie war.
+ *
+ * Die Minuten werden gerundet, nicht abgeschnitten: Die Stunden kommen aus
+ * ganzen Minuten geteilt durch 60, und gerundet kommt genau diese Zahl
+ * zurück, auch wo das Teilen einen Rest hinterlässt.
+ */
+function seitLetzterMahlzeit(stunden) {
+  const minuten = Math.round(stunden * 60);
+  if (minuten < 1) return 'Die letzte Mahlzeit war gerade eben.';
+  if (minuten < 60) return `Die letzte Mahlzeit ist ${minuten} ${minuten === 1 ? 'Minute' : 'Minuten'} her.`;
+  const zehntel = Math.round(stunden * 10) / 10;
+  const zahl = Number.isInteger(zehntel) ? String(zehntel) : zehntel.toFixed(1).replace('.', ',');
+  return `Die letzte Mahlzeit ist ${zahl} ${zehntel === 1 ? 'Stunde' : 'Stunden'} her.`;
 }
 
 /**
@@ -240,7 +269,7 @@ function sportRat(d, k) {
     return rat('sport', 'sport', 'Erst in zwei Stunden intensiv',
       'Jetzt passt ein Spaziergang. Intensives Training kurz nach dem Essen '
       + 'drückt auf den vollen Magen – danach spricht nichts dagegen.',
-      `Die letzte Mahlzeit ist ${Math.round(seitEssen * 10) / 10} Stunden her.`,
+      seitLetzterMahlzeit(seitEssen),
       'allgemein');
   }
   if (phasenSchlecht) {
