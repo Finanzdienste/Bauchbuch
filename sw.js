@@ -31,7 +31,7 @@
  */
 
 const VERSION = 'v29';
-const STAND = '122fc415231b';
+const STAND = '1b8b016b3f85';
 const CACHE = `bauchbuch-${VERSION}-${STAND}`;
 
 const SHELL = [

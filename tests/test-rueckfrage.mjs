@@ -638,7 +638,7 @@ for (const [was, schritte, formDanach] of [
 }
 /*
  * d) Eine neuere Einnahme mit einer anderen Form, solange MERKEN dasteht –
- * zwei Einnahmen am Tag sind bei Methylphenidat üblich. Dann liest formZu
+ * zwei Einnahmen an einem Tag kommen vor. Dann liest formZu
  * die neuere Form, und die beantwortete gilt nicht mehr. „Ja, merken" legte
  * sonst die überholte Form unter „Meine Mittel": Der Knopf trüge sie am
  * nächsten Tag in die neue Einnahme, und W1 verschwände ohne Meldung – oder

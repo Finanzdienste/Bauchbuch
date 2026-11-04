@@ -1669,8 +1669,8 @@ function alleMphSchluessel(s) {
  *   – an der Einnahme noch genau die beantwortete Form steht und sie noch
  *     zu diesem Namen gehört,
  *   – diese Form noch die ist, die formZu liest: Kommt eine neuere Einnahme
- *     mit einer anderen Form dazu – zwei am Tag sind bei Methylphenidat
- *     üblich –, gilt die neuere, und die beantwortete ist überholt, auch
+ *     mit einer anderen Form dazu – zwei Einnahmen an einem Tag kommen
+ *     vor –, gilt die neuere, und die beantwortete ist überholt, auch
  *     wenn sie noch an der älteren Einnahme steht,
  *   – der Name nicht inzwischen unter „Meine Mittel" steht (etwa über „Als
  *     mein Mittel merken" im Bogen; dann gilt die Form von dort, und MERKEN

@@ -462,7 +462,7 @@ nicht mehr zum Tagebuch passt.
 
 ### Vorschläge für heute
 
-Auf dem Tagesreiter steht, was für heute naheliegt: worauf sie heute eher
+Auf dem Tagesreiter steht, was für heute naheliegt: worauf man heute eher
 verzichten würde, ob Bewegung gerade intensiv oder moderat sinnvoll ist, ob
 eine Atemrunde ansteht. Jeder Vorschlag trägt sein **warum** sichtbar mit sich
 und die Angabe, woher es kommt:
@@ -475,10 +475,10 @@ und die Angabe, woher es kommt:
 Ein Rat ohne Begründung ist ein Befehl, und Befehle über das eigene Essen
 befolgt man blind oder gar nicht. Beides ist schlecht.
 
-**Was hier nicht vorkommt: welches Medikament sie nehmen soll.** Diese Wahl
+**Was hier nicht vorkommt: welches Medikament man nehmen soll.** Diese Wahl
 hängt an Diagnose, anderen Mitteln, Nieren, Leber, Schwangerschaft – nichts
 davon weiß die App, und keines davon kann sie erfragen, ohne so zu tun, als
-wüsste sie es dann. Was stattdessen kommt: was sie selbst eingenommen hat, wann
+wüsste sie es dann. Was stattdessen kommt: was man selbst eingenommen hat, wann
 zuletzt, was es bewirkt, und die Frage dazu für den nächsten Termin.
 
 ### Was geht und was nicht – die Liste, die nichts auswertet

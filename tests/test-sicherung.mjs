@@ -836,7 +836,7 @@ check(gleichGerechnet.gleich && gleichGerechnet.fehlt.length === 0 && gleichGere
   `store.js und js/zusammen.js rechnen den Schlüssel gleich – sonst fehlte eine Antwort in der Sicherung (${JSON.stringify(gleichGerechnet)})`);
 
 // 8. Ein langer Name, dessen 80. Zeichen ein Leerzeichen ist: Die Antwort wirkt.
-const LANG29 = 'Methylphenidat-ratiopharm 10 mg Tabletten, morgens eine und mittags eine halbe, laut Plan der Praxis';
+const LANG29 = 'Methylphenidat-ratiopharm Tabletten als Beispiel für einen ausgesprochen langen Namen im Eingabefeld';
 await setzeStand({
   begruesst: true,
   tab: 'heute',
