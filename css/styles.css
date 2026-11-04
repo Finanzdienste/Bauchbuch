@@ -1002,10 +1002,14 @@ details.wissen p { margin-top: 6px; overflow-wrap: anywhere; }
    fehlt, am anderen Ende des Bildschirms. */
 body.bogen-auf .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 10px); transform: translateX(-50%) translateY(-12px); }
 body.bogen-auf .toast.an { transform: translateX(-50%) translateY(0); }
-/* Mit Knopf („Rückgängig") muss die Meldung antippbar sein – nur solange
-   sie zu sehen ist. */
+/* Solange sie zu sehen ist, fängt die Meldung jeden Tipp ab: Was unter ihr
+   liegt, sieht man nicht, und ein Tipp ging sonst durch sie hindurch auf den
+   Knopf darunter. Ein Tipp auf sie schließt sie (js/app.js, beim
+   Klick-Verteiler); eine mit Knopf („Rückgängig") bleibt stehen. Unsichtbar
+   ist sie wieder durchlässig. */
+.toast.an { pointer-events: auto; cursor: pointer; }
 .toast.mit-knopf { display: flex; align-items: center; gap: 12px; border-radius: 16px; padding: 4px 6px 4px 16px; }
-.toast.an.mit-knopf { pointer-events: auto; }
+.toast.an.mit-knopf { cursor: default; }
 .toast-knopf {
   flex: none; background: none; border: none; cursor: pointer;
   color: var(--accent); font-weight: 600; min-height: 40px; padding: 0 10px;

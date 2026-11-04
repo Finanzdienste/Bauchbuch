@@ -700,26 +700,70 @@ function melden(text, knopf = null) {
   toastEl.classList.add('an');
   clearTimeout(toastUhr);
   // Lange Sätze länger stehen lassen: etwa 60 ms je Zeichen, mindestens 2,4 s.
-  toastUhr = setTimeout(() => {
-    toastEl.classList.remove('an', 'mit-knopf');
-    const k = toastEl.querySelector('button');
-    // Hatte der Knopf den Fokus, fiele er mit ihm an den Anfang der Seite –
-    // und VoiceOver begänne oben. Er geht dorthin, wo zuletzt etwas geschah.
-    const mitFokus = k && document.activeElement === k;
-    if (k) k.remove();
-    if (mitFokus) fokusAnker();
-  }, Math.max(knopf ? 8000 : 2400, String(text).length * 60));
+  toastUhr = setTimeout(meldungZu, Math.max(knopf ? 8000 : 2400, String(text).length * 60));
+}
+
+/** Die Meldung weg – nach ihrer Zeit, oder auf einen Tipp auf sie (siehe beim Klick-Verteiler). */
+function meldungZu() {
+  clearTimeout(toastUhr);
+  toastEl.classList.remove('an', 'mit-knopf');
+  const k = toastEl.querySelector('button');
+  // Hatte der Knopf den Fokus, fiele er mit ihm an den Anfang der Seite –
+  // und VoiceOver begänne oben. Er geht dorthin, wo zuletzt etwas geschah.
+  const mitFokus = k && document.activeElement === k;
+  if (k) k.remove();
+  if (mitFokus) fokusAnker();
+}
+
+/*
+ * Der Streifen, in dem man etwas sieht: unter der feststehenden Kopfleiste
+ * und über den Reitern. Gemessen, denn mit größerer Schrift bricht die
+ * Kopfleiste um, und auf der Begrüßung gibt es keine Reiter.
+ */
+function sichtStreifen() {
+  const leiste = document.querySelector('.topbar');
+  const reiter = document.getElementById('tabbar');
+  const r = reiter && !reiter.hidden ? reiter.getBoundingClientRect() : null;
+  return {
+    oben: leiste ? Math.max(0, leiste.getBoundingClientRect().bottom) : 0,
+    unten: r && r.height ? Math.min(window.innerHeight, r.top) : window.innerHeight,
+  };
+}
+
+/**
+ * Bevor der Fokus mit preventScroll auf el geht: el ganz in den Streifen
+ * holen. Sonst säße er auf etwas unter der Kopfleiste, hinter den Reitern
+ * oder außerhalb des Bildes – wer mit dem Auge bedient, sähe den neuen
+ * Schritt oder das Feld nicht und tippte blind. Steht el schon ganz da,
+ * rollt nichts. Sonst kommt der Anfang dessen, wozu el gehört (anfang, etwa
+ * die Karte oder das Formular), unter die Kopfleiste – oder, wäre el dann
+ * noch nicht ganz zu sehen, el gerade über die Reiter.
+ */
+function insBild(el, anfang = el) {
+  const { oben, unten } = sichtStreifen();
+  const r = el.getBoundingClientRect();
+  if (r.top >= oben - 1 && r.bottom <= unten + 1) return;
+  const a = (anfang || el).getBoundingClientRect();
+  let um = a.top - oben - 8;
+  if (r.bottom - um > unten - 8) um = r.bottom - (unten - 8);
+  window.scrollTo(0, Math.max(0, window.scrollY + um));
 }
 
 /**
  * Das Formular unter „Meine Mittel" ist eben aufgegangen: der Fokus ins
  * Namensfeld. Der Knopf, der es öffnete, ist beim Neuzeichnen verschwunden,
  * und ohne das hier stünde VoiceOver wieder am Anfang der Seite.
+ *
+ * Das Formular steht unter der Liste der eigenen Mittel. Bei mehreren lag
+ * das Feld sonst hinter den Reitern oder unter dem Bildrand, und man tippte
+ * blind (insBild).
  */
 function mittelFeldFokus() {
   setTimeout(() => {
     const f = document.getElementById('mmName');
-    if (f) f.focus({ preventScroll: true });
+    if (!f) return;
+    insBild(f, f.closest('.mittel-formular') || f);
+    f.focus({ preventScroll: true });
   }, 0);
 }
 
@@ -732,7 +776,8 @@ function mittelFeldFokus() {
  * Rand: Dort läge die Überschrift „Meine Mittel" unter ihr, und man sähe
  * ein Formular mitten in einem Text. Gemessen statt geschätzt, denn mit
  * größerer Schrift bricht die Kopfleiste um. Der Fokus geht danach ins
- * Namensfeld, ohne die Seite noch einmal zu verschieben.
+ * Namensfeld – und liegt es dann hinter den Reitern, weil die Liste lang
+ * ist, rückt das Formular unter die Kopfleiste (mittelFeldFokus).
  *
  * Mit { formular: false } (die Rückfrage und die Karte „Neu" bei vollem
  * „Meine Mittel") bleibt das Formular zu: Gebraucht wird dort die Liste mit
@@ -1578,6 +1623,13 @@ function wannText(am) {
   return `vom ${fmtDatum(am)}`;
 }
 
+/*
+ * Ein Satz, der mit wannText endet: Das Datum („vom So, 08.03.") trägt seinen
+ * Punkt schon, ein zweiter wäre ein Schreibfehler – wie früher bei „zuletzt …"
+ * auf der Karte „Für heute".
+ */
+const satzEnde = (t) => (t.endsWith('.') ? t : `${t}.`);
+
 /** Alle Paare mit ihrer Stufe, je Schlüssel – zum Vergleich vor und nach einer Antwort. */
 const wechselAlle = () => {
   const s = store.zustandLesen();
@@ -1608,11 +1660,20 @@ function hinweisZusatz(vorher, vorherAlle) {
   return '';
 }
 
-/** Der Fokus nach einer Antwort: auf die Frage, die jetzt dasteht – wenn eine dasteht. */
+/**
+ * Der Fokus nach einer Antwort: auf die Frage, die jetzt dasteht – wenn eine
+ * dasteht. Vorher kommt sie ins Bild (insBild): Fällt mit der Antwort eine
+ * Karte darüber weg – etwa W1u, weil die Form ein Paar der Stufe B ergibt –,
+ * rückt die Rückfrage um deren Höhe nach oben. Wer bis zum Knopf gerollt
+ * hatte, sähe den nächsten Schritt sonst nicht und hielte die Rückfrage für
+ * erledigt; das Angebot, die Form dauerhaft zu merken, ginge unter.
+ */
 function rueckfrageFokus(id = 'rueckfrageFrage') {
   setTimeout(() => {
     const el = document.getElementById(id);
-    if (el) el.focus({ preventScroll: true });
+    if (!el) return;
+    insBild(el, el.closest('.rueckfrage-karte') || el);
+    el.focus({ preventScroll: true });
   }, 0);
 }
 
@@ -1689,7 +1750,7 @@ function rueckfrageKarte(f, s) {
     const e = store.eintragVon(u.einnahme);
     const fm = mphForm(u.form);
     frage = 'Auch unter „Meine Mittel“ merken?';
-    teil = `<p class="klein">Die Form „${esc(fm.kurzname)}“ steht jetzt bei deiner Einnahme ${esc(wannText(e.am))}.
+    teil = `<p class="klein">Die Form „${esc(fm.kurzname)}“ steht jetzt bei deiner Einnahme ${esc(satzEnde(wannText(e.am)))}
       Sie gilt ab dieser Einnahme ${WECHSEL_TAGE} Tage lang, auch für weitere Einnahmen ohne Formangabe. Dauerhaft
       gilt sie, wenn ${name} unter „Meine Mittel“ steht. Dort trägt dann auch ein Tipp auf „Tag“ eine Einnahme ein.</p>
       <div class="reihe">${knopf('rueckfrage-merken', 'Ja, merken', 'btn-primary',
@@ -7604,8 +7665,9 @@ async function kopiere(text, wahl) {
  * Bildschirm gerade beim Dateiauswahldialog des Systems gewesen, und ein
  * Feld, das man erst suchen muss, verliert man dort.
  */
-async function sicherungEinlesen(text) {
-  if (!istTresor(text)) return store.einlesen(text);
+async function sicherungEinlesen(text, { umzug = false } = {}) {
+  // Beim Umzug aus Safari kommen auch die gezeigten Tage mit (store.umzugJSON).
+  if (!istTresor(text)) return store.einlesen(text, { umzug });
   if (!tresorMoeglich()) {
     throw new Error('Diese Sicherung ist verschlüsselt. Zum Öffnen brauchst du '
       + 'die App über ihre Adresse (https), nicht als einzelne Datei.');
@@ -8750,9 +8812,14 @@ const AKTION = {
    * Zwischenablage nur innerhalb des Tipps, und jedes await davor beendet
    * ihn. Zählt nicht als Sicherung – die Zwischenablage ist beim nächsten
    * Kopieren weg.
+   *
+   * In der Zwischenablage liegen auch die Tage, an denen die Rückfrage und
+   * die Karte „Neu" standen (store.umzugJSON): Es ist dasselbe Telefon. Der
+   * Text zum Markieren unter „Sicherung", falls die Zwischenablage nicht
+   * geht, ist dagegen eine Sicherung und trägt sie nicht.
    */
   'umzug-mitnehmen': () => {
-    const text = store.alsJSON();
+    const text = store.umzugJSON();
     let kopiert;
     try { kopiert = navigator.clipboard.writeText(text); } catch (e) { kopiert = Promise.reject(e); }
     beschaeftigt += 1;
@@ -8767,7 +8834,7 @@ const AKTION = {
       })
       .catch(() => {
         // Ohne Zwischenablage bleibt der Text zum Markieren – unter „Mehr".
-        ui.sicherung = text;
+        ui.sicherung = store.alsJSON();
         ui.anleitung = false;
         store.einstellen('tab', 'mehr');
         melden('Bitte den Text unter „Sicherung" markieren und kopieren.');
@@ -8805,7 +8872,7 @@ const AKTION = {
           return;
         }
         try {
-          const ergebnis = await sicherungEinlesen(roh);
+          const ergebnis = await sicherungEinlesen(roh, { umzug: true });
           if (ergebnis !== null) umzugAbschliessen(ergebnis);
         } catch (fehler) {
           vonHand(lesbarerFehler(fehler));
@@ -9054,7 +9121,8 @@ const AKTION = {
     const text = String(ui.einfuegen || '').trim();
     if (!text) { melden('Da ist noch nichts eingefügt.'); return; }
     try {
-      const ergebnis = await sicherungEinlesen(text);
+      // Von Hand eingesetzt beim Umzug: wie aus der Zwischenablage (siehe 'umzug-holen').
+      const ergebnis = await sicherungEinlesen(text, { umzug: ui.einfuegenUmzug });
       if (ergebnis !== null) {
         ui.einfuegen = null;
         if (ui.einfuegenUmzug) {
@@ -9225,6 +9293,24 @@ document.addEventListener('click', (ev) => {
       if (!ui.bogen && v29UnterDemFinger(vorher, x, y)) nachtippSperren('karte');
     });
   }
+});
+
+/*
+ * Eine Meldung verdeckt, was unter ihr steht – und was man nicht sieht, darf
+ * man nicht antippen können. Sonst ging ein Tipp auf die Meldung durch sie
+ * hindurch auf den Knopf darunter: Nach einer Antwort der Rückfrage liegt
+ * dort auf schmalen Bildschirmen oft schon die nächste Frage, mit denselben
+ * Knöpfen, und wer die lange Meldung wegtippen wollte, beantwortete sie, ohne
+ * sie gesehen zu haben. Darum fängt die Meldung jeden Tipp ab, solange sie zu
+ * sehen ist (css/styles.css, .toast.an), und ein Tipp auf sie schließt sie.
+ * Eine Meldung mit Knopf („Rückgängig") bleibt dabei stehen – ein Tipp neben
+ * den Knopf nähme sonst den einzigen Weg zurück –, und kurz nach einer
+ * Antwort (nachtippSperren) bewirkt ein Finger auch hier nichts.
+ */
+toastEl.addEventListener('click', (ev) => {
+  if (ev.target.closest('[data-act]') || toastEl.classList.contains('mit-knopf')) return;
+  if (ui.nachtipp === 'inhalt' && ev.detail > 0) return;
+  meldungZu();
 });
 
 /*

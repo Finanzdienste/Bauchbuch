@@ -43,7 +43,7 @@ import { chromium } from 'playwright';
 import path from 'node:path';
 import { ROOT, KEY, SHOT, pruefer } from './umgebung.mjs';
 import { kopieServer } from './vorrat.mjs';
-import { plusTage } from '../js/datum.js';
+import { fmtDatum, plusTage } from '../js/datum.js';
 import { ADHS_NAMEN, MITTEL_WISSEN, REIZSTOFFE, wissenZu } from '../js/mittel.js';
 import * as zusammen from '../js/zusammen.js';
 
@@ -84,13 +84,20 @@ const NOTIZ = { id: 'n0', art: 'notiz', am: HEUTE, um: '07:00', text: 'Morgen' }
 const meins = (id, mittel, extra = {}) => ({ id, mittel, dosis: '', tageszeit: null, bezug: null, ...extra });
 const nimmt = (id, mittel, am, extra = {}) => ({ id, art: 'medikament', am, um: '07:30', mittel, dosis: '10 mg', ...extra });
 
-/** Ein iPhone mit der App vom Home-Bildschirm, diesem Stand und dieser Uhr. */
+/**
+ * Ein iPhone mit der App vom Home-Bildschirm, diesem Stand und dieser Uhr.
+ * Mit { app: false } ist es Safari auf demselben Telefon, mit { ablage: true }
+ * darf die Seite die Zwischenablage lesen und schreiben (Abschnitt 16j). Zwei
+ * Kontexte haben getrennte Speicher, teilen aber die Zwischenablage – wie
+ * Safari und die App.
+ */
 async function iphone(stand, {
-  zeit = um('08:10'), viewport = SCHMAL, colorScheme = 'dark', verborgen = false, suche = '',
+  zeit = um('08:10'), viewport = SCHMAL, colorScheme = 'dark', verborgen = false, suche = '', app = true, ablage = false,
 } = {}) {
   const ctx = await browser.newContext({
     viewport, userAgent: KENNUNG, serviceWorkers: 'block', hasTouch: true, isMobile: true,
     timezoneId: 'Europe/Berlin', locale: 'de-DE', colorScheme,
+    permissions: ablage ? ['clipboard-read', 'clipboard-write'] : [],
   });
   // Fehlt ein Knopf, soll der Test schnell rot werden statt eine halbe Minute zu warten.
   ctx.setDefaultTimeout(5000);
@@ -101,13 +108,13 @@ async function iphone(stand, {
     fremd.push(ziel);
     return route.abort();
   });
-  await ctx.addInitScript(([k, s, verb]) => {
-    Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true, configurable: true });
+  await ctx.addInitScript(([k, s, verb, alsApp]) => {
+    if (alsApp) Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true, configurable: true });
     if (verb) {
       Object.defineProperty(document, 'visibilityState', { get: () => window.__sicht || 'hidden', configurable: true });
     }
     try { if (s && !localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify(s)); } catch { /* about:blank */ }
-  }, [KEY, stand ? { ...GRUND, ...stand } : null, verborgen]);
+  }, [KEY, stand ? { ...GRUND, ...stand } : null, verborgen, app]);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
   await page.clock.setFixedTime(zeit);
@@ -710,6 +717,27 @@ for (const [was, fehltipp, neuere] of [
   const m = await text(page, '#toast');
   check(!m.includes('gilt ab dieser Einnahme') && await zahl(page, KARTE) === 0,
     `„Nicht merken" auf dem Knopf von vorher: keine Aussage über eine Form, die nicht mehr gilt (${m})`);
+  await ctx.close();
+}
+{
+  // e) Eine Einnahme, älter als gestern: Das Datum („vom So, 08.03.") endet
+  //    schon auf einem Punkt. Dahinter kommt kein zweiter – weder in MERKEN
+  //    noch in der Meldung (wie „zuletzt …" auf der Karte „Für heute").
+  const { ctx, page } = await iphone(null);
+  for (const n of [-2, -3, -29]) {
+    await stand(page, { eintraege: [nimmt('m0', 'Methylphenidat', tag(n)), NOTIZ], standardMittel: [] });
+    check(await frage(page) === fForm('Methylphenidat'), `Einnahme vor ${-n} Tagen: die Formfrage steht`);
+    await tipp(page, form('oros'));
+    const datum = fmtDatum(tag(n));
+    const t = await kartenText(page);
+    const m = await meldung(page);
+    check(await frage(page) === F_MERKEN
+      && t.includes(`Die Form „Retardtablette mit Hülle“ steht jetzt bei deiner Einnahme vom ${datum} Sie gilt ab dieser Einnahme`)
+      && !t.includes('..'),
+    `Einnahme vor ${-n} Tagen: in MERKEN ein Punkt nach „${datum}" (${t.slice(0, 110)}…)`);
+    check(m.startsWith(`Form von Methylphenidat: Retardtablette mit Hülle. Bei deiner Einnahme vom ${datum} vermerkt.`)
+      && !m.includes('..'), `Einnahme vor ${-n} Tagen: die Meldung ebenso (${m})`);
+  }
   await ctx.close();
 }
 
@@ -1597,6 +1625,316 @@ for (const [vp, wie, schritte, ersteMeldung] of [
   await ctx.close();
 }
 
+/* ---------- 16g. Ein Tipp auf die Meldung geht nicht durch sie hindurch ---------- */
+
+/*
+ * Die Meldung steht unten über den Reitern und verdeckt, was darunter liegt.
+ * Nach „Nein" springt die Karte bei zwei Namen zur Formfrage des zweiten,
+ * mit denselben Knöpfen – und bei 320 Pixeln liegt die lange Meldung genau
+ * über ihnen. Wer sie wegtippen will, beantwortete sonst die verdeckte Frage,
+ * ohne sie gesehen zu haben. Ein Tipp auf die Meldung schließt sie nur.
+ */
+/** Die Mitte der größten Fläche, auf der die Meldung einen Knopf in #view verdeckt – oder null. */
+const unterDerMeldung = (page) => page.evaluate(() => {
+  const t = document.getElementById('toast');
+  if (!t.classList.contains('an')) return null;
+  const m = t.getBoundingClientRect();
+  let best = null;
+  document.querySelectorAll('#view button').forEach((b) => {
+    const r = b.getBoundingClientRect();
+    const l = Math.max(r.left, m.left);
+    const re = Math.min(r.right, m.right);
+    const o = Math.max(r.top, m.top);
+    const u = Math.min(r.bottom, m.bottom);
+    if (re - l < 8 || u - o < 8) return;
+    const f = (re - l) * (u - o);
+    if (!best || f > best.f) {
+      best = { f, x: (l + re) / 2, y: (o + u) / 2, act: b.dataset.act || '', was: b.textContent.trim() };
+    }
+  });
+  return best;
+});
+const meldungAn = (page) => page.evaluate(() => document.getElementById('toast').classList.contains('an'));
+{
+  // Zwei Namen, 320×568: Kapsel, „Nein" – die Meldung liegt über der Formfrage zu Methylphenidat.
+  const { ctx, page } = await iphone(ZWEI, { viewport: KLEIN });
+  await tipp(page, form('pellet'));
+  await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-nein"]`);
+  await page.waitForTimeout(700);
+  const p = await unterDerMeldung(page);
+  check(!!p && p.act === 'rueckfrage-form' && await frage(page) === fForm('Methylphenidat'),
+    `320×568, zwei Namen, „Nein": die Meldung verdeckt einen Formknopf zu Methylphenidat (${p ? p.was : 'keinen'})`);
+  const vorher = await speicher(page);
+  if (p) await page.touchscreen.tap(p.x, p.y);
+  await page.waitForTimeout(300);
+  const s = await speicher(page);
+  check(!s.standardMittel.find((m) => m.id === 's2').form && gleich(s.mphRueckfrage, vorher.mphRueckfrage)
+    && await frage(page) === fForm('Methylphenidat'),
+  `ein Tipp auf die Meldung beantwortet die Frage darunter nicht (Form: ${s.standardMittel.find((m) => m.id === 's2').form || 'keine'})`);
+  check(!(await meldungAn(page)), 'er schließt die Meldung');
+  // Nur, wenn die Frage noch steht – sonst wartete der Test vergeblich auf den Knopf.
+  if (await zahl(page, form('sodas'))) await tipp(page, form('sodas'));
+  check((await speicher(page)).standardMittel.find((m) => m.id === 's2').form === 'sodas',
+    'danach gilt ein Tipp auf den Knopf, der jetzt zu sehen ist');
+  await meldung(page);
+  await ctx.close();
+}
+{
+  // Ein Name nur als Einnahme, 320×568: „Andere Retardtablette", „Nicht merken" –
+  // die Meldung liegt über „Später" und „Nicht mehr fragen".
+  const { ctx, page } = await iphone({ eintraege: [nimmt('m1', 'Methylphenidat', HEUTE), NOTIZ], standardMittel: [] },
+    { viewport: KLEIN });
+  await tipp(page, form('retardtab'));
+  await tipp(page, `${KARTE} [data-act="rueckfrage-nicht-merken"]`);
+  await page.waitForTimeout(700);
+  const p = await unterDerMeldung(page);
+  check(!!p && await frage(page) === F_SAEURE, `320×568, „Nicht merken": die Meldung verdeckt „${p ? p.was : '–'}"`);
+  const vorher = await speicher(page);
+  if (p) await page.touchscreen.tap(p.x, p.y);
+  await page.waitForTimeout(300);
+  const s = await speicher(page);
+  check(gleich(s.mphRueckfrage, vorher.mphRueckfrage) && gleich(s.standardMittel, vorher.standardMittel)
+    && (await gezeigt(page)).zu !== HEUTE && await frage(page) === F_SAEURE && !(await meldungAn(page)),
+  `ein Tipp auf die Meldung: nichts gespeichert, die Säurefrage steht, die Meldung ist zu (${JSON.stringify(s.mphRueckfrage)})`);
+  await ctx.close();
+}
+{
+  // Mit „Rückgängig" bleibt die Meldung bei einem Tipp neben den Knopf stehen:
+  // Sie ist der einzige Weg zurück.
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet')] }, { viewport: IPHONE });
+  await tipp(page, NIE);
+  const r = await page.locator('#toast').boundingBox();
+  await page.touchscreen.tap(r.x + 24, r.y + r.height / 2);
+  await page.waitForTimeout(300);
+  check(await meldungAn(page) && await zahl(page, '#toast [data-act="rueckfrage-nie-zurueck"]') === 1
+    && (await speicher(page)).mphRueckfrage.medikinet.nie === true,
+  'ein Tipp auf den Text neben „Rückgängig" lässt die Meldung mit dem Knopf stehen');
+  await ctx.close();
+}
+
+/* ---------- 16h. Nach einer Antwort steht die nächste Frage im Bild ---------- */
+
+/*
+ * Verschwindet mit der Formantwort ein Hinweis über der Karte (W1u wird zu
+ * einem Paar der Stufe B), rückt die Karte um dessen Höhe nach oben. Wer
+ * bis zum Knopf gerollt hatte, sähe den nächsten Schritt („Auch unter
+ * „Meine Mittel“ merken?") dann nicht mehr – und der Fokus säße auf einer
+ * Überschrift über dem Bildrand. Die Frage muss danach zwischen Kopfleiste
+ * und Reitern stehen, ebenso „Ja, merken".
+ */
+const lage = (page, sel) => page.evaluate((s) => {
+  const el = document.querySelector(s);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  const oben = document.querySelector('.topbar').getBoundingClientRect().bottom;
+  const unten = document.getElementById('tabbar').getBoundingClientRect().top;
+  return {
+    von: Math.round(r.top), bis: Math.round(r.bottom), frei: `${Math.round(oben)}–${Math.round(unten)}`,
+    ganz: r.top >= oben - 0.5 && r.bottom <= unten + 0.5, y: Math.round(window.scrollY),
+  };
+}, sel);
+const STAND16H = {
+  eintraege: [NOTIZ, nimmt('e1', 'Medikinet', HEUTE), nimmt('e2', 'Pantoprazol', HEUTE, { um: '07:20', dosis: '20 mg' })],
+  standardMittel: [],
+};
+{
+  const { ctx, page } = await iphone(null);
+  const daneben = [];
+  let faelle = 0;
+  for (const vp of [KLEIN, { width: 375, height: 667 }, IPHONE]) {
+    await page.setViewportSize(vp);
+    for (const f of ['retardtab', 'oros']) {
+      for (const weise of ['knapp', 'mitte']) {
+        await stand(page, STAND16H);
+        const wie = `${vp.width}×${vp.height} ${f} ${weise}`;
+        if (await zahl(page, '.wechsel-karte') !== 1 || await frage(page) !== fForm('Medikinet')) {
+          daneben.push(`${wie}: W1u und Formfrage fehlen`);
+          continue;
+        }
+        // „knapp": der Knopf gerade über den Reitern; „mitte": in der Bildmitte.
+        await page.evaluate(([s, w]) => {
+          const r = document.querySelector(s).getBoundingClientRect();
+          const oben = document.querySelector('.topbar').getBoundingClientRect().bottom;
+          const unten = document.getElementById('tabbar').getBoundingClientRect().top;
+          if (w === 'knapp') { if (r.bottom > unten - 12) window.scrollBy(0, r.bottom - unten + 12); } else {
+            window.scrollBy(0, r.top - (oben + (unten - oben) / 2));
+          }
+        }, [form(f), weise]);
+        await page.waitForTimeout(80);
+        const b = await page.locator(form(f)).boundingBox();
+        await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+        await page.waitForTimeout(RUHE);
+        faelle += 1;
+        const q = await lage(page, '#rueckfrageFrage');
+        const ja = await lage(page, `${KARTE} [data-act="rueckfrage-merken"]`);
+        const fokus = await fokusId(page);
+        if (await frage(page) !== F_MERKEN || !q || !q.ganz || !ja || !ja.ganz || fokus !== 'rueckfrageFrage'
+          || await zahl(page, '.wechsel-karte') !== 0) {
+          daneben.push(`${wie}: Frage ${q ? `${q.von}–${q.bis}` : 'fehlt'}, „Ja, merken" ${ja ? `${ja.von}–${ja.bis}` : 'fehlt'}, `
+            + `frei ${q ? q.frei : '?'}, Fokus ${fokus}`);
+        }
+        await meldung(page);
+      }
+    }
+  }
+  check(faelle === 12 && daneben.length === 0,
+    `W1u fällt mit der Form weg: MERKEN steht danach im Bild, der Fokus auf seiner Frage (${faelle} Fälle${daneben.length ? `; daneben: ${daneben.join(' | ')}` : ''})`);
+  // Steht die nächste Frage ohnehin im Bild, rollt nichts.
+  await page.setViewportSize(IPHONE);
+  await stand(page, { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet')] });
+  await page.evaluate(() => window.scrollTo(0, 40));
+  await page.waitForTimeout(80);
+  const y0 = await page.evaluate(() => Math.round(window.scrollY));
+  await tipp(page, form('pellet'));
+  const q = await lage(page, '#rueckfrageFrage');
+  check(await frage(page) === F_SAEURE && q && q.ganz && q.y === y0,
+    `die Säurefrage steht schon im Bild: nichts gerollt (${y0} → ${q ? q.y : '?'})`);
+  await meldung(page);
+  await ctx.close();
+}
+
+/* ---------- 16i. Zu „Meine Mittel": das Namensfeld über den Reitern ---------- */
+
+/*
+ * „Zu „Meine Mittel““ auf der Karte „Neu" rollt zur Überschrift der Karte und
+ * setzt den Fokus ins Namensfeld des Formulars – das unter der Liste der
+ * eigenen Mittel steht. Bei mehreren Mitteln lag es hinter der Reiterleiste
+ * oder unter dem Bildrand, und man tippte blind. Ebenso nach „Mittel
+ * hinzufügen" unter „Mehr". Das Feld muss danach ganz zu sehen sein.
+ */
+const MITTEL = (n) => Array.from({ length: n }, (_, i) => meins(`x${i}`, `Mittel ${String.fromCharCode(65 + i)}`));
+{
+  const { ctx, page } = await iphone(null);
+  const daneben = [];
+  let faelle = 0;
+  for (const vp of [KLEIN, IPHONE]) {
+    await page.setViewportSize(vp);
+    for (const n of [0, 5, 8, 11]) {
+      await stand(page, { v29Gesagt: false, eintraege: [{ ...NOTIZ, am: tag(-1) }], standardMittel: MITTEL(n) });
+      const wie = `${vp.width}×${vp.height}, ${n} Mittel`;
+      if (await zahl(page, '.neu-karte') !== 1) { daneben.push(`${wie}: keine Karte „Neu"`); continue; }
+      await tipp(page, '.neu-karte [data-act="v29-meine-mittel"]');
+      await page.waitForTimeout(200);
+      faelle += 1;
+      let l = await lage(page, '#mmName');
+      let fokus = await fokusId(page);
+      if (!l || !l.ganz || fokus !== 'mmName') daneben.push(`${wie}, Karte „Neu": Feld ${l ? `${l.von}–${l.bis}` : 'fehlt'}, frei ${l ? l.frei : '?'}, Fokus ${fokus}`);
+      // Der Weg unter „Mehr": „Abbrechen", dann „Mittel hinzufügen".
+      await tipp(page, '[data-act="mm-abbrechen"]');
+      await tipp(page, '[data-act="meinmittel-neu"]');
+      await page.waitForTimeout(200);
+      faelle += 1;
+      l = await lage(page, '#mmName');
+      fokus = await fokusId(page);
+      if (!l || !l.ganz || fokus !== 'mmName') daneben.push(`${wie}, „Mittel hinzufügen": Feld ${l ? `${l.von}–${l.bis}` : 'fehlt'}, frei ${l ? l.frei : '?'}, Fokus ${fokus}`);
+    }
+  }
+  check(faelle === 16 && daneben.length === 0,
+    `das Namensfeld unter „Meine Mittel" steht mit dem Fokus ganz im Bild (${faelle} Fälle${daneben.length ? `; daneben: ${daneben.join(' | ')}` : ''})`);
+  await ctx.close();
+}
+
+/* ---------- 16j. Umzug von Safari in die App: die gezeigten Tage reisen mit ---------- */
+
+/*
+ * Auf dem iPhone haben Safari und die App vom Home-Bildschirm getrennte
+ * Speicher, sind aber dasselbe Gerät. An welchen Tagen die Rückfrage und die
+ * Karte „Neu" standen, steht im Gerätespeicher und nie in einer Sicherung.
+ * Kam er beim Umzug nicht mit, stand die Rückfrage zu einem Namen in der App
+ * noch einmal an bis zu zwei Tagen, wieder mit „Später" – obwohl die Meldung
+ * nach „Später" „noch ein letztes Mal" versprochen hatte –, und die Karte
+ * „Neu" ein zweites Mal. Der Umzug trägt die Tage, die Sicherung weiter nicht.
+ */
+const SAFARI16J = {
+  startbildschirmWeg: false, v29Gesagt: false, eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet')],
+};
+/** In der App (leer, Begrüßung) „Einträge aus Safari holen" – und warten, bis sie da sind. */
+const holen = async (page) => {
+  await tipp(page, '#view [data-act="umzug-holen"]');
+  for (let i = 0; i < 20 && !((await speicher(page)) || { eintraege: [] }).eintraege.length; i += 1) {
+    await page.waitForTimeout(100);
+  }
+  await page.waitForTimeout(200);
+};
+{
+  // a) „Später" am ersten Tag, eine Woche später das letzte Mal – danach der Umzug.
+  const S = await iphone(SAFARI16J, { viewport: IPHONE, app: false, ablage: true });
+  check(await frage(S.page) === fForm('Medikinet') && await zahl(S.page, SPAETER) === 1, 'Safari: die Rückfrage mit „Später"');
+  await tipp(S.page, SPAETER);
+  check(await meldung(S.page) === 'Gut. Frühestens in einer Woche fragt Body Check noch ein letztes Mal.'
+    && await zahl(S.page, '.neu-karte') === 1, 'Safari: „Später" verspricht das letzte Mal, danach steht die Karte „Neu"');
+  await tagWechsel(S.page, tag(7));
+  check(await zahl(S.page, KARTE) === 1 && await zahl(S.page, SPAETER) === 0, 'Safari, eine Woche später: das letzte Mal, ohne „Später"');
+  await tagWechsel(S.page, tag(15));
+  check(await zahl(S.page, KARTE) === 0 && await zahl(S.page, '.neu-karte') === 0, 'Safari, Tag 15: nichts mehr');
+  await tipp(S.page, '#view [data-act="umzug-mitnehmen"]');
+  await S.page.waitForTimeout(400);
+  const sicherung = JSON.parse(await S.page.evaluate(async () => (await import('/js/store.js')).alsJSON()));
+  check(!JSON.stringify(sicherung).includes(tag(7)) && !Object.keys(sicherung).some((k) => /gezeigt/i.test(k)),
+    'die Sicherung trägt weiter nicht, wann eine Karte stand');
+  const A = await iphone(null, { viewport: IPHONE, ablage: true, zeit: um('08:30', tag(15)) });
+  await holen(A.page);
+  check(((await speicher(A.page)) || { eintraege: [] }).eintraege.length === 1, 'App: die Einträge sind geholt');
+  check(await zahl(A.page, KARTE) === 0 && await zahl(A.page, '.neu-karte') === 0,
+    `App, gleich danach: keine Rückfrage, keine Karte „Neu" (${await kopf(A.page) || 'keine Rückfrage'})`);
+  const tageA = [];
+  for (const n of [16, 22, 23, 40]) {
+    await tagWechsel(A.page, tag(n));
+    if (await zahl(A.page, KARTE) || await zahl(A.page, '.neu-karte')) tageA.push(n);
+  }
+  check(tageA.length === 0, `App, Tag 16, 22, 23, 40: nie mehr eine Rückfrage oder die Karte „Neu" (stand an: ${tageA.join(', ') || 'keinem'})`);
+  check(gleich((await gezeigt(A.page)).tage.medikinet, [HEUTE, tag(7)]) && (await gezeigt(A.page)).am === HEUTE,
+    `der Gerätespeicher der App trägt die Tage aus Safari (${JSON.stringify(await gezeigt(A.page))})`);
+  await S.ctx.close();
+  await A.ctx.close();
+}
+{
+  // b) „Später" und der Umzug am selben Tag – und ein Name, der nicht mehr im Tagebuch steht.
+  const S = await iphone(SAFARI16J, { viewport: IPHONE, app: false, ablage: true });
+  await S.page.evaluate((g) => {
+    localStorage.setItem(g, JSON.stringify({ am: null, zu: null, tage: { altmittel: ['2026-02-01'] } }));
+  }, GEZEIGT);
+  await S.page.reload({ waitUntil: 'networkidle' });
+  await tipp(S.page, SPAETER);
+  await tipp(S.page, '#view [data-act="umzug-mitnehmen"]');
+  await S.page.waitForTimeout(400);
+  const ablage = await S.page.evaluate(() => navigator.clipboard.readText());
+  check(ablage.includes('"eintraege"') && !ablage.includes('altmittel'),
+    'die Zwischenablage trägt das Tagebuch, aber keinen Namen, der dort nicht mehr steht');
+  const A = await iphone(null, { viewport: IPHONE, ablage: true, zeit: um('08:30') });
+  await holen(A.page);
+  check(await zahl(A.page, KARTE) === 0, `App, derselbe Tag: „Später" gilt auch hier – keine Rückfrage (${await kopf(A.page) || 'keine'})`);
+  await tagWechsel(A.page, tag(7));
+  check(await zahl(A.page, KARTE) === 1 && await zahl(A.page, SPAETER) === 0,
+    'App, eine Woche später: das letzte Mal, ohne „Später"');
+  await tagWechsel(A.page, tag(14));
+  check(await zahl(A.page, KARTE) === 0, 'App, zwei Wochen später: nichts mehr');
+  check(!('altmittel' in (await gezeigt(A.page)).tage), 'der Name, der nicht mehr im Tagebuch steht, kommt nicht mit');
+  await S.ctx.close();
+  await A.ctx.close();
+}
+{
+  // c) Umzug drei Tage nach „Später" – vor dem zweiten Tag. Die Tage kommen
+  //    an, bevor „Tag" mit dem neuen Tagebuch zeichnet: Sonst stempelte die
+  //    App den Umzugstag als zweiten Tag, und die Frage stünde gleich da.
+  const S = await iphone(SAFARI16J, { viewport: IPHONE, app: false, ablage: true });
+  await tipp(S.page, SPAETER);
+  await tagWechsel(S.page, tag(3));
+  check(await zahl(S.page, KARTE) === 0, 'Safari, Tag 3: keine Rückfrage');
+  await tipp(S.page, '#view [data-act="umzug-mitnehmen"]');
+  await S.page.waitForTimeout(400);
+  const A = await iphone(null, { viewport: IPHONE, ablage: true, zeit: um('08:30', tag(3)) });
+  await holen(A.page);
+  check(await zahl(A.page, KARTE) === 0 && gleich((await gezeigt(A.page)).tage.medikinet, [HEUTE]),
+    `App, Tag 3: keine Rückfrage, nur der erste Tag gezählt (${JSON.stringify((await gezeigt(A.page)).tage)})`);
+  await tagWechsel(A.page, tag(7));
+  check(await zahl(A.page, KARTE) === 1 && await zahl(A.page, SPAETER) === 0, 'App, Tag 7: das letzte Mal, ohne „Später"');
+  await tagWechsel(A.page, tag(8));
+  check(await zahl(A.page, KARTE) === 0, 'App, Tag 8: nichts mehr');
+  await S.ctx.close();
+  await A.ctx.close();
+}
+
 /* ---------- 16c. Was man sieht, steht auch in der Ansage ---------- */
 
 /*
@@ -1652,6 +1990,9 @@ for (const [vp, wie, schritte, ersteMeldung] of [
   // ob er als Mittel gegen Magensäure zählt (siehe 3).
   const unbekannt = alle.filter((t) => /(Diesen|Den) Namen kennt Body Check nicht/.test(t));
   check(unbekannt.length === 0, `kein pauschales „kennt Body Check nicht"${unbekannt.length ? `: ${unbekannt[0]}` : ''}`);
+  // Ein Datum endet auf einem Punkt; ein Satz dahinter bekommt keinen zweiten (siehe 4e).
+  const doppelt = alle.filter((t) => t.includes('..'));
+  check(doppelt.length === 0, `nirgends zwei Punkte hintereinander${doppelt.length ? `: ${doppelt[0]}` : ''}`);
 }
 
 /* ---------- 18. Breite, Höhe, Bilder ---------- */

@@ -436,11 +436,16 @@ function rueckfrageVereint(hier, dazu) {
  * Mittel und wird neu gefragt.
  */
 function rueckfrageBehalten(s) {
-  const da = new Set([
+  const da = namenImTagebuch(s);
+  return Object.fromEntries(Object.entries(s.mphRueckfrage || {}).filter(([k]) => da.has(k)));
+}
+
+/** Die Schlüssel der Mittel, die im Tagebuch noch vorkommen – unter „Meine Mittel" oder in einem Eintrag. */
+function namenImTagebuch(s) {
+  return new Set([
     ...(s.standardMittel || []).map((m) => rfSchluessel(m && m.mittel)),
     ...(s.eintraege || []).filter((e) => e && e.art === 'medikament').map((e) => rfSchluessel(e.mittel)),
   ]);
-  return Object.fromEntries(Object.entries(s.mphRueckfrage || {}).filter(([k]) => da.has(k)));
 }
 
 /**
@@ -1597,6 +1602,31 @@ export function alsJSON() {
   return JSON.stringify({ ...zustand, mphRueckfrage: rueckfrageBehalten(zustand) }, null, 2);
 }
 
+/*
+ * Was „Einträge mitnehmen" in Safari in die Zwischenablage legt: das
+ * Tagebuch wie alsJSON und dazu – nur hier – den Gerätespeicher „was stand
+ * wann auf Tag" (umzugGezeigt). Safari und die App vom Home-Bildschirm haben
+ * auf dem iPhone getrennte Speicher, sind aber dasselbe Gerät. Ohne die Tage
+ * stünde die Rückfrage zu einem Namen in der App noch einmal an bis zu zwei
+ * Tagen, wieder mit „Später" – obwohl die Meldung nach „Später" „noch ein
+ * letztes Mal" versprochen hat –, und die Karte „Neu" ein zweites Mal.
+ *
+ * In einer Sicherung stehen die Tage nie (alsJSON): Sie kann auf ein anderes
+ * Gerät gehen. Mit kommen nur Namen, die im Tagebuch noch vorkommen, wie bei
+ * den Antworten. Gelesen wird das Feld nur beim Holen in der App (einlesen
+ * mit { umzug: true }); sicherungLesen kennt es nicht, ins Tagebuch kommt es
+ * also nie.
+ */
+export function umzugJSON() {
+  const da = namenImTagebuch(zustand);
+  const g = gezeigtLesen();
+  return JSON.stringify({
+    ...zustand,
+    mphRueckfrage: rueckfrageBehalten(zustand),
+    umzugGezeigt: { ...g, tage: Object.fromEntries(Object.entries(g.tage).filter(([k]) => da.has(k))) },
+  }, null, 2);
+}
+
 /**
  * Ist eine Sicherung fällig?
  *
@@ -2005,8 +2035,13 @@ function zusammenfuehren(hier, dazu) {
  *
  * Zurück kommt { anzahl, vorher, zusammengefuehrt }: wie viele Einträge
  * jetzt da sind, wie viele es vorher waren, und ob zusammengeführt wurde.
+ *
+ * Mit { umzug: true } – das Holen aus Safari in der App – kommen auch die
+ * gezeigten Tage aus dem Text hinzu (siehe umzugJSON), und zwar vor melde():
+ * Zeichnete „Tag" schon mit dem neuen Tagebuch, aber dem leeren
+ * Gerätespeicher, stempelte es die Rückfrage für heute als ersten Tag.
  */
-export function einlesen(text) {
+export function einlesen(text, { umzug = false } = {}) {
   const dazu = sicherungLesen(text);
   geraetBehalten(dazu);
   const vorher = zustand.eintraege.length;
@@ -2014,6 +2049,7 @@ export function einlesen(text) {
   vorherAblegen();
   zustand = leer ? dazu : zusammenfuehren(zustand, dazu);
   merke();
+  if (umzug) gezeigtAusUmzug(text);
   melde();
   return { anzahl: zustand.eintraege.length, vorher, zusammengefuehrt: !leer };
 }
@@ -2160,6 +2196,27 @@ export function gezeigtMerken(iso, schluessel = [], neu = false) {
  */
 export function rueckfrageZu(iso) {
   gezeigtAendern((g) => ({ ...g, zu: istISO(iso) ? iso : null }));
+}
+
+/*
+ * Beim Holen aus Safari: die gezeigten Tage aus dem Umzug (umzugJSON) zu
+ * denen dieses Speichers. Je Name zählen beide Seiten zusammen – behalten
+ * werden die zwei frühesten (gezeigtSauber), mehr als zwei Tage gibt es
+ * also auch hier nicht. Die Karte „Neu" gilt ab dem früheren Tag als
+ * gezeigt, und ein „Später" von heute gilt auch hier. Ohne das Feld – eine
+ * Sicherung, ein verschlüsselter Text – bleibt alles, wie es ist.
+ */
+function gezeigtAusUmzug(text) {
+  let roh = null;
+  try { roh = JSON.parse(text).umzugGezeigt; } catch { return; }
+  if (!istObjekt(roh)) return;
+  const dazu = gezeigtSauber(roh);
+  const frueher = (a, b) => (a && b ? [a, b].sort()[0] : a || b || null);
+  const spaeter = (a, b) => (a && b ? [a, b].sort()[1] : a || b || null);
+  gezeigtAendern((g) => {
+    Object.entries(dazu.tage).forEach(([k, v]) => { g.tage[k] = [...(g.tage[k] || []), ...v]; });
+    return { am: frueher(g.am, dazu.am), zu: spaeter(g.zu, dazu.zu), tage: g.tage };
+  });
 }
 
 /*
