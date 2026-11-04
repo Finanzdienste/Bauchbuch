@@ -2451,7 +2451,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Fünfundsiebzig Dateien, über 3900 Prüfungen, alle in einem echten Chromium. Kein
+Fünfundsiebzig Dateien, über 4000 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
