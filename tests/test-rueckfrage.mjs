@@ -22,8 +22,13 @@
  *   2b. „Ja, merken" legt nur die Form ab, die jetzt an der Einnahme steht
  *       und noch gilt – nicht die einer älteren Einnahme, wenn eine neuere
  *       eine andere Form trägt –, und nie auf den Platz, den der
- *       Säureblocker gleich danach braucht.
+ *       Säureblocker gleich danach braucht, auch nicht bei einem zweiten
+ *       Namen, dessen Säurefrage heute noch kommt.
  *   2c. Jede sichtbare Beschriftung steht auch im zugänglichen Namen.
+ *   2d. Zwei Namen nacheinander: Die Formfrage nennt das Mittel, jede
+ *       Meldung auch, und springt die Karte, sagt die Meldung „Jetzt zu …".
+ *       „Nein" gilt für jeden Namen, der schon dasteht, und ein Name, der
+ *       nur kein Mittel gegen Magensäure ist, heißt nie „unbekannt".
  *   3. Nie mehr als die bestehenden Karten zulassen: W1/W1u und das Angebot
  *      werden nie verdrängt.
  *   4. Die Karte „Neu" einmal, nie bei einem neuen Tagebuch.
@@ -39,7 +44,7 @@ import path from 'node:path';
 import { ROOT, KEY, SHOT, pruefer } from './umgebung.mjs';
 import { kopieServer } from './vorrat.mjs';
 import { plusTage } from '../js/datum.js';
-import { ADHS_NAMEN, MITTEL_WISSEN, REIZSTOFFE } from '../js/mittel.js';
+import { ADHS_NAMEN, MITTEL_WISSEN, REIZSTOFFE, wissenZu } from '../js/mittel.js';
 import * as zusammen from '../js/zusammen.js';
 
 const { check, ende } = pruefer();
@@ -167,10 +172,18 @@ const kopf = (page) => text(page, '.rueckfrage-kopf');
 const form = (id) => `${KARTE} [data-act="rueckfrage-form"][data-id="${id}"]`;
 const SPAETER = `${KARTE} [data-act="rueckfrage-spaeter"]`;
 const NIE = `${KARTE} [data-act="rueckfrage-nie"]`;
-const F_FORM = 'Welche Form steht auf der Packung?';
+/*
+ * Die Formfrage nennt das Mittel in der Überschrift, auf die der Fokus geht:
+ * Bei zwei Namen sähe die Frage zum zweiten sonst aus wie die eben
+ * beantwortete (Abschnitt 16f).
+ */
+const fForm = (name) => `${name}: Welche Form steht auf der Packung?`;
 const F_SAEURE = 'Nimmst du außerdem ein Mittel gegen Magensäure?';
 const F_WELCHES = 'Welches Mittel gegen Magensäure?';
-const F_PRUEFEN = 'Diesen Namen kennt Body Check nicht';
+// Nur, was stimmt: Viele Namen kennt Body Check – nur nicht als Mittel gegen Magensäure.
+const F_PRUEFEN = 'Nicht als Mittel gegen Magensäure erkannt';
+const NEIN_MELDUNG = 'Gemerkt. Nach einem Mittel gegen Magensäure fragt Body Check erst bei einem neuen '
+  + 'Methylphenidat-Namen wieder. Kommt eins dazu, trag es beim Eintragen oder unter „Meine Mittel“ ein.';
 const F_MERKEN = 'Auch unter „Meine Mittel“ merken?';
 const HINWEIS_OBEN = 'Hinweis zu deinen Mitteln oben auf „Tag“.';
 
@@ -209,8 +222,8 @@ const davor = (page, a, b) => page.evaluate(([x, y]) => {
     standardMittel: [meins('s1', 'Medikinet', { dosis: '10 mg', tageszeit: 'morgens' })],
   });
   check(await zahl(page, KARTE) === 1, 'Medikinet ohne Form, kein Säureblocker: genau eine Rückfrage auf „Tag"');
-  check(await kopf(page) === 'Rückfrage zu Medikinet' && await frage(page) === F_FORM,
-    `sie nennt das Mittel und fragt nach der Form (${await kopf(page)} | ${await frage(page)})`);
+  check(await kopf(page) === 'Rückfrage zu Medikinet' && await frage(page) === fForm('Medikinet'),
+    `sie nennt das Mittel – auch in der Frage – und fragt nach seiner Form (${await kopf(page)} | ${await frage(page)})`);
   check(await page.locator(KARTE).getAttribute('role') === 'region'
     && await page.locator(KARTE).getAttribute('aria-label') === 'Rückfrage zu Medikinet',
   'die Karte ist eine benannte Region');
@@ -237,8 +250,8 @@ const davor = (page, a, b) => page.evaluate(([x, y]) => {
   let s = await speicher(page);
   check(s.standardMittel[0].form === 'pellet' && gleich(s.mphRueckfrage || {}, {}),
     `die Form landet beim eigenen Mittel, nicht bei der Rückfrage (${s.standardMittel[0].form})`);
-  check((await meldung(page)).startsWith('Form: Kapsel mit zweierlei Kügelchen. Steht jetzt bei deinem Mittel unter „Meine Mittel“.'),
-    `die Meldung sagt, wo die Antwort steht (${await meldung(page)})`);
+  check((await meldung(page)) === 'Form von Medikinet: Kapsel mit zweierlei Kügelchen. Steht jetzt bei deinem Mittel unter „Meine Mittel“.',
+    `die Meldung nennt das Mittel und sagt, wo die Antwort steht – ohne „Jetzt zu", es bleibt beim selben (${await meldung(page)})`);
   check(await zahl(page, KARTE) === 1 && await frage(page) === F_SAEURE, 'dieselbe Karte fragt jetzt nach dem Säureblocker');
   check(await fokusId(page) === 'rueckfrageFrage', 'der Fokus steht auf der neuen Frage');
   const saeureText = await kartenText(page);
@@ -253,9 +266,8 @@ const davor = (page, a, b) => page.evaluate(([x, y]) => {
   s = await speicher(page);
   check(s.mphRueckfrage.medikinet && s.mphRueckfrage.medikinet.saeure === 'nein' && await zahl(page, KARTE) === 0,
     '„Nein" wird gemerkt, die Karte ist weg');
-  check(await meldung(page) === 'Gemerkt. Dazu fragt Body Check erst bei einem neuen Methylphenidat-Namen wieder. '
-    + 'Kommt ein Mittel gegen Magensäure dazu, trag es beim Eintragen oder unter „Meine Mittel“ ein.',
-  `mit Meldung – sie sagt, dass ein neuer Name noch einmal gefragt wird (${await meldung(page)})`);
+  check(await meldung(page) === NEIN_MELDUNG,
+    `mit Meldung – sie sagt, wonach erst bei einem neuen Namen wieder gefragt wird (${await meldung(page)})`);
   await page.reload({ waitUntil: 'networkidle' });
   check(await zahl(page, KARTE) === 0, 'auch nach dem Neuladen');
   await tagWechsel(page, tag(1));
@@ -271,6 +283,58 @@ const davor = (page, a, b) => page.evaluate(([x, y]) => {
   await page.reload({ waitUntil: 'networkidle' });
   check(await kopf(page) === 'Rückfrage zu Ritalin LA' && await frage(page) === F_SAEURE,
     `ein später dazukommender Name wird noch einmal gefragt, wie die Meldung sagt (${await kopf(page)} | ${await frage(page)})`);
+  await ctx.close();
+}
+
+/*
+ * 1b. „Nein" gilt für jeden Methylphenidat-Namen, der bis dahin dasteht –
+ * nicht nur für die, bei denen gerade nach dem Säureblocker gefragt würde.
+ * Die Meldung verspricht: erst bei einem neuen Namen wieder. Ein Name, der
+ * beim „Nein" schon eingetragen war (mit der Hülle, also ohne offene
+ * Säurefrage) und später eine andere Form bekommt, ist kein neuer – ebenso
+ * einer, dessen letzte Einnahme länger als 30 Tage zurückliegt.
+ */
+for (const [was, gleichDanach] of [['am selben Tag', true], ['drei Tage später', false]]) {
+  const { ctx, page } = await iphone({
+    eintraege: [NOTIZ, nimmt('m1', 'Medikinet', HEUTE)],
+    standardMittel: [meins('s1', 'Methylphenidat', { form: 'oros' })],
+  });
+  check(await kopf(page) === 'Rückfrage zu Medikinet' && await frage(page) === fForm('Medikinet'),
+    `${was}: Methylphenidat mit Hülle unter „Meine Mittel", Medikinet nur als Einnahme – die Formfrage zu Medikinet`);
+  await tipp(page, form('sofort'));
+  if (await frage(page) === F_MERKEN) await tipp(page, `${KARTE} [data-act="rueckfrage-nicht-merken"]`);
+  check(await frage(page) === F_SAEURE, `${was}: dann die Säurefrage`);
+  await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-nein"]`);
+  const r = (await speicher(page)).mphRueckfrage || {};
+  check((r.medikinet || {}).saeure === 'nein' && (r.methylphenidat || {}).saeure === 'nein',
+    `${was}: „Nein" gilt auch für Methylphenidat, das schon dastand (${JSON.stringify(r)})`);
+  await meldung(page);
+  if (!gleichDanach) await tagWechsel(page, tag(3));
+  // Neue Packung: unter „Meine Mittel" eine andere Form.
+  await tab(page, 'mehr');
+  await tipp(page, '[data-act="mph-form"][data-mittel="s1"][data-id="retardtab"]');
+  await tab(page, 'heute');
+  check((await speicher(page)).standardMittel[0].form === 'retardtab' && await zahl(page, KARTE) === 0,
+    `${was}: Methylphenidat bekommt eine andere Form – keine Säurefrage mehr, wie die Meldung sagt (${await kopf(page)} | ${await frage(page)})`);
+  await tagWechsel(page, tag(10));
+  check(await zahl(page, KARTE) === 0, `${was}: auch eine Woche später nicht`);
+  await ctx.close();
+}
+{
+  // Die letzte Ritalin-Einnahme liegt 44 Tage zurück: kein neuer Name.
+  const { ctx, page } = await iphone({
+    eintraege: [nimmt('r1', 'Ritalin', tag(-44), { form: 'sofort' }), NOTIZ],
+    standardMittel: [meins('s1', 'Medikinet adult')],
+  });
+  check(await frage(page) === F_SAEURE, 'Ritalin vor 44 Tagen, Medikinet adult: die Säurefrage');
+  await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-nein"]`);
+  await meldung(page);
+  const s = await speicher(page);
+  check(((s.mphRueckfrage || {}).ritalin || {}).saeure === 'nein',
+    `„Nein" gilt auch für Ritalin aus dem älteren Tagebuch (${JSON.stringify(s.mphRueckfrage)})`);
+  await stand(page, { ...s, eintraege: [...s.eintraege, nimmt('r2', 'Ritalin', tag(2), { form: 'sofort' })] });
+  await tagWechsel(page, tag(2));
+  check(await zahl(page, KARTE) === 0, `wieder Ritalin, zwei Tage später: keine Säurefrage (${await kopf(page)} | ${await frage(page)})`);
   await ctx.close();
 }
 
@@ -364,9 +428,51 @@ const davor = (page, a, b) => page.evaluate(([x, y]) => {
   check(s.standardMittel.some((m) => m.mittel === 'Magentropfen' && m.dosis === '')
     && s.mphRueckfrage['medikinet adult'].saeure === 'ja',
   '„Trotzdem so anlegen": angelegt, und die Frage gilt als beantwortet');
-  check((await meldung(page)).includes('Den Namen kennt Body Check nicht') && await zahl(page, '.wechsel-karte') === 0
+  check(await meldung(page) === 'Magentropfen steht jetzt bei deinen Mitteln – ohne Dosis. Als Mittel gegen Magensäure '
+    + 'kennt Body Check den Namen nicht; Fragen dazu beantwortet die Apotheke.' && await zahl(page, '.wechsel-karte') === 0
     && await zahl(page, KARTE) === 0,
-  'die Meldung sagt, dass der Name unbekannt ist; kein Hinweis, keine Rückfrage mehr');
+  `die Meldung sagt, dass der Name als Mittel gegen Magensäure unbekannt ist; kein Hinweis, keine Rückfrage mehr (${await meldung(page)})`);
+  await ctx.close();
+}
+/*
+ * Ein Name, den Body Check kennt – nur nicht als Mittel gegen Magensäure:
+ * Heilerde (unter „Mehr" „ähnlich einem Antazidum"), Sucralfat, ein
+ * Schmerzmittel. Überschrift und Meldung sagen dann nicht „unbekannt" – das
+ * widerspräche dem Bogen und „Mehr" derselben App und läse sich wie ein
+ * Erkennungsfehler.
+ */
+{
+  const bekannt = ['Luvos Heilerde magenfein', 'Ulcogant', 'Ibuprofen'];
+  check(bekannt.every((n) => wissenZu(n) && !zusammen.istSaeureMittel(n)),
+    'Vorbedingung: die Erkennung kennt diese Namen, zählt sie aber nicht als Mittel gegen Magensäure');
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')] });
+  for (const n of bekannt) {
+    await stand(page, { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult')] });
+    await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+    await page.locator('#rueckfrageName').fill(n);
+    await tipp(page, `${KARTE} [data-act="rueckfrage-eigen"]`);
+    const f = await frage(page);
+    check(f === F_PRUEFEN && !/kennt Body Check nicht/.test(f) && await fokusId(page) === 'rueckfrageFrage',
+      `${n}: die Überschrift sagt nur, was stimmt (${f})`);
+    check((await text(page, KARTE)).includes(`„${n}“ erkennt Body Check nicht als Mittel gegen Magensäure.`),
+      `${n}: der Satz darunter bleibt`);
+    if (n !== bekannt[0]) continue;
+    await kartenText(page);
+    await tipp(page, `${KARTE} [data-act="rueckfrage-trotzdem"]`);
+    const m = await meldung(page);
+    check(m === `${n} steht jetzt bei deinen Mitteln – ohne Dosis. Als Mittel gegen Magensäure kennt Body Check `
+      + 'den Namen nicht; Fragen dazu beantwortet die Apotheke.' && !/Den Namen kennt Body Check nicht/.test(m),
+    `${n}: „Trotzdem so anlegen" – die Meldung sagt nicht, der Name sei unbekannt (${m})`);
+    // Steht er schon da, gilt dasselbe.
+    await stand(page, { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult'), meins('h1', n)] });
+    await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+    await page.locator('#rueckfrageName').fill(n);
+    await tipp(page, `${KARTE} [data-act="rueckfrage-eigen"]`);
+    await tipp(page, `${KARTE} [data-act="rueckfrage-trotzdem"]`);
+    const m2 = await meldung(page);
+    check(m2 === `${n} steht schon bei deinen Mitteln. Als Mittel gegen Magensäure kennt Body Check den Namen nicht; `
+      + 'Fragen dazu beantwortet die Apotheke.', `${n}, schon unter „Meine Mittel": ebenso (${m2})`);
+  }
   await ctx.close();
 }
 
@@ -395,7 +501,8 @@ const STAND4 = {
   check(e('m1').form === 'pellet' && !('form' in e('m0')), 'die Form steht an der jüngsten Einnahme – nur dort');
   check(gleich(s.standardMittel, vorher.standardMittel), '„Meine Mittel" bleibt unverändert');
   const m = await meldung(page);
-  check(m.startsWith('Form: Kapsel mit zweierlei Kügelchen. Bei deiner Einnahme von gestern vermerkt.') && m.includes(HINWEIS_OBEN),
+  check(m.startsWith('Form von Methylphenidat: Kapsel mit zweierlei Kügelchen. Bei deiner Einnahme von gestern vermerkt.')
+    && m.includes(HINWEIS_OBEN),
     `die Meldung sagt, wo die Form steht, und dass ein Hinweis kam (${m})`);
   const w = await text(page, '.wechsel-karte');
   check(w.includes('Kapsel mit zweierlei Kügelchen und Pantoprazol') && !w.includes('(Methylphenidat)'),
@@ -421,7 +528,7 @@ const STAND4 = {
 
   // a) Nicht merken – die Form gilt 30 Tage, auch für Einnahmen ohne Form, und verfällt dann.
   await tipp(page, `${KARTE} [data-act="rueckfrage-nicht-merken"]`);
-  check(await zahl(page, KARTE) === 0 && await meldung(page) === 'Gut. Die Form gilt ab dieser Einnahme 30 Tage lang, '
+  check(await zahl(page, KARTE) === 0 && await meldung(page) === 'Gut. Die Form von Methylphenidat gilt ab dieser Einnahme 30 Tage lang, '
     + 'auch für weitere ohne Formangabe. Eine andere kannst du beim Eintragen im Bogen angeben.',
   `„Nicht merken": Karte zu, die Meldung sagt, wie lange die Form gilt (${await meldung(page)})`);
   await page.evaluate(async ([k, neu]) => {
@@ -438,7 +545,7 @@ const STAND4 = {
   await tagWechsel(page, tag(31));
   check((await text(page, '.wechsel-karte')).includes('Methylphenidat (Methylphenidat) und Pantoprazol'),
     '31 Tage später, tägliche Einnahmen ohne Form: wieder W1u');
-  check(await zahl(page, KARTE) === 1 && await zahl(page, SPAETER) === 0 && await frage(page) === F_FORM,
+  check(await zahl(page, KARTE) === 1 && await zahl(page, SPAETER) === 0 && await frage(page) === fForm('Methylphenidat'),
     'und die Rückfrage ein zweites Mal – ohne „Später"');
   check(gleich((await gezeigt(page)).tage.methylphenidat, [HEUTE, tag(31)]), 'zwei Tage gestempelt');
   await tagWechsel(page, tag(39));
@@ -617,8 +724,9 @@ for (const [was, fehltipp, neuere] of [
     '„Weiß ich nicht" ändert keine Mitteldaten');
   check(s.mphRueckfrage.medikinet && s.mphRueckfrage.medikinet.form === 'weissnicht', 'nur die Rückfrage merkt es sich');
   check(await frage(page) === F_SAEURE, 'weiter mit der Säurefrage');
-  check(await meldung(page) === 'Gemerkt. Die Form steht auf der Packung – angeben kannst du sie jederzeit bei deinem Mittel unter „Meine Mittel“.',
-    'die Meldung nennt „Meine Mittel", wo das Mittel steht');
+  check(await meldung(page) === 'Gemerkt. Die Form von Medikinet steht auf der Packung – angeben kannst du sie jederzeit '
+    + 'bei deinem Mittel unter „Meine Mittel“.',
+  'die Meldung nennt das Mittel und „Meine Mittel", wo es steht');
   await ctx.close();
 }
 {
@@ -762,7 +870,7 @@ for (const [was, fehltipp, neuere] of [
   check(s.mphRueckfrage.medikinet.saeure === 'nein' && s.mphRueckfrage.methylphenidat.saeure === 'nein',
     '„Nein" gilt für beide Namen – gefragt ist nach dem Menschen, nicht nach dem Mittel');
   await meldung(page);
-  check(await zahl(page, KARTE) === 1 && await kopf(page) === 'Rückfrage zu Methylphenidat' && await frage(page) === F_FORM,
+  check(await zahl(page, KARTE) === 1 && await kopf(page) === 'Rückfrage zu Methylphenidat' && await frage(page) === fForm('Methylphenidat'),
     'danach im selben Zug die Formfrage zum zweiten Namen');
   await ctx.close();
 }
@@ -1007,11 +1115,11 @@ const STAND13 = {
 
 {
   const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet')] }, { zeit: um('23:58') });
-  check(await frage(page) === F_FORM, '23:58: die Formfrage steht');
+  check(await frage(page) === fForm('Medikinet'), '23:58: die Formfrage steht');
   await page.clock.setFixedTime(um('00:01', tag(1)));
   await tipp(page, form('pellet'));
   check((await speicher(page)).standardMittel[0].form === 'pellet'
-    && (await meldung(page)).startsWith('Form: Kapsel mit zweierlei Kügelchen.'),
+    && (await meldung(page)).startsWith('Form von Medikinet: Kapsel mit zweierlei Kügelchen.'),
   '00:01 getippt: die Antwort gilt trotzdem');
   await ctx.close();
 }
@@ -1116,7 +1224,7 @@ const ELF = { eintraege: [NOTIZ, nimmt('e1', 'Methylphenidat', HEUTE)], standard
 const MITTEL_320 = { width: 320, height: 640 };
 {
   const { ctx, page } = await iphone(ELF, { viewport: MITTEL_320 });
-  check(ELF.standardMittel.length === 11 && await frage(page) === F_FORM, 'elf eigene Mittel, Methylphenidat nur als Einnahme: die Formfrage');
+  check(ELF.standardMittel.length === 11 && await frage(page) === fForm('Methylphenidat'), 'elf eigene Mittel, Methylphenidat nur als Einnahme: die Formfrage');
   await tipp(page, form('pellet'));
   check(await zahl(page, `${KARTE} [data-act="rueckfrage-merken"]`) === 0 && await frage(page) === F_SAEURE,
     `elf, danach steht die Säurefrage aus: kein MERKEN auf den letzten Platz, gleich die Säurefrage (${await frage(page)})`);
@@ -1156,6 +1264,58 @@ const MITTEL_320 = { width: 320, height: 640 };
   await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
   check((await speicher(page)).standardMittel.length === 11 && await zahl(page, `${KARTE} .rueckfrage-wahl`) > 0,
     'zehn: nach „Ja, merken" (elf) führt „Ja" zur Wahl');
+  await ctx.close();
+}
+/*
+ * Elf eigene Mittel und zwei Methylphenidat-Namen, beide heute dran: Der
+ * erste braucht nach seiner Form keine Säurefrage (Hülle), der zweite schon
+ * – und genau sie fragt die Karte als Nächstes. „Ja, merken" zum ersten
+ * nähme den Platz, den der Säureblocker gleich danach braucht. Die Reserve
+ * gilt deshalb für jeden Namen, dessen Säurefrage heute noch kommt.
+ */
+const ELF_ZWEI = (zweiter) => ({
+  eintraege: [NOTIZ, { ...nimmt('e1', 'Methylphenidat', HEUTE), um: '07:00' }, { ...nimmt('e2', zweiter, HEUTE), um: '07:30' }],
+  standardMittel: ANDERE.map((n, i) => meins(`a${i}`, n)),
+});
+for (const [zweiter, hinweis] of [['Medikinet retard', 'W1'], ['Ritalin LA', 'W3']]) {
+  const { ctx, page } = await iphone(ELF_ZWEI(zweiter), { viewport: MITTEL_320 });
+  check(await kopf(page) === 'Rückfrage zu Methylphenidat' && await frage(page) === fForm('Methylphenidat'),
+    `elf, dazu ${zweiter}: zuerst die Form von Methylphenidat`);
+  await tipp(page, form('oros'));
+  check(await zahl(page, `${KARTE} [data-act="rueckfrage-merken"]`) === 0
+    && await kopf(page) === `Rückfrage zu ${zweiter}` && await frage(page) === F_SAEURE,
+  `elf, dazu ${zweiter}: Hülle – kein MERKEN auf den letzten Platz, gleich die Säurefrage zu ${zweiter} (${await kopf(page)} | ${await frage(page)})`);
+  check((await speicher(page)).standardMittel.length === 11, `elf, dazu ${zweiter}: nichts angelegt`);
+  await meldung(page);
+  // Stünde MERKEN doch da, ginge es weiter wie im Fund: „Ja, merken", dann „Ja".
+  if (await frage(page) === F_MERKEN) await tipp(page, `${KARTE} [data-act="rueckfrage-merken"]`);
+  await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+  check(await frage(page) === F_WELCHES && await zahl(page, `${KARTE} .rueckfrage-wahl`) > 0
+    && !(await text(page, KARTE)).includes('mehr passen nicht'),
+  `elf, dazu ${zweiter}: „Ja" führt zur Wahl, nicht zum Satz über den vollen Stand`);
+  if (await zahl(page, `${KARTE} .rueckfrage-wahl`)) await tipp(page, `${KARTE} .rueckfrage-wahl[data-name="Pantoprazol"]`);
+  const s = await speicher(page);
+  const m = await meldung(page);
+  check(s.standardMittel.length === 12 && s.standardMittel.some((x) => x.mittel === 'Pantoprazol')
+    && (hinweis === 'W1'
+      ? (await text(page, '.wechsel-karte')).includes('Kapsel mit zweierlei Kügelchen und Pantoprazol')
+      : m.includes('Ein Hinweis dazu steht unter „Mehr“ › „Meine Mittel“.')),
+  `elf, dazu ${zweiter}: Pantoprazol als zwölftes Mittel, ${hinweis} (${m})`);
+  await ctx.close();
+}
+{
+  // Gegenprobe: Ist der zweite Name heute nicht mehr dran (seine zwei Tage
+  // sind vorbei), fragt die Karte ihn nicht – dann darf MERKEN den letzten Platz nehmen.
+  const { ctx, page } = await iphone(ELF_ZWEI('Medikinet retard'), { viewport: MITTEL_320 });
+  await page.evaluate(([g, t]) => localStorage.setItem(g, JSON.stringify({ am: null, zu: null, tage: { 'medikinet retard': t } })),
+    [GEZEIGT, [tag(-14), tag(-7)]]);
+  await page.reload({ waitUntil: 'networkidle' });
+  await tipp(page, form('oros'));
+  check(await frage(page) === F_MERKEN, 'elf, der zweite Name heute nicht mehr dran: MERKEN steht');
+  await meldung(page);
+  if (await zahl(page, `${KARTE} [data-act="rueckfrage-merken"]`)) await tipp(page, `${KARTE} [data-act="rueckfrage-merken"]`);
+  check((await speicher(page)).standardMittel.length === 12 && await zahl(page, KARTE) === 0,
+    'elf, der zweite Name heute nicht mehr dran: „Ja, merken" nimmt den letzten Platz, keine Frage mehr');
   await ctx.close();
 }
 // Die Karte „Neu" bei vollem „Meine Mittel": derselbe Weg wie bei der
@@ -1217,7 +1377,7 @@ for (const [vp, wie] of [[IPHONE, '390'], [{ width: 320, height: 640 }, '320']])
     await doppel(page, `${KARTE} [data-act="rueckfrage-saeure-nein"]`);
     const s = await speicher(page);
     check(!('form' in s.eintraege.find((e) => e.id === 'm1')) && await kopf(page) === 'Rückfrage zu Methylphenidat'
-      && await frage(page) === F_FORM,
+      && await frage(page) === fForm('Methylphenidat'),
     `${wie}: Doppeltipp auf „Nein" – die Formfrage zum zweiten Namen steht, keine Form an der Einnahme`);
     await ctx.close();
   }
@@ -1244,10 +1404,10 @@ for (const [vp, wie] of [[{ width: 320, height: 640 }, '320'], [{ width: 414, he
     const { ctx, page } = await iphone({
       eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet'), meins('p1', 'Pantoprazol')],
     }, { viewport: vp });
-    check(await zahl(page, '.wechsel-karte') === 1 && await frage(page) === F_FORM, `${wie}: W1u, darunter die Formfrage`);
+    check(await zahl(page, '.wechsel-karte') === 1 && await frage(page) === fForm('Medikinet'), `${wie}: W1u, darunter die Formfrage`);
     await doppel(page, '.wechsel-karte [data-act="wechsel-gelesen"]');
     const s = await speicher(page);
-    check(!s.standardMittel.find((m) => m.id === 's1').form && await frage(page) === F_FORM && (s.wechselGelesen || []).length === 1,
+    check(!s.standardMittel.find((m) => m.id === 's1').form && await frage(page) === fForm('Medikinet') && (s.wechselGelesen || []).length === 1,
       `${wie}: Doppeltipp auf „Gelesen" von W1u – gelesen, keine Form gespeichert, die Formfrage steht (${s.standardMittel.find((m) => m.id === 's1').form})`);
     await ctx.close();
   }
@@ -1262,7 +1422,7 @@ for (const [vp, wie] of [[{ width: 320, height: 640 }, '320'], [{ width: 414, he
     await doppel(page, '.wechsel-karte [data-act="wechsel-gelesen"]');
     const s = await speicher(page);
     const e1 = s.eintraege.find((e) => e.id === 'e1');
-    check(!e1.form && await frage(page) === F_FORM,
+    check(!e1.form && await frage(page) === fForm('Methylphenidat'),
       `${wie}: Doppeltipp auf „Gelesen", die Rückfrage erscheint – keine Form an der Einnahme (${e1.form})`);
     await ctx.close();
   }
@@ -1271,12 +1431,12 @@ for (const [vp, wie] of [[{ width: 320, height: 640 }, '320'], [{ width: 414, he
     const { ctx, page } = await iphone({
       eintraege: [...VIELE, nimmt('e1', 'Methylphenidat', HEUTE)], standardMittel: [], lastBackup: null,
     }, { viewport: vp });
-    check(await zahl(page, '[data-act="sicherung-spaeter"]') === 1 && await frage(page) === F_FORM,
+    check(await zahl(page, '[data-act="sicherung-spaeter"]') === 1 && await frage(page) === fForm('Methylphenidat'),
       `${wie}: die Sicherungskarte, darunter die Formfrage`);
     await doppel(page, '[data-act="sicherung-spaeter"]');
     const s = await speicher(page);
     const e1 = s.eintraege.find((e) => e.id === 'e1');
-    check(!e1.form && await frage(page) === F_FORM,
+    check(!e1.form && await frage(page) === fForm('Methylphenidat'),
       `${wie}: Doppeltipp auf „Später" der Sicherung – keine Form an der Einnahme (${e1.form})`);
     await ctx.close();
   }
@@ -1368,6 +1528,75 @@ for (const [vp, wie, mittel, rollen] of [
   await ctx.close();
 }
 
+/* ---------- 16f. Zwei Namen nacheinander: nie dieselbe Karte ---------- */
+
+/*
+ * Springt die Karte nach einer Antwort zu einem zweiten Methylphenidat-Namen,
+ * stehen dieselben Knöpfe an derselben Stelle. Trüge die Überschrift – auf
+ * die der Fokus geht – nicht den Namen, läse sich die Frage zum zweiten wie
+ * die eben beantwortete, und ein zweiter Tipp gäbe ihm die Form des ersten.
+ * Deshalb: der Name in der Überschrift, in der Meldung das Mittel, und
+ * springt die Karte, sagt die Meldung „Jetzt zu …".
+ */
+const ZWEI = { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet'), meins('s2', 'Methylphenidat')] };
+for (const [vp, wie, schritte, ersteMeldung] of [
+  [KLEIN, '320×568, Kapsel und „Nein"', [form('pellet'), `${KARTE} [data-act="rueckfrage-saeure-nein"]`],
+    'Form von Medikinet: Kapsel mit zweierlei Kügelchen. Steht jetzt bei deinem Mittel unter „Meine Mittel“.'],
+  [IPHONE, '390×844, Hülle', [form('oros')],
+    'Form von Medikinet: Retardtablette mit Hülle. Steht jetzt bei deinem Mittel unter „Meine Mittel“. Jetzt zu Methylphenidat.'],
+  [IPHONE, '390×844, „Weiß ich nicht" und „Nein"', [form('unbekannt'), `${KARTE} [data-act="rueckfrage-saeure-nein"]`],
+    'Gemerkt. Die Form von Medikinet steht auf der Packung – angeben kannst du sie jederzeit bei deinem Mittel unter „Meine Mittel“.'],
+]) {
+  const { ctx, page } = await iphone(ZWEI, { viewport: vp });
+  const vorher = [await kopf(page), await frage(page)];
+  check(vorher[0] === 'Rückfrage zu Medikinet' && vorher[1] === fForm('Medikinet'), `${wie}: zuerst die Form von Medikinet`);
+  const folge = [vorher];
+  const meldungen16f = [];
+  for (const sel of schritte) {
+    await tipp(page, sel);
+    folge.push([await kopf(page), await frage(page)]);
+    meldungen16f.push(await meldung(page));
+  }
+  check(meldungen16f[0] === ersteMeldung, `${wie}: die erste Meldung nennt das Mittel (${meldungen16f[0]})`);
+  const letzte = meldungen16f[meldungen16f.length - 1];
+  check(letzte.endsWith(' Jetzt zu Methylphenidat.') && meldungen16f.slice(0, -1).every((m) => !m.includes('Jetzt zu')),
+    `${wie}: erst die Meldung, nach der die Karte springt, sagt „Jetzt zu Methylphenidat." (${letzte})`);
+  const [nk, nf] = folge[folge.length - 1];
+  check(nk === 'Rückfrage zu Methylphenidat' && nf === fForm('Methylphenidat'),
+    `${wie}: danach die Form von Methylphenidat (${nk} | ${nf})`);
+  // Je zwei aufeinanderfolgende Karten zu verschiedenen Namen: nie dieselbe Überschrift.
+  const gleicheUeberschrift = folge.slice(1).filter(([k, f], i) => k !== folge[i][0] && f === folge[i][1]);
+  check(gleicheUeberschrift.length === 0,
+    `${wie}: zwei Namen nacheinander tragen nie dieselbe Überschrift (${folge.map(([k, f]) => `${k} › ${f}`).join(' ‖ ')})`);
+  const fokus = await page.evaluate(() => {
+    const el = document.activeElement;
+    return el ? `${el.id}|${el.textContent.trim()}` : '';
+  });
+  check(fokus === `rueckfrageFrage|${fForm('Methylphenidat')}`, `${wie}: der Fokus steht auf der Frage – mit dem Namen darin (${fokus})`);
+  // Ein zweiter Tipp auf dieselbe Form, bewusst nach der Pause: Er gilt dem
+  // Mittel, das die Überschrift nennt, und die Meldung sagt das.
+  await tipp(page, form('oros'));
+  const m = await meldung(page);
+  check(m.startsWith('Form von Methylphenidat: Retardtablette mit Hülle.'), `${wie}: die Meldung danach nennt das Mittel (${m})`);
+  await ctx.close();
+}
+{
+  // „Jetzt zu" nur, wenn die Karte zum nächsten Namen auch dasteht: Nach dem
+  // Säureblocker stehen W1 und W1u oben, und die Rückfrage wartet.
+  const { ctx, page } = await iphone(ZWEI, { viewport: IPHONE });
+  await tipp(page, form('pellet'));
+  await meldung(page);
+  await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+  await tipp(page, `${KARTE} .rueckfrage-wahl[data-name="Pantoprazol"]`);
+  const m = await meldung(page);
+  check(await zahl(page, '.wechsel-karte') === 2 && await zahl(page, KARTE) === 0 && !m.includes('Jetzt zu'),
+    `W1 und W1u oben, die Rückfrage zu Methylphenidat wartet – die Meldung sagt kein „Jetzt zu" (${m})`);
+  await tipp(page, '.wechsel-karte [data-act="wechsel-gelesen"]');
+  check(await kopf(page) === 'Rückfrage zu Methylphenidat' && await frage(page) === fForm('Methylphenidat'),
+    'nach „Gelesen" steht sie da, mit dem Namen in der Frage');
+  await ctx.close();
+}
+
 /* ---------- 16c. Was man sieht, steht auch in der Ansage ---------- */
 
 /*
@@ -1419,6 +1648,10 @@ for (const [vp, wie, mittel, rollen] of [
   check(kartenTexte.length >= 8 && meldungen.length >= 14, `geprüft: ${kartenTexte.length} Kartentexte, ${meldungen.length} Meldungen`);
   const schlecht = alle.filter((t) => DOSIS.test(t) || RAT.test(t) || /noch nicht/i.test(t) || /absetzen|weglassen/i.test(t));
   check(schlecht.length === 0, `keine Dosis, kein Rat, kein „noch nicht", nichts zum Absetzen${schlecht.length ? `: ${schlecht[0]}` : ''}`);
+  // Ob Body Check einen Namen kennt, sagt die Rückfrage nie pauschal – nur,
+  // ob er als Mittel gegen Magensäure zählt (siehe 3).
+  const unbekannt = alle.filter((t) => /(Diesen|Den) Namen kennt Body Check nicht/.test(t));
+  check(unbekannt.length === 0, `kein pauschales „kennt Body Check nicht"${unbekannt.length ? `: ${unbekannt[0]}` : ''}`);
 }
 
 /* ---------- 18. Breite, Höhe, Bilder ---------- */
@@ -1428,6 +1661,11 @@ for (const [vp, wie, mittel, rollen] of [
   const hoch = await page.locator(KARTE).evaluate((k) => k.getBoundingClientRect().height);
   check(hoch <= 460, `die Formfrage ist bei 320 Pixeln höchstens 460 hoch (${Math.round(hoch)})`);
   check(await breitOk(page), 'FORM passt in 320 Pixel');
+  // Der Name steht jetzt in der Frage – auch mit dem längeren Wirkstoffnamen bleibt es dabei.
+  await stand(page, { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Methylphenidat')] });
+  const hoch2 = await page.locator(KARTE).evaluate((k) => k.getBoundingClientRect().height);
+  check(hoch2 <= 460 && await frage(page) === fForm('Methylphenidat'),
+    `die Formfrage zu Methylphenidat ist bei 320 Pixeln höchstens 460 hoch (${Math.round(hoch2)})`);
   await stand(page, { eintraege: [NOTIZ], standardMittel: [meins('s1', `Medikinet ${'x'.repeat(70)}`)] });
   check(await zahl(page, KARTE) === 1 && await breitOk(page), 'ein Name mit 80 Zeichen ragt nicht über den Rand');
   await page.setViewportSize(IPHONE);

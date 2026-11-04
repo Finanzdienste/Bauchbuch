@@ -216,6 +216,9 @@ export function raete(d) {
   return raus.filter(Boolean);
 }
 
+/** Bis wie viele Stunden nach dem Essen die Karte „Erst in zwei Stunden intensiv" steht. */
+const NACH_ESSEN_STUNDEN = 2;
+
 /**
  * „Die letzte Mahlzeit ist 25 Minuten her." – der Grund unter „Erst in zwei
  * Stunden intensiv".
@@ -232,12 +235,20 @@ export function raete(d) {
  * Die Minuten werden gerundet, nicht abgeschnitten: Die Stunden kommen aus
  * ganzen Minuten geteilt durch 60, und gerundet kommt genau diese Zahl
  * zurück, auch wo das Teilen einen Rest hinterlässt.
+ *
+ * Nur knapp unter der Grenze (117 bis 119 Minuten) ergäbe die Zehntelstunde
+ * schon die Grenze selbst – „Erst in zwei Stunden intensiv … ist 2 Stunden
+ * her" widerspräche sich. Dort steht „knapp 2 Stunden"; alle anderen Zahlen
+ * bleiben.
  */
 function seitLetzterMahlzeit(stunden) {
   const minuten = Math.round(stunden * 60);
   if (minuten < 1) return 'Die letzte Mahlzeit war gerade eben.';
   if (minuten < 60) return `Die letzte Mahlzeit ist ${minuten} ${minuten === 1 ? 'Minute' : 'Minuten'} her.`;
   const zehntel = Math.round(stunden * 10) / 10;
+  if (stunden < NACH_ESSEN_STUNDEN && zehntel >= NACH_ESSEN_STUNDEN) {
+    return `Die letzte Mahlzeit ist knapp ${NACH_ESSEN_STUNDEN} Stunden her.`;
+  }
   const zahl = Number.isInteger(zehntel) ? String(zehntel) : zehntel.toFixed(1).replace('.', ',');
   return `Die letzte Mahlzeit ist ${zahl} ${zehntel === 1 ? 'Stunde' : 'Stunden'} her.`;
 }
@@ -253,7 +264,7 @@ function seitLetzterMahlzeit(stunden) {
  */
 function sportRat(d, k) {
   const seitEssen = d.letzteMahlzeitStunden;
-  const frischGegessen = seitEssen !== null && seitEssen < 2;
+  const frischGegessen = seitEssen !== null && seitEssen < NACH_ESSEN_STUNDEN;
   const phase = phaseVon(d.tage, d.heute);
   const phasenSchlecht = phase && (d.phasen || [])
     .some((p) => p.phase === phase && p.schnitt >= 4 && p.tage >= 4);

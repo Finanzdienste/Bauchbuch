@@ -1009,7 +1009,9 @@ anzugeben oder einen Säureblocker zu notieren, fragt deshalb eine Karte oben
 auf „Tag“ (nur heute, direkt unter den Hinweisen der Stufe A, ohne Schalter)
 genau das, was fehlt, und sonst nichts:
 
-* „Welche Form steht auf der Packung?“ – mit denselben sieben Wahlen wie im
+* „{Name}: Welche Form steht auf der Packung?“ – mit dem Namen des Mittels
+  vorn, damit bei zwei Methylphenidat-Namen die Frage zum zweiten nicht
+  aussieht wie die eben beantwortete, und mit denselben sieben Wahlen wie im
   Bogen und unter „Meine Mittel“: den sechs Formen mit denselben
   Bezeichnungen und Beispielen, „Weiß ich nicht“ zuletzt. Die Form landet
   dort, wo die Paare sie lesen: beim eigenen Mittel, wenn der Name unter „Meine
@@ -1021,10 +1023,11 @@ genau das, was fehlt, und sonst nichts:
   merken“). Gemerkt wird nur die Form, die dann noch gilt: Wer sie
   inzwischen im Bogen geändert oder bei einer neueren Einnahme eine andere
   Form angegeben hat, bekommt das Angebot nicht mehr, und eine Form unter
-  „Meine Mittel“ wird dabei nie überschrieben. Steht danach noch die Frage
-  nach dem Säureblocker aus, kommt das Angebot nur, wenn unter „Meine
-  Mittel“ dann noch ein Platz für ihn frei bleibt. „Weiß ich nicht“ ändert
-  keine Mitteldaten.
+  „Meine Mittel“ wird dabei nie überschrieben. Kommt danach heute noch die
+  Frage nach dem Säureblocker – zu diesem oder zu einem anderen
+  Methylphenidat-Namen, der heute dran ist –, kommt das Angebot nur, wenn
+  unter „Meine Mittel“ dann noch ein Platz für ihn frei bleibt. „Weiß ich
+  nicht“ ändert keine Mitteldaten.
 * „Nimmst du außerdem ein Mittel gegen Magensäure?“ – auch eins, das man nur
   ab und zu bei Sodbrennen nimmt, mit Beispielen aus der Erkennung der App;
   nur bei Formen, bei denen ein Säureblocker überhaupt einen Hinweis ergibt
@@ -1032,15 +1035,21 @@ genau das, was fehlt, und sonst nichts:
   Namen; er kommt unter „Meine Mittel“, ohne Dosis und ohne Einnahme: zur
   Wahl stehen Namen aus dem eigenen Tagebuch und die, die die Erkennung
   kennt, dazu ein Feld für einen eigenen Namen. Ein getippter Name, den die
-  Erkennung nicht kennt, wird erst nachgefragt, statt die Frage still zu
-  schließen. „Nein“ wird gemerkt und gilt für alle Methylphenidat-Namen, bei
-  denen gerade danach gefragt würde. Kommt später ein Methylphenidat unter
-  einem neuen Namen dazu, ist das ein neues Mittel und wird noch einmal
-  gefragt – die Meldung nach „Nein“ sagt das.
+  Erkennung nicht als Mittel gegen Magensäure kennt, wird erst nachgefragt,
+  statt die Frage still zu schließen; Karte und Meldung sagen dabei nur das
+  und nie, der Name sei unbekannt – Heilerde etwa beschreibt die App unter
+  „Mehr“ selbst. „Nein“ wird gemerkt und gilt für jeden
+  Methylphenidat-Namen, der bis dahin unter „Meine Mittel“ oder im Tagebuch
+  steht – auch wenn er später eine andere Form bekommt oder nach langer
+  Pause wieder eingenommen wird. Kommt später ein Methylphenidat unter einem
+  neuen Namen dazu, ist das ein neues Mittel und wird noch einmal gefragt –
+  die Meldung nach „Nein“ sagt das.
 
 Danach erscheint die passende Karte von selbst; die Rückfrage stellt nichts
 fest, sie sagt nur, warum sie fragt („Davon hängt ab, ob es zu deinen Mitteln
-einen Hinweis gibt“). Verschwindet ein Hinweis der Stufe A, weil die Form
+einen Hinweis gibt“). Jede Meldung nach einer Antwort nennt das Mittel, und
+springt die Karte danach zu einem zweiten Methylphenidat-Namen, endet sie mit
+„Jetzt zu {Name}.“ Verschwindet ein Hinweis der Stufe A, weil die Form
 keinen ergibt, sagt die Meldung, dass das nicht heißt, dass beides
 zusammenpasst. **Kein Drängeln:** Je Name steht die Karte an höchstens zwei
 Tagen – dem ersten, an dem sie sichtbar war, und frühestens eine Woche danach
@@ -1300,7 +1309,9 @@ Auf der Karte „Für heute“ sind zwei ältere Schreibfehler berichtigt; die
 Rechnung dahinter bleibt. Wie lange die letzte Mahlzeit her ist, steht unter
 einer Stunde in Minuten („25 Minuten“, darunter „gerade eben“) und ab einer
 Stunde mit derselben Zehntelstunde wie bisher, aber mit Komma („1,5 Stunden“,
-„1 Stunde“) – statt „0.4 Stunden“. Und nach dem Datum der letzten Einnahme
+„1 Stunde“) – statt „0.4 Stunden“. Nur 117 bis 119 Minuten nach dem Essen,
+wo die Zehntelstunde schon „2“ ergäbe, steht „knapp 2 Stunden“: Unter „Erst
+in zwei Stunden intensiv“ widerspräche „2 Stunden her“ der Karte selbst. Und nach dem Datum der letzten Einnahme
 unter „Was du nimmst“ steht ein Punkt statt zwei. Das Gold der Fassung 27
 bleibt, wie es erzeugt wurde: `tests/test-gleich-v27.mjs` gibt dieser einen
 Zeile vor dem Vergleich ihren zweiten Punkt zurück und prüft für sich, dass
@@ -2422,7 +2433,7 @@ den Rückgabewert.
 | `test-zutaten.mjs` | Reihenfolge nach Häufigkeit, Rollen statt Gramm, Umrechnung alter Stände |
 | `test-zyklus.mjs` | Zyklen, Phasen – und das Schweigen ohne Grundlage |
 | `test-bild.mjs` | Warnzeichen kommen durch; Nüchternschmerz wird nicht mit Völlegefühl verwechselt |
-| `test-rat.mjs` | jeder Vorschlag mit Grund, und keine Medikamentenempfehlung; „25 Minuten“ und „1,5 Stunden“ statt Dezimalpunkt, nach einem Datum ein Punkt statt zwei |
+| `test-rat.mjs` | jeder Vorschlag mit Grund, und keine Medikamentenempfehlung; „25 Minuten“ und „1,5 Stunden“ statt Dezimalpunkt, knapp unter der Grenze „knapp 2 Stunden“ statt „2 Stunden“, nach einem Datum ein Punkt statt zwei |
 | `test-atem.mjs` | Phasenlängen, Ablauf, Abbruch beim Reiterwechsel, stummer Betrieb |
 | `test-app.mjs` | Installieren, Verknüpfungen des Symbols, Druckansicht |
 | `test-stuhl.mjs` | Bristol eintragen, die Anteile, und das Warnzeichen aus dem Stuhlbogen |
@@ -2477,7 +2488,7 @@ den Rückgabewert.
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; alte Kopfmerkmale lassen sich abwählen und wieder wählen; der Massagetext auch ohne Schalter und bei einer eigenen „Massagepistole“, die unter „Mehr“ als fest eingebaut vermerkt ist und ihre Einträge behält; kein Angebot durch Nackenschmerz |
 | `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, auch für einen Namen mit Koffein, der nicht mehr mitzählt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
 | `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste – dazu einmal die Karte „Neu“ |
-| `test-rueckfrage.mjs` | als iPhone: die Rückfrage fragt nur, was fehlt, die Antwort landet dort, wo die Paare sie lesen, und die passende Karte erscheint; höchstens zwei Tage je Name, auch über Nacht offen und bei vollem „Meine Mittel“, „Später“ einmal, „Nicht mehr fragen“ mit „Rückgängig“ (auch per Tastatur); ein Doppeltipp beantwortet nicht den nächsten Schritt, auch nicht, wenn die Karte nach einem Tipp darüber unter den Finger rückt, und nimmt „Nicht mehr fragen“ nicht über „Rückgängig“ zurück; „Ja, merken“ nur mit der Form, die an der Einnahme steht und noch gilt, und nie auf den Platz, den der Säureblocker danach braucht; jede Beschriftung steht auch in der Ansage; nie mehr als die bestehenden Karten; die Karte „Neu“ einmal und nie bei einem neuen Tagebuch; gezählt wird nur, was sichtbar war; kein Rat, keine Dosis, nichts über den Rand, keine Anfrage nach draußen |
+| `test-rueckfrage.mjs` | als iPhone: die Rückfrage fragt nur, was fehlt, die Antwort landet dort, wo die Paare sie lesen, und die passende Karte erscheint; höchstens zwei Tage je Name, auch über Nacht offen und bei vollem „Meine Mittel“, „Später“ einmal, „Nicht mehr fragen“ mit „Rückgängig“ (auch per Tastatur); ein Doppeltipp beantwortet nicht den nächsten Schritt, auch nicht, wenn die Karte nach einem Tipp darüber unter den Finger rückt, und nimmt „Nicht mehr fragen“ nicht über „Rückgängig“ zurück; „Ja, merken“ nur mit der Form, die an der Einnahme steht und noch gilt, und nie auf den Platz, den der Säureblocker danach braucht, auch nicht bei einem zweiten Namen; zwei Namen nacheinander nie mit derselben Überschrift, die Meldung sagt „Jetzt zu …“; „Nein“ gilt für jeden Namen, der schon dasteht; „nicht als Mittel gegen Magensäure erkannt“ statt „unbekannt“; jede Beschriftung steht auch in der Ansage; nie mehr als die bestehenden Karten; die Karte „Neu“ einmal und nie bei einem neuen Tagebuch; gezählt wird nur, was sichtbar war; kein Rat, keine Dosis, nichts über den Rand, keine Anfrage nach draußen |
 | `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, ein Fenster, das noch läuft, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge; der Abschnitt liegt mittags wie abends, ein Wechsel des Stimulans setzt ihn auch bei durchlaufendem Zweitmittel, ein abgesetztes Stimulans und der Rückwechsel auf ein früheres Mittel beenden ihn; „zu wenige“ nur, wenn keine gezeigte Zeile genug Tage ohne Mittel hat; die Schwelle des Zeitprofil-Vorbehalts |
 | `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend oder nach Mitternacht macht keinen Kopfschmerz am Nachmittag oder Morgen zu einem „am Morgen“ bzw. „nicht am Morgen“, der laufende Morgen zählt noch nicht, ein Folgetag, der heute ist, auch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
 | `test-nulltagebuch.mjs` | 300 Tagebücher ohne Zusammenhang, aber mit Störwegen: je Rechnung höchstens 6 %, je Karte höchstens 10 % mit Urteil |

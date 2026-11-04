@@ -49,7 +49,7 @@ import {
   formAusName, istAdhsMittel, mphForm, wissenZu,
 } from './mittel.js';
 import {
-  SAEURE_WAHL, WECHSEL_TAGE, formZu, istSaeureMittel, mphRueckfragen, wechselHinweise,
+  SAEURE_WAHL, WECHSEL_TAGE, formZu, istSaeureMittel, mphRueckfragen, rueckfrageSchluessel, wechselHinweise,
 } from './zusammen.js';
 import {
   ESSEN_GILT_MIN, PAUSE_GRUENDE, a2ZuWenig, adhsAuswertung, adhsEinnahmen, ausloeserNahAmMittel,
@@ -1153,8 +1153,8 @@ function tagAnsicht(s) {
   const offen = heute ? wechselOffen(s) : [];
   const angebot = heute ? angebotKarte(s) : '';
   const gesehen = store.gezeigtLesen();
-  const frage = heute ? rueckfrageHeute(s, gesehen) : null;
-  const mitFrage = !!frage && offen.length + (angebot ? 1 : 0) < 2;
+  const frage = heute ? rueckfrageSichtbar(s, gesehen, offen, angebot) : null;
+  const mitFrage = !!frage;
   const mitNeu = heute && v29Offen(s, gesehen) && !offen.length && !mitFrage;
   // Jeder Tag, an dem die Rückfrage sichtbar stand, zählt – auch einer, an
   // dem „Ja" an einem vollen „Meine Mittel" scheiterte. Sonst käme sie dann
@@ -1450,6 +1450,30 @@ function rueckfrageHeute(s, g) {
 }
 
 /**
+ * Die Rückfrage, die jetzt sichtbar auf „Tag" steht – oder null. Sie steht
+ * nur, wenn von den Hinweisen der Stufe A und dem Angebot höchstens eine
+ * Karte dasteht (siehe tagAnsicht). offen und angebot gibt tagAnsicht mit,
+ * weil es sie ohnehin hat.
+ */
+function rueckfrageSichtbar(s, g, offen = wechselOffen(s), angebot = angebotKarte(s)) {
+  const frage = rueckfrageHeute(s, g);
+  return frage && offen.length + (angebot ? 1 : 0) < 2 ? frage : null;
+}
+
+/*
+ * Der Satz am Ende der Meldung, wenn die Karte nach einer Antwort zu k zu
+ * einem anderen Namen springt: „Jetzt zu Methylphenidat." Die Karte des
+ * nächsten Namens hat dieselben Knöpfe an derselben Stelle; ohne den Satz
+ * – und ohne den Namen in der Überschrift (rueckfrageKarte) – läse sich ihre
+ * Frage wie die eben beantwortete, und ein zweiter Tipp gäbe dem zweiten
+ * Mittel die Form des ersten. Gerechnet mit dem Stand nach der Antwort.
+ */
+function rueckfrageWeiter(k) {
+  const f = rueckfrageSichtbar(store.zustandLesen(), store.gezeigtLesen());
+  return f && f.x.schluessel !== k ? ` Jetzt zu ${f.x.name}.` : '';
+}
+
+/**
  * Für eine Antwort: der Name, wenn er eingetragen und nicht „nie" ist –
  * sonst null. Ob er heute dran ist, spielt dabei keine Rolle: Wer um 23:58
  * die Karte sieht und um 0:01 tippt, hat trotzdem geantwortet.
@@ -1460,13 +1484,29 @@ function rueckfrageOffen(s, k) {
 }
 
 /*
- * Die Namen, bei denen gerade nach dem Säureblocker gefragt würde – eine
- * Antwort gilt für alle. Ein Name, der erst später dazukommt, ist ein neues
- * Mittel und wird noch einmal gefragt (höchstens an seinen zwei Tagen); die
- * Meldung nach „Nein" sagt das.
+ * Die Namen, bei denen gerade nach dem Säureblocker gefragt würde – „Ja"
+ * gilt für alle (danach ist der Säureblocker eingetragen).
  */
 const alleOffenSaeure = (s) => rueckfragenMit(s)
   .filter((x) => x.fehltSaeure && !x.r.saeure && !x.r.nie).map((x) => x.schluessel);
+
+/*
+ * Die Schlüssel aller Methylphenidat-Namen, die bis jetzt dastehen: unter
+ * „Meine Mittel" oder in einer Einnahme beliebigen Alters. Für „Nein": Die
+ * Meldung verspricht, erst bei einem neuen Namen wieder nach dem
+ * Säureblocker zu fragen. Merkte sich „Nein" nur die Namen mit offener
+ * Säurefrage, käme dieselbe Frage zu einem Namen, der beim „Nein" schon
+ * dastand – sobald er eine andere Form bekommt (die Hülle hat keine
+ * Säurefrage, eine neue Packung vielleicht schon) oder nach mehr als
+ * WECHSEL_TAGE Tagen wieder eingenommen wird. Gefragt ist nach dem Menschen,
+ * nicht nach dem einzelnen Mittel.
+ */
+function alleMphSchluessel(s) {
+  const namen = [...s.standardMittel.map((m) => m.mittel),
+    ...s.eintraege.filter((e) => e.art === 'medikament').map((e) => e.mittel)]
+    .map((n) => String(n || '').trim()).filter((n) => n && (wissenZu(n) || {}).id === 'mph');
+  return [...new Set(namen.map(rueckfrageSchluessel).filter(Boolean))];
+}
 
 /*
  * Die Einnahme, deren Form MERKEN unter „Meine Mittel" legen würde – oder
@@ -1498,16 +1538,28 @@ function merkenEinnahme(s, y, u) {
 }
 
 /*
- * Ob für MERKEN unter „Meine Mittel" Platz ist. Steht danach noch die
- * Säurefrage zu diesem Namen aus, bleibt ein Platz für den Säureblocker
- * frei: Sonst belegte „Ja, merken" bei elf eigenen Mitteln den letzten, und
- * einen Schritt später passte der Säureblocker – an dem W1 hängt – nicht
- * mehr hinein. Die Form bleibt dann an der Einnahme, wie nach „Nicht
- * merken".
+ * Ob für MERKEN unter „Meine Mittel" Platz ist. Kommt heute danach noch
+ * eine Säurefrage, bleibt ein Platz für den Säureblocker frei: Sonst
+ * belegte „Ja, merken" bei elf eigenen Mitteln den letzten, und einen
+ * Schritt später passte der Säureblocker – an dem W1 hängt – nicht mehr
+ * hinein. Die Form bleibt dann an der Einnahme, wie nach „Nicht merken".
+ *
+ * Das gilt für die Säurefrage zu diesem Namen und für die jedes anderen,
+ * der heute noch dran ist (rueckfrageDran, wie alleDran): Die Karte fragt
+ * sie als Nächstes, und eine Antwort gilt für alle. Ein Name, dessen zwei
+ * Tage vorbei sind, kommt heute nicht mehr – für ihn bleibt nichts frei.
  */
 function merkenPlatz(s, y) {
   const frei = store.STANDARD_HOECHSTENS - s.standardMittel.length;
-  return frei > (y.fehltSaeure && !y.r.saeure ? 1 : 0);
+  return frei > (saeureFolgtHeute(s, y) ? 1 : 0);
+}
+
+/** Kommt heute noch eine Säurefrage – zu y oder zu einem anderen Namen, der heute dran ist? */
+function saeureFolgtHeute(s, y) {
+  const g = store.gezeigtLesen();
+  const heute = heuteISO();
+  return rueckfragenMit(s).some((z) => z.fehltSaeure && !z.r.saeure && !z.r.nie
+    && (z.schluessel === y.schluessel || rueckfrageDran(z.schluessel, g, heute)));
 }
 
 /** Die jüngste Einnahme dieses Namens in den letzten WECHSEL_TAGE Tagen – dort liest formZu. */
@@ -1601,7 +1653,12 @@ function rueckfrageKarte(f, s) {
   let frage = '';
   let teil = '';
   if (schritt === 'form') {
-    frage = 'Welche Form steht auf der Packung?';
+    // Mit dem Namen vorn: Bei zwei Methylphenidat-Namen folgt die Formfrage
+    // zum zweiten gleich auf die zum ersten, mit denselben Knöpfen an
+    // derselben Stelle. Der Fokus geht auf diese Überschrift – sie allein muss
+    // sagen, um welches Mittel es jetzt geht (siehe auch rueckfrageWeiter).
+    // Bei 320 Pixeln bleibt sie für übliche Namen zweizeilig wie vorher.
+    frage = `${name}: Welche Form steht auf der Packung?`;
     teil = `${x.saeureDa
       ? '<p class="klein">Davon hängt ab, welcher Hinweis zu deinen Mitteln gilt. Nicht sicher? Dann „Weiß ich nicht“.</p>'
       : '<p class="klein">Davon hängt ab, ob es zu deinen Mitteln einen Hinweis gibt.</p>'}
@@ -1659,7 +1716,11 @@ function rueckfrageKarte(f, s) {
         </div>
         <div class="reihe">${zurueck}</div>`;
   } else if (schritt === 'pruefen') {
-    frage = 'Diesen Namen kennt Body Check nicht';
+    // Nicht „Diesen Namen kennt Body Check nicht": Viele Namen kennt die
+    // Erkennung (Heilerde, Sucralfat, Schmerzmittel …), nur nicht als Mittel
+    // gegen Magensäure – Bogen und „Mehr" beschreiben sie. Gesagt wird nur,
+    // was stimmt.
+    frage = 'Nicht als Mittel gegen Magensäure erkannt';
     teil = `<p class="klein">„${esc(u.eigen)}“ erkennt Body Check nicht als Mittel gegen Magensäure. Dann kann
       ein Hinweis zu deinen Mitteln fehlen. Steht einer der Namen aus der Liste auf der Packung, wähl lieber
       den.</p>
@@ -1685,8 +1746,10 @@ function rueckfrageKarte(f, s) {
 /**
  * Einen Säureblocker unter „Meine Mittel" anlegen – aus der Wahl, aus dem
  * Feld oder nach „Trotzdem so anlegen". Ein Name, den die Erkennung nicht
- * kennt, wird erst nachgefragt (PRUEFEN), statt die Frage still zu
- * schließen: Ein Tippfehler ergäbe sonst nie einen Hinweis.
+ * als Mittel gegen Magensäure kennt, wird erst nachgefragt (PRUEFEN), statt
+ * die Frage still zu schließen: Ein Tippfehler ergäbe sonst nie einen
+ * Hinweis. Ob die Erkennung den Namen sonst kennt, prüft das nicht – Texte
+ * und Meldung sagen deshalb nie, er sei unbekannt.
  */
 function saeureAnlegen(name, trotzdem) {
   const u = ui.rueckfrage;
@@ -1724,11 +1787,12 @@ function saeureAnlegen(name, trotzdem) {
   ui.rueckfrage = null;
   if (trotzdem) {
     melden(`${n} steht ${res.schon ? 'schon' : 'jetzt'} bei deinen Mitteln${res.schon ? '' : ' – ohne Dosis'}. `
-      + 'Den Namen kennt Body Check nicht; Fragen dazu beantwortet die Apotheke.');
+      + 'Als Mittel gegen Magensäure kennt Body Check den Namen nicht; Fragen dazu beantwortet die Apotheke.'
+      + rueckfrageWeiter(x.schluessel));
   } else {
     melden((res.schon ? `${n} steht schon bei deinen Mitteln.`
       : `${n} steht jetzt bei deinen Mitteln – ohne Dosis. Eine Einnahme ist damit nicht notiert.`)
-      + hinweisZusatz(vorher, vorherAlle));
+      + hinweisZusatz(vorher, vorherAlle) + rueckfrageWeiter(x.schluessel));
   }
   rueckfrageFokus();
   zeichne();
@@ -7935,13 +7999,14 @@ const AKTION = {
     const f = MPH_FORMEN.find((m) => m.id === el.dataset.id);
     if (!x || !f || x.frage !== 'form') { zeichne(); return; }
     ui.rueckfrage = null;
+    // Jede Meldung nennt das Mittel, und springt die Karte danach zu einem
+    // anderen Namen, sagt sie das (rueckfrageWeiter).
     if (f.id === 'unbekannt') {
       // „Weiß ich nicht" ändert keine Mitteldaten – nur die Rückfrage merkt es sich.
       const meins = s.standardMittel.some((m) => gleichText(m.mittel, x.name));
       store.rueckfrageSetzen([k], { form: 'weissnicht' });
-      melden(meins
-        ? 'Gemerkt. Die Form steht auf der Packung – angeben kannst du sie jederzeit bei deinem Mittel unter „Meine Mittel“.'
-        : 'Gemerkt. Die Form steht auf der Packung – angeben kannst du sie jederzeit beim Eintragen im Bogen.');
+      melden(`Gemerkt. Die Form von ${x.name} steht auf der Packung – angeben kannst du sie jederzeit `
+        + `${meins ? 'bei deinem Mittel unter „Meine Mittel“' : 'beim Eintragen im Bogen'}.${rueckfrageWeiter(k)}`);
       rueckfrageFokus();
       zeichne();
       return;
@@ -7951,7 +8016,8 @@ const AKTION = {
     const eigene = s.standardMittel.filter((m) => gleichText(m.mittel, x.name));
     if (eigene.length) {
       eigene.forEach((m) => store.standardAendern(m.id, { form: f.id }));
-      melden(`Form: ${f.kurzname}. Steht jetzt bei deinem Mittel unter „Meine Mittel“.${hinweisZusatz(vorher, vorherAlle)}`);
+      melden(`Form von ${x.name}: ${f.kurzname}. Steht jetzt bei deinem Mittel unter „Meine Mittel“.`
+        + `${hinweisZusatz(vorher, vorherAlle)}${rueckfrageWeiter(k)}`);
     } else {
       const e = juengsteEinnahme(s, x.name);
       if (!e) { zeichne(); return; }
@@ -7962,7 +8028,8 @@ const AKTION = {
       const nachher = store.zustandLesen();
       const y = rueckfrageOffen(nachher, k);
       if (y && merkenEinnahme(nachher, y, u)) rueckfrageSchritt(u);
-      melden(`Form: ${f.kurzname}. Bei deiner Einnahme ${wannText(e.am)} vermerkt.${hinweisZusatz(vorher, vorherAlle)}`);
+      melden(`Form von ${x.name}: ${f.kurzname}. Bei deiner Einnahme ${wannText(e.am)} vermerkt.`
+        + `${hinweisZusatz(vorher, vorherAlle)}${rueckfrageWeiter(k)}`);
     }
     rueckfrageFokus();
     zeichne();
@@ -7986,8 +8053,8 @@ const AKTION = {
       return;
     }
     if (res.fehler) { zeichne(); return; }
-    melden(res.schon ? `${x.name} steht schon bei deinen Mitteln.`
-      : `${x.name} steht jetzt bei deinen Mitteln, mit der Form „${f.kurzname}“.`);
+    melden((res.schon ? `${x.name} steht schon bei deinen Mitteln.`
+      : `${x.name} steht jetzt bei deinen Mitteln, mit der Form „${f.kurzname}“.`) + rueckfrageWeiter(x.schluessel));
     rueckfrageFokus();
     zeichne();
   },
@@ -8000,8 +8067,8 @@ const AKTION = {
     ui.rueckfrage = null;
     const x = u && u.schritt === 'merken' ? rueckfrageOffen(s, u.schluessel) : null;
     if (!x || !merkenEinnahme(s, x, u)) { zeichne(); return; }
-    melden(`Gut. Die Form gilt ab dieser Einnahme ${WECHSEL_TAGE} Tage lang, auch für weitere ohne Formangabe. `
-      + 'Eine andere kannst du beim Eintragen im Bogen angeben.');
+    melden(`Gut. Die Form von ${x.name} gilt ab dieser Einnahme ${WECHSEL_TAGE} Tage lang, auch für weitere ohne Formangabe. `
+      + `Eine andere kannst du beim Eintragen im Bogen angeben.${rueckfrageWeiter(x.schluessel)}`);
     rueckfrageFokus();
     zeichne();
   },
@@ -8021,19 +8088,23 @@ const AKTION = {
     zeichne();
   },
   /*
-   * „Nein" gilt für alle Namen, bei denen gerade danach gefragt würde:
-   * gefragt ist nach dem Menschen, nicht nach dem einzelnen Mittel. Ein
-   * Methylphenidat, das später unter einem neuen Namen dazukommt, ist ein
-   * neues Mittel und wird noch einmal gefragt – die Meldung sagt das.
+   * „Nein" gilt für jeden Methylphenidat-Namen, der bis jetzt dasteht – auch
+   * für einen ohne offene Säurefrage (alleMphSchluessel): gefragt ist nach
+   * dem Menschen, nicht nach dem einzelnen Mittel. Ein Methylphenidat, das
+   * später unter einem neuen Namen dazukommt, ist ein neues Mittel und wird
+   * noch einmal gefragt – genau das sagt die Meldung, und sie nennt die
+   * Frage beim Namen: Folgt gleich die Formfrage zu einem zweiten Namen,
+   * widerspricht sie ihr nicht.
    */
   'rueckfrage-saeure-nein': (el) => {
     const s = store.zustandLesen();
     const x = rueckfrageOffen(s, el.dataset.schluessel);
     if (!x || x.frage !== 'saeure') { zeichne(); return; }
-    store.rueckfrageSetzen(alleOffenSaeure(s), { saeure: 'nein' });
+    store.rueckfrageSetzen([...new Set([...alleOffenSaeure(s), ...alleMphSchluessel(s)])], { saeure: 'nein' });
     ui.rueckfrage = null;
-    melden('Gemerkt. Dazu fragt Body Check erst bei einem neuen Methylphenidat-Namen wieder. '
-      + 'Kommt ein Mittel gegen Magensäure dazu, trag es beim Eintragen oder unter „Meine Mittel“ ein.');
+    melden('Gemerkt. Nach einem Mittel gegen Magensäure fragt Body Check erst bei einem neuen Methylphenidat-Namen '
+      + 'wieder. Kommt eins dazu, trag es beim Eintragen oder unter „Meine Mittel“ ein.'
+      + rueckfrageWeiter(x.schluessel));
     rueckfrageFokus();
     zeichne();
   },

@@ -255,7 +255,9 @@ check(geraten2.length === 0, `kein Satz der Vorschläge trifft den Empfehlungs-A
  * die Mittel …" (das Datum endet schon mit einem Punkt). Hier ist festgehalten,
  * wie es heißen soll: unter einer Stunde in Minuten, ab einer Stunde mit
  * derselben Zehntelstunde wie vorher, nur mit Komma, und die Einzahl, wo sie
- * hingehört. Die Rechnung dahinter – ab wann „frisch gegessen" gilt – bleibt.
+ * hingehört. Knapp unter zwei Stunden ergäbe die Zehntelstunde schon „2" –
+ * unter „Erst in zwei Stunden intensiv" ein Widerspruch; dort steht „knapp 2
+ * Stunden". Die Rechnung dahinter – ab wann „frisch gegessen" gilt – bleibt.
  */
 const leerGrund = {
   eintraege: [], tage: {}, heute: vorTagen(0), eigene: [], bilanz: [],
@@ -276,7 +278,12 @@ const zeiten = [
   [61 / 60, 'Die letzte Mahlzeit ist 1 Stunde her.'],
   [1.5, 'Die letzte Mahlzeit ist 1,5 Stunden her.'],
   [1.26, 'Die letzte Mahlzeit ist 1,3 Stunden her.'],
-  [1.97, 'Die letzte Mahlzeit ist 2 Stunden her.'],
+  [116 / 60, 'Die letzte Mahlzeit ist 1,9 Stunden her.'],
+  // Knapp unter der Grenze ergäbe die Zehntelstunde schon „2" – unter
+  // „Erst in zwei Stunden intensiv" ein Widerspruch.
+  [117 / 60, 'Die letzte Mahlzeit ist knapp 2 Stunden her.'],
+  [1.97, 'Die letzte Mahlzeit ist knapp 2 Stunden her.'],
+  [119 / 60, 'Die letzte Mahlzeit ist knapp 2 Stunden her.'],
 ];
 zeiten.forEach(([std, soll]) => {
   const ist = sportGrund(std);
@@ -286,6 +293,15 @@ const alleZeiten = zeiten.map(([std]) => sportGrund(std));
 check(alleZeiten.every((t) => !/\d\.\d/.test(t)), 'in keiner dieser Zeiten ein Dezimalpunkt');
 check(raete({ ...leerGrund, letzteMahlzeitStunden: 2 }).find((x) => x.id === 'sport').titel !== 'Erst in zwei Stunden intensiv',
   'ab zwei Stunden wie bisher kein „Erst in zwei Stunden intensiv" – die Grenze selbst bleibt');
+// Jede ganze Minute bis zur Grenze: Solange die Karte „Erst in zwei Stunden
+// intensiv" sagt, nennt ihr Grund nie zwei Stunden oder mehr.
+const widersprueche = [];
+for (let min = 0; min < 120; min++) {
+  const r = raete({ ...leerGrund, letzteMahlzeitStunden: min / 60 }).find((x) => x.id === 'sport');
+  if (r.titel !== 'Erst in zwei Stunden intensiv') widersprueche.push(`${min} min: ${r.titel}`);
+  else if (/ist ([2-9]|\d{2,})(,\d)? Stunden her/.test(r.warum)) widersprueche.push(`${min} min: ${r.warum}`);
+}
+check(widersprueche.length === 0, `0 bis 119 Minuten: die Karte steht, und ihr Grund nennt nie „2 Stunden"${widersprueche.length ? ` – ${widersprueche.slice(0, 3).join(' | ')}` : ''}`);
 
 const mittelText = (mittel) => raete({ ...leerGrund, mittel }).find((x) => x.id === 'mittel').text;
 const mitDatum = mittelText([{ name: 'Pantoprazol', zuletzt: 'Sa, 31.10.' }, { name: 'Omeprazol', zuletzt: 'Mi, 04.11.' }]);
@@ -318,6 +334,9 @@ check(sport25.includes('Die letzte Mahlzeit ist 25 Minuten her.'),
 const sport90 = await mahlzeitUm('10:30');
 check(sport90.includes('Die letzte Mahlzeit ist 1,5 Stunden her.'),
   `in der App: „Die letzte Mahlzeit ist 1,5 Stunden her." (${(sport90.match(/Die letzte Mahlzeit[^.]*\.(\d[^.]*\.)?/) || [''])[0]})`);
+const sport118 = await mahlzeitUm('10:02');
+check(sport118.includes('Erst in zwei Stunden intensiv') && sport118.includes('Die letzte Mahlzeit ist knapp 2 Stunden her.'),
+  `in der App, 118 Minuten: „knapp 2 Stunden" (${(sport118.match(/Die letzte Mahlzeit[^.]*\./) || [''])[0]})`);
 await uhrSeite.close();
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
