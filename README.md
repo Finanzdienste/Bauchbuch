@@ -1073,9 +1073,9 @@ eins weg; nach dem Zusammenführen zweier Stände können auch mehr als zwölf
 eigene Mittel dastehen, und dann nennt der Satz – auf „Tag“, im Bogen und unter
 „Meine Mittel“ – die wirkliche Zahl und wie viele weg müssen. Kurz nach einer Antwort
 zählt eine halbe Sekunde lang kein Tipp auf „Tag“, damit ein Doppeltipp nicht
-gleich den nächsten Schritt beantwortet, und kein Finger auf „Rückgängig“ in
-der Meldung, damit er „Nicht mehr fragen“ nicht gleich wieder zurücknimmt
-(per Tastatur geht es sofort). Rückt die Karte nach einem Tipp
+gleich den nächsten Schritt beantwortet, und kein Finger auf der Meldung,
+auch nicht auf ihrem „Rückgängig“, damit er „Nicht mehr fragen“ nicht gleich
+wieder zurücknimmt (per Tastatur geht es sofort). Rückt die Karte nach einem Tipp
 darüber (etwa „Gelesen“ bei einem Hinweis oder „Später“ bei der Sicherung)
 unter den Finger, zählt so lange kein Tipp auf ihre Knöpfe. Die Meldung nach
 einer Antwort liegt auf schmalen Bildschirmen oft über dem nächsten Schritt;
@@ -1330,16 +1330,19 @@ Die Karte „Was sich an deinen Zahlen geändert hat“ der Fassung 28 steht auf
 „Muster“ und wird für sich gelesen; „Gelesen“ auf der einen Karte lässt die
 andere stehen.
 
-Nach einer Antwort auf die Rückfrage oder die Karte „Neu“ fängt die Meldung
-unten jeden Tipp ab, solange sie zu sehen ist: Ein Tipp auf sie schließt sie,
+Nach einer Antwort auf die Rückfrage oder die Karte „Neu“ – und wenn eine
+dieser Karten nach einem Tipp darüber unter den Finger rückt – fängt die
+Meldung unten jeden Tipp ab, solange sie zu sehen ist: Ein Tipp auf sie schließt sie,
 statt durch sie hindurch den verdeckten nächsten Schritt darunter zu treffen;
 eine Meldung mit „Rückgängig“ bleibt dabei stehen, und auch der zweite Tipp
 eines Doppeltipps endet an ihr. Sonst lässt die Meldung Tipps durch wie
 bisher – wer zwei eigene Mittel nacheinander antippt oder beim Wasser „+“ und
 gleich danach „−“, trifft beide, auch wenn die Meldung des ersten über dem
-zweiten liegt. Sie legt sich nicht über den Knopf, der sie eben ausgelöst hat:
+zweiten liegt. Eine Meldung ohne eigenen Knopf (wie „Rückgängig“) legt sich
+nicht über den Knopf, der sie eben ausgelöst hat und noch unter dem Finger
+steht, sondern zeigt sich oben:
 Wer beim Wasser „+“ oder „−“ mehrmals tippt, während die Reihe knapp über den
-Reitern steht, sieht sie oben. „Tagebuch löschen“ nimmt jetzt auch den
+Reitern steht, sieht sie dort. „Tagebuch löschen“ nimmt jetzt auch den
 Stand von vor dem letzten Einlesen mit – samt den Antworten auf die Rückfrage
 ließ er sich danach sonst unter „Mehr“ zurückholen. Und das Namensfeld unter „Meine Mittel“ steht nach „Mittel
 hinzufügen“ oder „Zu „Meine Mittel““ ganz im Bild, auch wenn die Liste der
