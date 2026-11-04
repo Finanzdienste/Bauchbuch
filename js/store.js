@@ -2119,8 +2119,19 @@ export function allesLoeschen() {
   // weiß, was die App ist.
   zustand.begruesst = true;
   try { localStorage.removeItem(KEY); } catch { /* dann eben nicht */ }
-  // Auch, was auf „Tag" wann stand – es gehört zu Mitteln, die es nicht mehr gibt.
-  try { localStorage.removeItem(GEZEIGT_KEY); } catch { /* dann eben nicht */ }
+  // Auch der Stand von vor dem letzten Einlesen: Er ist ein ganzes Tagebuch,
+  // samt den Antworten auf die Rückfrage, und „Diesen Stand zurückholen"
+  // holte das gelöschte mit einem Tipp zurück. Die Karte verspricht „Entfernt
+  // jede Eintragung aus diesem Browser".
+  try { localStorage.removeItem(VORHER); } catch { /* dann eben nicht */ }
+  // Auch, was auf „Tag" wann stand – es gehört zu Mitteln, die es nicht mehr
+  // gibt. Ebenso die Fassung im Speicher der Seite (gezeigtHier).
+  try {
+    localStorage.removeItem(GEZEIGT_KEY);
+    gezeigtHier = null;
+  } catch {
+    gezeigtHier = gezeigtSauber(null);
+  }
   merke();
   melde();
 }
@@ -2146,12 +2157,26 @@ export function rueckfrageSetzen(schluessel, patch) {
   melde();
 }
 
+/*
+ * Der Gerätespeicher im Speicher der Seite – nur, solange das Schreiben
+ * scheitert: Der Browser lässt nichts speichern (privates Fenster,
+ * eingebettete Ansicht, blockierte Website-Daten), oder der Speicher ist
+ * voll. Dann ist dieser Stand neuer als alles, was im Schlüssel steht, und
+ * gilt an seiner Stelle. So hält „Später" wenigstens für diese Sitzung, wie
+ * jede Antwort im Tagebuchstand (siehe schreibe()), und ein Tag, an dem die
+ * Rückfrage stand, zählt. Ohne das blieb die Karte nach „Später" stehen,
+ * obwohl die Meldung „frühestens in einer Woche" sagte. Gelingt ein späteres
+ * Schreiben, steht alles im Schlüssel, und das hier fällt weg.
+ */
+let gezeigtHier = null;
+
 /** Der Gerätespeicher „was stand wann auf Tag" – immer gültig, auch ohne Speicher. */
 export function gezeigtLesen() {
+  if (gezeigtHier) return klon(gezeigtHier);
   try {
     return gezeigtSauber(JSON.parse(localStorage.getItem(GEZEIGT_KEY)));
   } catch {
-    return { am: null, zu: null, tage: {} };
+    return gezeigtSauber(null);
   }
 }
 
@@ -2160,15 +2185,23 @@ export function gezeigtLesen() {
  * Schlüssel, ohne merke() und ohne melde(): Ein Stempel nach dem Zeichnen
  * zeichnet nicht noch einmal, und er schreibt nie den Tagebuchstand (ein
  * veralteter zweiter Tab überschriebe sonst den neueren). Scheitert das
- * Schreiben, kommt die Karte eben noch einmal; mehr passiert nicht.
+ * Schreiben, gilt der neue Stand im Speicher der Seite (gezeigtHier).
  */
 function gezeigtAendern(fn) {
+  const vorher = gezeigtLesen();
+  let nachher;
   try {
-    const vorher = gezeigtLesen();
-    const nachher = gezeigtSauber(fn(klon(vorher)));
-    if (JSON.stringify(nachher) === JSON.stringify(vorher)) return;
+    nachher = gezeigtSauber(fn(klon(vorher)));
+  } catch {
+    return;
+  }
+  if (JSON.stringify(nachher) === JSON.stringify(vorher)) return;
+  try {
     localStorage.setItem(GEZEIGT_KEY, JSON.stringify(nachher));
-  } catch { /* siehe oben */ }
+    gezeigtHier = null;
+  } catch {
+    gezeigtHier = nachher;
+  }
 }
 
 /**

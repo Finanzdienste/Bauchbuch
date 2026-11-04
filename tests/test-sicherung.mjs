@@ -651,8 +651,16 @@ check(JSON.stringify(json29.mphRueckfrage) === JSON.stringify(vor29.mphRueckfrag
 check(!('gezeigt' in json29) && !('v29Am' in json29)
   && Object.values(json29.mphRueckfrage).every((r) => !('tage' in r) && !('am' in r)),
 'aber nicht, wann eine Karte stand – weder „gezeigt" noch Tage an einer Antwort');
+// Vor jedem Einlesen liegt der Stand davor unter eigenem Schlüssel. „Alles
+// löschen" heißt auch ihn: Sonst holte „Diesen Stand zurückholen" das
+// gelöschte Tagebuch mit einem Tipp zurück.
+const VORHER = `${KEY}.vorher`;
+check(!!(await rohLesen(VORHER)) && (await page.locator('#view').textContent()).includes('Diesen Stand zurückholen'),
+  'vor dem Löschen: der Stand von vor dem letzten Einlesen liegt da und lässt sich zurückholen');
 await page.locator('[data-act="alles-weg"]').click();
 await page.waitForTimeout(300);
+check((await rohLesen(VORHER)) === null && !(await page.locator('#view').textContent()).includes('Diesen Stand zurückholen'),
+  '„Alles löschen" nimmt auch ihn mit: kein früherer Stand mehr, nichts zum Zurückholen');
 const leer29 = await zustand();
 check(leer29.v29Gesagt === true && JSON.stringify(leer29.mphRueckfrage) === '{}' && (await rohLesen(GEZEIGT)) === null,
   `„Alles löschen": neuer Anfang mit v29Gesagt true, ohne Antworten, der Gerätespeicher ist weg (${leer29.v29Gesagt}, ${JSON.stringify(leer29.mphRueckfrage)})`);

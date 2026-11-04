@@ -243,7 +243,7 @@ const davor = (page, a, b) => page.evaluate(([x, y]) => {
   'die Formknöpfe sind Aktionen, keine Umschalter – kein aria-pressed, nichts vorgewählt');
   check(await page.locator(`${KARTE} [role="group"]`).getAttribute('aria-label') === 'Form von Medikinet',
     'die Gruppe der Formen ist benannt');
-  check(await page.locator(SPAETER).getAttribute('aria-label') === 'Später – frühestens in einer Woche fragt Body Check noch ein letztes Mal'
+  check(await page.locator(SPAETER).getAttribute('aria-label') === 'Später – zu Medikinet frühestens in einer Woche noch ein letztes Mal'
     && await page.locator(NIE).getAttribute('aria-label') === 'Zu Medikinet nicht mehr fragen',
   '„Später" und „Nicht mehr fragen" sagen, was sie tun');
   check(gleich((await gezeigt(page)).tage, { medikinet: [HEUTE] }), `gezeigt heißt gestempelt: ${JSON.stringify((await gezeigt(page)).tage)}`);
@@ -776,7 +776,8 @@ for (const [was, fehltipp, neuere] of [
   check(gleich((await gezeigt(page)).tage, { medikinet: [HEUTE] }), 'Tag 1 gestempelt');
   await tipp(page, SPAETER);
   check(await zahl(page, KARTE) === 0 && (await gezeigt(page)).zu === HEUTE, '„Später": weg, für heute vermerkt');
-  check(await meldung(page) === 'Gut. Frühestens in einer Woche fragt Body Check noch ein letztes Mal.', 'mit Meldung');
+  check(await meldung(page) === 'Gut. Zu Medikinet fragt Body Check frühestens in einer Woche noch ein letztes Mal.',
+    'mit Meldung, die das Mittel nennt');
   await page.reload({ waitUntil: 'networkidle' });
   check(await zahl(page, KARTE) === 0, 'auch nach dem Neuladen am selben Tag');
   let zwischendurch = 0;
@@ -1711,6 +1712,53 @@ const meldungAn = (page) => page.evaluate(() => document.getElementById('toast')
   'ein Tipp auf den Text neben „Rückgängig" lässt die Meldung mit dem Knopf stehen');
   await ctx.close();
 }
+/*
+ * Ein Doppeltipp auf die Meldung: Der erste Tipp schließt sie – der zweite
+ * darf nicht durch die eben verschwundene Meldung auf den Knopf darunter
+ * gehen, den noch niemand gesehen hat. Lange nach der Antwort (die
+ * Nachtipp-Sperre ist dann vorbei), mit 100 bis 400 ms zwischen den Tipps.
+ */
+const doppelAufMeldung = async (page, abstand) => {
+  const p = await unterDerMeldung(page);
+  if (!p) return null;
+  await page.touchscreen.tap(p.x, p.y);
+  await page.waitForTimeout(abstand);
+  await page.touchscreen.tap(p.x, p.y);
+  await page.waitForTimeout(RUHE);
+  return p;
+};
+for (const [warten, abstand] of [[1200, 100], [1200, 250], [1200, 400], [3000, 250]]) {
+  // Zwei Namen, 320×568: Kapsel, „Nein" – die Meldung liegt über der Formfrage zu Methylphenidat.
+  const { ctx, page } = await iphone(ZWEI, { viewport: KLEIN });
+  await tipp(page, form('pellet'));
+  await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-nein"]`);
+  await page.waitForTimeout(warten - RUHE);
+  const p = await doppelAufMeldung(page, abstand);
+  const s = await speicher(page);
+  const f2 = s.standardMittel.find((m) => m.id === 's2').form;
+  check(!!p && p.act === 'rueckfrage-form' && !f2 && await frage(page) === fForm('Methylphenidat') && !(await meldungAn(page)),
+    `320×568, zwei Namen: Doppeltipp auf die Meldung ${warten} ms nach „Nein", ${abstand} ms Abstand – keine Form für `
+    + `Methylphenidat, die Frage steht, die Meldung ist zu (${p ? p.was : 'nichts verdeckt'}; Form: ${f2 || 'keine'})`);
+  await ctx.close();
+}
+for (const [wie, schritte] of [
+  ['„Weiß ich nicht"', [form('unbekannt')]],
+  ['Kapsel und „Ja, merken"', [form('pellet'), `${KARTE} [data-act="rueckfrage-merken"]`]],
+]) {
+  // Ein Name nur als Einnahme, 320×568: die Meldung liegt über „Später" oder „Nicht mehr fragen".
+  const { ctx, page } = await iphone({ eintraege: [nimmt('m1', 'Methylphenidat', HEUTE), NOTIZ], standardMittel: [] },
+    { viewport: KLEIN });
+  for (const sel of schritte) await tipp(page, sel);
+  await page.waitForTimeout(700);
+  const vorher = await speicher(page);
+  const p = await doppelAufMeldung(page, 250);
+  const s = await speicher(page);
+  check(!!p && gleich(s.mphRueckfrage, vorher.mphRueckfrage) && (await gezeigt(page)).zu !== HEUTE
+    && await frage(page) === F_SAEURE && !(await meldungAn(page)),
+  `320×568, ${wie}: ein Doppeltipp auf die Meldung über „${p ? p.was : '–'}" speichert nichts, die Säurefrage steht `
+    + `(${JSON.stringify(s.mphRueckfrage)}, zu ${(await gezeigt(page)).zu})`);
+  await ctx.close();
+}
 
 /* ---------- 16h. Nach einer Antwort steht die nächste Frage im Bild ---------- */
 
@@ -1861,7 +1909,7 @@ const holen = async (page) => {
   const S = await iphone(SAFARI16J, { viewport: IPHONE, app: false, ablage: true });
   check(await frage(S.page) === fForm('Medikinet') && await zahl(S.page, SPAETER) === 1, 'Safari: die Rückfrage mit „Später"');
   await tipp(S.page, SPAETER);
-  check(await meldung(S.page) === 'Gut. Frühestens in einer Woche fragt Body Check noch ein letztes Mal.'
+  check(await meldung(S.page) === 'Gut. Zu Medikinet fragt Body Check frühestens in einer Woche noch ein letztes Mal.'
     && await zahl(S.page, '.neu-karte') === 1, 'Safari: „Später" verspricht das letzte Mal, danach steht die Karte „Neu"');
   await tagWechsel(S.page, tag(7));
   check(await zahl(S.page, KARTE) === 1 && await zahl(S.page, SPAETER) === 0, 'Safari, eine Woche später: das letzte Mal, ohne „Später"');
@@ -1933,6 +1981,246 @@ const holen = async (page) => {
   check(await zahl(A.page, KARTE) === 0, 'App, Tag 8: nichts mehr');
   await S.ctx.close();
   await A.ctx.close();
+}
+
+/* ---------- 16k. Speicher gesperrt oder voll: „Später" gilt trotzdem ---------- */
+
+/*
+ * Was auf „Tag" wann stand und ob heute „Später" getippt wurde, steht in
+ * einem eigenen Gerätespeicher. Lässt der Browser nichts speichern (privates
+ * Fenster, eingebettete Ansicht, blockierte Website-Daten) oder ist der
+ * Speicher voll, ging das bisher still verloren: Die Karte blieb nach
+ * „Später" stehen, obwohl die Meldung „frühestens in einer Woche" sagte, und
+ * nach „Nicht mehr fragen" stand sofort die Frage zum zweiten Namen da. Wie
+ * jede Antwort im Tagebuch gilt es jetzt wenigstens für diese Sitzung.
+ */
+async function ohneSpeicher(viewport = IPHONE) {
+  const ctx = await browser.newContext({
+    viewport, userAgent: KENNUNG, serviceWorkers: 'block', hasTouch: true, isMobile: true,
+    timezoneId: 'Europe/Berlin', locale: 'de-DE', colorScheme: 'dark',
+  });
+  ctx.setDefaultTimeout(5000);
+  await ctx.route('**/*', (route) => {
+    const ziel = route.request().url();
+    if (ziel.startsWith(EIGEN) || ziel.startsWith('data:') || ziel.startsWith('blob:')) return route.continue();
+    fremd.push(ziel);
+    return route.abort();
+  });
+  await ctx.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true, configurable: true });
+    // So verhält sich ein Browser, der Website-Daten sperrt: Schon der Zugriff wirft.
+    Object.defineProperty(window, 'localStorage', {
+      get: () => { throw new DOMException('Website-Daten gesperrt', 'SecurityError'); }, configurable: true,
+    });
+  });
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
+  await page.clock.setFixedTime(um('08:10'));
+  await page.goto(kopie.adresse, { waitUntil: 'networkidle' });
+  return { ctx, page };
+}
+/** Den Stand über den Speicher der Seite füllen – anders geht es ohne localStorage nicht. */
+const fuellen = (page, eintraege) => page.evaluate(async ([g, liste]) => {
+  const st = await import('/js/store.js');
+  Object.entries(g).forEach(([k, v]) => { if (k !== 'tage') st.einstellen(k, v); });
+  liste.forEach((e) => st.eintragen(e));
+}, [GRUND, eintraege]);
+const imSpeicherDerSeite = (page) => page.evaluate(async () => (await import('/js/store.js')).gezeigtLesen());
+{
+  const { ctx, page } = await ohneSpeicher();
+  await fuellen(page, [NOTIZ, nimmt('e1', 'Medikinet retard', HEUTE)]);
+  await page.waitForTimeout(400);
+  check(await text(page, '#view').then((t) => t.includes('Es kann nicht gespeichert werden'))
+    && await frage(page) === F_SAEURE && await zahl(page, SPAETER) === 1,
+  'gesperrter Speicher: die Warnung steht, darunter die Säurefrage mit „Später"');
+  check(gleich((await imSpeicherDerSeite(page)).tage, { 'medikinet retard': [HEUTE] }),
+    `der Tag, an dem sie stand, zählt im Speicher der Seite (${JSON.stringify((await imSpeicherDerSeite(page)).tage)})`);
+  await tipp(page, SPAETER);
+  check(await zahl(page, KARTE) === 0 && (await imSpeicherDerSeite(page)).zu === HEUTE,
+    `gesperrt, „Später": die Karte ist weg, wie die Meldung sagt (${await meldung(page)})`);
+  await tab(page, 'mehr');
+  await tab(page, 'heute');
+  check(await zahl(page, KARTE) === 0, 'gesperrt, „Später": auch nach einem Reiterwechsel');
+  await ctx.close();
+}
+{
+  // Zwei Namen: „Nicht mehr fragen" beim ersten – für den Rest des Tages keine Rückfrage, auch nicht zum zweiten.
+  const { ctx, page } = await ohneSpeicher();
+  await fuellen(page, [NOTIZ, nimmt('e1', 'Medikinet retard', HEUTE),
+    { ...nimmt('e2', 'Ritalin', HEUTE), um: '12:30' }]);
+  await page.waitForTimeout(400);
+  check(await kopf(page) === 'Rückfrage zu Medikinet retard', 'gesperrt, zwei Namen: zuerst Medikinet retard');
+  await tipp(page, NIE);
+  check(await zahl(page, KARTE) === 0,
+    `gesperrt, „Nicht mehr fragen": heute keine Frage mehr, auch nicht zu Ritalin (${await zahl(page, KARTE) ? await kopf(page) : 'keine'})`);
+  await meldung(page);
+  await ctx.close();
+}
+{
+  // Voller Speicher: Jedes Schreiben scheitert – auch die paar Zeichen für den Gerätespeicher.
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ, nimmt('e1', 'Medikinet retard', HEUTE)], standardMittel: [] });
+  await page.evaluate(async () => {
+    Storage.prototype.setItem = function setItem() { throw new DOMException('voll', 'QuotaExceededError'); };
+    const st = await import('/js/store.js');
+    st.einstellen('ton', 'du');
+    st.sofortSchreiben();
+  });
+  await page.waitForTimeout(300);
+  check((await text(page, '#view')).includes('Der Speicher ist voll') && await frage(page) === F_SAEURE,
+    'voller Speicher: die Warnung steht, darunter die Säurefrage');
+  await tipp(page, SPAETER);
+  check(await zahl(page, KARTE) === 0 && (await imSpeicherDerSeite(page)).zu === HEUTE,
+    `voll, „Später": die Karte ist weg (${await meldung(page)})`);
+  await tab(page, 'mehr');
+  await tab(page, 'heute');
+  check(await zahl(page, KARTE) === 0, 'voll, „Später": auch nach einem Reiterwechsel');
+  // „Alles löschen" fängt auch hier neu an – auch im Speicher der Seite.
+  page.once('dialog', (d) => d.accept());
+  await tab(page, 'mehr');
+  await tipp(page, '[data-act="alles-weg"]');
+  check(gleich(await imSpeicherDerSeite(page), { am: null, zu: null, tage: {} }),
+    `voll, „Alles löschen": auch der Gerätespeicher der Sitzung ist leer (${JSON.stringify(await imSpeicherDerSeite(page))})`);
+  await ctx.close();
+}
+
+/* ---------- 16l. Mehr als zwölf eigene Mittel nach dem Zusammenführen ---------- */
+
+/*
+ * Beim Zusammenführen zweier Stände kürzt Body Check die eigenen Mittel nicht
+ * (store.zusammenfuehren) – dann stehen auch 14 da. Der Satz zum vollen Stand
+ * sagte trotzdem „schon 12" und „eins entfernen", und wer eins entfernte,
+ * fand zurück auf „Tag" wieder denselben Satz statt der Wahl. Er nennt jetzt
+ * die wirkliche Zahl und wie viele weg müssen, damit eins dazupasst.
+ */
+{
+  const ACHT = ANDERE.slice(0, 8).map((n, i) => meins(`a${i}`, n));
+  const SECHS = [...ANDERE.slice(8), 'Calcium', 'Vitamin C', 'Selen'].map((n, i) => meins(`b${i}`, n));
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ, nimmt('e1', 'Medikinet retard', HEUTE)], standardMittel: ACHT });
+  const ergebnis = await page.evaluate(async ([sechs, gestern]) => {
+    const st = await import('/js/store.js');
+    const dort = {
+      ...JSON.parse(st.alsJSON()), standardMittel: sechs,
+      eintraege: [{ id: 'x1', art: 'notiz', am: gestern, um: '09:00', text: 'von dort' }],
+    };
+    return st.einlesen(JSON.stringify(dort));
+  }, [SECHS, tag(-1)]);
+  await kurz(page);
+  check(ergebnis.zusammengefuehrt && (await speicher(page)).standardMittel.length === 14 && await frage(page) === F_SAEURE,
+    'zusammengeführt: 14 eigene Mittel, die Säurefrage steht');
+  await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-ja"]`);
+  const satz14 = await text(page, KARTE);
+  check(satz14.includes('Bei deinen Mitteln stehen schon 14 – mehr als 12 passen nicht.') && satz14.includes('drei')
+    && !satz14.includes('schon 12') && !satz14.includes('eins entfernen'),
+  `14: der Satz nennt die Zahl und dass drei weg müssen (${satz14})`);
+  await kartenText(page);
+  await tipp(page, `${KARTE} [data-act="rueckfrage-meine-mittel"]`);
+  await kurz(page);
+  const mm14 = await text(page, '#meineMittel');
+  check(mm14.includes('14') && mm14.includes('drei') && !mm14.includes('Entferne erst eins'),
+    `14, unter „Meine Mittel": derselbe Rat (${mm14.slice(mm14.indexOf('Mehr als') - 30)})`);
+  await tipp(page, '[data-act="meinmittel-weg"][data-id="b5"]');
+  await tipp(page, '[data-act="meinmittel-weg"][data-id="b5"]');
+  await tab(page, 'heute');
+  const satz13 = await text(page, KARTE);
+  check(await frage(page) === F_WELCHES && satz13.includes('schon 13') && satz13.includes('zwei')
+    && await zahl(page, `${KARTE} .rueckfrage-wahl`) === 0,
+  `eins entfernt (13), zurück auf „Tag": der Satz sagt, dass noch zwei weg müssen (${satz13})`);
+  await tipp(page, `${KARTE} [data-act="rueckfrage-meine-mittel"]`);
+  await kurz(page);
+  for (const id of ['b4', 'b3']) {
+    await tipp(page, `[data-act="meinmittel-weg"][data-id="${id}"]`);
+    await tipp(page, `[data-act="meinmittel-weg"][data-id="${id}"]`);
+  }
+  await tab(page, 'heute');
+  check(await frage(page) === F_WELCHES && await zahl(page, `${KARTE} .rueckfrage-wahl`) > 0,
+    'elf, zurück auf „Tag": jetzt steht die Wahl');
+  // Der Bogen sagt dasselbe, solange es zu viele sind: noch einmal zusammengeführt, jetzt 15.
+  await page.evaluate(async (dazu) => {
+    const st = await import('/js/store.js');
+    st.einlesen(JSON.stringify({ ...JSON.parse(st.alsJSON()), standardMittel: dazu }));
+  }, [...SECHS.slice(3), meins('c1', 'Kalium')]);
+  await kurz(page);
+  const n = (await speicher(page)).standardMittel.length;
+  await tipp(page, '[data-act="neu"][data-art="medikament"]');
+  const bogen = await text(page, '#bogenMerken');
+  check(n === 15 && bogen.includes('schon 15') && bogen.includes('vier') && !bogen.includes('eins entfernen'),
+    `15, im Bogen: der Satz nennt die Zahl und dass vier weg müssen (${n}: ${bogen})`);
+  await ctx.close();
+}
+
+/* ---------- 16m. „Später" nennt das Mittel ---------- */
+
+/*
+ * „Später" gilt dem einen Namen: Ein Methylphenidat, das an einem späteren
+ * Tag unter einem anderen Namen dazukommt, hat eigene Tage und wird eigens
+ * gefragt. Sagte die Meldung nur „Frühestens in einer Woche … ein letztes
+ * Mal", las sie sich wie eine Zusage für die ganze Rückfrage – und drei Tage
+ * später stand die Karte zu Ritalin da.
+ */
+{
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ], standardMittel: [meins('s1', 'Methylphenidat')] });
+  check(await page.locator(SPAETER).getAttribute('aria-label') === 'Später – zu Methylphenidat frühestens in einer Woche noch ein letztes Mal',
+    `„Später" sagt in der Ansage, zu welchem Mittel (${await page.locator(SPAETER).getAttribute('aria-label')})`);
+  await tipp(page, SPAETER);
+  check(await meldung(page) === 'Gut. Zu Methylphenidat fragt Body Check frühestens in einer Woche noch ein letztes Mal.',
+    'die Meldung nach „Später" nennt das Mittel');
+  await tagWechsel(page, tag(3));
+  await page.evaluate(async (e) => (await import('/js/store.js')).eintragen(e), nimmt('e3', 'Ritalin', tag(3)));
+  await kurz(page);
+  check(await kopf(page) === 'Rückfrage zu Ritalin' && await zahl(page, SPAETER) === 1,
+    'drei Tage später kommt Ritalin dazu: eine eigene Rückfrage, mit „Später"');
+  await tipp(page, SPAETER);
+  check(await meldung(page) === 'Gut. Zu Ritalin fragt Body Check frühestens in einer Woche noch ein letztes Mal.',
+    'auch dort nennt die Meldung das Mittel, um das es geht');
+  await ctx.close();
+}
+
+/* ---------- 16n. „Tagebuch löschen" nimmt auch den Stand vor dem Einlesen mit ---------- */
+
+/*
+ * Vor jedem Einlesen legt Body Check den bisherigen Stand unter einem eigenen
+ * Schlüssel ab, damit er sich zurückholen lässt. „Tagebuch löschen" ließ ihn
+ * liegen – mit allen Einträgen und den Antworten auf die Rückfrage –, und
+ * unter „Mehr" stand gleich danach „Diesen Stand zurückholen". Die Karte
+ * sagt „Entfernt jede Eintragung aus diesem Browser. Nicht rückgängig zu
+ * machen." Danach steht nur noch der neue, leere Stand im Speicher.
+ */
+{
+  const { ctx, page } = await iphone({
+    eintraege: [{ ...NOTIZ, text: 'Bauchweh nach dem Frühstück' }], standardMittel: [meins('s1', 'Medikinet adult')],
+  });
+  page.on('dialog', (d) => d.accept());
+  await tipp(page, `${KARTE} [data-act="rueckfrage-saeure-nein"]`);
+  await meldung(page);
+  // Die lange Meldung wegtippen – sie läge sonst über „Tagebuch löschen".
+  await page.locator('#toast').click();
+  await page.waitForTimeout(RUHE);
+  await page.evaluate(async (gestern) => {
+    const st = await import('/js/store.js');
+    st.einlesen(JSON.stringify({ ...JSON.parse(st.alsJSON()), eintraege: [{ id: 'x1', art: 'notiz', am: gestern, um: '09:00', text: 'von dort' }] }));
+  }, tag(-1));
+  await kurz(page);
+  const VORHER = `${KEY}.vorher`;
+  const vorherText = await page.evaluate((k) => localStorage.getItem(k) || '', VORHER);
+  check(vorherText.includes('Bauchweh') && vorherText.includes('"saeure":"nein"'),
+    'nach dem Einlesen liegt der Stand davor unter eigenem Schlüssel – mit Einträgen und Antworten');
+  await tab(page, 'mehr');
+  check((await text(page, '#view')).includes('Diesen Stand zurückholen'), 'unter „Mehr" lässt er sich zurückholen');
+  await tipp(page, '[data-act="alles-weg"]');
+  const schluessel = await page.evaluate(async () => {
+    const st = await import('/js/store.js');
+    st.sofortSchreiben();
+    return Object.keys(localStorage).filter((k) => k.startsWith('bauchbuch')).sort();
+  });
+  const alles = await page.evaluate(() => Object.keys(localStorage).map((k) => localStorage.getItem(k)).join('\n'));
+  check(gleich(schluessel, [KEY]) && !alles.includes('Bauchweh') && !alles.includes('Medikinet'),
+    `„Tagebuch löschen": danach steht nur der neue Stand im Speicher, nichts von vorher (${schluessel.join(', ')})`);
+  await tab(page, 'mehr');
+  check(!(await text(page, '#view')).includes('Diesen Stand zurückholen'), 'unter „Mehr" danach kein „Diesen Stand zurückholen"');
+  await page.reload({ waitUntil: 'networkidle' });
+  await tab(page, 'mehr');
+  check(!(await text(page, '#view')).includes('Diesen Stand zurückholen'), 'auch nach dem Neuladen nicht');
+  await ctx.close();
 }
 
 /* ---------- 16c. Was man sieht, steht auch in der Ansage ---------- */

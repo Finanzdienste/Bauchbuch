@@ -687,6 +687,9 @@ let toastUhr = null;
 function melden(text, knopf = null) {
   toastEl.textContent = text;
   toastEl.classList.toggle('mit-knopf', !!knopf);
+  // Wieder unten – ob sie einem Knopf ausweicht, entscheidet der Klick-Verteiler (meldungAusweichen).
+  toastEl.classList.remove('oben');
+  meldungNr += 1;
   if (knopf) {
     const k = document.createElement('button');
     k.type = 'button';
@@ -707,12 +710,68 @@ function melden(text, knopf = null) {
 function meldungZu() {
   clearTimeout(toastUhr);
   toastEl.classList.remove('an', 'mit-knopf');
+  meldungNachlauf(MELDUNG_AUSBLENDEN_MS);
   const k = toastEl.querySelector('button');
   // Hatte der Knopf den Fokus, fiele er mit ihm an den Anfang der Seite –
   // und VoiceOver begänne oben. Er geht dorthin, wo zuletzt etwas geschah.
   const mitFokus = k && document.activeElement === k;
   if (k) k.remove();
   if (mitFokus) fokusAnker();
+}
+
+/*
+ * Eine Meldung fängt Tipps ab, solange sie zu sehen ist (siehe beim
+ * Klick-Verteiler) – und noch einen Augenblick danach: während sie
+ * ausblendet (css/styles.css, 0,18 s), und nach einem Tipp, der sie schloss,
+ * NACHTIPP_MS lang. Sonst ginge der zweite Tipp eines Doppeltipps durch die
+ * eben verschwundene Meldung auf den Knopf darunter, den noch niemand
+ * gesehen hat – eine Form, die niemand gewählt hat, oder das nur einmal
+ * angebotene „Später". In dieser Zeit bewirkt ein Finger auf der Meldung
+ * nichts, auch auf einer, die gerade neu erschienen ist.
+ */
+const MELDUNG_AUSBLENDEN_MS = 250;
+let meldungNr = 0;
+let meldungRuhe = false;
+let meldungRuheUhr = 0;
+function meldungNachlauf(ms) {
+  meldungRuhe = true;
+  toastEl.classList.add('faengt');
+  clearTimeout(meldungRuheUhr);
+  meldungRuheUhr = setTimeout(() => {
+    meldungRuhe = false;
+    toastEl.classList.remove('faengt');
+  }, ms);
+}
+
+/*
+ * Eine Meldung ohne Knopf legt sich nicht über den Knopf, der sie eben
+ * ausgelöst hat und noch unter dem Finger steht – sie zeigt sich dann oben,
+ * wie bei offenem Bogen. Wer zählt („+" und „−" beim Wasser), tippt dieselbe
+ * Stelle gleich noch einmal, und den Knopf hat er eben noch gesehen; lag die
+ * Meldung darüber, schloss jeder zweite Tipp nur sie, und ein Glas fehlte.
+ * „Derselbe Knopf" heißt: dieselbe Aktion mit denselben Angaben (data-*) an
+ * der Stelle des Tipps, nach dem Neuzeichnen. Springt die Karte nach einer
+ * Antwort zum nächsten Schritt, steht dort ein anderer Knopf, und die
+ * Meldung bleibt unten über dem, was noch niemand gesehen hat. Eine Meldung
+ * mit „Rückgängig" bleibt, wo sie war: Ihr Knopf gehört unter den Finger.
+ */
+const knopfZeichen = (el) => [...el.attributes].filter((a) => a.name.startsWith('data-'))
+  .map((a) => `${a.name}=${a.value}`).sort().join('&');
+function meldungAusweichen(zeichen, x, y) {
+  if (!toastEl.classList.contains('an') || toastEl.classList.contains('mit-knopf')
+    || document.body.classList.contains('bogen-auf')) return;
+  const k = [...viewEl.querySelectorAll('[data-act]')].find((b) => {
+    if (knopfZeichen(b) !== zeichen) return false;
+    const r = b.getBoundingClientRect();
+    return x >= r.left - 2 && x <= r.right + 2 && y >= r.top - 2 && y <= r.bottom + 2;
+  });
+  if (!k) return;
+  const r = k.getBoundingClientRect();
+  const m = toastEl.getBoundingClientRect();
+  // Beim Erscheinen gleitet sie von 12 Pixeln weiter unten herein.
+  if (r.left < m.right && m.left < r.right && r.top < m.bottom && m.top - 12 < r.bottom) {
+    toastEl.classList.add('oben');
+  }
 }
 
 /*
@@ -833,6 +892,55 @@ function fokusNachEntfernen(hatteFokus) {
 /* ==================== Bausteine ==================== */
 
 const knopf = (act, text, klasse = '', extra = '') => `<button type="button" class="btn ${klasse}" data-act="${act}" ${extra}>${text}</button>`;
+
+/*
+ * „Meine Mittel" ist voll: wie viele dort stehen und wie viele weg müssen,
+ * damit eins dazukommt. Meist ist es eins – mehr als STANDARD_HOECHSTENS
+ * lässt das Merken nicht zu. Beim Zusammenführen zweier Stände kürzt der
+ * Speicher aber nicht (zusammenfuehren in js/store.js); dann stehen auch 14
+ * da. Ein Satz mit „schon 12" und „eins entfernen" führte dann nach dem
+ * Entfernen zurück zum selben Satz. Bei genau STANDARD_HOECHSTENS bleibt
+ * jeder Satz, wie er war.
+ */
+const ZAHLWORT = ['null', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun', 'zehn', 'elf', 'zwölf'];
+function zuVieleMittel(s) {
+  const n = s.standardMittel.length;
+  const weg = Math.max(1, n - store.STANDARD_HOECHSTENS + 1);
+  const wort = ZAHLWORT[weg] || String(weg);
+  return { n, mehr: n > store.STANDARD_HOECHSTENS, wort, wieViele: weg === 1 ? 'eins, das' : `${wort}, die` };
+}
+/** Der Satz auf „Tag" (Rückfrage) und im Bogen. */
+function vollSatz(s) {
+  const v = zuVieleMittel(s);
+  return v.mehr
+    ? `Bei deinen Mitteln stehen schon ${v.n} – mehr als ${store.STANDARD_HOECHSTENS} passen nicht. Damit eins
+      dazukommt, entferne unter „Mehr“ erst ${v.wieViele} du nicht mehr nimmst.`
+    : `Bei deinen Mitteln stehen schon ${store.STANDARD_HOECHSTENS} – mehr passen nicht. Unter „Mehr“ kannst du
+      eins entfernen, das du nicht mehr nimmst.`;
+}
+/** Der Satz unter „Meine Mittel" selbst. */
+function vollSatzHier(s) {
+  const v = zuVieleMittel(s);
+  return v.mehr
+    ? `Hier stehen ${v.n} – mehr als ${store.STANDARD_HOECHSTENS} passen nicht. Damit eins dazukommt, entferne
+      erst ${v.wieViele} du nicht mehr nimmst.`
+    : `Mehr als ${store.STANDARD_HOECHSTENS} passen nicht. Entferne erst eins, das du nicht mehr nimmst.`;
+}
+/** Die Meldung, wenn ein Merken an der Höchstzahl scheitert. */
+function vollMeldung(s) {
+  const v = zuVieleMittel(s);
+  return `Mehr als ${store.STANDARD_HOECHSTENS} eigene Mittel passen nicht${v.mehr ? `, und es stehen schon ${v.n}` : ''}. `
+    + `Entferne erst ${v.wieViele} du nicht mehr nimmst.`;
+}
+/** Die Meldung nach dem Eintragen, wenn „Als mein Mittel merken" an der Höchstzahl scheitert. */
+function vollBeimEintragen(getan) {
+  const v = zuVieleMittel(store.zustandLesen());
+  return v.mehr
+    ? `${getan}. Bei deinen Mitteln ist kein Platz mehr – höchstens ${store.STANDARD_HOECHSTENS}, es stehen schon ${v.n}. `
+      + `Damit eins dazukommt, entferne unter „Mehr“ erst ${v.wort}.`
+    : `${getan}. Bei deinen Mitteln ist kein Platz mehr – höchstens ${store.STANDARD_HOECHSTENS}. `
+      + 'Unter „Mehr“ kannst du eins entfernen.';
+}
 
 /** Eine Reihe an- und abwählbarer Marken. */
 function marken(liste, gewaehlt, act) {
@@ -1761,8 +1869,7 @@ function rueckfrageKarte(f, s) {
     frage = 'Welches Mittel gegen Magensäure?';
     const zurueck = knopf('rueckfrage-zurueck', 'Zurück', 'btn-ghost btn-klein', mitK());
     teil = s.standardMittel.length >= store.STANDARD_HOECHSTENS
-      ? `<p class="klein">Bei deinen Mitteln stehen schon ${store.STANDARD_HOECHSTENS} – mehr
-        passen nicht. Unter „Mehr“ kannst du eins entfernen, das du nicht mehr nimmst.</p>
+      ? `<p class="klein">${vollSatz(s)}</p>
         <div class="reihe">${knopf('rueckfrage-meine-mittel', 'Zu „Meine Mittel“', 'btn-primary', mitK())} ${zurueck}</div>`
       : `<p class="klein">Wähl den Namen, der auf der Packung steht. Er kommt unter „Meine Mittel“, ohne
         Dosis – die kannst du dort ergänzen. Eine Einnahme wird dabei nicht notiert.</p>
@@ -1792,7 +1899,7 @@ function rueckfrageKarte(f, s) {
   const weg = schritt === 'form' || schritt === 'saeure'
     ? `<div class="reihe rueckfrage-weg">
       ${erster ? knopf('rueckfrage-spaeter', 'Später', 'btn-ghost btn-klein',
-    mitK('aria-label="Später – frühestens in einer Woche fragt Body Check noch ein letztes Mal"')) : ''}
+    mitK(`aria-label="${esc(`Später – zu ${x.name} frühestens in einer Woche noch ein letztes Mal`)}"`)) : ''}
       ${knopf('rueckfrage-nie', 'Nicht mehr fragen', 'btn-ghost btn-klein',
     mitK(`aria-label="${esc(`Zu ${x.name} nicht mehr fragen`)}"`))}
     </div>` : '';
@@ -1840,7 +1947,7 @@ function saeureAnlegen(name, trotzdem) {
   const vorherAlle = wechselAlle();
   const res = store.standardMerken({ mittel: n, dosis: '', tageszeit: null, bezug: null });
   if (res.fehler === 'voll') {
-    melden(`Mehr als ${store.STANDARD_HOECHSTENS} eigene Mittel passen nicht. Entferne erst eins, das du nicht mehr nimmst.`);
+    melden(vollMeldung(store.zustandLesen()));
     return;
   }
   if (res.fehler) return;
@@ -5891,8 +5998,7 @@ function meineMittelKarte(s) {
     ${hinweisTeil}
     ${f && !f.id ? formular() : ''}
     ${f ? '' : (voll
-    ? `<p class="klein">Mehr als ${store.STANDARD_HOECHSTENS} passen nicht. Entferne erst eins,
-       das du nicht mehr nimmst.</p>`
+    ? `<p class="klein">${vollSatzHier(s)}</p>`
     : `<div class="reihe">${knopf('meinmittel-neu', 'Mittel hinzufügen')}</div>`)}
   </div>`;
 }
@@ -6432,8 +6538,7 @@ function merkenTeil(s, b) {
       ${b.alsStandard ? '<p class="klein">Beim Eintragen kommt es als weiteres Mittel dazu – etwa für eine zweite Zeit am Tag.</p>' : ''}`;
   }
   if (voll) {
-    return `<p class="klein">Bei deinen Mitteln stehen schon ${store.STANDARD_HOECHSTENS} – mehr
-      passen nicht. Unter „Mehr“ kannst du eins entfernen, das du nicht mehr nimmst.</p>`;
+    return `<p class="klein">${vollSatz(s)}</p>`;
   }
   return `<div class="reihe">${schalter('standard-umschalten', !!b.alsStandard, 'Als mein Mittel merken')}</div>
     ${b.alsStandard ? `<p class="klein">Mit Dosis${e.ungefaehr ? ' und Zeit' : ''} – beim nächsten Mal genügt ein Tipp, auch auf dem Tag-Reiter.</p>` : ''}`;
@@ -7511,8 +7616,7 @@ function bogenSpeichern() {
     gemerkt: `${getan} und bei deinen Mitteln gemerkt.`,
     geaendert: `${getan} und dein Mittel angepasst.`,
     schon: `${getan}. So steht es schon bei deinen Mitteln.`,
-    voll: `${getan}. Bei deinen Mitteln ist kein Platz mehr – höchstens ${store.STANDARD_HOECHSTENS}. `
-      + 'Unter „Mehr“ kannst du eins entfernen.',
+    voll: vollBeimEintragen(getan),
   }[gemerkt] || (dazuNeu.length ? `${getan}, mit ${undListe(dazuNeu)}.` : `${getan}.`);
   const zusatz = [
     dazuDa.length ? `${undListe(dazuDa)} ${dazuDa.length === 1 ? 'stand' : 'standen'} schon da.` : '',
@@ -8110,7 +8214,7 @@ const AKTION = {
       mittel: x.name, dosis: e.dosis || '', tageszeit: null, bezug: null, form: f.id,
     });
     if (res.fehler === 'voll') {
-      melden(`Mehr als ${store.STANDARD_HOECHSTENS} eigene Mittel passen nicht. Entferne erst eins, das du nicht mehr nimmst.`);
+      melden(vollMeldung(store.zustandLesen()));
       zeichne();
       return;
     }
@@ -8137,8 +8241,9 @@ const AKTION = {
   /*
    * „Ja" führt zur Wahl. Ist „Meine Mittel" voll, steht dort der Satz dazu
    * und der Weg hin. Der Tag zählt trotzdem (siehe tagAnsicht): Den Weg gibt
-   * es gleich, und WELCHES bleibt für den Rest des Tages stehen – wer eins
-   * entfernt und zurückkommt, findet die Wahl.
+   * es gleich, und WELCHES bleibt für den Rest des Tages stehen – wer so
+   * viele entfernt, wie der Satz sagt (meist eins, nach dem Zusammenführen
+   * auch mehr, siehe zuVieleMittel), und zurückkommt, findet die Wahl.
    */
   'rueckfrage-saeure-ja': (el) => {
     const s = store.zustandLesen();
@@ -8189,14 +8294,23 @@ const AKTION = {
   },
   // „Meine Mittel" ist voll: dorthin, zur Liste mit den Knöpfen zum Entfernen –
   // ohne ein Formular für ein neues Mittel, das sich ohnehin nicht speichern
-  // ließe. Beim Zurückkommen (am selben Tag) steht die Wahl wieder da.
+  // ließe. Ist danach Platz, steht beim Zurückkommen (am selben Tag) die Wahl
+  // da; sonst sagt der Satz, wie viele noch weg müssen.
   'rueckfrage-meine-mittel': () => meineMittelZeigen({ formular: false }),
-  // „Später" und „Nicht mehr fragen": für heute keine Rückfrage mehr, auch
-  // nicht zu einem zweiten Namen.
-  'rueckfrage-spaeter': () => {
+  /*
+   * „Später" und „Nicht mehr fragen": für heute keine Rückfrage mehr, auch
+   * nicht zu einem zweiten Namen. Die Meldung nennt das Mittel, wie jede
+   * Meldung nach einer Antwort: Die Woche gilt diesem Namen. Ein
+   * Methylphenidat, das an einem späteren Tag unter einem anderen Namen
+   * dazukommt, hat eigene Tage – ohne den Namen läse sich die Meldung wie
+   * eine Zusage für die ganze Rückfrage.
+   */
+  'rueckfrage-spaeter': (el) => {
+    const x = rueckfrageOffen(store.zustandLesen(), el.dataset.schluessel);
+    if (!x) { zeichne(); return; }
     store.rueckfrageZu(heuteISO());
     ui.rueckfrage = null;
-    melden('Gut. Frühestens in einer Woche fragt Body Check noch ein letztes Mal.');
+    melden(`Gut. Zu ${x.name} fragt Body Check frühestens in einer Woche noch ein letztes Mal.`);
     zeichne();
   },
   /*
@@ -8293,7 +8407,7 @@ const AKTION = {
     const r = f.id ? store.standardAendern(f.id, f) : store.standardMerken(f);
     if (r.fehler === 'leer') { melden('Wie heißt das Mittel?'); return; }
     if (r.fehler === 'voll') {
-      melden(`Mehr als ${store.STANDARD_HOECHSTENS} eigene Mittel passen nicht. Entferne erst eins, das du nicht mehr nimmst.`);
+      melden(vollMeldung(store.zustandLesen()));
       return;
     }
     if (r.schon || r.fehler === 'doppelt') { melden('Genau so steht es schon bei deinen Mitteln.'); return; }
@@ -9207,7 +9321,12 @@ const AKTION = {
     // unter „Mehr" und löscht Monate.
     if (!window.confirm('Wirklich alles löschen? Das lässt sich nicht rückgängig machen.')) return;
     store.allesLoeschen();
-    ui.bericht = null;
+    // Auch, was davon noch im Speicher der Seite liegt: der Bericht, die
+    // Sicherung als Text und was ein „Rückgängig" zurückholen würde – ein
+    // gelöschter Eintrag, ein entferntes Mittel.
+    Object.assign(ui, {
+      bericht: null, sicherung: null, geloescht: null, entfernt: null, pauseZurueck: null, rueckfrage: null,
+    });
     melden('Alles gelöscht.');
     zeichne();
   },
@@ -9279,11 +9398,23 @@ document.addEventListener('click', (ev) => {
   ev.preventDefault();
   const imInhalt = viewEl.contains(el);
   if (imInhalt && (ui.nachtipp === 'inhalt' || (ui.nachtipp === 'karte' && el.closest(V29_KARTEN)))) return;
-  if (ui.nachtipp === 'inhalt' && ev.detail > 0 && toastEl.contains(el)) return;
+  const inMeldung = toastEl.contains(el);
+  if ((ui.nachtipp === 'inhalt' || meldungRuhe) && ev.detail > 0 && inMeldung) return;
   // Nur bei Tipp oder Klick (detail > 0): Ein Tastendruck hat keinen Finger,
   // der liegen bliebe, und keinen Klickpunkt.
   const vorher = imInhalt && ev.detail > 0 ? v29Lagen() : null;
+  const zeichen = imInhalt && ev.detail > 0 ? knopfZeichen(el) : null;
+  const nr = meldungNr;
   fn(el);
+  // Ein Finger auf „Rückgängig" in der Meldung: Der zweite Tipp eines
+  // Doppeltipps endet an der Stelle der Meldung (meldungNachlauf).
+  if (inMeldung && ev.detail > 0) meldungNachlauf(NACHTIPP_MS);
+  // Hat der Tipp eine Meldung gebracht: Liegt sie über dem Knopf, der noch
+  // unter dem Finger steht, weicht sie ihm aus – nach dem Neuzeichnen.
+  if (zeichen && meldungNr !== nr) {
+    const { clientX: mx, clientY: my } = ev;
+    queueMicrotask(() => meldungAusweichen(zeichen, mx, my));
+  }
   if (NACH_ANTWORT.test(el.dataset.act)) {
     nachtippSperren();
   } else if (vorher) {
@@ -9306,11 +9437,18 @@ document.addEventListener('click', (ev) => {
  * Eine Meldung mit Knopf („Rückgängig") bleibt dabei stehen – ein Tipp neben
  * den Knopf nähme sonst den einzigen Weg zurück –, und kurz nach einer
  * Antwort (nachtippSperren) bewirkt ein Finger auch hier nichts.
+ *
+ * Nach dem Schließen fängt sie noch einen Augenblick weiter ab
+ * (meldungNachlauf): Der zweite Tipp eines Doppeltipps endet hier, statt
+ * durch die eben verschwundene Meldung den Knopf darunter zu treffen.
  */
 toastEl.addEventListener('click', (ev) => {
-  if (ev.target.closest('[data-act]') || toastEl.classList.contains('mit-knopf')) return;
+  if (ev.target.closest('[data-act]')) return;
+  if (!toastEl.classList.contains('an') || (meldungRuhe && ev.detail > 0)) return;
+  if (toastEl.classList.contains('mit-knopf')) return;
   if (ui.nachtipp === 'inhalt' && ev.detail > 0) return;
   meldungZu();
+  if (ev.detail > 0) meldungNachlauf(NACHTIPP_MS);
 });
 
 /*

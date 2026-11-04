@@ -494,6 +494,78 @@ const ALT = {
   await ctx.close();
 }
 
+/* ---------- 4b. Knapp über den Reitern zählt jeder Tipp ---------- */
+
+/*
+ * Die Wasserreihe steht weit unten auf „Tag"; wer zu ihr rollt, hat sie oft
+ * knapp über den Reitern – dort, wo auch die Meldung „Ein Glas dazu. …"
+ * erscheint. Eine Meldung fängt Tipps ab, damit niemand blind einen Knopf
+ * unter ihr trifft. Lag sie aber über dem Knopf, den man eben gedrückt hat
+ * und gleich noch einmal drückt, schloss jeder zweite Tipp nur sie, und ein
+ * Glas fehlte. Deshalb weicht sie diesem Knopf aus: Jeder Tipp zählt, und
+ * die Meldung liegt nie über ihm. Mit dem Finger, wie auf dem Telefon.
+ */
+async function mitFinger(stand, viewport) {
+  const ctx = await browser.newContext({ viewport, userAgent: KENNUNG, serviceWorkers: 'block', hasTouch: true, isMobile: true });
+  await ctx.addInitScript(([k, s]) => {
+    Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true, configurable: true });
+    try { if (s && !localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify(s)); } catch { /* about:blank */ }
+  }, [KEY, stand]);
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => fehler.push(`PAGEERROR: ${e.message}`));
+  await page.goto(kopie.adresse, { waitUntil: 'networkidle' });
+  return { ctx, page };
+}
+{
+  const mitWasser = (n) => ({
+    ...ALT, v28Gesagt: true, v29Gesagt: true, startbildschirmWeg: true,
+    tage: { ...ALT.tage, ...(n ? { [heute]: { wasser: n } } : {}) },
+  });
+  const ueberdeckt = (page, sel) => page.evaluate((s) => {
+    const t = document.getElementById('toast');
+    if (!t.classList.contains('an')) return false;
+    const a = t.getBoundingClientRect();
+    const b = document.querySelector(s).getBoundingClientRect();
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  }, sel);
+  const daneben = [];
+  let faelle = 0;
+  for (const vp of [{ width: 320, height: 568 }, { width: 375, height: 667 }, { width: 390, height: 844 }]) {
+    for (const [sel, start, soll] of [['#wasserWeniger', 4, [3, 2, 1]], ['#wasserMehr', 0, [1, 2, 3]]]) {
+      const { ctx, page } = await mitFinger(mitWasser(start), vp);
+      await page.waitForTimeout(200);
+      // Die Reihe 12 Pixel über die Reiter rollen – so weit, wie man rollt, bis sie auftaucht.
+      const luecke = await page.evaluate(() => {
+        const r = document.querySelector('.wasser').getBoundingClientRect();
+        const unten = document.getElementById('tabbar').getBoundingClientRect().top;
+        window.scrollBy(0, r.bottom - (unten - 12));
+        return Math.round(unten - document.querySelector('.wasser').getBoundingClientRect().bottom);
+      });
+      await page.waitForTimeout(150);
+      const b = await page.locator(sel).boundingBox();
+      const reihe = [];
+      const bedeckt = [];
+      for (let i = 0; i < 3; i++) {
+        await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+        await page.waitForTimeout(800);
+        reihe.push(wasserVon((await speicher(page)).tage[heute]));
+        bedeckt.push(await ueberdeckt(page, sel));
+      }
+      const m = (await page.locator('#toast').textContent()) || '';
+      faelle += 1;
+      if (luecke !== 12 || reihe.join() !== soll.join() || bedeckt.some(Boolean)
+        || !m.includes(`Heute: ${soll[2] === 1 ? '1 Glas' : `${soll[2]} Gläser`}.`)) {
+        daneben.push(`${vp.width}×${vp.height} ${sel}: ${reihe.join(', ')} statt ${soll.join(', ')}, `
+          + `Meldung über dem Knopf ${bedeckt.join('/')}, Abstand ${luecke}, „${m}"`);
+      }
+      await ctx.close();
+    }
+  }
+  check(faelle === 6 && daneben.length === 0,
+    `knapp über den Reitern zählt jeder Tipp auf „−" und „+", und die Meldung liegt nie über dem Knopf (${faelle} Fälle`
+    + `${daneben.length ? `; daneben: ${daneben.join(' | ')}` : ''})`);
+}
+
 /* ---------- 5. Sicherung, Einlesen, Zusammenführen ---------- */
 
 {

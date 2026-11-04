@@ -1047,8 +1047,10 @@ genau das, was fehlt, und sonst nichts:
 
 Danach erscheint die passende Karte von selbst; die Rückfrage stellt nichts
 fest, sie sagt nur, warum sie fragt („Davon hängt ab, ob es zu deinen Mitteln
-einen Hinweis gibt“). Jede Meldung nach einer Antwort nennt das Mittel, und
-springt die Karte danach zu einem zweiten Methylphenidat-Namen, endet sie mit
+einen Hinweis gibt“). Jede Meldung nach einer Antwort nennt das Mittel – auch
+die nach „Später“, denn die Woche gilt diesem Namen; ein Methylphenidat, das an
+einem späteren Tag unter einem anderen Namen dazukommt, wird eigens gefragt –,
+und springt die Karte danach zu einem zweiten Methylphenidat-Namen, endet sie mit
 „Jetzt zu {Name}.“ Verschwindet ein Hinweis der Stufe A, weil die Form
 keinen ergibt, sagt die Meldung, dass das nicht heißt, dass beides
 zusammenpasst. **Kein Drängeln:** Je Name steht die Karte auf einem Telefon an
@@ -1059,8 +1061,11 @@ mit der Tastatur arbeitet, landet mit dem Fokus darauf), ein neuer Name ist ein
 neues Mittel. Das gilt ohne Ausnahme: Ein angefangener Schritt (etwa die Wahl
 nach „Ja“) gilt nur an seinem Tag, auch wenn die App über Nacht offen bleibt,
 und ein Tag zählt auch dann, wenn „Ja“ an einem vollen „Meine Mittel“
-scheitert – dann führt ein Knopf zur Liste, in der man eins entfernen kann,
-und zurück auf „Tag“ steht am selben Tag die Wahl. Kurz nach einer Antwort
+scheitert – dann führt ein Knopf zur Liste, in der man entfernen kann, was man
+nicht mehr nimmt, und zurück auf „Tag“ steht am selben Tag die Wahl. Meist muss
+eins weg; nach dem Zusammenführen zweier Stände können auch mehr als zwölf
+eigene Mittel dastehen, und dann nennt der Satz – auf „Tag“, im Bogen und unter
+„Meine Mittel“ – die wirkliche Zahl und wie viele weg müssen. Kurz nach einer Antwort
 zählt eine halbe Sekunde lang kein Tipp auf „Tag“, damit ein Doppeltipp nicht
 gleich den nächsten Schritt beantwortet, und kein Finger auf „Rückgängig“ in
 der Meldung, damit er „Nicht mehr fragen“ nicht gleich wieder zurücknimmt
@@ -1069,7 +1074,7 @@ darüber (etwa „Gelesen“ bei einem Hinweis oder „Später“ bei der Sicher
 unter den Finger, zählt so lange kein Tipp auf ihre Knöpfe. Die Meldung nach
 einer Antwort liegt auf schmalen Bildschirmen oft über dem nächsten Schritt;
 ein Tipp auf sie schließt sie nur und beantwortet nie die verdeckte Frage
-darunter. Fällt mit einer Antwort eine Karte darüber weg (etwa der Hinweis
+darunter, auch nicht der zweite Tipp eines Doppeltipps. Fällt mit einer Antwort eine Karte darüber weg (etwa der Hinweis
 zur unbekannten Form), rückt die Rückfrage ins Bild, statt über den oberen
 Rand zu verschwinden, und der Fokus steht auf ihrer Frage. Sie verdrängt
 nie, was schon dasteht: Stehen zwei Hinweise der Stufe A oder einer und das
@@ -1077,7 +1082,10 @@ Angebot da, wartet sie. Die
 Antworten stehen im Tagebuch und reisen mit der Sicherung – aber nur zu Namen,
 die dort noch vorkommen. An welchen Tagen die Karte zu sehen war, steht in
 einem eigenen Speicher auf dem Gerät, nie im Tagebuch und nie in einer
-Sicherung, und gezählt wird ein Tag nur, wenn die Seite sichtbar ist. Beim
+Sicherung, und gezählt wird ein Tag nur, wenn die Seite sichtbar ist. Lässt der
+Browser nichts speichern (etwa ein privates Fenster) oder ist der Speicher voll,
+gilt das wenigstens für die laufende Sitzung – „Später“ und „Nicht mehr fragen“
+halten dann wie jede andere Antwort. Beim
 Umzug von Safari in die App auf demselben iPhone reisen diese Tage in der
 Zwischenablage mit (nur zu Namen, die im Tagebuch noch vorkommen), damit die
 zwei Tage und „Später“ auch dort gelten. Wer dagegen auf einem anderen Gerät
@@ -1319,7 +1327,12 @@ andere stehen.
 Überall in der App fängt die Meldung unten jetzt jeden Tipp ab, solange sie
 zu sehen ist: Ein Tipp auf sie schließt sie, statt durch sie hindurch den
 verdeckten Knopf darunter zu treffen; eine Meldung mit „Rückgängig“ bleibt
-dabei stehen. Und das Namensfeld unter „Meine Mittel“ steht nach „Mittel
+dabei stehen. Auch der zweite Tipp eines Doppeltipps endet an ihr, und sie
+legt sich nicht über den Knopf, der sie eben ausgelöst hat: Wer beim Wasser
+„+“ oder „−“ mehrmals tippt, während die Reihe knapp über den Reitern steht,
+sieht sie oben, und jeder Tipp zählt. „Tagebuch löschen“ nimmt jetzt auch den
+Stand von vor dem letzten Einlesen mit – samt den Antworten auf die Rückfrage
+ließ er sich danach sonst unter „Mehr“ zurückholen. Und das Namensfeld unter „Meine Mittel“ steht nach „Mittel
 hinzufügen“ oder „Zu „Meine Mittel““ ganz im Bild, auch wenn die Liste der
 eigenen Mittel lang ist – vorher lag es dann hinter den Reitern.
 
@@ -2263,7 +2276,8 @@ den Stand im Speicher ersetzt, ohne Rückfrage. Jetzt wird zusammengeführt,
 sobald schon etwas da ist: Einträge, Ideen und Listen über ihre Kennung,
 Tagesfragen je Tag und je Feld, Einstellungen nur dort, wo noch nichts
 umgestellt wurde. Vorher liegt der alte Stand unter eigenem Schlüssel und
-lässt sich unter „Sicherung" zurückholen.
+lässt sich unter „Sicherung" zurückholen – bis „Tagebuch löschen", das ihn
+mitnimmt.
 
 ### Neue Fassungen kommen von selbst
 
@@ -2449,7 +2463,7 @@ den Rückgabewert.
 | `test-muster.mjs` | ein gepflanzter Zusammenhang wird gefunden, ein zu dünner nicht |
 | `test-verlauf.mjs` | Kacheln, Balken, Kalender – und die Lücke bleibt eine Lücke |
 | `test-bericht.mjs` | die Zahlen im Arztbericht – keine Zeile mit 80 Zeichen, auch mit einem 80 Zeichen langen Mittelnamen und allen Abschnitten an; die Abschnitte zum Einschalten nur mit ihrem Schalter, auch wenn sonst nichts eingetragen ist; Form, Paare samt Frage, Vorher-Nachher ohne Urteil beim ADHS-Mittel und W1 oben in IN KÜRZE; der Vorbehalt an Massage, Massagepistole und Wärme unter NACH AKTIVITÄTEN mit jedem Schalterstand |
-| `test-sicherung.mjs` | sichern, alles löschen, wieder einlesen – über echte Dateien; gelesene Hinweise zu zwei langen Mittelnamen bleiben gelesen; die Antworten auf die Rückfrage reisen mit, aber nur zu Namen, die noch vorkommen, nie, wann eine Karte stand; Unsinn fällt weg, ein älterer Stand lädt unverändert |
+| `test-sicherung.mjs` | sichern, alles löschen, wieder einlesen – über echte Dateien; „Alles löschen“ nimmt auch den Stand von vor dem letzten Einlesen mit; gelesene Hinweise zu zwei langen Mittelnamen bleiben gelesen; die Antworten auf die Rückfrage reisen mit, aber nur zu Namen, die noch vorkommen, nie, wann eine Karte stand; Unsinn fällt weg, ein älterer Stand lädt unverändert |
 | `test-persist.mjs` | die Ein-Datei-Fassung übersteht Neuladen und Neustart |
 | `test-offline.mjs` | Service Worker, offline eintragen, offline auswerten – ohne Netz auch für den Service Worker, keine einzige Anfrage am Server |
 | `test-ideen.mjs` | eintragen, abhaken, kopieren, die Erinnerung ans Verschicken – und Ideen bleiben aus der Auswertung heraus |
@@ -2496,7 +2510,7 @@ den Rückgabewert.
 | `test-anfang.mjs` | die Frühphase ist kürzer, sagt aber genauso genau, was fehlt – und die Warnzeichen überleben die Kürzung |
 | `test-kalender.mjs` | CRLF, 75 Oktette, maskierte Kommas: eine `.ics`, die der Kalender nicht annimmt, sieht im Browser aus wie eine, die er annimmt |
 | `test-stufenplan.mjs` | eine Karenz ohne Wirkung muss den Plan beenden, nicht weiterführen – und ein fehlender erster Tag darf kein Urteil über die kleine Menge ergeben |
-| `test-wasser.mjs` | als iPhone mit 320 Pixeln: ein Tipp, ein Glas, auch gestern, nie morgen und nie als Mahlzeit; dasselbe Tagebuch mit und ohne Wasser ergibt in zwanzig Rechnungen und im Bericht dasselbe; beim Zusammenführen gewinnt die größere Zahl – und alte Stände laden mit dem Zählen an |
+| `test-wasser.mjs` | als iPhone mit 320 Pixeln: ein Tipp, ein Glas, auch gestern, nie morgen und nie als Mahlzeit; knapp über den Reitern zählt mit dem Finger jeder Tipp auf „+“ und „−“, die Meldung liegt nie über dem Knopf; dasselbe Tagebuch mit und ohne Wasser ergibt in zwanzig Rechnungen und im Bericht dasselbe; beim Zusammenführen gewinnt die größere Zahl – und alte Stände laden mit dem Zählen an |
 | `test-aktivitaet.mjs` | als iPhone mit 320 Pixeln: Bogen mit eigenen Aktivitäten, „Zuletzt gemacht" mit einem Tipp, Ändern, Löschen, „Als Mahlzeit eintragen" mit „Auswärts gegessen"; dasselbe Tagebuch mit und ohne Aktivitäten ergibt in achtundzwanzig Rechnungen und im Bericht dasselbe; Gym an jedem dritten Tag mit Beschwerden danach fällt auf, drei Feiern, Lücken, laufende Fenster und ungeklärte Reihenfolgen nicht, und Zufall auch nicht – und alte Stände laden weiter |
 | `test-umstand-muster.mjs` | als iPhone mit 320 Pixeln: große Portion, spät und auswärts als stärkster Fund – „Muster" zeichnet ohne Fehler, „Was Sache ist" nennt den Umstand ohne Mengensatz; bei einer Zutat steht die Menge weiter da |
 | `test-loeschen-schmal.mjs` | als iPhone mit 320 Pixeln und dem Finger: „Löschen?" verschiebt die Zeile nicht, der zweite Tipp an derselben Stelle löscht – auch im oberen Drittel des ×; danach steht der Fokus auf „Rückgängig" und nach dem Zurückholen auf der Zeile |
@@ -2512,7 +2526,7 @@ den Rückgabewert.
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; alte Kopfmerkmale lassen sich abwählen und wieder wählen; der Massagetext auch ohne Schalter und bei einer eigenen „Massagepistole“, die unter „Mehr“ als fest eingebaut vermerkt ist und ihre Einträge behält; kein Angebot durch Nackenschmerz |
 | `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, auch für einen Namen mit Koffein, der nicht mehr mitzählt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
 | `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste – dazu einmal die Karte „Neu“ |
-| `test-rueckfrage.mjs` | als iPhone: die Rückfrage fragt nur, was fehlt, die Antwort landet dort, wo die Paare sie lesen, und die passende Karte erscheint; höchstens zwei Tage je Name, auch über Nacht offen und bei vollem „Meine Mittel“, „Später“ einmal, „Nicht mehr fragen“ mit „Rückgängig“ (auch per Tastatur); ein Doppeltipp beantwortet nicht den nächsten Schritt, auch nicht, wenn die Karte nach einem Tipp darüber unter den Finger rückt, und nimmt „Nicht mehr fragen“ nicht über „Rückgängig“ zurück; ein Tipp auf die Meldung schließt sie und beantwortet nie die verdeckte Frage darunter; fällt eine Karte darüber weg, steht der nächste Schritt im Bild, ebenso das Namensfeld unter „Meine Mittel“ bei langer Liste; nach dem Umzug von Safari in die App zählen die Tage aus Safari mit, die Sicherung trägt sie nicht; nach einem Datum nie zwei Punkte; „Ja, merken“ nur mit der Form, die an der Einnahme steht und noch gilt, und nie auf den Platz, den der Säureblocker danach braucht, auch nicht bei einem zweiten Namen; zwei Namen nacheinander nie mit derselben Überschrift, die Meldung sagt „Jetzt zu …“; „Nein“ gilt für jeden Namen, der schon dasteht; „nicht als Mittel gegen Magensäure erkannt“ statt „unbekannt“; jede Beschriftung steht auch in der Ansage; nie mehr als die bestehenden Karten; die Karte „Neu“ einmal und nie bei einem neuen Tagebuch; gezählt wird nur, was sichtbar war; kein Rat, keine Dosis, nichts über den Rand, keine Anfrage nach draußen |
+| `test-rueckfrage.mjs` | als iPhone: die Rückfrage fragt nur, was fehlt, die Antwort landet dort, wo die Paare sie lesen, und die passende Karte erscheint; höchstens zwei Tage je Name, auch über Nacht offen, bei vollem „Meine Mittel“ (auch mit mehr als zwölf nach dem Zusammenführen: der Satz nennt die Zahl und wie viele weg müssen) und bei gesperrtem oder vollem Speicher, „Später“ einmal und mit dem Namen, „Nicht mehr fragen“ mit „Rückgängig“ (auch per Tastatur); ein Doppeltipp beantwortet nicht den nächsten Schritt, auch nicht, wenn die Karte nach einem Tipp darüber unter den Finger rückt, und nimmt „Nicht mehr fragen“ nicht über „Rückgängig“ zurück; ein Tipp auf die Meldung schließt sie und beantwortet nie die verdeckte Frage darunter, auch kein Doppeltipp; „Tagebuch löschen“ lässt keinen früheren Stand zurück; fällt eine Karte darüber weg, steht der nächste Schritt im Bild, ebenso das Namensfeld unter „Meine Mittel“ bei langer Liste; nach dem Umzug von Safari in die App zählen die Tage aus Safari mit, die Sicherung trägt sie nicht; nach einem Datum nie zwei Punkte; „Ja, merken“ nur mit der Form, die an der Einnahme steht und noch gilt, und nie auf den Platz, den der Säureblocker danach braucht, auch nicht bei einem zweiten Namen; zwei Namen nacheinander nie mit derselben Überschrift, die Meldung sagt „Jetzt zu …“; „Nein“ gilt für jeden Namen, der schon dasteht; „nicht als Mittel gegen Magensäure erkannt“ statt „unbekannt“; jede Beschriftung steht auch in der Ansage; nie mehr als die bestehenden Karten; die Karte „Neu“ einmal und nie bei einem neuen Tagebuch; gezählt wird nur, was sichtbar war; kein Rat, keine Dosis, nichts über den Rand, keine Anfrage nach draußen |
 | `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, ein Fenster, das noch läuft, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge; der Abschnitt liegt mittags wie abends, ein Wechsel des Stimulans setzt ihn auch bei durchlaufendem Zweitmittel, ein abgesetztes Stimulans und der Rückwechsel auf ein früheres Mittel beenden ihn; „zu wenige“ nur, wenn keine gezeigte Zeile genug Tage ohne Mittel hat; die Schwelle des Zeitprofil-Vorbehalts |
 | `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend oder nach Mitternacht macht keinen Kopfschmerz am Nachmittag oder Morgen zu einem „am Morgen“ bzw. „nicht am Morgen“, der laufende Morgen zählt noch nicht, ein Folgetag, der heute ist, auch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
 | `test-nulltagebuch.mjs` | 300 Tagebücher ohne Zusammenhang, aber mit Störwegen: je Rechnung höchstens 6 %, je Karte höchstens 10 % mit Urteil |

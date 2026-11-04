@@ -1002,12 +1002,24 @@ details.wissen p { margin-top: 6px; overflow-wrap: anywhere; }
    fehlt, am anderen Ende des Bildschirms. */
 body.bogen-auf .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 10px); transform: translateX(-50%) translateY(-12px); }
 body.bogen-auf .toast.an { transform: translateX(-50%) translateY(0); }
+/* Ebenso oben, wenn sie unten über dem Knopf läge, der sie eben ausgelöst
+   hat und gleich wieder gedrückt wird – „+" und „−" beim Wasser
+   (js/app.js, meldungAusweichen). */
+.toast.oben { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 10px); transform: translateX(-50%) translateY(-12px); }
+.toast.oben.an { transform: translateX(-50%) translateY(0); }
 /* Solange sie zu sehen ist, fängt die Meldung jeden Tipp ab: Was unter ihr
    liegt, sieht man nicht, und ein Tipp ging sonst durch sie hindurch auf den
    Knopf darunter. Ein Tipp auf sie schließt sie (js/app.js, beim
-   Klick-Verteiler); eine mit Knopf („Rückgängig") bleibt stehen. Unsichtbar
-   ist sie wieder durchlässig. */
-.toast.an { pointer-events: auto; cursor: pointer; }
+   Klick-Verteiler); eine mit Knopf („Rückgängig") bleibt stehen. Noch einen
+   Augenblick danach – beim Ausblenden und kurz nach einem Tipp, der sie
+   schloss (.faengt) – endet ein Tipp an ihr: Der zweite eines Doppeltipps
+   träfe sonst den Knopf darunter. Danach ist sie wieder durchlässig. */
+.toast.an, .toast.faengt { pointer-events: auto; }
+.toast.an { cursor: pointer; }
+/* Dabei bleibt sie an ihrem Platz und blendet nur aus: Glitte sie wie beim
+   Erscheinen 12 Pixel weg, läge der Rand, an dem der zweite Tipp endet,
+   schon unter ihm hindurch auf dem Knopf. */
+.toast.faengt:not(.an) { transform: translateX(-50%) translateY(0); }
 .toast.mit-knopf { display: flex; align-items: center; gap: 12px; border-radius: 16px; padding: 4px 6px 4px 16px; }
 .toast.an.mit-knopf { cursor: default; }
 .toast-knopf {
