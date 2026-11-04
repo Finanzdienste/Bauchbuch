@@ -1009,8 +1009,9 @@ anzugeben oder einen Säureblocker zu notieren, fragt deshalb eine Karte oben
 auf „Tag“ (nur heute, direkt unter den Hinweisen der Stufe A, ohne Schalter)
 genau das, was fehlt, und sonst nichts:
 
-* „Welche Form steht auf der Packung?“ – mit denselben sieben Formen wie im
-  Bogen und unter „Meine Mittel“, „Weiß ich nicht“ zuletzt. Die Form landet
+* „Welche Form steht auf der Packung?“ – mit denselben sieben Wahlen wie im
+  Bogen und unter „Meine Mittel“: den sechs Formen mit denselben
+  Bezeichnungen und Beispielen, „Weiß ich nicht“ zuletzt. Die Form landet
   dort, wo die Paare sie lesen: beim eigenen Mittel, wenn der Name unter „Meine
   Mittel“ steht, sonst bei der jüngsten Einnahme der letzten 30 Tage. Dort
   gilt sie ab dieser Einnahme 30 Tage lang, auch für weitere Einnahmen ohne
@@ -1024,11 +1025,13 @@ genau das, was fehlt, und sonst nichts:
   nach dem Säureblocker aus, kommt das Angebot nur, wenn unter „Meine
   Mittel“ dann noch ein Platz für ihn frei bleibt. „Weiß ich nicht“ ändert
   keine Mitteldaten.
-* „Nimmst du außerdem ein Mittel gegen Magensäure?“ – nur bei Formen, bei
-  denen ein Säureblocker überhaupt einen Hinweis ergibt (nicht bei der Hülle
-  und nicht bei Equasym). Nach „Ja“ wählt man den Namen; er kommt unter „Meine
-  Mittel“, ohne Dosis und ohne Einnahme: zur Wahl stehen Namen aus dem eigenen
-  Tagebuch und die, die die Erkennung kennt. Ein getippter Name, den die
+* „Nimmst du außerdem ein Mittel gegen Magensäure?“ – auch eins, das man nur
+  ab und zu bei Sodbrennen nimmt, mit Beispielen aus der Erkennung der App;
+  nur bei Formen, bei denen ein Säureblocker überhaupt einen Hinweis ergibt
+  (nicht bei der Hülle und nicht bei Equasym). Nach „Ja“ wählt man den
+  Namen; er kommt unter „Meine Mittel“, ohne Dosis und ohne Einnahme: zur
+  Wahl stehen Namen aus dem eigenen Tagebuch und die, die die Erkennung
+  kennt, dazu ein Feld für einen eigenen Namen. Ein getippter Name, den die
   Erkennung nicht kennt, wird erst nachgefragt, statt die Frage still zu
   schließen. „Nein“ wird gemerkt und gilt für alle Methylphenidat-Namen, bei
   denen gerade danach gefragt würde. Kommt später ein Methylphenidat unter
@@ -1282,6 +1285,16 @@ Tagebuch sieht sie nie (wer heute anfängt, hatte nie eine Fassung ohne die
 Hinweise), außer es kommen über eine Sicherung ältere Einträge dazu, deren
 Karte dort noch nicht gelesen war. Sie steht nie neben einem offenen Hinweis
 der Stufe A oder der Rückfrage, sondern wartet, bis dort Platz ist.
+
+Oben auf „Tag“ gilt diese Reihenfolge: die Hinweise der Stufe A, darunter die
+Rückfrage, darunter die Karte „Neu“; die Rat-Karte und das Angebot zum
+Einschalten (ADHS oder Kiefer, Nacken, Schiene) stehen wie bisher weiter
+unten. Die beiden neuen Karten kommen nur dazu, solange mit ihnen höchstens
+zwei dieser Karten – Hinweise der Stufe A, Angebot, Rückfrage, „Neu“ –
+dastehen; was keinen Platz hat, wartet, und dieser Tag zählt für sie nicht.
+Die Karte „Was sich an deinen Zahlen geändert hat“ der Fassung 28 steht auf
+„Muster“ und wird für sich gelesen; „Gelesen“ auf der einen Karte lässt die
+andere stehen.
 
 ### Quellen der Wissenstexte
 
@@ -2379,7 +2392,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Fünfundsiebzig Dateien, über 3800 Prüfungen, alle in einem echten Chromium. Kein
+Fünfundsiebzig Dateien, über 3900 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
