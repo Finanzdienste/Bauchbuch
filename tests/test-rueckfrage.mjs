@@ -204,6 +204,11 @@ const meldung = async (page) => {
   if (m) meldungen.push(m);
   return m;
 };
+/** Fängt die Meldung Tipps ab (nach einer Antwort, auf „Tag“ ohne Bogen)? */
+const meldungFaengt = (page) => page.evaluate(() => {
+  const t = document.getElementById('toast');
+  return { an: t.classList.contains('an'), deckt: t.classList.contains('deckt'), pe: getComputedStyle(t).pointerEvents };
+});
 /** Der Text einer Karte ohne die Wahlknöpfe – die tragen Packungsnamen. */
 const kartenText = async (page, sel = KARTE) => {
   const t = await page.evaluate((s) => {
@@ -1244,6 +1249,7 @@ const VOLL = { eintraege: [NOTIZ], standardMittel: [meins('s1', 'Medikinet adult
   await tipp(page, `${KARTE} [data-act="rueckfrage-meine-mittel"]`);
   await kurz(page);
   check((await speicher(page)).tab === 'mehr' && await zahl(page, '#meineMittel') === 1, 'der Knopf führt zu „Meine Mittel"');
+  check(!(await meldungFaengt(page)).deckt, 'unter „Mehr“ fängt die Meldung nach dieser Antwort keinen Tipp ab');
   check(await zahl(page, '#meineMittel .mittel-formular') === 0 && await zahl(page, '#mmName') === 0,
     'dort steht kein Formular für ein neues Mittel, das sich nicht speichern ließe');
   check((await text(page, '#meineMittel')).includes('Mehr als 12 passen nicht.'), 'sondern der Satz zum vollen Stand');
@@ -2135,6 +2141,76 @@ const imSpeicherDerSeite = (page) => page.evaluate(async () => (await import('/j
   await tipp(page, '[data-act="alles-weg"]');
   check(gleich(await imSpeicherDerSeite(page), { am: null, zu: null, tage: {} }),
     `voll, „Alles löschen": auch der Gerätespeicher der Sitzung ist leer (${JSON.stringify(await imSpeicherDerSeite(page))})`);
+  await ctx.close();
+}
+/*
+ * Nach einer Antwort fängt die Meldung Tipps ab – auf „Tag“, wo unter ihr der
+ * nächste, noch ungesehene Schritt liegen kann. Nach einem Reiterwechsel oder
+ * mit offenem Bogen liegt unter ihr nichts dergleichen: Dort lässt sie Tipps
+ * durch wie jede andere Meldung. Sonst schloss der erste Tipp unter „Mehr“
+ * nur die Meldung, etwa über „Tagebuch löschen“.
+ */
+{
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ, nimmt('e1', 'Medikinet retard', HEUTE)], standardMittel: [] });
+  await tipp(page, SPAETER);
+  const aufTag = await meldungFaengt(page);
+  check(aufTag.an && aufTag.deckt && aufTag.pe === 'auto',
+    `nach „Später“ auf „Tag“: die Meldung fängt Tipps ab (${JSON.stringify(aufTag)})`);
+  await tab(page, 'mehr');
+  const aufMehr = await meldungFaengt(page);
+  check(!aufMehr.deckt && aufMehr.pe === 'none',
+    `nach dem Wechsel zu „Mehr“: die Meldung lässt Tipps durch (${JSON.stringify(aufMehr)})`);
+  const t0 = Date.now();
+  page.once('dialog', (d) => d.dismiss());
+  await page.locator('[data-act="alles-weg"]').first().click({ timeout: 1500 }).catch(() => {});
+  check(Date.now() - t0 < 1500, `unter „Mehr“: „Tagebuch löschen“ ist sofort antippbar (${Date.now() - t0} ms)`);
+  await tab(page, 'heute');
+  // Zurück auf „Tag“, solange sie noch steht: Dort liegt der ungesehene Schritt noch unter ihr.
+  check((await meldungFaengt(page)).deckt, 'zurück auf „Tag“: dieselbe Meldung fängt wieder ab');
+  await ctx.close();
+}
+{
+  const { ctx, page } = await iphone({ eintraege: [NOTIZ, nimmt('e1', 'Medikinet retard', HEUTE)], standardMittel: [] });
+  await tipp(page, SPAETER);
+  check((await meldungFaengt(page)).deckt, 'vor dem Bogen: die Meldung fängt Tipps ab');
+  // Per Tastatur: Ein Finger träfe auf „Tag“ womöglich die Meldung selbst.
+  await page.locator('[data-act="neu"][data-art="notiz"]').first().focus();
+  await page.keyboard.press('Enter');
+  await kurz(page);
+  const imBogen = await meldungFaengt(page);
+  check(await zahl(page, '.bogen-zu') > 0 && !imBogen.deckt && imBogen.pe === 'none',
+    `mit offenem Bogen: die Meldung lässt Tipps durch (${JSON.stringify(imBogen)})`);
+  await tipp(page, '.bogen-zu');
+  check((await meldungFaengt(page)).deckt, 'Bogen zu: dieselbe Meldung fängt wieder ab');
+  // Eine neue Meldung ohne Antwort davor fängt nicht ab – auch nicht nach
+  // einem Reiterwechsel hin und zurück (per Tastatur: ohne Finger auf der Meldung).
+  await page.locator('#wasserMehr').focus();
+  await page.keyboard.press('Enter');
+  await kurz(page);
+  const nachWasser = await meldungFaengt(page);
+  await tab(page, 'mehr');
+  await tab(page, 'heute');
+  const danach = await meldungFaengt(page);
+  check(nachWasser.an && !nachWasser.deckt && !danach.deckt,
+    `eine neue Meldung (Wasser) fängt nicht ab, auch nicht nach einem Reiterwechsel (${JSON.stringify([nachWasser, danach])})`);
+  await ctx.close();
+}
+{
+  // „Rückgängig“ unter „Mehr“ getippt: Die Karte steht wieder auf „Tag“ – dort
+  // fängt die Meldung ab, unter „Mehr“ nicht.
+  const { ctx, page } = await iphone({
+    eintraege: [nimmt('m1', 'Methylphenidat', tag(-1)), NOTIZ],
+    standardMittel: [meins('s1', 'Medikinet', { dosis: '10 mg' })],
+  });
+  await tipp(page, NIE);
+  await tab(page, 'mehr');
+  check(!(await meldungFaengt(page)).deckt, '„Nicht mehr fragen“, dann „Mehr“: die Meldung fängt dort nicht ab');
+  await tipp(page, '#toast [data-act="rueckfrage-nie-zurueck"]');
+  const mehr = await meldungFaengt(page);
+  check(!mehr.deckt && mehr.pe === 'none', `„Rückgängig“ unter „Mehr“: die neue Meldung fängt dort nicht ab (${JSON.stringify(mehr)})`);
+  await tab(page, 'heute');
+  check(await kopf(page) === 'Rückfrage zu Medikinet' && (await meldungFaengt(page)).deckt,
+    'zurück auf „Tag“: die Karte steht wieder, und die Meldung fängt ab, solange sie steht');
   await ctx.close();
 }
 

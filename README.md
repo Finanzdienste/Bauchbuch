@@ -1335,8 +1335,11 @@ dieser Karten nach einem Tipp darüber unter den Finger rückt – fängt die
 Meldung unten jeden Tipp ab, solange sie zu sehen ist: Ein Tipp auf sie schließt sie,
 statt durch sie hindurch den verdeckten nächsten Schritt darunter zu treffen;
 eine Meldung mit „Rückgängig“ bleibt dabei stehen, und auch der zweite Tipp
-eines Doppeltipps endet an ihr. Sonst lässt die Meldung Tipps durch wie
-bisher – wer zwei eigene Mittel nacheinander antippt oder beim Wasser „+“ und
+eines Doppeltipps endet an ihr. Das gilt nur auf „Tag“ ohne offenen Bogen,
+denn nur dort stehen diese Karten: Auf einem anderen Reiter oder mit offenem
+Bogen lässt sie Tipps durch, auch wenn die Antwort selbst dorthin geführt hat;
+zurück auf „Tag“ fängt dieselbe Meldung wieder ab. Sonst lässt die Meldung
+Tipps durch wie bisher – wer zwei eigene Mittel nacheinander antippt oder beim Wasser „+“ und
 gleich danach „−“, trifft beide, auch wenn die Meldung des ersten über dem
 zweiten liegt. Eine Meldung ohne eigenen Knopf (wie „Rückgängig“) legt sich
 nicht über den Knopf, der sie eben ausgelöst hat und noch unter dem Finger

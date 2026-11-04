@@ -26703,6 +26703,8 @@ function male() {
 
   // Der Bogen soll benutzbar sein, ohne dass die Seite dahinter mitscrollt.
   document.body.classList.toggle('bogen-auf', !!ui.bogen);
+  // Eine abfangende Meldung fängt nur auf „Tag“ ohne Bogen ab (siehe decktHier).
+  toastEl.classList.toggle('deckt', decktHier());
 }
 
 /*
@@ -28708,6 +28710,22 @@ const AKTION = {
 };
 
 /*
+ * Eine abfangende Meldung gehört zu sich selbst (meldungNr) und zu „Tag“ ohne
+ * offenen Bogen: Nur dort stehen die Rückfrage und die Karte „Neu“, und nur
+ * dort liegt unter ihr, was noch niemand gesehen hat – auch wenn die Antwort
+ * selbst woandershin führt („Zu ‚Meine Mittel‘“) oder „Rückgängig“ unter
+ * „Mehr“ getippt wurde. Auf einem anderen Reiter oder mit offenem Bogen lässt
+ * sie Tipps durch wie jede Meldung – sonst schlösse der erste Tipp unter
+ * „Mehr“ nur sie, etwa über „Tagebuch löschen“. Zurück auf „Tag“, solange sie
+ * noch steht, fängt sie wieder ab (siehe male).
+ */
+let decktNr = -1;
+function decktHier() {
+  const t = store.zustandLesen().tab;
+  return decktNr === meldungNr && !ui.bogen && (REITER.some((r) => r.id === t) ? t : 'heute') === 'heute';
+}
+
+/*
  * Nach einer Antwort auf die Rückfrage oder die Karte „Neu" steht an
  * derselben Stelle sofort etwas anderes: der nächste Schritt, dessen Knöpfe
  * genau dort liegen, wo eben der Finger war, der Hinweis, der jetzt
@@ -28734,8 +28752,10 @@ function nachtippSperren(umfang = 'inhalt') {
   // Eine laufende Sperre des ganzen Inhalts wird nie zu einer engeren.
   ui.nachtipp = ui.nachtipp === 'inhalt' ? 'inhalt' : umfang;
   // Was jetzt unter der Meldung liegt, hat noch niemand gesehen: Bis zur
-  // nächsten Meldung fängt sie Tipps ab (siehe beim Klick auf #toast).
-  toastEl.classList.add('deckt');
+  // nächsten Meldung fängt sie Tipps ab (siehe beim Klick auf #toast) –
+  // auf „Tag“ ohne Bogen (decktHier).
+  decktNr = meldungNr;
+  toastEl.classList.toggle('deckt', decktHier());
   clearTimeout(nachtippUhr);
   nachtippUhr = setTimeout(() => { ui.nachtipp = false; }, NACHTIPP_MS);
 }
