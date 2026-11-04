@@ -1470,19 +1470,44 @@ const alleOffenSaeure = (s) => rueckfragenMit(s)
 
 /*
  * Die Einnahme, deren Form MERKEN unter „Meine Mittel" legen würde – oder
- * null, wenn der Schritt nicht mehr gilt. Er gilt nur, solange an der
- * Einnahme noch genau die beantwortete Form steht, die Einnahme noch zu
- * diesem Namen gehört und der Name nicht inzwischen unter „Meine Mittel"
- * steht. Wer sich vertippt und die Einnahme im Bogen korrigiert, bekäme
- * sonst mit „Ja, merken" die alte Form dorthin – der Knopf trüge sie in jede
- * neue Einnahme weiter, und ein Hinweis verschwände ohne Meldung. Steht der
- * Name schon unter „Meine Mittel" (etwa über „Als mein Mittel merken" im
- * Bogen), gilt die Form von dort; MERKEN überschreibt sie nie.
+ * null, wenn der Schritt nicht mehr gilt. y ist der Name aus rueckfragenMit
+ * (mit y.form = formZu von heute), u der Schritt. Er gilt nur, solange
+ *
+ *   – an der Einnahme noch genau die beantwortete Form steht und sie noch
+ *     zu diesem Namen gehört,
+ *   – diese Form noch die ist, die formZu liest: Kommt eine neuere Einnahme
+ *     mit einer anderen Form dazu – zwei am Tag sind bei Methylphenidat
+ *     üblich –, gilt die neuere, und die beantwortete ist überholt, auch
+ *     wenn sie noch an der älteren Einnahme steht,
+ *   – der Name nicht inzwischen unter „Meine Mittel" steht (etwa über „Als
+ *     mein Mittel merken" im Bogen; dann gilt die Form von dort, und MERKEN
+ *     überschreibt sie nie),
+ *   – und unter „Meine Mittel" Platz bleibt (merkenPlatz).
+ *
+ * Sonst legte „Ja, merken" eine Form dorthin, die nicht mehr gilt – etwa
+ * nach einem Fehltipp, den man im Bogen korrigiert oder mit der nächsten
+ * Einnahme richtig angibt. Der Knopf trüge sie in jede neue Einnahme
+ * weiter, und ein Hinweis verschwände ohne Meldung oder stünde zu einer
+ * Form, die man gar nicht hat.
  */
 function merkenEinnahme(s, y, u) {
   const e = store.eintragVon(u.einnahme);
   if (!e || e.art !== 'medikament' || !gleichText(e.mittel, y.name) || !u.form || e.form !== u.form) return null;
+  if (y.form !== u.form || !merkenPlatz(s, y)) return null;
   return s.standardMittel.some((m) => gleichText(m.mittel, y.name)) ? null : e;
+}
+
+/*
+ * Ob für MERKEN unter „Meine Mittel" Platz ist. Steht danach noch die
+ * Säurefrage zu diesem Namen aus, bleibt ein Platz für den Säureblocker
+ * frei: Sonst belegte „Ja, merken" bei elf eigenen Mitteln den letzten, und
+ * einen Schritt später passte der Säureblocker – an dem W1 hängt – nicht
+ * mehr hinein. Die Form bleibt dann an der Einnahme, wie nach „Nicht
+ * merken".
+ */
+function merkenPlatz(s, y) {
+  const frei = store.STANDARD_HOECHSTENS - s.standardMittel.length;
+  return frei > (y.fehltSaeure && !y.r.saeure ? 1 : 0);
 }
 
 /** Die jüngste Einnahme dieses Namens in den letzten WECHSEL_TAGE Tagen – dort liest formZu. */
@@ -1600,15 +1625,18 @@ function rueckfrageKarte(f, s) {
      * WECHSEL_TAGE Tage – auch für spätere Einnahmen ohne Formangabe. Der
      * Text sagt genau das. „Nur diese Einnahme" wäre falsch und wirkte in
      * die unsichere Richtung: Wer bei einer neuen Packung mit anderer Form
-     * nichts angibt, bekäme 30 Tage lang den Hinweis zur alten.
+     * nichts angibt, bekäme 30 Tage lang den Hinweis zur alten. Die Form
+     * steht mit Namen da: Gemerkt wird genau sie, und das soll man vor dem
+     * Tipp sehen, nicht erst in der Meldung danach.
      */
     const e = store.eintragVon(u.einnahme);
+    const fm = mphForm(u.form);
     frage = 'Auch unter „Meine Mittel“ merken?';
-    teil = `<p class="klein">Die Form steht jetzt bei deiner Einnahme ${esc(wannText(e.am))}. Sie gilt ab dieser
-      Einnahme ${WECHSEL_TAGE} Tage lang, auch für weitere Einnahmen ohne Formangabe. Dauerhaft gilt sie, wenn
-      ${name} unter „Meine Mittel“ steht. Dort trägt dann auch ein Tipp auf „Tag“ eine Einnahme ein.</p>
+    teil = `<p class="klein">Die Form „${esc(fm.kurzname)}“ steht jetzt bei deiner Einnahme ${esc(wannText(e.am))}.
+      Sie gilt ab dieser Einnahme ${WECHSEL_TAGE} Tage lang, auch für weitere Einnahmen ohne Formangabe. Dauerhaft
+      gilt sie, wenn ${name} unter „Meine Mittel“ steht. Dort trägt dann auch ein Tipp auf „Tag“ eine Einnahme ein.</p>
       <div class="reihe">${knopf('rueckfrage-merken', 'Ja, merken', 'btn-primary',
-    mitK(`aria-label="${esc(`Ja, merken – ${x.name} mit dieser Form unter „Meine Mittel“ anlegen`)}"`))}
+    mitK(`aria-label="${esc(`Ja, merken – ${x.name} mit der Form „${fm.kurzname}“ unter „Meine Mittel“ anlegen`)}"`))}
         ${knopf('rueckfrage-nicht-merken', 'Nicht merken', 'btn-ghost',
     mitK('aria-label="Nicht merken – die Form bleibt bei der Einnahme"'))}</div>`;
   } else if (schritt === 'welches') {
@@ -7896,7 +7924,9 @@ const AKTION = {
    * Ort, von dem aus Knopf und Bogen sie weitertragen. Sonst an der jüngsten
    * Einnahme der letzten WECHSEL_TAGE Tage; dort gilt sie ab dieser Einnahme
    * WECHSEL_TAGE Tage lang, auch für weitere Einnahmen ohne Formangabe, und
-   * die Karte bietet danach an, das Mittel unter „Meine Mittel" zu merken.
+   * die Karte bietet danach an, das Mittel unter „Meine Mittel" zu merken –
+   * wenn dort Platz ist, auch für den Säureblocker, falls nach ihm noch
+   * gefragt wird (merkenPlatz).
    */
   'rueckfrage-form': (el) => {
     const s = store.zustandLesen();
@@ -7926,9 +7956,12 @@ const AKTION = {
       const e = juengsteEinnahme(s, x.name);
       if (!e) { zeichne(); return; }
       store.eintragAendern(e.id, { form: f.id });
-      if (s.standardMittel.length < store.STANDARD_HOECHSTENS) {
-        rueckfrageSchritt({ schluessel: k, schritt: 'merken', einnahme: e.id, form: f.id });
-      }
+      // Angeboten wird MERKEN unter denselben Bedingungen, unter denen es
+      // danach stehen bleibt (merkenEinnahme) – mit dem Stand nach der Antwort.
+      const u = { schluessel: k, schritt: 'merken', einnahme: e.id, form: f.id };
+      const nachher = store.zustandLesen();
+      const y = rueckfrageOffen(nachher, k);
+      if (y && merkenEinnahme(nachher, y, u)) rueckfrageSchritt(u);
       melden(`Form: ${f.kurzname}. Bei deiner Einnahme ${wannText(e.am)} vermerkt.${hinweisZusatz(vorher, vorherAlle)}`);
     }
     rueckfrageFokus();
@@ -7959,8 +7992,14 @@ const AKTION = {
     zeichne();
   },
   // Die Form bleibt an der Einnahme – und gilt dort so, wie formZu sie liest.
+  // Gilt sie inzwischen nicht mehr (merkenEinnahme), sagt die Meldung das
+  // nicht: Der Knopf stand nur noch, weil das Neuzeichnen ihn nicht erreicht hatte.
   'rueckfrage-nicht-merken': () => {
+    const u = ui.rueckfrage;
+    const s = store.zustandLesen();
     ui.rueckfrage = null;
+    const x = u && u.schritt === 'merken' ? rueckfrageOffen(s, u.schluessel) : null;
+    if (!x || !merkenEinnahme(s, x, u)) { zeichne(); return; }
     melden(`Gut. Die Form gilt ab dieser Einnahme ${WECHSEL_TAGE} Tage lang, auch für weitere ohne Formangabe. `
       + 'Eine andere kannst du beim Eintragen im Bogen angeben.');
     rueckfrageFokus();
@@ -9044,8 +9083,16 @@ const AKTION = {
  * nächste Frage, legte ein Mittel an, das niemand gewählt hat, speicherte
  * ein „Nein" auf eine Frage, die nie zu sehen war, oder tippte einen Hinweis
  * weg. Darum zählt danach NACHTIPP_MS lang kein Tipp im Inhalt der Seite –
- * so lange braucht ohnehin, wer die neue Frage liest. Die Meldung unten
- * („Rückgängig") und die Reiter liegen außerhalb und bleiben antippbar.
+ * so lange braucht ohnehin, wer die neue Frage liest. Die Reiter liegen
+ * außerhalb und bleiben antippbar.
+ *
+ * Ebenso lang zählt kein Finger auf dem Knopf der Meldung: Nach „Nicht mehr
+ * fragen" bringt sie „Rückgängig", und bei 320 Pixeln – oder wenn das
+ * Kartenende knapp über den Reitern steht – genau unter den Finger. Der
+ * zweite Tipp nähme die endgültige Antwort sonst gleich wieder zurück. Ein
+ * Tastendruck zählt dort sofort: Der Fokus geht ausdrücklich auf
+ * „Rückgängig" (fokusNachEntfernen), und ein Finger, der liegen bliebe, ist
+ * nicht im Spiel. Danach steht „Rückgängig" noch fast acht Sekunden.
  */
 const NACHTIPP_MS = 500;
 const NACH_ANTWORT = /^(rueckfrage-|v29-)/;
@@ -9093,6 +9140,7 @@ document.addEventListener('click', (ev) => {
   ev.preventDefault();
   const imInhalt = viewEl.contains(el);
   if (imInhalt && (ui.nachtipp === 'inhalt' || (ui.nachtipp === 'karte' && el.closest(V29_KARTEN)))) return;
+  if (ui.nachtipp === 'inhalt' && ev.detail > 0 && toastEl.contains(el)) return;
   // Nur bei Tipp oder Klick (detail > 0): Ein Tastendruck hat keinen Finger,
   // der liegen bliebe, und keinen Klickpunkt.
   const vorher = imInhalt && ev.detail > 0 ? v29Lagen() : null;

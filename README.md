@@ -1016,11 +1016,14 @@ genau das, was fehlt, und sonst nichts:
   gilt sie ab dieser Einnahme 30 Tage lang, auch für weitere Einnahmen ohne
   Formangabe – so liest die Rechnung der Paare sie, und Karte und Meldung
   sagen genau das. Dauerhaft gilt sie unter „Meine Mittel“; das bietet die
-  Karte danach an („Ja, merken“ oder „Nicht merken“). Gemerkt wird nur die
-  Form, die dann noch an der Einnahme steht: Wer sie inzwischen im Bogen
-  geändert hat, bekommt das Angebot nicht mehr, und eine Form unter „Meine
-  Mittel“ wird dabei nie überschrieben. „Weiß ich nicht“ ändert keine
-  Mitteldaten.
+  Karte danach an und nennt dabei die Form („Ja, merken“ oder „Nicht
+  merken“). Gemerkt wird nur die Form, die dann noch gilt: Wer sie
+  inzwischen im Bogen geändert oder bei einer neueren Einnahme eine andere
+  Form angegeben hat, bekommt das Angebot nicht mehr, und eine Form unter
+  „Meine Mittel“ wird dabei nie überschrieben. Steht danach noch die Frage
+  nach dem Säureblocker aus, kommt das Angebot nur, wenn unter „Meine
+  Mittel“ dann noch ein Platz für ihn frei bleibt. „Weiß ich nicht“ ändert
+  keine Mitteldaten.
 * „Nimmst du außerdem ein Mittel gegen Magensäure?“ – nur bei Formen, bei
   denen ein Säureblocker überhaupt einen Hinweis ergibt (nicht bei der Hülle
   und nicht bei Equasym). Nach „Ja“ wählt man den Namen; er kommt unter „Meine
@@ -1047,7 +1050,9 @@ und ein Tag zählt auch dann, wenn „Ja“ an einem vollen „Meine Mittel“
 scheitert – dann führt ein Knopf zur Liste, in der man eins entfernen kann,
 und zurück auf „Tag“ steht am selben Tag die Wahl. Kurz nach einer Antwort
 zählt eine halbe Sekunde lang kein Tipp auf „Tag“, damit ein Doppeltipp nicht
-gleich den nächsten Schritt beantwortet. Rückt die Karte nach einem Tipp
+gleich den nächsten Schritt beantwortet, und kein Finger auf „Rückgängig“ in
+der Meldung, damit er „Nicht mehr fragen“ nicht gleich wieder zurücknimmt
+(per Tastatur geht es sofort). Rückt die Karte nach einem Tipp
 darüber (etwa „Gelesen“ bei einem Hinweis oder „Später“ bei der Sicherung)
 unter den Finger, zählt so lange kein Tipp auf ihre Knöpfe. Sie verdrängt
 nie, was schon dasteht: Stehen zwei Hinweise der Stufe A oder einer und das
@@ -2449,7 +2454,7 @@ den Rückgabewert.
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; alte Kopfmerkmale lassen sich abwählen und wieder wählen; der Massagetext auch ohne Schalter und bei einer eigenen „Massagepistole“, die unter „Mehr“ als fest eingebaut vermerkt ist und ihre Einträge behält; kein Angebot durch Nackenschmerz |
 | `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, auch für einen Namen mit Koffein, der nicht mehr mitzählt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
 | `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste – dazu einmal die Karte „Neu“ |
-| `test-rueckfrage.mjs` | als iPhone: die Rückfrage fragt nur, was fehlt, die Antwort landet dort, wo die Paare sie lesen, und die passende Karte erscheint; höchstens zwei Tage je Name, auch über Nacht offen und bei vollem „Meine Mittel“, „Später“ einmal, „Nicht mehr fragen“ mit „Rückgängig“ (auch per Tastatur); ein Doppeltipp beantwortet nicht den nächsten Schritt, auch nicht, wenn die Karte nach einem Tipp darüber unter den Finger rückt; „Ja, merken“ nur mit der Form, die an der Einnahme steht; jede Beschriftung steht auch in der Ansage; nie mehr als die bestehenden Karten; die Karte „Neu“ einmal und nie bei einem neuen Tagebuch; gezählt wird nur, was sichtbar war; kein Rat, keine Dosis, nichts über den Rand, keine Anfrage nach draußen |
+| `test-rueckfrage.mjs` | als iPhone: die Rückfrage fragt nur, was fehlt, die Antwort landet dort, wo die Paare sie lesen, und die passende Karte erscheint; höchstens zwei Tage je Name, auch über Nacht offen und bei vollem „Meine Mittel“, „Später“ einmal, „Nicht mehr fragen“ mit „Rückgängig“ (auch per Tastatur); ein Doppeltipp beantwortet nicht den nächsten Schritt, auch nicht, wenn die Karte nach einem Tipp darüber unter den Finger rückt, und nimmt „Nicht mehr fragen“ nicht über „Rückgängig“ zurück; „Ja, merken“ nur mit der Form, die an der Einnahme steht und noch gilt, und nie auf den Platz, den der Säureblocker danach braucht; jede Beschriftung steht auch in der Ansage; nie mehr als die bestehenden Karten; die Karte „Neu“ einmal und nie bei einem neuen Tagebuch; gezählt wird nur, was sichtbar war; kein Rat, keine Dosis, nichts über den Rand, keine Anfrage nach draußen |
 | `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, ein Fenster, das noch läuft, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge; der Abschnitt liegt mittags wie abends, ein Wechsel des Stimulans setzt ihn auch bei durchlaufendem Zweitmittel, ein abgesetztes Stimulans und der Rückwechsel auf ein früheres Mittel beenden ihn; „zu wenige“ nur, wenn keine gezeigte Zeile genug Tage ohne Mittel hat; die Schwelle des Zeitprofil-Vorbehalts |
 | `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend oder nach Mitternacht macht keinen Kopfschmerz am Nachmittag oder Morgen zu einem „am Morgen“ bzw. „nicht am Morgen“, der laufende Morgen zählt noch nicht, ein Folgetag, der heute ist, auch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
 | `test-nulltagebuch.mjs` | 300 Tagebücher ohne Zusammenhang, aber mit Störwegen: je Rechnung höchstens 6 %, je Karte höchstens 10 % mit Urteil |
