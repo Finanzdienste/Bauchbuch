@@ -258,7 +258,14 @@ const text = async (page, sel) => ((await page.locator(sel).count())
   check(await page.locator('.massage-hinweis').count() === 0, 'ohne Massagepistole kein Hinweis');
   await tipp(page, '[data-act="aktiv-wahl"][data-id="massagepistole"]');
   const hinweis = await text(page, '.massage-hinweis');
-  check(hinweis.startsWith('Hersteller von Massagepistolen schreiben'), 'mit Massagepistole steht der Herstellerhinweis – auch ausgeschaltet');
+  check(hinweis.startsWith('Wo und bei wem ein Gerät nicht angewendet werden soll'), 'mit Massagepistole steht der Hinweis – auch ausgeschaltet');
+  // Herstellerangaben und Fallberichte waren im Volltext nicht zu prüfen; der
+  // Hinweis verweist auf die Sicherheitshinweise des Geräts und nennt die
+  // Schlaganfallzeichen nach gesund.bund.de mit 112.
+  // textContent, damit auch das Zugeklappte unter „Mehr dazu" mitzählt.
+  const ganz = (await page.locator('.massage-hinweis').first().textContent()).replace(/\s+/g, ' ');
+  check(!/Hersteller|Halsarterie|Muskelschäden|Fallberichten/.test(ganz) && /112, nicht auf einen Termin warten/.test(ganz),
+    'keine ungeprüften Herstellerangaben oder Fallberichte, aber der Notruf wie auf der Warnkarte');
   check(await breitOk(page), 'der Aktivitäts-Bogen passt in 320 Pixel');
   await ctx.close();
 }
@@ -300,8 +307,8 @@ const text = async (page, sel) => ((await page.locator(sel).count())
   check(await page.locator('.massage-hinweis').count() === 0, 'eine andere eigene Aktivität bringt keinen Hinweis');
   await tipp(page, '[data-act="aktiv-wahl"][data-id="a:klettern"]');
   await tipp(page, '[data-act="aktiv-wahl"][data-id="a:massagepistole"]');
-  check((await text(page, '.massage-hinweis')).startsWith('Hersteller von Massagepistolen schreiben'),
-    'die eigene „Massagepistole" bringt denselben Herstellerhinweis');
+  check((await text(page, '.massage-hinweis')).startsWith('Wo und bei wem ein Gerät nicht angewendet werden soll'),
+    'die eigene „Massagepistole" bringt denselben Hinweis');
   check(await breitOk(page), 'der Bogen mit Hinweis passt in 320 Pixel');
   await tipp(page, '[data-act="bogen-speichern"]');
   const s = await speicher(page);

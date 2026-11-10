@@ -17,9 +17,20 @@
  * DIE RECHNUNGEN (Familie „ADHS", siehe adhsAuswertung)
  *
  *   A1  Bauch in den vier Stunden nach der ersten Einnahme des Tages: ohne
- *       gegen mit Essen – je Mittel und Form.
+ *       gegen mit Essen – je Mittel und Form. Getrennt nach Form, weil sich
+ *       die Formen laut Fachinformation darin unterscheiden, wie sie zum
+ *       Essen eingenommen werden und welche Spiegel sie erreichen
+ *       (Medikinet adult, FI 013066, Stand 09/2025, 4.4 „Auswahl der
+ *       Methylphenidat Darreichungsform"). Dass Bauchbeschwerden durch die
+ *       Einnahme mit einer Mahlzeit gelindert werden können, steht in
+ *       Fachinformationen von Methylphenidat (ebenda 4.8); ob eine Form den
+ *       Bauch besser verträgt, steht dort nicht.
  *   A2  Tage mit gegen Tage ohne Stimulans: Bauch, Kopf, Schlaf, Kiefer,
- *       Pressen, dazu harter Stuhl als Beschreibung.
+ *       Pressen, dazu harter oder knolliger Stuhl als Beschreibung. Welche
+ *       dieser Beschwerden eine Fachinformation unter den Nebenwirkungen
+ *       nennt, ist je Wirkstoff verschieden (etwa Bruxismus und Verstopfung
+ *       bei Medikinet adult, FI 013066, 4.8, nicht bei Attentin 5 mg, FI
+ *       013378, 4.8); verglichen werden nur die eigenen Einträge.
  *   A3  Schlaf nach späterer gegen früherer letzter Einnahme.
  *   A4  Wann ein Kopfschmerz nach der ersten Einnahme beginnt – nur
  *       beschrieben, ohne Vergleich und ohne Frage.
@@ -551,8 +562,9 @@ function a1Faelle(p, { jetzt }) {
     const imFall = zeiten.filter(({ tE, tB }) => tB > tE && tB <= tE + ADHS_FENSTER_STD * STUNDE);
     const wert = imFall.reduce((m, { b }) => Math.max(m, Number(b.staerke) || 0), 0);
     // Dieselben Beschwerden in der Lesart „wie lange nach dem Essen": Wie
-    // viele zählen dort als nüchtern (vier Stunden und mehr seit der letzten
-    // Mahlzeit, siehe essensbezug in js/auswertung.js)?
+    // viele zählen dort als nüchtern? Gemeint ist die Zählregel der App
+    // (essensbezug in js/auswertung.js: vier Stunden und mehr seit der
+    // letzten eingetragenen Mahlzeit), keine medizinische Festlegung.
     const umfeld = [plusTage(iso, -1), iso, plusTage(iso, 1)].flatMap((d) => adhsTagListe(p, d));
     imFall.forEach(({ b }) => {
       z.fensterBeschwerden += 1;
@@ -606,8 +618,13 @@ function a1Saetze(v, z, anspannung) {
 /**
  * Die Bezugszeit eines Tages für den Kopf: die erste Stimulans-Einnahme, wenn
  * ihre Zeit feststeht – sonst und an Tagen ohne Mittel die mittlere Uhrzeit
- * der ersten Einnahmen mit fester Zeit. Ein Kopfschmerz davor hat mit dem
- * Mittel des Tages nichts zu tun.
+ * der ersten Einnahmen mit fester Zeit. Ein Kopfschmerz, der schon davor
+ * begann, kann nicht von der Einnahme dieses Tages ausgelöst sein – ein
+ * Kopfschmerz als Folge eines Mittels beginnt nach der Einnahme (ICHD-3,
+ * 2018, 8.1 „with onset immediately or within hours"; 8.1.9 Kriterium C1).
+ * Ob er mit dem Mittel überhaupt zusammenhängt, etwa bei längerer Einnahme
+ * (8.1.10), lässt die Reihenfolge offen; deshalb zählt er hier nur nicht
+ * mit.
  */
 function a2KopfWert(p, iso, bezugMin) {
   if (bezugMin === null) return { grund: 'ohneBezug' };
@@ -653,8 +670,10 @@ function a2Zeilen(p, abschnitt, pausen, heute) {
   const kiefer = seiten((iso) => zahl((p.tage[plusTage(iso, 1)] || {}).kiefer));
   const gepresst = seiten((iso) => zahl((p.tage[iso] || {}).gepresst));
 
-  // Harter Stuhl: nur beschrieben. Anteil der Tage mit Stuhlgang, an denen
-  // einer davon Typ 1 oder 2 war.
+  // Harter oder knolliger Stuhl: nur beschrieben. Anteil der Tage mit
+  // Stuhlgang, an denen einer davon Typ 1 oder 2 der Bristol-Skala war – der
+  // Bereich, der laut gesund.bund.de auf Verstopfung deutet
+  // (verstopfung-bei-erwachsenen, Stand 02.10.2023).
   const stuhl = seiten((iso) => {
     const s = stuhlgaenge(adhsTagListe(p, iso));
     if (!s.length) return null;
@@ -843,9 +862,17 @@ function a3Saetze(a3, v) {
 /**
  * A4: Wann beginnt ein Kopfschmerz, gezählt ab der ersten Einnahme? Nur eine
  * Beschreibung in gleich breiten Fächern – ohne Schwerpunkt, ohne Vergleich
- * und ohne Frage. Auch ohne Mittel häufen sich Kopfschmerzen zu bestimmten
- * Tageszeiten, und wer jeden Tag zur selben Zeit einnimmt, für den heißen
- * Stunden nach der Einnahme fast dasselbe wie Uhrzeit.
+ * und ohne Frage. Manche Kopfschmerzarten sind auch ohne Mittel an bestimmte
+ * Tageszeiten gebunden – der hypnische Kopfschmerz an den Schlaf (ICHD-3,
+ * 2018, 4.9), der bei Schlafapnoe an das Aufwachen (10.1.4), der
+ * Cluster-Kopfschmerz häufig an dieselbe Uhrzeit, früh am Morgen oder kurz
+ * nach dem Einschlafen (gesund.bund.de/cluster-kopfschmerzen, Stand
+ * 21.10.2022, Verlauf). Und wer jeden Tag zur selben Zeit einnimmt, für den
+ * heißen Stunden nach der Einnahme fast dasselbe wie Uhrzeit.
+ *
+ * Ein Kopfschmerz vor der Einnahme ist nicht von dieser Einnahme ausgelöst
+ * (siehe a2KopfWert, ICHD-3 8.1); ob er mit dem Mittel insgesamt zu tun
+ * hat, zeigt diese Beschreibung nicht.
  */
 function a4Zaehlung(p, abschnitt, heute) {
   const faecher = [0, 0, 0];
@@ -878,8 +905,10 @@ function a4Zaehlung(p, abschnitt, heute) {
     saetze.push('Die Einnahme liegt fast jeden Tag zur selben Zeit – Stunden nach der Einnahme heißen '
       + 'hier fast dasselbe wie Uhrzeit.');
   }
-  saetze.push('Eine Beschreibung, kein Vergleich: Auch ohne Mittel häufen sich Kopfschmerzen zu bestimmten '
-    + 'Tageszeiten. Kopfschmerz schon vor der Einnahme hat mit dem Mittel des Tages nichts zu tun.');
+  saetze.push('Eine Beschreibung, kein Vergleich: Manche Kopfschmerzarten sind auch ohne Mittel an bestimmte '
+    + 'Tageszeiten gebunden, etwa an den Schlaf oder das Aufwachen. Ein Kopfschmerz, der schon vor der '
+    + 'Einnahme begann, ist nicht von dieser Einnahme ausgelöst; ob er mit dem Mittel insgesamt zu tun hat, '
+    + 'zeigt diese Beschreibung nicht – das kann die Praxis einordnen.');
   return {
     n, sichtbar: n >= 10, faecher, vorher, spaeter, weg, nichtZuzuordnen, dicht, saetze,
   };
@@ -1086,7 +1115,8 @@ export function adhsAuswertung({
       // ihrer Mindestzahl liegt – für a2ZuWenig().
       ohneGewertet: Object.fromEntries(Object.entries(zeilen).map(([id, v]) => [id, v.ohne.n])),
       zuWenigOhne: Object.fromEntries(Object.entries(zeilen).map(([id, v]) => [id, v.ohne.n < v.mindest])),
-      // Harter Stuhl nur beschrieben – ohne Urteil, auch wenn es eines gäbe.
+      // Harter oder knolliger Stuhl (Typ 1 oder 2) nur beschrieben – ohne
+      // Urteil, auch wenn es eines gäbe.
       stuhl: {
         genug: stuhl.genug, mit: stuhl.mit, ohne: stuhl.ohne, stoerung: stuhl.stoerung,
       },

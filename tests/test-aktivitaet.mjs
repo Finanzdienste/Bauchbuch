@@ -605,8 +605,12 @@ check(istGegenmittel('waerme') && !istGegenmittel('yoga') && !istGegenmittel('a:
     `Wärme mit genug Fällen bekommt trotzdem keine Bauchseite (${z && z.bauch.faelle} Fälle, ${z && z.bauch.art})`);
   check(z.kopf.faelle > 0, 'die Kopfseite wird gerechnet wie bei jeder Aktivität');
   const satz = aktivKopfSatz(z);
-  check(satz.includes('wenn sich etwas anbahnt') && satz.includes('von selbst besser'),
-    'der Kopfsatz trägt den Vorbehalt: gewärmt wird, wenn sich etwas anbahnt');
+  check(satz.includes('wenn sich schon etwas anbahnt') && satz.includes('von selbst wieder ab'),
+    'der Kopfsatz trägt den Vorbehalt: wird gewärmt, wenn sich etwas anbahnt, kann der Kopfschmerz schon unterwegs sein');
+  // Belegt ist der Vorbote (ICHD-3) und das Abklingen; wie oft man gerade
+  // dann wärmt, sagt keine Quelle – deshalb kein „oft" über das Verhalten.
+  check(!satz.includes('gewärmt wird oft') && satz.includes('Vorbote'),
+    'der Vorbehalt behauptet keine Häufigkeit über das Verhalten');
   check(!aktivKopfSatz({ id: 'yoga', kopf: z.kopf }).includes('anbahnt'), 'Yoga bleibt ohne diesen Satz');
 
   // Im Verlauf oben endet das Training drei Tage vor heute. Eine Massage von
@@ -744,10 +748,15 @@ const ALT = {
   await page.locator('[data-act="aktiv-wahl"][data-id="massagepistole"]').click();
   await kurz(page);
   const mh = ((await page.locator('.massage-hinweis').textContent()) || '').replace(/\s+/g, ' ');
-  check(mh.includes('nicht an Kopf, Gesicht, Kehle, Hals oder Nacken') && mh.includes('Mehr dazu'),
-    'mit Massagepistole: ein Satz der Hersteller und „Mehr dazu"');
-  check(await page.locator('.massage-hinweis details[open]').count() === 0 && mh.includes('Notfall: 112'),
-    'die Einzelheiten zugeklappt, darin die Notfallzeichen');
+  // Herstellerangaben und Fallberichte waren im Volltext nicht zu prüfen:
+  // Der Satz verweist auf die Sicherheitshinweise des Geräts und auf Praxis
+  // oder Physiotherapie, ohne einzelne Körperstellen aus zweiter Hand.
+  check(mh.includes('steht in seinen Sicherheitshinweisen') && mh.includes('Praxis oder Physiotherapie')
+    && mh.includes('Mehr dazu') && !mh.includes('Hersteller'),
+    'mit Massagepistole: der Verweis auf die Sicherheitshinweise und „Mehr dazu"');
+  check(await page.locator('.massage-hinweis details[open]').count() === 0
+    && mh.includes('Zeichen eines Schlaganfalls') && mh.includes('112, nicht auf einen Termin warten'),
+    'die Einzelheiten zugeklappt, darin die Schlaganfallzeichen mit 112 wie auf der Warnkarte');
   await breit(page, 'Bogen mit Massagehinweis');
   await page.locator('[data-act="aktiv-wahl"][data-id="massagepistole"]').click();
   await kurz(page);

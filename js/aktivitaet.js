@@ -1,9 +1,11 @@
 /*
  * Aktivitäten: was jemand gemacht hat oder wo er war.
  *
- * Gym, Laufen, Arbeit, unterwegs, eine Feier, die Sauna – alles Dinge, die
- * Bauch oder Kopf aus dem Gleichgewicht bringen können und in keiner
- * Mahlzeit stehen. Bis hierher gab es dafür nur die Tagesfrage „Bewegung",
+ * Gym, Laufen, Arbeit, unterwegs, eine Feier, die Sauna – Dinge, die in
+ * keiner Mahlzeit stehen und die man trotzdem neben den Beschwerden sehen
+ * möchte. Ob eines davon mit Bauch oder Kopf zusammenhängt, behauptet diese
+ * Datei nicht; sie zeigt nur, was die eigenen Einträge als Häufigkeit
+ * hergeben. Bis hierher gab es dafür nur die Tagesfrage „Bewegung",
  * eine Zahl für den ganzen Tag, und die stand in keiner Rechnung. Ein
  * Zeitpunkt sagt mehr: Kam es in den Stunden nach dem Training, oder war es
  * ohnehin ein schlechter Tag?
@@ -55,11 +57,18 @@ export const AKTIVITAETEN = [
   { id: 'feier', name: 'Feier/Ausgehen', icon: '🎉' },
   { id: 'sauna', name: 'Sauna', icon: '🧖' },
   /*
-   * Was man gegen Verspannung tut – `gegenmittel`. Sie stehen am Ende, damit
-   * die Reihenfolge der bisherigen gleich bleibt. Gerechnet werden sie nur
-   * auf der Kopfseite (siehe aktivitaetBilanz): Massiert und gewärmt wird,
-   * wenn schon etwas wehtut – Wärme oft gerade wegen Bauchschmerzen –, und
-   * eine Bauch-Zeile darunter sähe aus wie eine Wirkung auf den Bauch.
+   * Was man bei Verspannung oder Nackenschmerz anwendet – `gegenmittel`. Der
+   * Name beschreibt den Anlass, keine Wirkung: Für die meisten Behandlungen
+   * bei Nackenschmerzen ist die Wirksamkeit laut gesund.bund.de nicht
+   * ausreichend untersucht; Wärme und Massagen nennt die Seite als
+   * Möglichkeiten (gesund.bund.de/nackenschmerzen, Stand 09.06.2023,
+   * Behandlung). Sie stehen am Ende, damit die Reihenfolge der bisherigen
+   * gleich bleibt. Gerechnet werden sie nur auf der Kopfseite (siehe
+   * aktivitaetBilanz): Massiert und gewärmt wird auch wegen Beschwerden, die
+   * schon da sind – Wärme gilt etwa auch bei Regelschmerzen im Unterleib als
+   * wohltuend (gesund.bund.de/regelschmerzen, Stand 27.08.2024) –, und eine
+   * Bauch-Zeile darunter sähe aus wie eine Wirkung auf den Bauch, obwohl sie
+   * womöglich nur der Anlass war.
    */
   { id: 'massagepistole', name: 'Massagepistole', icon: '🔨', gegenmittel: true },
   { id: 'massage', name: 'Massage/Physio', icon: '💆', gegenmittel: true },
@@ -68,7 +77,7 @@ export const AKTIVITAETEN = [
 
 const AKTIV_MAP = Object.fromEntries(AKTIVITAETEN.map((a) => [a.id, a]));
 
-/** Ist das etwas, das man gegen Verspannung tut? Nur eingebaute zählen. */
+/** Ist das etwas, das man bei Verspannung anwendet? Nur eingebaute zählen. */
 export function istGegenmittel(id) {
   return !!(AKTIV_MAP[id] && AKTIV_MAP[id].gegenmittel);
 }
@@ -78,46 +87,47 @@ export function istGegenmittel(id) {
  * auf „Muster“, in der Karte „Kiefer, Nacken, Schiene“ und im Bericht unter
  * NACH AKTIVITÄTEN wie unter KIEFER, NACKEN, SCHIENE. Einmal hier, damit er
  * überall gleich lautet.
+ *
+ * Quellen: Vorboten – ICHD-3, 2018, Einleitung zu Kapitel 1 („Some patients
+ * also experience a prodromal phase, occurring hours or days before the
+ * headache … neck stiffness and/or pain"). Von selbst abklingen – eine
+ * unbehandelte Migräneattacke dauert 4 bis 72 Stunden (ICHD-3 1.1
+ * Kriterium B), Nackenschmerzen verschwinden meistens nach einer Weile von
+ * selbst (gesund.bund.de/nackenschmerzen, Stand 09.06.2023). Wie oft man
+ * gerade dann massiert oder wärmt, wenn sich etwas anbahnt, sagt keine
+ * Quelle; deshalb steht da „wenn", nicht „oft".
  */
-export const GEGENMITTEL_VORBEHALT = 'Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein '
-  + 'Kopfschmerz danach kann schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.';
+export const GEGENMITTEL_VORBEHALT = 'Wird massiert oder gewärmt, wenn sich schon etwas anbahnt, kann ein '
+  + 'Kopfschmerz danach schon unterwegs gewesen sein – bei einer Migräne kann ein steifer oder '
+  + 'schmerzender Nacken Stunden bis Tage vorher ein Vorbote sein. Kopfschmerzattacken und '
+  + 'Nackenschmerzen klingen außerdem meist von selbst wieder ab.';
 
 /*
- * Was Hersteller von Massagepistolen dazu schreiben – gezeigt im Bogen,
- * sobald „Massagepistole" gewählt ist, auch ohne jeden Schalter.
+ * Der Hinweis zur Massagepistole – gezeigt im Bogen, sobald „Massagepistole"
+ * gewählt ist, auch ohne jeden Schalter.
  *
- * Kein Rat, wo und wie: nur, was die Hersteller selbst ausschließen oder
- * vorher abgeklärt haben wollen, und was in Fallberichten beschrieben ist.
- * Die Warnzeichen am Ende gehören dazu, weil die schwerste beschriebene
- * Folge – ein Einriss einer Halsarterie – sich erst Stunden oder Tage später
- * mit Schwindel oder Lähmung zeigen kann.
+ * Kein Rat, wo und wie, und keine Herstellerangaben aus zweiter Hand: Die
+ * Sicherheitshinweise der Hersteller und die Fallberichte, auf die sich die
+ * frühere Fassung stützte, waren über keine erreichbare Quelle im Volltext
+ * zu prüfen. Deshalb verweist der Satz auf die Sicherheitshinweise des
+ * jeweiligen Geräts und auf Praxis oder Physiotherapie.
  *
- * Quellen:
- *   Therabody, Precautions and Contraindications,
- *     www.therabody.com/us/en-us/precautions-and-contraindications.html
- *     („face, head, throat, neck … bony prominences"; Schwangerschaft, veränderte
- *     Empfindung, frische Verletzung oder Operation)
- *   Theragun PRO Plus Warnings, content.abt.com/documents/176399/therabody-theragun-pro-plus-TG0003970-1A10-warnings.pdf
- *     und Relief User Warnings (Therabody) – Schrittmacher/ICD, Embolie,
- *     Blutungsneigung, Blutverdünner: ärztliche Rückfrage
- *   Sulkowski u. a. 2022, pubmed.ncbi.nlm.nih.gov/35701359/ – Dissektion
- *     der Vertebralarterie nach Massagepistole am Hals
- *   AAN 2024, Abstract 56206 – Dissektion mit Hirnstamminfarkt nach Anwendung am Hals
- *   Chen u. a. 2021, Phys Ther 101(1):pzaa199 – Rhabdomyolyse nach langer Anwendung
- *   gesund.bund.de/schlaganfall – Warnzeichen, 112
+ * Die Schlaganfallzeichen bleiben, als allgemeine Tatsache, nicht als
+ * Behauptung über das Gerät: gesund.bund.de/schlaganfall (Stand 16.12.2022,
+ * „Was sind die Anzeichen eines Schlaganfalls?": plötzlich auftretende
+ * Schwäche, Sprachstörungen, Lähmungserscheinungen und Taubheitsgefühle,
+ * Gesichtsfeldausfall, Schwindel und ein unsicherer Gang; „Bei jedem
+ * Verdacht auf einen Schlaganfall ist es wichtig, schnell den Notruf 112 zu
+ * wählen"). Der Wortlaut folgt der Warnkarte (js/bild.js, kopfausfall): 112,
+ * nicht der nächste Termin.
  */
 export const MASSAGE_HINWEIS = {
-  satz: 'Hersteller von Massagepistolen schreiben, je nach Gerät: nicht an Kopf, Gesicht, '
-    + 'Kehle, Hals oder Nacken und nicht direkt auf Knochen. Wo am Körper, besprichst du am '
-    + 'besten mit Praxis oder Physiotherapie.',
-  details: 'Mit Herzschrittmacher oder Defibrillator, nach einer Embolie, bei Nervenschäden '
-    + 'mit verändertem Gefühl, bei Blutungsneigung, mit Blutverdünnern, nach frischer '
-    + 'Operation oder Verletzung und in der Schwangerschaft nennen Hersteller eine '
-    + 'ärztliche Rückfrage vorab. In Fallberichten – Einzelfällen, wie oft so etwas '
-    + 'vorkommt, ist unbekannt – sind nach Anwendung am Hals Einrisse einer Halsarterie '
-    + 'mit Schlaganfall beschrieben, außerdem Muskelschäden nach langer Anwendung. '
-    + 'Plötzliche Lähmung, Taubheit, Sprach- oder Sehstörung, starker Schwindel oder '
-    + 'Gangunsicherheit sind ein Notfall: 112.',
+  satz: 'Wo und bei wem ein Gerät nicht angewendet werden soll, steht in seinen '
+    + 'Sicherheitshinweisen. Fragen dazu, auch wo am Körper, beantworten Praxis oder '
+    + 'Physiotherapie.',
+  details: 'Plötzliche Lähmung oder Taubheit, Sprach- oder Sehstörung, Schwindel oder ein '
+    + 'unsicherer Gang können Zeichen eines Schlaganfalls sein – egal, wobei sie auftreten. '
+    + 'Dann 112, nicht auf einen Termin warten.',
 };
 
 /*
@@ -283,9 +293,13 @@ export function zuletztAktivitaeten(eintraege, eigene = [], anzahl = 5) {
 /*
  * Kopfschmerz zählt in den 24 Stunden nach einer Aktivität.
  *
- * Kürzer wäre sauberer und ginge am Kopf vorbei: Die Anstrengung macht ihren
- * Kopfschmerz noch am selben Abend, die Feier ihren erst am nächsten Morgen.
- * Ein Fenster bis zum selben Zeitpunkt am nächsten Tag fängt beides, und weil
+ * Kürzer wäre sauberer und ginge am Kopf vorbei: Kopfschmerz bei Anstrengung
+ * kommt laut Klassifikation während oder nach der Anstrengung (ICHD-3, 2018,
+ * 4.2: „during or after strenuous physical exercise"), und der häufigere,
+ * verzögerte Kopfschmerz nach Alkohol beginnt fünf bis zwölf Stunden nach
+ * dem Trinken, der seltenere sofortige binnen drei Stunden (8.1.4.2,
+ * 8.1.4.1). Eine Feier ist dabei nicht dasselbe wie Alkohol. Ein Fenster bis
+ * zum selben Zeitpunkt am nächsten Tag schließt diese Abstände ein, und weil
  * die Vergleichstage dasselbe Fenster bekommen, wird es dadurch nicht
  * ungerecht – nur verdünnter.
  *
@@ -660,9 +674,10 @@ export function aktivKopfSatz(z) {
   const k = z.kopf;
   /*
    * Bei Massage und Wärme ist die Reihenfolge verdächtig, in beide
-   * Richtungen: Man greift dazu, wenn sich etwas anbahnt – ein Kopfschmerz
-   * danach war womöglich schon unterwegs –, und danach wird vieles ohnehin
-   * besser. Beides gehört neben die Zahl.
+   * Richtungen: Greift man dazu, wenn sich etwas anbahnt, war ein
+   * Kopfschmerz danach womöglich schon unterwegs, und Beschwerden klingen
+   * auch von selbst ab (Quellen bei GEGENMITTEL_VORBEHALT). Beides gehört
+   * neben die Zahl.
    */
   const vorbehalt = istGegenmittel(z.id) ? ` ${GEGENMITTEL_VORBEHALT}` : '';
   return `In den ${AKTIV_KOPF_STUNDEN} Stunden danach an ${k.mitTreffer} von ${k.faelle} Tagen `
@@ -673,9 +688,11 @@ export function aktivKopfSatz(z) {
 /**
  * Die Tagesfrage „Bewegung" in einem Satz – oder '' ohne genug Tage.
  *
- * Gezählt am selben Tag, und deshalb mit dem Vorbehalt in beide Richtungen:
- * An einem schlechten Tag bewegt man sich weniger, und an einem Tag mit viel
- * Bewegung isst man anders. Was hier steht, kam zusammen vor.
+ * Gezählt am selben Tag, und deshalb bleibt die Richtung offen: Was hier
+ * steht, kam zusammen vor. Beschwerden können auch die Bewegung
+ * beeinflussen – bei einer Migräne etwa verstärkt alltägliche Bewegung den
+ * Schmerz oder wird gemieden (ICHD-3, 2018, 1.1 Kriterium C4) –, und ein Tag
+ * mit viel Bewegung kann auch sonst anders verlaufen sein als ein ruhiger.
  */
 export function bewegungSatz(f) {
   if (!f || !f.genug) return '';

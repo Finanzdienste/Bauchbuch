@@ -63,9 +63,15 @@ const verteilt = (n, ab = 0, schritt = 3) => Array.from({ length: n }, (_, k) =>
     `Schiene: 20 Nächte getragen, 20 nicht, 20 ohne Angabe (${v1.getragen}/${v1.nicht}/${v1.ohneAngabe})`);
   check(v1.v1a.ohne.n === 20 && v1.v1a.ohne.schnitt === 0 && v1.v1b.ohne.n === 20 && v1.v1b.ohne.schnitt === 1,
     'R2: Nächte ohne Antwort zählen nicht als „ohne Schiene“ – auch nicht die mit Kopfschmerz am Morgen');
-  check(v1.saetze.includes('Die Schiene ist vor allem zum Schutz der Zähne gedacht. Kein Unterschied beim '
-    + 'Kopfschmerz heißt nicht, dass sie nutzlos ist; eine Wirkung kann auch über mehrere Nächte nachhallen.'),
+  check(v1.saetze.includes('Wozu die Schiene im Einzelfall gedacht ist und ob sie nützt, kann ein Tagebuch '
+    + 'nicht zeigen – das beurteilt die Zahnarztpraxis. Ein Vergleich hier zeigt nur, ob sich Kopf oder '
+    + 'Kiefer am Morgen nach Nächten mit und ohne Schiene unterscheiden.'),
   'der Satz zur Schiene steht immer dabei');
+  // Zweck und Nutzen der Schiene beurteilt die Zahnarztpraxis; für „vor allem
+  // zum Schutz der Zähne" und eine Wirkung über mehrere Nächte fand sich
+  // keine erreichbare Quelle.
+  check(!v1.saetze.some((t) => /Schutz der Zähne|nutzlos|nachhallen/.test(t)),
+    'kein Satz über Zweck oder Nachwirkung der Schiene ohne Quelle');
 }
 {
   // Nach Feier, Reise oder Alkohol zählt die Nacht nicht – auf keiner Seite.
@@ -344,8 +350,14 @@ function v2Tagebuch(saat, p = [0.15, 0.6]) {
   check(v4 && v4.vorher.notiert === 60 && v4.seitdem.notiert === 60 && !('art' in v4) && !('urteil' in v4),
     'V4: Kopfschmerztage vor und seit dem ersten Eintrag – gleich lange Zeit, nur beschrieben, ohne Urteil');
   check(v4.satz.includes('Ob vorher schon massiert wurde, weiß Body Check nicht'), 'V4 mit dem Satz, dass vorher unbekannt ist');
+  // Regression zur Mitte als Möglichkeit („kann"), nicht als Häufigkeit über
+  // das Verhalten („angefangen wird oft") – dafür steht keine Quelle.
+  check(v4.satz.includes('kann eine Besserung danach auch ohne den neuen Anfang kommen') && !/oft/.test(v4.satz),
+    'V4: eine Besserung danach kann auch von selbst kommen – ohne unbelegtes „oft"');
   check(s.v5.genug && s.v5.mit.schnitt === 3 && s.v5.ohne.schnitt === 1 && !('art' in s.v5),
     'V5: Kiefer nach Nächten mit und ohne „Nachts davon wach“ – nur beschrieben');
+  check(s.v5.satz.includes('Zähneknirschen, Schmerzen oder nächtlicher Harndrang') && !s.v5.satz.includes('Studien'),
+    'V5: was den Schlaf stören kann, nach gesund.bund.de – ohne Aussage über einen Forschungsstand');
   const wenig = {};
   Object.entries(tage).slice(0, 15).forEach(([d, t]) => { wenig[d] = t; });
   const s2 = spannungAuswertung({ eintraege, tage: wenig, heute: tagN(119), jetzt: JETZT });

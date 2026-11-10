@@ -409,7 +409,7 @@ check(probe('hinweis', 'mittel.js', (t) => t.replace('Nach dem Absetzen können 
   'Wächter: ebenso ein ADHS-Hinweis');
 check(probe('karte', 'zusammen.js', (t) => t.replace('Bitte nichts davon eigenmächtig', 'Bitte etwas davon')) === 1,
   'Wächter: ebenso ein Text in js/zusammen.js');
-check(probe('massage', 'aktivitaet.js', (t) => t.replace('sind ein Notfall: 112.', 'sind meist harmlos.')) === 1,
+check(probe('massage', 'aktivitaet.js', (t) => t.replace('Dann 112, nicht auf einen Termin warten.', 'Das ist meist harmlos.')) === 1,
   'Wächter: ebenso der Massagehinweis');
 check(probe('umbenannt', 'mittel.js', (t) => t.replace('export const MPH_FORMEN = [', 'export const FORMEN = [')) === 1,
   'Wächter: und eine umbenannte Liste – sie wäre nicht mehr auffindbar');

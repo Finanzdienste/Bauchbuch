@@ -430,8 +430,11 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   const flach = teil.replace(/\s+/g, ' ');
   check(teil.includes('Massage/Physio') && /Kopf an \d+ von \d+ Tagen/.test(teil),
     `unter NACH AKTIVITÄTEN steht die Kopfzeile zur Massage (${teil.split('\n').filter((z) => /Massage\/Physio|Kopf an/.test(z)).map((z) => z.trim()).join(' / ')})`);
-  check(flach.includes('(Massiert oder gewärmt wird oft, wenn sich etwas anbahnt – ein Kopfschmerz danach kann '
-    + 'schon unterwegs gewesen sein; danach wird es außerdem oft von selbst besser.)')
+  // Der Wortlaut ist GEGENMITTEL_VORBEHALT aus js/aktivitaet.js (Fassung 30,
+  // Quellen dort): ohne „oft", mit dem Vorboten und dem Abklingen.
+  check(flach.includes('(Wird massiert oder gewärmt, wenn sich schon etwas anbahnt, kann ein Kopfschmerz danach '
+    + 'schon unterwegs gewesen sein – bei einer Migräne kann ein steifer oder schmerzender Nacken Stunden bis Tage '
+    + 'vorher ein Vorbote sein. Kopfschmerzattacken und Nackenschmerzen klingen außerdem meist von selbst wieder ab.)')
     && flach.split('anbahnt').length === 2,
   'und darunter einmal der Vorbehalt, auch mit „Kiefer, Nacken, Schiene“ aus');
   check(abschnitt(an, 'NACH AKTIVITÄTEN') === teil, 'mit dem Schalter an steht dort dasselbe, Zeichen für Zeichen');
@@ -455,8 +458,11 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   const fragen = (aufwach, spannungAn) => kopfFragen({ zahlen: z, mittel: null, aufwach, spannungAn }).join(' ');
   const aw = aufwachZahlen(eintraege, tage, GRUND);
   check(aw.aufwachen === 4 && aw.schiene === 12, `gezählt über die letzten 30 Tage (${aw.aufwachen} beim Aufwachen, ${aw.schiene} Nächte mit Schiene)`);
-  check(fragen(aw, false).startsWith('Ich habe oft schon beim Aufwachen Kopfschmerzen. Gehören Schlaf (Schnarchen, '
-    + 'Atemaussetzer), Koffein oder meine Schmerzmittel mit auf die Liste?'), 'ab vier Kopfschmerzen beim Aufwachen die Frage');
+  // Wortlaut der Fassung 30 (kopfFragen in js/kopf.js): eine Frage an die
+  // Praxis, Koffein für sich.
+  check(fragen(aw, false).startsWith('Ich habe oft schon beim Aufwachen Kopfschmerzen. Kann das mit meinem Schlaf '
+    + '(Schnarchen, Atemaussetzer) oder mit meinen Schmerzmitteln zu tun haben? Und spielt Koffein bei meinen '
+    + 'Kopfschmerzen eine Rolle?'), 'ab vier Kopfschmerzen beim Aufwachen die Frage');
   check(fragen(aw, true).startsWith('Ich trage eine Aufbissschiene und habe oft schon beim Aufwachen Kopfschmerzen.'),
     'mit „Kiefer, Nacken, Schiene“ und zehn Nächten Schiene die Fassung mit der Schiene');
   check(!fragen({ aufwachen: 3, schiene: 12 }, true).includes('Aufwachen')

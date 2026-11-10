@@ -12,41 +12,62 @@
  * Beschwerdeart. Keine der vorhandenen Rechnungen sieht ihn, und das ist kein
  * Versehen, sondern der Zweck: Was hier steht, rechnet nur mit sich selbst.
  *
- * Was den Kopf und den Bauch trotzdem verbindet, ist das Schmerzmittel.
- * Ibuprofen, Diclofenac und ASS gehören zu den häufigsten Ursachen einer
- * gereizten Magenschleimhaut – und wer Kopfschmerzen hat, greift genau dazu.
- * Bei einer Gastritis Typ C sind sie einer der Hauptverdächtigen. Deshalb
- * zählt dieses Modul, an wie vielen Kopfschmerztagen ein solches Mittel im
- * Tagebuch steht, und vergleicht den Bauch danach – und zwar, wo es geht,
- * mit Kopfschmerztagen *ohne* ein solches Mittel, damit der Kopfschmerz auf
- * beiden Seiten steht und der Unterschied das Mittel ist.
+ * Was den Kopf und den Bauch trotzdem verbinden kann, ist das Schmerzmittel.
+ * Die häufige Einnahme entzündungshemmender Schmerzmittel (NSAR, etwa ASS,
+ * Diclofenac, Ibuprofen) zählt zu den häufigsten Gründen einer
+ * Magenschleimhautentzündung. Wer sie nur kurz bei akuten Schmerzen nimmt,
+ * hat laut derselben Quelle eher selten Nebenwirkungen; über Wochen oder
+ * Monate genommen, können sie die Schutzfunktion der Schleimhaut stören. Bei
+ * starken Migräneschmerzen nehmen viele solche Mittel, daneben auch
+ * Paracetamol oder Triptane. Eine Typ-C-Gastritis ist eine, die durch
+ * chemische Stoffe entsteht; als Ursache kommen dort unter anderem
+ * zurücklaufende Gallenflüssigkeit, Alkohol und bestimmte Schmerzmittel in
+ * Frage. (Quellen: gesund.bund.de/gastritis, mit IQWiG, Stand 13.11.2025,
+ * „Welche Ursachen hat eine Gastritis?" und „Einnahme von NSAR-
+ * Schmerzmitteln"; gesund.bund.de/migraene, Stand 21.12.2022, Behandlung;
+ * gesund.bund.de/glossar/typ-c-gastritis.) Deshalb zählt dieses Modul, an
+ * wie vielen Kopfschmerztagen ein solches Mittel im Tagebuch steht, und
+ * vergleicht den Bauch danach – und zwar, wo es geht, mit Kopfschmerztagen
+ * *ohne* ein solches Mittel, damit der Kopfschmerz auf beiden Seiten steht
+ * und der Unterschied das Mittel ist.
  *
  * FÜR EINE MIGRÄNE
  *
- * Ein Kopfschmerztagebuch für die Sprechstunde braucht wenige Zahlen, und sie
- * stehen hier alle: Kopfschmerztage je Monat, Tage mit Akutmedikation je Monat
- * und Klasse, Dauer und Stärke der Attacken, Begleitmerkmale, ob der Tag
- * ausgefallen ist, ob das Mittel geholfen hat, und ob die Attacken an der
- * Periode hängen. Die Schwellen, die die Neurologie dafür benutzt, stehen
+ * Ein Kopfschmerztagebuch verbessert laut Kopfschmerzklassifikation die
+ * diagnostische Genauigkeit und erlaubt, den Medikamentengebrauch genauer zu
+ * beurteilen; für häufige Kopfschmerzen nennt sie Schmerz und Begleitsymptome
+ * Tag für Tag über mindestens einen Monat (ICHD-3, 2018, „How to use the
+ * classification" Punkt 12; 1.3 Note 2). Body Check zählt dafür:
+ * Kopfschmerztage je Monat, Tage mit Akutmedikation je Monat und Klasse,
+ * Dauer und Stärke der Attacken, Begleitmerkmale, ob der Tag ausgefallen ist,
+ * ob das Mittel geholfen hat, und ob die Attacken an der Periode hängen. Die
+ * ersten beiden sind die Größen, an denen die Klassifikation ihre Schwellen
+ * festmacht; die übrigen sind eine Auswahl der App. Die Schwellen stehen
  * dabei – als Frage für die Sprechstunde, nie als Urteil: Die App zählt
- * Kopfschmerztage, keine Migränetage. Und weil die Definitionen mehr als drei
- * Monate verlangen, rechnet sie drei Fenster zu dreißig Tagen; ein einzelnes
- * Fenster ist bei einer Migräne ein Zufallswert – eine schlechte Woche, ein
- * Zyklus.
+ * Kopfschmerztage, keine Migränetage. Die Definitionen für chronische Migräne
+ * und für Kopfschmerz bei Medikamentenübergebrauch verlangen mehr als drei
+ * Monate (ICHD-3 1.3 Kriterium A, 8.2 Kriterium B). Body Check rechnet
+ * deshalb drei Fenster zu dreißig Tagen – zusammen etwa drei Monate, nicht
+ * mehr – und wird erst laut, wenn zwei der drei Fenster über der Schwelle
+ * liegen. Ein einzelnes Fenster ist eine Zahl, kein Verlauf.
  */
 import { fmtMonat, minutenAmTag, monatsStart, plusMonate, plusTage } from './datum.js';
 import { PHASEN, phaseVon, zyklen } from './zyklus.js';
 import { eintragZaehlt, tagZaehlt } from './wasser.js';
 
 /*
- * Wie er sich anfühlt. Keine Diagnose-Schublade, sondern die Fragen, die in
- * der Sprechstunde gestellt werden: pochend oder drückend, eine Seite oder
- * beide, Übelkeit, Erbrechen, Licht, Bewegung, Nacken, Aura. Aus der
+ * Wie er sich anfühlt. Keine Diagnose-Schublade, sondern Merkmale, nach
+ * denen die Kopfschmerzklassifikation Kopfschmerzarten unterscheidet: pochend
+ * oder drückend, eine Seite oder beide, Übelkeit oder Erbrechen, Licht- und
+ * Lärmempfindlichkeit, Verstärkung durch alltägliche Bewegung, Aura (ICHD-3,
+ * 2018, 1.1 Kriterien C und D, 1.2, 2.1 Kriterien C und D). Aus der
  * Kombination schließt eine Ärztin etwas; die App schließt nichts, sie zählt.
  *
- * „Nackenschmerz dabei", nicht „vom Nacken her": Nackenschmerz haben die
- * meisten Menschen mit Migräne, und wer ihn als Ursache einträgt, landet in
- * der falschen Sprechstunde.
+ * „Nackenschmerz dabei", nicht „vom Nacken her": Nackensteifigkeit oder
+ * Nackenschmerz nennt die Klassifikation als mögliches Zeichen vor oder nach
+ * einer Migräneattacke, nicht als Kriterium (ICHD-3, Einleitung zu Kapitel 1:
+ * „fatigue and neck stiffness and/or pain"). Ob der Nacken die Ursache ist,
+ * beurteilt die Praxis; der Bogen fragt nur, ob er dabei war.
  *
  * Seit der Fassung 28:
  *
@@ -87,10 +108,15 @@ export const KOPF_SEITE = ['einseitig', 'beidseitig'];
 /*
  * Wie lange. Vier grobe Stufen statt einer Stundenzahl: Wer eine Attacke
  * hinter sich hat, weiß „den halben Tag" oder „bis übermorgen", aber nicht
- * „elf Stunden". Die Grenzen sind die, die etwas bedeuten: Unter vier Stunden
- * ist für eine Migräne untypisch oder früh behandelt, vier Stunden bis drei
- * Tage ist ihr Bereich, und länger als drei Tage ist ein Grund, in der Praxis
- * anzurufen. „Weiß ich nicht mehr" wird gespeichert, aber nicht gezählt.
+ * „elf Stunden". Die Grenzen sind die der Klassifikation: Eine unbehandelte
+ * oder erfolglos behandelte Migräneattacke dauert bei Erwachsenen vier
+ * Stunden bis drei Tage (ICHD-3, 2018, 1.1 Kriterium B; bei unter
+ * 18-Jährigen zwei bis 72 Stunden, Note 3). Kürzer kann sie sein, wenn sie
+ * behandelt wurde – früh behandelte Attacken erreichen oft nicht alle
+ * Merkmale (Kommentar zu 1.5). Eine stark beeinträchtigende Migräneattacke
+ * über 72 Stunden führt die Klassifikation als eigene Komplikation (1.4.1
+ * Status migrainosus); dazu der Satz in statusSatz(). „Weiß ich nicht mehr"
+ * wird gespeichert, aber nicht gezählt.
  */
 export const KOPF_DAUER = [
   { id: 'kurz', name: 'unter 4 Stunden' },
@@ -100,10 +126,16 @@ export const KOPF_DAUER = [
 ];
 
 /*
- * Wie der Tag weiterging – in den drei Stufen, nach denen die Sprechstunde
- * graduiert: Ausfalltage und Tage mit halber Leistung über drei Monate.
- * Ja/nein wäre bequemer und verlöre die Mitte, in der die meisten
- * Migränetage liegen.
+ * Wie der Tag weiterging – in drei Stufen, die die App festlegt. Zum
+ * Vergleich: Der Fragebogen MIDAS zählt über die letzten drei Monate die
+ * verpassten Tage und die Tage mit höchstens halber Leistung in Beruf oder
+ * Schule und im Haushalt sowie die verpassten Tage in Familie und Freizeit
+ * (FDA, BLA 761089, COA Consult Review, Reference ID 4245266; EMA-EPAR
+ * Ajovy, EMA/118499/2019, S. 38). „Eingeschränkt" ist hier weiter gefasst
+ * als „höchstens halbe Leistung". Ja/nein wäre bequemer und verlöre die
+ * Mitte: Etwa 90 % der Menschen mit Migräne sind in der Attacke in ihrer
+ * Leistungsfähigkeit eingeschränkt, ein Drittel braucht Bettruhe (EMA-EPAR
+ * Emgality, EMA/708631/2018, Background: „reduced ability to function").
  */
 export const KOPF_VERLAUF = [
   { id: 'normal', name: 'Normal weitergemacht', kurz: '' },
@@ -115,9 +147,11 @@ export const KOPF_VERLAUF = [
 export const UNBEKANNT = 'unbekannt';
 
 /*
- * Hat das Mittel geholfen? Nach etwa zwei Stunden – das ist der Zeitpunkt, an
- * dem die Akuttherapie beurteilt und angepasst wird. Die eine Angabe, ohne
- * die ein Kopfschmerztagebuch für die Sprechstunde unvollständig ist.
+ * Hat das Mittel geholfen? Nach etwa zwei Stunden – zu diesem Zeitpunkt
+ * messen Studien, ob ein Mittel gegen die Migräneattacke wirkt (EMA,
+ * CPMP/EWP/788/01 Rev. 1, 24.01.2007, „Acute migraine attack trials": „pain-
+ * free at 2 hours" als primärer Studienendpunkt). Was daraus für die
+ * Behandlung folgt, klärt die Praxis; die App hält nur die Antwort fest.
  */
 export const MITTEL_WIRKUNG = [
   { id: 'weg', name: 'Weg' },
@@ -297,7 +331,9 @@ export function kopfZahlen(eintraege, tage, heute) {
   let statusZuletzt = null;
   let auraAnzahl = 0;
   let erbrochenAnzahl = 0;
-  // Ausfalltage über die letzten 90 Tage – der Zeitraum, nach dem gefragt wird.
+  // Ausfalltage über die letzten 90 Tage – etwa der Dreimonatszeitraum, über
+  // den der Fragebogen MIDAS verlorene Tage erfasst (EMA-EPAR Ajovy,
+  // EMA/118499/2019, S. 38: „over the previous 3 months").
   const ab90 = heute ? plusTage(heute, -89) : null;
   kopf.forEach((e) => {
     const arten = e.kopfArten || [];
@@ -354,28 +390,59 @@ export function kopfZahlen(eintraege, tage, heute) {
 /*
  * Die Klassen von Akutmitteln, die hier auseinandergehalten werden.
  *
- *   nsar       greift den Magen an – die Verbindung zum Bauch
+ *   nsar       kann den Magen belasten – die Verbindung zum Bauch: NSAR
+ *              bremsen die Prostaglandine, die die Magenwand schützen; über
+ *              Wochen oder Monate genommen, kann das die Schutzfunktion der
+ *              Schleimhaut stören (gesund.bund.de/gastritis, Stand
+ *              13.11.2025). Die Fachinformation nennt Magen-Darm-Beschwerden
+ *              als häufigste Nebenwirkung, dazu Geschwüre und Blutungen,
+ *              deren Risiko von Dosis und Dauer abhängt (IBU-ratiopharm 400 mg
+ *              akut, Stand 06/2026, 4.4 und 4.8)
  *   kombi      ASS oder Ibuprofen (ein NSAR) plus Koffein – für den Magen ein
  *              NSAR, für den Kopf die niedrige Übergebrauchsgrenze der
  *              Kombinationsmittel
- *   triptan    das Migränemittel – schont den Magen, Grenze zehn Tage
- *   nichtnsar  Paracetamol, Metamizol – ohne Entzündungshemmung
+ *   triptan    das Migränemittel – kein NSAR; die Fachinformation nennt
+ *              eigene Magen-Darm-Nebenwirkungen (Imigran Filmtabletten,
+ *              Stand 08/2025, 4.8: häufig Übelkeit und Erbrechen, unklar, ob
+ *              vom Mittel oder vom Anfall). Grenze zehn Tage (ICHD-3 8.2.2)
+ *   nichtnsar  Paracetamol, Metamizol – keine NSAR: In den Fachinformationen
+ *              als „andere Analgetika und Antipyretika" eingeordnet und als
+ *              schmerzstillend und fiebersenkend beschrieben, Metamizol auch
+ *              krampflösend; Entzündungshemmung nennen sie nicht
+ *              (Paracetamol-ratiopharm 500 mg, Stand 12/2024, 5.1; Novalgin
+ *              Filmtabletten, Stand 11/2024, 5.1)
  *   opioid     Tramadol, Tilidin, Codein – Grenze zehn Tage
- *   gepant     die neuen Anfallsmittel – zählen als Akuttag, ohne eigene Grenze
+ *   gepant     Gepante und Ditane (mittel.js) – zur Attackenbehandlung
+ *              zugelassen, Rimegepant auch zur Vorbeugung (EMA-
+ *              Produktinformation Vydura, 4.1). ICHD-3 nennt sie nicht eigens;
+ *              für andere Akutmittel gilt dort die Auffangregel 8.2.8 (zehn
+ *              Tage). Body Check zählt sie als Akuttag, wendet für sie aber
+ *              keine eigene Schwelle an – eine Festlegung der App
  *   kombipara  Paracetamol plus Koffein – für den Kopf ein Kombinationsmittel
  *              wie kombi (ICHD-3 8.2.5), für den Magen kein NSAR
  *
  * Für die Übergebrauchsregel gelten nsar und nichtnsar als EINE Klasse: die
  * einfachen Schmerzmittel, Grenze fünfzehn Tage – auch mehrere zusammen.
  * Ebenso kombi und kombipara: die Kombinationsmittel, Grenze zehn. Getrennt
- * sind die beiden nur für den Magen. „Verschiedene durcheinander" meint
- * Triptan, Kombination, Opioid und einfache Schmerzmittel untereinander,
- * Grenze zehn.
+ * sind die beiden nur für den Magen. „Verschiedene durcheinander" folgt
+ * ICHD-3 8.2.6: Mittel aus mehreren Klassen, von denen keine allein ihre
+ * Grenze erreicht, an zusammen zehn oder mehr Tagen im Monat über mehr als
+ * drei Monate. Die Klassifikation nennt dort Ergotamin, Triptane,
+ * Nicht-Opioid-Analgetika und Opioide; Note 2 bezieht die
+ * Kombinationsmittel (8.2.5) ein. Ergotamin führt die App nicht. Dass auch
+ * Gepant-Tage in die Summe zählen, ist eine Festlegung der App – 8.2.6
+ * nennt Gepante nicht.
  *
  * Vorbeugende Mittel (Gruppe 'prophylaxe'), Koffein als Tablette
- * ('koffeinmittel'), ADHS-Mittel und Magenmittel sind keine Klasse: Sie
- * zählen nirgends als Akutmittel. Welche Gruppe ein Name hat, weiß mittel.js;
- * hierher kommt nur die Kennung.
+ * ('koffeinmittel'), ADHS-Mittel und Magenmittel sind keine Klasse: Body
+ * Check zählt sie nirgends als Akutmittel. Grundlage: Beim Übergebrauch
+ * zählt die Klassifikation Mittel, die akut oder symptomatisch gegen
+ * Kopfschmerz genommen werden können (ICHD-3 8.2 Kriterium B); Kopfschmerz
+ * durch Mittel, die zu einem anderen Zweck genommen werden, führt sie
+ * getrennt (8.1.9, 8.1.10). Wird ein anderes Mittel gegen den Kopfschmerz
+ * selbst genommen, kann es nach der Klassifikation unter 8.2.8 fallen (zehn
+ * Tage); wofür etwas genommen wurde, weiß die App nicht. Welche Gruppe ein
+ * Name hat, weiß mittel.js; hierher kommt nur die Kennung.
  */
 const AKUT_KLASSEN = ['nsar', 'kombi', 'triptan', 'nichtnsar', 'opioid', 'gepant', 'kombipara'];
 const KLASSE_VON_GRUPPE = Object.fromEntries(AKUT_KLASSEN.map((k) => [k, k]));
@@ -463,12 +530,16 @@ export function sortenText(f) {
  * Aussage, die die wichtige daneben entwertet.
  *
  * Die Fenster zählen jeden Tag mit einem Akutmittel – ob daneben ein
- * Kopfschmerz eingetragen wurde oder nicht. Für die Frage, ob das Mittel
- * selbst den Kopfschmerz unterhält, ist gleichgültig, wogegen es genommen
- * wurde; und ein vergessener Kopfeintrag darf die Zahl nicht kleiner machen.
- * Den Namen aus der Klassifikation bekommt das aber erst zusammen mit
- * fünfzehn Kopfschmerztagen im selben Fenster – sonst stünde er bei jedem
- * täglichen ASS zum Blutschutz.
+ * Kopfschmerz eingetragen wurde oder nicht; ein vergessener Kopfeintrag darf
+ * die Zahl nicht kleiner machen. Die Klassifikation fasst den Übergebrauch
+ * nach Mitteln, die gegen Kopfschmerz genommen werden können, und nennt in
+ * den Unterformen nur Einnahmetage, keinen Anlass (ICHD-3 8.2 Kriterium B,
+ * 8.2.3.2.1); ob ein aus anderem Grund genommenes Mittel, etwa ASS zum
+ * Blutschutz, mitgemeint ist, sagt sie nicht ausdrücklich. Body Check zählt
+ * es mit; ob es dazugehört, klärt die Praxis. Den Namen aus der
+ * Klassifikation bekommt das erst zusammen mit fünfzehn Kopfschmerztagen im
+ * selben Fenster (Kriterium A) – sonst stünde er bei jedem täglichen ASS
+ * zum Blutschutz.
  *
  * Was an einem Kopfschmerztag eingetragen ist und keiner Gruppe zuzuordnen,
  * steht unter `unbekannt` mit Namen: Ein Schmerzmittel, das die App nicht
@@ -556,18 +627,26 @@ export function kopfMittel(eintraege, gruppeVon, heute) {
 /**
  * Was der Bauch nach Kopfschmerztagen mit entzündungshemmendem Mittel macht.
  *
- * Verglichen wird der Bauch-Tageswert am Tag selbst und am Tag danach – dort
- * liegt das Signal: Der Schaden an der Schleimhaut entsteht binnen Stunden,
- * der Ausfall des Schutzfilms hält grob einen Tag an.
+ * Verglichen wird der Bauch-Tageswert am Tag selbst und am Tag danach. Das
+ * ist eine gewählte Näherung, keine belegte Wirkdauer: NSAR bremsen die
+ * Bildung von Prostaglandinen, die die Magenwand mit Schleim und
+ * säureneutralisierenden Stoffen schützen (gesund.bund.de/gastritis, Stand
+ * 13.11.2025); wie schnell eine Schädigung entsteht und wie lange der Schutz
+ * nachlässt, sagen die geprüften Quellen nicht, und laut Fachinformation
+ * können Magen-Darm-Blutungen oder Geschwüre zu jedem Zeitpunkt der
+ * Behandlung auftreten (IBU-ratiopharm 400 mg akut, Stand 06/2026, 4.4).
  *
- * Die Vergleichsgruppe ist der Punkt. Gegen „alle übrigen Tage" misst man vor
- * allem den Anfall – Übelkeit, Nüchternbleiben, Liegen –, nicht das Mittel.
- * Deshalb wird, wo es geht, *innerhalb* der Kopfschmerztage verglichen: Tage
- * mit NSAR (und der Tag danach) gegen Kopfschmerztage ohne NSAR (und der Tag
+ * Die Vergleichsgruppe ist der Punkt. Gegen „alle übrigen Tage" misst man
+ * womöglich vor allem den Anfall, nicht das Mittel: Bei einer Migräne können
+ * Übelkeit oder Erbrechen dazugehören, und alltägliche Bewegung verstärkt
+ * den Schmerz oder wird gemieden (ICHD-3 1.1 Kriterien C und D). Deshalb
+ * wird, wo es geht, *innerhalb* der Kopfschmerztage verglichen: Tage mit
+ * NSAR (und der Tag danach) gegen Kopfschmerztage ohne NSAR (und der Tag
  * danach). Beide Seiten haben den Kopfschmerz; der Unterschied ist das
- * Mittel – oder die Schwere des Anfalls, denn ein Mittel nimmt man eher an
- * den schlimmeren Tagen. Deshalb steht die mittlere Kopfstärke beider Seiten
- * mit dabei. Erst wenn es keinen Kopfschmerztag ohne NSAR gibt, bleibt der
+ * Mittel – oder die Schwere des Anfalls, denn viele nehmen ein Mittel vor
+ * allem bei starken Schmerzen (gesund.bund.de/migraene, Stand 21.12.2022,
+ * Behandlung). Deshalb steht die mittlere Kopfstärke beider Seiten mit
+ * dabei. Erst wenn es keinen Kopfschmerztag ohne NSAR gibt, bleibt der
  * Vergleich gegen alle übrigen Tage – und der Satz sagt das dann auch.
  *
  * Ein Tag, der auf beide Seiten fiele (der Tag nach einem NSAR-Tag ist selbst
@@ -630,11 +709,13 @@ export function nsarNachwirkung(eintraege, tage, mitTagen, ohneTagen, tagesWert)
 /**
  * Der Bauch an Kopfschmerztagen selbst – gegen alle übrigen Tage.
  *
- * Eine Fußnote, keine Auskunft: Das Ergebnis ist in beide Richtungen
- * erwartbar, weil Übelkeit und Liegen zum Anfall gehören – und weil an
- * solchen Tagen wenig gegessen und wenig eingetragen wird. Es steht da, damit
- * niemand den Bauchwert eines Kopfschmerztages als Aussage über das Essen
- * davor liest – oder über das Mittel.
+ * Eine Fußnote, keine Auskunft: Das Ergebnis kann in beide Richtungen
+ * ausfallen – bei einer Migräne können Übelkeit und Erbrechen zum Anfall
+ * gehören (ICHD-3 1.1 Kriterium D), und Body Check zählt nur, was
+ * eingetragen ist; was an solchen Tagen gegessen und eingetragen wird, kann
+ * vom Üblichen abweichen. Es steht da, damit niemand den Bauchwert eines
+ * Kopfschmerztages als Aussage über das Essen davor liest – oder über das
+ * Mittel.
  */
 export function bauchAnKopfTagen(eintraege, tage, tagesWert) {
   const kopfTage = kopfTageVon(eintraege);
@@ -678,11 +759,14 @@ export function kopfTagesWert(eintraege, iso, tage = {}) {
  * Kopfschmerz nach Umständen: nur der Schlaf.
  *
  * Die Nacht davor ist der eine Umstand, der sauber *vor* dem Kopfschmerz
- * liegt. Anspannung am selben Tag liegt es nicht: Ein Anfall kündigt sich oft
- * einen Tag vorher an – mit Unruhe, Müdigkeit, Nackenschmerz –, und ein
- * Vergleich am selben Tag misst dann den Anfang des Anfalls und nennt ihn
- * Auslöser. Deshalb steht die Anspannung hier nicht, und auch beim Schlaf
- * steht der Vorbehalt daneben.
+ * liegt. Anspannung am selben Tag liegt es nicht: Bei manchen Menschen mit
+ * Migräne kündigt sich ein Anfall Stunden bis zu zwei Tage vorher an – etwa
+ * mit Müdigkeit, Gähnen, Konzentrationsschwierigkeiten, Hyperaktivität oder
+ * Nackensteifigkeit (ICHD-3, 2018, Einleitung zu Kapitel 1: „Some patients
+ * also experience a prodromal phase"; Kommentar zu 1.1; Begriffsliste
+ * „Prodrome": bis 48 Stunden) –, und ein Vergleich am selben Tag misst dann
+ * womöglich den Anfang des Anfalls und nennt ihn Auslöser. Deshalb steht die
+ * Anspannung hier nicht, und auch beim Schlaf steht der Vorbehalt daneben.
  *
  * Verglichen werden Anteile, und Anteile aus wenigen Tagen springen in großen
  * Schritten. Deshalb zwölf Tage je Seite, und „deutlich" nur, wenn der
@@ -760,10 +844,14 @@ export function kopfNachPhase(eintraege, tage) {
 /**
  * Das Fenster um die Periode: zwei Tage davor bis zum dritten Blutungstag.
  *
- * Das ist die Frage, die in der Kopfschmerzsprechstunde gestellt wird –
- * „menstruell?" –, und die vier Phasen beantworten sie nicht: Die zwei Tage
- * vor der Blutung, in denen das Östrogen fällt, verschwinden dort in der
- * breiten zweiten Zyklushälfte.
+ * Das ist das Fenster, mit dem die Kopfschmerzklassifikation „menstruell"
+ * fasst (ICHD-3, 2018, Anhang A1.1.1 und A1.1.2: Tag −2 bis +3, einen Tag 0
+ * gibt es nicht), und die vier Phasen bilden es nicht ab: Die zwei Tage vor
+ * der Blutung verschwinden dort in der breiten zweiten Zyklushälfte. Laut
+ * ICHD-3 gibt es Hinweise, dass menstruelle Anfälle zumindest bei manchen
+ * Frauen mit dem Abfall des Östrogens zusammenhängen; andere hormonelle
+ * Veränderungen in dieser Zeit können ebenso eine Rolle spielen (Kommentar
+ * im Anhang A1.1, S. 190 f.: „some evidence … at least in some women").
  *
  * Gezählt wird je beobachtetem Zyklus, ob im Fenster ein Kopfschmerztag lag.
  * „Beobachtet" heißt: Das Fenster ist vorbei, und an mindestens einem seiner
@@ -788,9 +876,13 @@ export function kopfUmPeriode(eintraege, tage, heute) {
 }
 
 /**
- * Die letzten drei Kalendermonate nebeneinander – das Format des
- * Kopfschmerzkalenders, mit dem die Neurologie chronischen Kopfschmerz und
- * Übergebrauch beurteilt.
+ * Die letzten drei Kalendermonate nebeneinander. Die Klassifikation setzt
+ * für chronische Migräne und für Kopfschmerz bei Medikamentenübergebrauch
+ * mehr als drei Monate an (ICHD-3 1.3 Kriterium A, 8.2 Kriterium B), und ein
+ * Kopfschmerztagebuch verbessert laut ICHD-3 die diagnostische Genauigkeit
+ * und erlaubt eine genauere Einschätzung des Medikamentengebrauchs („How to
+ * use the classification" Punkt 12). Die Beurteilung selbst liegt bei der
+ * Praxis.
  */
 export function kopfMonate(eintraege, tage, gruppeVon, heute, anzahl = 3) {
   if (!heute) return [];
@@ -864,12 +956,26 @@ export function aufwachZahlen(eintraege, tage, heute) {
  * für den Bauch stellen. Jede ist eine Frage, keine davon eine Empfehlung,
  * und keine legt eine Diagnose in den Mund; die Antwort hat die Praxis.
  *
- * Die Aufwach-Frage gilt für alle (sie hängt an keinem Schalter): Kopfschmerz,
- * der schon beim Aufwachen da ist, hat Ursachen, an die man beim Kopf nicht
- * zuerst denkt – Schlaf, Koffein, Schmerzmittel. Wer „Kiefer, Nacken,
- * Schiene" eingeschaltet hat und die Schiene oft trägt, bekommt sie mit der
- * Schiene im ersten Satz, damit die Praxis weiß, wovon die Rede ist.
- * `aufwach` kommt aus aufwachZahlen(); ohne bleibt es bei den alten Fragen.
+ * Die Aufwach-Frage gilt für alle (sie hängt an keinem Schalter). Kopfschmerz
+ * beim Aufwachen ist laut Klassifikation ein unspezifisches Zeichen: Er kommt
+ * bei vielen Kopfschmerzformen vor und bei Schlafstörungen wie einer
+ * Schlafapnoe (ICHD-3, 2018, 10.1.4, Kommentar: „headache present upon
+ * awakening is a non-specific symptom"); bei Kopfschmerz, der aus dem Schlaf
+ * weckt, nennt sie neben der Schlafapnoe auch den Medikamentenübergebrauch
+ * als mögliche andere Ursache (4.9, Note 2). Koffein ist eine eigene
+ * Kopfschmerzursache – beim Entzug (8.3.1) –, ein besonderer Bezug zum
+ * Aufwachen steht dort nicht; deshalb fragt der zweite Satz danach getrennt
+ * und ohne Bezug zum Aufwachen. Wer „Kiefer, Nacken, Schiene" eingeschaltet
+ * hat und die Schiene oft trägt, bekommt sie mit der Schiene im ersten Satz,
+ * damit die Praxis weiß, wovon die Rede ist. `aufwach` kommt aus
+ * aufwachZahlen(); ohne bleibt es bei den alten Fragen.
+ *
+ * Die Frage nach der Vorbeugung erscheint ab vier Kopfschmerztagen in 30
+ * Tagen. Die Zahl 4 steht in den Anwendungsgebieten mancher vorbeugender
+ * Mittel, dort aber als „mindestens 4 Migränetage pro Monat" (EMA-
+ * Produktinformation Aimovig, 4.1); Body Check zählt Kopfschmerztage jeder
+ * Art. Deshalb steht sie nur als offene Frage da, ohne Zahl als Grenze –
+ * die Antwort hat die Praxis.
  */
 export function kopfFragen({
   zahlen: z, mittel: m, befundIds = [], aufwach = null, spannungAn = false,
@@ -901,8 +1007,8 @@ export function kopfFragen({
   if (aufwach && aufwach.aufwachen >= AUFWACH_AB) {
     const schiene = spannungAn === true && aufwach.schiene >= SCHIENE_NAECHTE_AB;
     fragen.push(`${schiene ? 'Ich trage eine Aufbissschiene und habe' : 'Ich habe'} oft schon beim `
-      + 'Aufwachen Kopfschmerzen. Gehören Schlaf (Schnarchen, Atemaussetzer), Koffein oder meine '
-      + 'Schmerzmittel mit auf die Liste?');
+      + 'Aufwachen Kopfschmerzen. Kann das mit meinem Schlaf (Schnarchen, Atemaussetzer) oder mit '
+      + 'meinen Schmerzmitteln zu tun haben? Und spielt Koffein bei meinen Kopfschmerzen eine Rolle?');
   }
   return fragen;
 }
@@ -917,7 +1023,20 @@ function fensterKette(fenster, feld) {
   return fenster.map((f, i) => `${i ? 'davor ' : ''}${f[feld]}`).join(' · ');
 }
 
-/** Der Satz zur Nachwirkung – nur, wenn er deutlich ist. */
+/**
+ * Der Satz zur Nachwirkung – nur, wenn er deutlich ist.
+ *
+ * Liegt der Bauch nach dem Mittel niedriger, sagt der Satz, was Body Check
+ * zählt: nur, was eingetragen ist. Dass an solchen Tagen weniger gegessen
+ * wird, nennt keine geprüfte Quelle; deshalb steht da nur, dass Essen und
+ * Einträge vom Üblichen abweichen können.
+ *
+ * Im Vergleich innerhalb der Kopfschmerztage: „viele nehmen ein Mittel eher
+ * bei starken Schmerzen" nach gesund.bund.de/migraene (Stand 21.12.2022,
+ * Behandlung: „nehmen viele bei starken Schmerzen auch Medikamente ein");
+ * Übelkeit und Erbrechen als mögliche Begleiter einer Migräne ebenda
+ * (Symptome) und ICHD-3 1.1 Kriterium D.
+ */
 export function nachwirkungSatz(n, fmt) {
   if (!n || !n.genug || !n.deutlich) return '';
   const z = zahlFormat(fmt);
@@ -930,14 +1049,15 @@ export function nachwirkungSatz(n, fmt) {
       + `lag der Bauch im Mittel bei ${z(n.mit.schnitt)}, an allen übrigen Tagen bei `
       + `${z(n.ohne.schnitt)} (${n.mit.tage} gegen ${n.ohne.tage} Tage).`;
   if (n.differenz < 0) {
-    return `${zahlen} Also niedriger, nicht höher – an solchen Tagen wird oft wenig `
-      + 'gegessen und wenig eingetragen. Ein Hinweis, kein Beweis.';
+    return `${zahlen} Also niedriger, nicht höher. Body Check zählt nur, was eingetragen ist – was `
+      + 'an solchen Tagen gegessen und eingetragen wurde, kann vom Üblichen abweichen. Ein Hinweis, '
+      + 'kein Beweis.';
   }
   if (n.modus === 'innerhalb') {
     const staerker = n.staerke.mit - n.staerke.ohne >= 1;
     return `${zahlen} Beide Seiten haben den Kopfschmerz (im Mittel ${z(n.staerke.mit)} `
-      + `gegen ${z(n.staerke.ohne)}) – aber ein Mittel nimmt man eher an den schlimmeren `
-      + 'Tagen, und die haben mehr Übelkeit. '
+      + `gegen ${z(n.staerke.ohne)}) – aber viele nehmen ein Mittel eher bei starken Schmerzen, `
+      + 'und bei einer Migräne können Übelkeit und Erbrechen zum Anfall gehören. '
       + (staerker
         ? 'Die Tage mit Mittel waren auch die stärkeren – der Unterschied kann daran liegen. '
         : '')
@@ -948,21 +1068,32 @@ export function nachwirkungSatz(n, fmt) {
     + 'der Anfall selbst. Ein Hinweis, kein Beweis.';
 }
 
-/** Der Bauch an Kopfschmerztagen – als Fußnote, nur wenn deutlich. */
+/**
+ * Der Bauch an Kopfschmerztagen – als Fußnote, nur wenn deutlich.
+ *
+ * Quellen der Begründung: Übelkeit und Erbrechen bei Migräne – ICHD-3 1.1
+ * Kriterium D, gesund.bund.de/migraene (Stand 21.12.2022, Symptome). Hinlegen
+ * – ein Drittel braucht im Anfall Bettruhe (EMA-EPAR Emgality,
+ * EMA/708631/2018, Background). Reflux – bei manchen ist ein Zwerchfellbruch
+ * die Ursache, und beim Bücken oder Liegen können vermehrt Beschwerden
+ * auftreten (gesund.bund.de/sodbrennen-refluxkrankheit, Stand 04.04.2025,
+ * Ursachen). Ob ein Mittel beteiligt ist, kann dieser Vergleich nicht sagen:
+ * Er trennt Anfall und Mittel nicht.
+ */
 export function bauchAnKopfTagenSatz(b, fmt) {
   if (!b || !b.genug || !b.deutlich) return '';
   const z = zahlFormat(fmt);
   const zahlen = `An Kopfschmerztagen lag der Bauch im Mittel bei ${z(b.mit.schnitt)}, `
     + `an den übrigen Tagen bei ${z(b.ohne.schnitt)} (${b.mit.tage} gegen ${b.ohne.tage} Tage).`;
   if (b.differenz < 0) {
-    return `${zahlen} Also niedriger. An solchen Tagen wird oft wenig gegessen und `
-      + 'wenig eingetragen; die Zahl sagt wenig.';
+    return `${zahlen} Also niedriger. Body Check zählt nur, was eingetragen ist – was an solchen `
+      + 'Tagen gegessen und eingetragen wurde, kann vom Üblichen abweichen; die Zahl sagt wenig.';
   }
-  return `${zahlen} Übelkeit, Erbrechen, Nüchternbleiben und stundenlanges Liegen `
-    + 'gehören zu einem Anfall – das allein reicht, damit der Bauch an solchen Tagen '
-    + 'schlechter aussieht; mit Reflux oder Zwerchfellbruch erst recht. Ein Bauchwert '
-    + 'an einem Kopfschmerztag sagt deshalb wenig über das Essen davor und nichts '
-    + 'über das Mittel.';
+  return `${zahlen} Bei einer Migräne können Übelkeit und Erbrechen zum Anfall gehören, und `
+    + 'manche müssen sich hinlegen – das kann den Bauch an solchen Tagen schlechter aussehen '
+    + 'lassen; mit Reflux oder Zwerchfellbruch können Beschwerden im Liegen zusätzlich zunehmen. '
+    + 'Ein Bauchwert an einem Kopfschmerztag sagt deshalb wenig über das Essen davor. Ob ein '
+    + 'Mittel beteiligt ist, zeigt dieser Vergleich nicht – er trennt Anfall und Mittel nicht.';
 }
 
 /**
@@ -973,10 +1104,12 @@ export function bauchAnKopfTagenSatz(b, fmt) {
  * Schwelle liegen – das ist, was die Klassifikation meint. Viel Mittel ohne
  * viele Kopfschmerztage (das tägliche ASS zum Blutschutz, das Diclofenac fürs
  * Knie) bekommt die Zahlen und die Regel, keinen Namen. Und ein einzelnes
- * Fenster bekommt nur die Zahlen: Zehn Triptan-Tage in einem Monat sind bei
- * einer Migräne nichts Ungewöhnliches – ein Zyklus, eine schlechte Woche –,
- * und wer danach den Diagnosenamen liest, lässt das Mittel womöglich von
- * sich aus weg und liegt mit unbehandelten Anfällen da.
+ * Fenster bekommt nur die Zahlen: Die Klassifikation verlangt die
+ * regelmäßige Einnahme über mehr als drei Monate, zusammen mit Kopfschmerz
+ * an fünfzehn oder mehr Tagen im Monat (ICHD-3, 2018, 8.2 Kriterien A und
+ * B, 8.2.2); ein einzelner Monat erfüllt das nicht. Wer den Diagnosenamen zu
+ * früh liest, lässt das Mittel womöglich von sich aus weg – und dazu rät
+ * diese App an keiner Stelle.
  */
 export function uebergebrauchSatz(m) {
   if (!m || !m.fenster || !m.fenster.length) return '';
@@ -1022,35 +1155,67 @@ export function chronischSatz(z) {
     + 'Monatszahlen mit.';
 }
 
-/** Ein Anfall über drei Tage – nur, wenn er frisch ist. */
+/**
+ * Ein Anfall über drei Tage – nur, wenn er frisch ist.
+ *
+ * Quellen: Gebrauchsinformation Thomapyrin INTENSIV (patienteninfo-
+ * service.de, überarbeitet Juni 2026, Abschnitt 2): „Wenn Schmerzen und/
+ * oder Kopfschmerzen länger als 3 bis 4 Tage anhalten … sollte ein Arzt
+ * zurate gezogen werden"; ICHD-3, 2018, 1.4.1 Status migrainosus: „A
+ * debilitating migraine attack lasting for more than 72 hours" als
+ * Komplikation der Migräne. Eine Eile („nicht auf den Termin warten") nennen
+ * diese Quellen nicht; deshalb steht sie hier nicht.
+ */
 export function statusSatz(z, heute) {
   if (!z || !z.statusZuletzt || !heute) return '';
   if (z.statusZuletzt < plusTage(heute, -13)) return '';
-  return 'Ein Anfall, der länger als drei Tage nicht aufhört, ist ein Grund, in der '
-    + 'Praxis anzurufen und nicht auf den nächsten Termin zu warten.';
+  return 'Ein Anfall, der länger als drei Tage nicht aufhört, ist ein Grund, die Praxis zu '
+    + 'fragen: Packungsbeilagen mancher Kopfschmerzmittel nennen Kopfschmerzen, die länger als '
+    + 'drei bis vier Tage anhalten, als Anlass für ärztlichen Rat.';
 }
 
-/** Das Fenster um die Periode – nur ab drei beobachteten Zyklen. */
+/**
+ * Das Fenster um die Periode – nur ab drei beobachteten Zyklen.
+ *
+ * Quelle: ICHD-3, 2018, Anhang A1.1.1 und A1.1.2 (deutsche Fassung auf
+ * ichd-3.org: „rein menstruelle Migräne", „menstruationsassoziierte
+ * Migräne"; Tag −2 bis +3 in mindestens 2 von 3 Zyklen, gezählt werden
+ * Attacken, die die Kriterien einer Migräne erfüllen). Dass diese Kriterien
+ * nur im Anhang stehen, sagt der Kommentar zu 1.1: „da weiter Unklarheit
+ * darüber besteht, ob es sich um separate Entitäten handelt".
+ */
 export function umPeriodeSatz(u) {
   if (!u || !u.genug) return '';
   return `In ${u.mit} von ${u.zyklen} beobachteten Zyklen lag ein Kopfschmerztag in den `
     + 'Tagen um die Periode – zwei Tage davor bis zum dritten Blutungstag'
     + `${u.offen ? ` (${u.offen === 1 ? 'ein Zyklus' : `${u.offen} Zyklen`} noch offen)` : ''}. `
-    + 'Genau danach fragt die Neurologie: In mindestens zwei von drei Zyklen heißt das '
-    + 'menstruationsgebunden – gezählt werden dort Migräneanfälle; ob deine '
-    + 'Kopfschmerztage welche sind, klärt die Sprechstunde.';
+    + 'Dieses Fenster nutzt die Kopfschmerzklassifikation, bisher nur in ihrem Anhang: Liegen '
+    + 'Migräneanfälle in mindestens zwei von drei Zyklen darin, spricht sie von rein menstrueller '
+    + 'Migräne (nur dann) oder menstruationsassoziierter Migräne (auch zu anderen Zeiten). '
+    + 'Gezählt werden dort Migräneanfälle; ob deine Kopfschmerztage welche sind, klärt die '
+    + 'Sprechstunde.';
 }
 
-/** Die Sätze zu den Umständen – nur die deutlichen. */
+/**
+ * Die Sätze zu den Umständen – nur die deutlichen.
+ *
+ * Die Vorboten nach ICHD-3, 2018: Einleitung zu Kapitel 1 („Some patients
+ * also experience a prodromal phase, occurring hours or days before the
+ * headache") und Kommentar zu 1.1 („Prodromal symptoms may begin hours or a
+ * day or two before … fatigue, difficulty in concentrating, neck stiffness …
+ * yawning"). Schlechter Schlaf steht in keiner dieser Listen; deshalb nennt
+ * der Satz ihn nicht als Vorboten, sondern sagt nur, dass die Zahlen eine
+ * Nacht nicht als Auslöser ausweisen können.
+ */
 export function umstaendeSaetze(liste) {
   return (liste || []).filter((u) => u.genug && u.deutlich).map((u) => {
     const zahlen = `${u.hochName.charAt(0).toUpperCase()}${u.hochName.slice(1)} an `
       + `${prozentText(u.hoch.anteil)} der Tage Kopfschmerz, ${u.niedrigName} an `
       + `${prozentText(u.niedrig.anteil)} (${u.hoch.tage} gegen ${u.niedrig.tage} Tage).`;
-    return `${zahlen} Ein Anfall kündigt sich oft schon am Vortag an – mit Unruhe, `
-      + 'Müdigkeit, Nackenschmerz oder schlechtem Schlaf. Was Vorbote war und was '
-      + 'Auslöser, sieht man an Zahlen allein nicht. Gezählt sind nur Tage mit '
-      + 'beantworteter Tagesfrage.';
+    return `${zahlen} Bei einer Migräne kündigt sich ein Anfall bei manchen schon Stunden bis `
+      + 'zwei Tage vorher an, etwa mit Müdigkeit, Gähnen, Konzentrationsschwierigkeiten oder '
+      + 'steifem Nacken. Ob eine Nacht dabei Auslöser war, zeigen Zahlen allein nicht. Gezählt '
+      + 'sind nur Tage mit beantworteter Tagesfrage.';
   });
 }
 

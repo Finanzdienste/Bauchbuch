@@ -25,8 +25,13 @@
  *   * Eine fehlende Antwort zur Schiene ist keine Nacht ohne Schiene (R2).
  *     Wer die Frage nur beantwortet, wenn er sie getragen hat, hätte sonst
  *     lauter Nächte „ohne", in denen es ihm nicht schlechter ging.
- *   * Nach einer Feier, einer Reise oder Alkohol wird die Schiene eher
- *     vergessen – und der Kopf ist am nächsten Morgen ohnehin schwerer. Diese
+ *   * Nach einer Feier, einer Reise oder Alkohol wird die Schiene womöglich
+ *     eher vergessen (eine Annahme der App) – und gerade dann kann der Kopf
+ *     am nächsten Morgen aus anderen Gründen schwerer sein: Alkohol kann
+ *     nach einigen Stunden einen Kopfschmerz auslösen (ICHD-3, 2018,
+ *     8.1.4.2: binnen 5 bis 12 Stunden), und ein unregelmäßiger
+ *     Schlafrhythmus zählt zu den möglichen Auslösern einer Migräne
+ *     (gesund.bund.de/migraene, Stand 21.12.2022, Auslöser). Diese
  *     Nächte zählen auf keiner Seite.
  *
  * Rein, wie js/adhs.js: alles als Argument, nichts gespeichert, keine
@@ -48,7 +53,7 @@ import {
 /** Mindestfälle je Seite. */
 export const SPANNUNG_MINDEST = { v1a: 12, v1b: 8, v2: 12, v2gut: 4, v5: 8, v4: 20 };
 
-/** Was V3 filtert: die Aktivitäten gegen Verspannung und das Dehnen. */
+/** Was V3 filtert: die Aktivitäten, die man bei Verspannung anwendet, und das Dehnen. */
 export const V3_IDS = ['massagepistole', 'massage', 'waerme', 'yoga'];
 
 /** Ohne Einnahme am Morgen gilt ein Kopfschmerz vor 9 Uhr als „am Morgen". */
@@ -69,8 +74,14 @@ const MORGEN_EINNAHME_BIS = KNOPF_TAGESZEIT.morgens.bis;
 /** Nach diesen Aktivitäten zählt die Nacht auf keiner Seite. */
 const NACHT_STOERT = ['feier', 'unterwegs'];
 
-const SCHIENE_IMMER = 'Die Schiene ist vor allem zum Schutz der Zähne gedacht. Kein Unterschied beim '
-  + 'Kopfschmerz heißt nicht, dass sie nutzlos ist; eine Wirkung kann auch über mehrere Nächte nachhallen.';
+/*
+ * Kein Satz über Zweck oder Nutzen der Schiene: Dafür fand sich keine
+ * erreichbare Quelle, und das beurteilt die Zahnarztpraxis, nicht ein
+ * Tagebuch. Der Satz sagt nur, was der Vergleich zeigen kann.
+ */
+const SCHIENE_IMMER = 'Wozu die Schiene im Einzelfall gedacht ist und ob sie nützt, kann ein Tagebuch '
+  + 'nicht zeigen – das beurteilt die Zahnarztpraxis. Ein Vergleich hier zeigt nur, ob sich Kopf oder '
+  + 'Kiefer am Morgen nach Nächten mit und ohne Schiene unterscheiden.';
 
 const V2_VORBOTE = 'Nackenschmerz kann auch ein Vorbote sein; ob Verspannung den Kopfschmerz macht oder '
   + 'ankündigt, kann ein Tagebuch nicht trennen.';
@@ -93,7 +104,10 @@ function nachtGestoert(amVortag) {
  * war: Der Tag zählt dann nicht (R3), statt geraten zu werden.
  *
  * Als Grenze zählt nur eine Einnahme am Morgen, nicht einfach die erste des
- * Tages. Guanfacin und Atomoxetin werden oft abends genommen; mit einer
+ * Tages. Guanfacin kann laut Fachinformation morgens oder abends genommen
+ * werden (Intuniv, FI 020868, Stand 09/2026, 4.2), und bei Atomoxetin kommt
+ * eine zweite Teilgabe am späten Nachmittag oder frühen Abend vor
+ * (Atomoxetin-ratiopharm, FI 022556, Stand 09/2024, 4.2); mit einer
  * Einnahme um 20 Uhr wäre sonst jeder Kopfschmerz am Nachmittag einer „am
  * Morgen" geworden – mit Urteil und Frage für die Praxis.
  *
@@ -211,9 +225,14 @@ function v1Rechnen(liste, tage, heute, einnahmen) {
  * einem lockeren (locker oder leicht) – kam am nächsten Tag ein neuer
  * Kopfschmerz? „Mittel" zählt auf keiner Seite. Ein Tag, an dem schon
  * Kopfschmerz war, zählt nicht: Dann ginge es um denselben Kopfschmerz, und
- * die Verspannung könnte seine Folge sein. Das gilt auch für einen
- * Kopfschmerz vom Vorabend, der in den Tag hineinreicht (herueberreichend
- * in js/kopf.js) – gerade dann kann die Verspannung vom Anfall kommen.
+ * die Verspannung könnte zum Anfall gehören. Bei einer Migräne kann
+ * Nackensteifigkeit vor dem Kopfschmerz und nach seinem Abklingen auftreten,
+ * danach bis zu 48 Stunden; beim Spannungskopfschmerz nimmt die
+ * Druckempfindlichkeit der Kopf- und Nackenmuskeln während des Kopfschmerzes
+ * zu (ICHD-3, 2018, Einleitung zu Kapitel 1, Kommentar zu 1.1, Einleitung zu
+ * Kapitel 2). Das gilt auch für einen Kopfschmerz vom Vorabend, der in den
+ * Tag hineinreicht (herueberreichend in js/kopf.js) – gerade dann kann die
+ * Verspannung noch zum Anfall gehören.
  *
  * Am Tag danach braucht es diese Prüfung nicht mehr: Hineinreichen könnte
  * dort nur ein Kopfschmerz vom verspannten Tag selbst, und solche Tage sind
@@ -309,8 +328,14 @@ const V4_VERB = { massagepistole: 'mit der Massagepistole massiert', massage: 'm
 
 /**
  * V4: Kopfschmerztage je 30 notierte Tage vor und seit dem ersten Eintrag
- * einer Aktivität gegen Verspannung. Nur beschrieben: Angefangen wird oft,
- * wenn es gerade schlecht ist, und danach wird vieles von selbst besser.
+ * einer Aktivität, die man bei Verspannung anwendet. Nur beschrieben: Ein
+ * Vorher-Nachher-Vergleich hat keine eigene Vergleichsgruppe (ICH E10,
+ * CPMP/ICH/364/96: „baseline-controlled studies … have no internal
+ * control"). Beschwerden schwanken auch ohne Zutun, und nach einer
+ * schlechten Phase kann es von selbst besser werden (Regression zur Mitte;
+ * EMA/CHMP/970057/2011, 6.2.2: „the fluctuating and flaring character of
+ * the disease"). Wer mit etwas anfängt, während es gerade schlecht ist,
+ * sieht danach womöglich eine Besserung, die nicht von der Aktivität kommt.
  */
 function v4Rechnen(liste, tage, heute) {
   if (!heute) return [];
@@ -349,8 +374,8 @@ function v4Rechnen(liste, tage, heute) {
       seitdem,
       satz: `Kopfschmerztage je 30 notierte Tage: vor dem ersten Eintrag „${name}“ (${fmtDatum(erster)}) `
         + `${fmtZahl(vorher.je30)}, seitdem ${fmtZahl(seitdem.je30)}. Ob vorher schon ${V4_VERB[id]} wurde, `
-        + 'weiß Body Check nicht; angefangen wird oft, wenn es gerade schlecht ist – danach wird es oft von '
-        + 'selbst besser.',
+        + 'weiß Body Check nicht. Beschwerden schwanken auch von selbst: Wird etwas begonnen, während es '
+        + 'gerade schlecht ist, kann eine Besserung danach auch ohne den neuen Anfang kommen.',
     });
   });
   return raus;
@@ -359,6 +384,12 @@ function v4Rechnen(liste, tage, heute) {
 /**
  * V5: der Kiefer am Morgen nach Nächten mit und ohne „Nachts davon wach".
  * Beide Angaben gelten der Nacht davor – dieselbe Nacht, keine Richtung.
+ *
+ * Was den Schlaf stören kann, nach gesund.bund.de/schlafstoerungen (Stand
+ * 04.04.2025, Ursachen): unter anderem Zähneknirschen, Schmerzen und
+ * nächtlicher Harndrang. Zum Zusammenhang von nächtlichem Reflux und
+ * Knirschen war keine Quelle im Volltext erreichbar; der Satz sagt dazu
+ * deshalb nichts.
  */
 function v5Rechnen(tage, heute) {
   const seiten = { mit: [], ohne: [] };
@@ -374,8 +405,9 @@ function v5Rechnen(tage, heute) {
     genug,
     mit: { n: seiten.mit.length, schnitt: genug ? spSchnitt(seiten.mit) : null },
     ohne: { n: seiten.ohne.length, schnitt: genug ? spSchnitt(seiten.ohne) : null },
-    satz: 'Gleiche Nacht, keine Richtung. „Nachts davon wach“ meint Beschwerden jeder Art; ob nächtlicher '
-      + 'Reflux beim Knirschen eine Rolle spielt, ist nur in kleinen Studien untersucht.',
+    satz: 'Gleiche Nacht, keine Richtung. „Nachts davon wach“ meint Beschwerden jeder Art – den Schlaf '
+      + 'stören können viele Dinge, darunter Zähneknirschen, Schmerzen oder nächtlicher Harndrang. Was im '
+      + 'Einzelfall dahintersteckt, kann die Praxis einordnen.',
   };
 }
 

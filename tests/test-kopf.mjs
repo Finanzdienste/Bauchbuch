@@ -19,6 +19,7 @@
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, SHOT, pruefer, vorTagen } from './umgebung.mjs';
+import { kopfFragen, nachwirkungSatz, bauchAnKopfTagenSatz } from '../js/kopf.js';
 
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
@@ -334,6 +335,8 @@ check(
 );
 check(k.includes('Beide Seiten haben den Kopfschmerz (im Mittel 8 gegen 6)'), 'mit der Kopfstärke beider Seiten');
 check(k.includes('Die Tage mit Mittel waren auch die stärkeren'), 'und dem Vorbehalt, dass ein Mittel eher an den schlimmeren Tagen genommen wird');
+check(k.includes('viele nehmen ein Mittel eher bei starken Schmerzen') && !k.includes('die haben mehr Übelkeit'),
+  'so, wie die Quelle es sagt: viele nehmen ein Mittel bei starken Schmerzen – ohne „mehr Übelkeit" als Tatsache');
 check(/Akutmittel am selben Tag\s*an 12 von 12 Tagen \(6 entzündungshemmend, 6 Triptan\)/.test(k), 'die Sorten stehen in einer Zeile');
 
 // (c) Überschneidung: Der Tag nach einem Ibuprofen-Tag ist selbst ein
@@ -382,9 +385,14 @@ await setze(muster(kopfAn(blutungsKopf), { tage: zyklusTage() }));
 k = await karte();
 check(k.includes('Nach Zyklusphase') && /Periode\s*an 12 von 12 Tagen/.test(k), 'alle zwölf Periodentage mit Kopfschmerz');
 check(/zweite Zyklushälfte\s*an 0 von/.test(k), 'und die zweite Hälfte ohne');
-check(k.includes('In 3 von 3 beobachteten Zyklen lag ein Kopfschmerztag in den Tagen um die Periode'), 'das Fenster um die Periode, je Zyklus – die Frage der Neurologie');
+check(k.includes('In 3 von 3 beobachteten Zyklen lag ein Kopfschmerztag in den Tagen um die Periode'), 'das Fenster um die Periode, je Zyklus – das Fenster der Klassifikation');
+// ICHD-3 (Anhang A1.1) unterscheidet zwei Formen und kennt kein
+// „menstruationsgebunden"; die Kriterien stehen nur im Anhang.
+check(k.includes('rein menstrueller Migräne') && k.includes('menstruationsassoziierter Migräne')
+  && k.includes('bisher nur in ihrem Anhang') && !k.includes('menstruationsgebunden'),
+  'die beiden Formen mit den Namen der Klassifikation, und dass sie nur im Anhang stehen');
 
-// Nur zwei Tage VOR der Blutung: zählt (das ist der Tag, an dem das Östrogen fällt).
+// Nur zwei Tage VOR der Blutung: zählt (Tag −2 im Fenster der Klassifikation).
 await setze(muster(kopfAn(starts.map((t) => t + 2)), { tage: zyklusTage() }));
 check((await karte()).includes('In 3 von 3 beobachteten Zyklen'), 'ein Kopfschmerz zwei Tage vor der Blutung liegt im Fenster');
 // Drei Tage davor: nicht mehr.
@@ -608,7 +616,13 @@ check(
   /An Kopfschmerztagen lag der Bauch im Mittel bei 6, an den übrigen Tagen bei 1 \(10 gegen 30 Tage\)/.test(k),
   'der Bauch an Kopfschmerztagen gegen alle übrigen, mit Fallzahlen',
 );
-check(k.includes('das allein reicht') && k.includes('nichts über das Mittel'), 'als Fußnote mit dem Vorbehalt, dass das zum Anfall gehört – ohne einen Befund zu unterstellen');
+check(k.includes('können Übelkeit und Erbrechen zum Anfall gehören') && k.includes('Ob ein Mittel beteiligt ist, zeigt dieser Vergleich nicht'),
+  'als Fußnote mit dem Vorbehalt, dass das zum Anfall gehören kann – ohne einen Befund zu unterstellen');
+// Belegt ist nur, was die Quellen sagen: kein „Nüchternbleiben", kein
+// „das allein reicht" und kein „nichts über das Mittel" (Fachinformationen
+// nennen Magen-Darm-Beschwerden auch als Nebenwirkung von Schmerzmitteln).
+check(!k.includes('Nüchternbleiben') && !k.includes('das allein reicht') && !k.includes('nichts über das Mittel'),
+  'die Fußnote behauptet nichts, wofür keine Quelle steht');
 
 /* ---------- 10. Schlaf und Kopfschmerz ---------- */
 
@@ -628,7 +642,10 @@ check(
   /Nach schlechten Nächten an 80 % der Tage Kopfschmerz, nach guten Nächten an 10 % \(20 gegen 20 Tage\)/.test(k),
   'Kopfschmerz nach schlechten gegen gute Nächte, als Anteil mit Fallzahlen',
 );
-check(k.includes('Vortag'), 'mit dem Vorbehalt, dass schlechter Schlaf auch der Anfang einer Attacke sein kann');
+check(k.includes('Stunden bis zwei Tage vorher') && k.includes('Ob eine Nacht dabei Auslöser war, zeigen Zahlen allein nicht'),
+  'mit dem Vorbehalt der Vorboten (ICHD-3) und dass Zahlen eine Nacht nicht als Auslöser ausweisen');
+check(!k.includes('schlechtem Schlaf') && !k.includes('oft schon am Vortag'),
+  'schlechter Schlaf steht nicht als Vorbote da, und „oft" auch nicht – ICHD-3 sagt „some patients"');
 
 /* ---------- 11. Gastritis Typ C, Zwerchfellbruch und das Schmerzmittel ---------- */
 
@@ -688,9 +705,12 @@ check(!b3.includes('beobachteten Zyklen'), 'und kein Perioden-Urteil aus Zyklen,
 /* ---------- 14. Ein Anfall über drei Tage ---------- */
 
 await setze(muster([{ id: 's1', am: vorTagen(2), um: '09:00', art: 'kopf', staerke: 8, dauer: 'status' }]));
-check((await karte()).includes('in der Praxis anzurufen'), 'ein frischer Anfall über drei Tage: der Hinweis, in der Praxis anzurufen');
+const status = await karte();
+check(status.includes('ist ein Grund, die Praxis zu fragen'), 'ein frischer Anfall über drei Tage: der Hinweis, die Praxis zu fragen');
+check(status.includes('länger als drei bis vier Tage anhalten') && !status.includes('nicht auf den nächsten Termin'),
+  'mit dem, was Packungsbeilagen sagen – und ohne eine Eile, die keine Quelle nennt');
 await setze(muster([{ id: 's1', am: vorTagen(40), um: '09:00', art: 'kopf', staerke: 8, dauer: 'status' }]));
-check(!(await karte()).includes('in der Praxis anzurufen'), 'sechs Wochen später nicht mehr');
+check(!(await karte()).includes('die Praxis zu fragen'), 'sechs Wochen später nicht mehr');
 
 await page.screenshot({ path: `${SHOT}/97-kopf.png`, fullPage: true });
 
@@ -740,6 +760,27 @@ check((await lies()).eintraege[0].kopfArten.join() === 'kauen', 'gespeichert wie
 await setze({ ...(await lies()), spannungAn: false });
 check(eng(await page.locator('.strang-zeile').textContent()).includes('Schlimmer beim Kauen oder Kieferbewegen'),
   'ausgeschaltet bleibt ein gespeichertes Merkmal lesbar');
+
+/* ---------- 16. Wortlaut nach den Quellen ---------- */
+
+/*
+ * Die Aufwach-Frage: Schlaf und Schmerzmittel mit Bezug zum Aufwachen
+ * (ICHD-3 10.1.4, 4.9 Note 2), Koffein getrennt und ohne diesen Bezug –
+ * dafür nennt keine Quelle einen.
+ */
+const aufFragen = kopfFragen({ zahlen: { anzahl: 6, letzte30: 2 }, aufwach: { aufwachen: 20, schiene: 0 } });
+check(aufFragen.some((f) => f.includes('Kann das mit meinem Schlaf (Schnarchen, Atemaussetzer) oder mit meinen '
+  + 'Schmerzmitteln zu tun haben?') && f.includes('Und spielt Koffein bei meinen Kopfschmerzen eine Rolle?')),
+  'die Aufwach-Frage fragt nach Koffein getrennt');
+// Liegt der Bauch niedriger, sagt der Satz, was Body Check zählt – nicht,
+// dass an solchen Tagen wenig gegessen wird (dafür steht keine Quelle).
+const tiefer = nachwirkungSatz({
+  genug: true, deutlich: true, modus: 'innerhalb', mit: { schnitt: 1, tage: 6 }, ohne: { schnitt: 3, tage: 6 },
+  differenz: -2, staerke: { mit: 6, ohne: 6 },
+});
+const tieferBauch = bauchAnKopfTagenSatz({ genug: true, deutlich: true, mit: { schnitt: 1, tage: 6 }, ohne: { schnitt: 3, tage: 20 }, differenz: -2 });
+check([tiefer, tieferBauch].every((t) => t.includes('Body Check zählt nur, was eingetragen ist') && !t.includes('wenig gegessen')),
+  'ein niedrigerer Bauch wird als Grenze der Einträge benannt, nicht als Essverhalten');
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

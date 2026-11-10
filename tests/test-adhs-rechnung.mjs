@@ -954,6 +954,14 @@ function a3Tagebuch({ spaetAm, schlafSpaet = 2, schlafFrueh = 1, vorNacht = [1, 
     'A4 ist ab zehn Anfängen sichtbar, immer mit dem Satz, dass es kein Vergleich ist');
   check(!JSON.stringify(a4).toLowerCase().includes('rebound') && !('schwerpunkt' in a4),
     'A4 nennt keinen Schwerpunkt und kein „Rebound“');
+  // Ein Kopfschmerz vor der Einnahme ist nicht von dieser Einnahme ausgelöst
+  // (ICHD-3 8.1) – ob er mit dem Mittel überhaupt zu tun hat, lässt die
+  // Reihenfolge offen. Und eine Tageszeit-Bindung gilt für manche
+  // Kopfschmerzarten, nicht für Kopfschmerz allgemein.
+  const a4Text = a4.saetze.join(' ');
+  check(a4Text.includes('ist nicht von dieser Einnahme ausgelöst') && a4Text.includes('Praxis')
+    && !a4Text.includes('nichts zu tun') && a4Text.includes('Manche Kopfschmerzarten'),
+    'A4: kein Ausschluss eines Zusammenhangs mit dem Mittel, keine Verallgemeinerung über Tageszeiten');
   const gleich = liste.map((e) => (e.art === 'medikament' ? { ...e, um: '07:00' } : e));
   check(auswerten(gleich).a4.saetze[0].startsWith('Die Einnahme liegt fast jeden Tag zur selben Zeit'),
     'A4: Einnahme fast täglich zur selben Zeit – der Satz, dass Stunden hier fast Uhrzeit heißen');
