@@ -15,7 +15,9 @@
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, SHOT, vorTagen, pruefer } from './umgebung.mjs';
-import { ADHS_MITTEL, SONSTIGE_MITTEL, WEITERE_MITTEL } from '../js/mittel.js';
+import {
+  ADHS_MITTEL, KLAER_SATZ, MITTEL_WISSEN, MPH_FORMEN, REIZSTOFFE, SONSTIGE_MITTEL, WEITERE_MITTEL,
+} from '../js/mittel.js';
 
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
@@ -54,10 +56,13 @@ check(
   'ein Handelsname wie Riopan findet ebenfalls seine Gruppe',
 );
 check(
-  meine.includes('gereizte Magenschleimhaut'),
+  meine.includes('häufigsten Gründe für eine entzündete Magenschleimhaut'),
   'und Ibuprofen wird als das ausgewiesen, was den Magen belastet',
 );
-const zeile = async (name) => (await page.locator('.wartend').first().locator('li', { hasText: name }).textContent()) || '';
+// Die Zeile, die mit dem Namen beginnt: Der Kurztext von Methylphenidat nennt selbst
+// „Medikinet retard, Medikinet adult" und steht auch in der Zeile von Concerta.
+const zeile = async (name) => (await page.locator('.wartend').first()
+  .locator('li', { hasText: new RegExp(`^\\s*${name.replace(/[+]/g, '\\+')}`) }).textContent()) || '';
 check((await zeile('Medikinet')).includes('Form: nicht retardierte Tablette'),
   'bei Methylphenidat steht die eingetragene Form dabei');
 check((await zeile('Concerta')).includes('Form: Retardtablette mit Hülle'),
@@ -92,8 +97,12 @@ check(text.includes('Wie es wirkt'), 'jede Gruppe erklärt, wie sie wirkt');
 check(text.includes('Wann man es nimmt'), 'und wann man sie nimmt');
 check(text.includes('Worauf zu achten ist'), 'und worauf zu achten ist');
 check(
-  text.includes('nicht von einem Tag auf den anderen'),
-  'beim PPI steht der Hinweis zum Absetzen – das ist der Punkt, der Ärger macht',
+  text.includes('nicht beendet, ohne vorher mit Ärztin, Arzt oder Apotheke zu sprechen'),
+  'beim PPI steht, was die Packungsbeilage zum Beenden sagt – mit Verweis auf Praxis oder Apotheke',
+);
+check(
+  !/Ausschleichen|mehr Säure als vorher|von einem Tag auf den anderen/.test(text),
+  'und kein Säure-Rebound und kein Rat zum Ausschleichen: Beides steht in keiner Packungsbeilage',
 );
 
 await page.screenshot({ path: `${SHOT}/70-mittel.png` });
@@ -156,6 +165,113 @@ const neu = [...ADHS_MITTEL, ...SONSTIGE_MITTEL, ...WEITERE_MITTEL.filter((g) =>
 const ohneVerweis = neu.filter((g) => !/Ärztin|Apotheke/.test(g.hinweis)).map((g) => g.id);
 check(neu.length === 8 && ohneVerweis.length === 0,
   `jeder neue Hinweis nennt Ärztin oder Apotheke${ohneVerweis.length ? ` – nicht: ${ohneVerweis.join(', ')}` : ''}`);
+
+/*
+ * Die Berichtigungen der Fassung 30 an den Magen- und Schmerzmitteln: Sätze,
+ * die keine Fach- oder Gebrauchsinformation trägt, kommen nicht zurück.
+ * Geprüft am Text selbst, nicht an der Karte – so fällt auch ein Satz auf, der
+ * nur im Bogen oder in der Kurzzeile steht.
+ */
+const gruppe = (id) => [...MITTEL_WISSEN, ...REIZSTOFFE, ...WEITERE_MITTEL].find((g) => g.id === id);
+const textVon = (g) => [g.kurz, g.wirkung, g.einnahme, g.hinweis].join(' ');
+const magenUndSchmerz = [...MITTEL_WISSEN, ...REIZSTOFFE,
+  ...WEITERE_MITTEL.filter((g) => ['triptan', 'opioid'].includes(g.id))];
+const unbelegt = [
+  /zur Ruhe kommt/, /gewöhnt sich/, /Ausschleichen/, /Hemmen lassen sich nur/,
+  /unwirksam machen/, /ein bis drei Stunden/, /calciumhaltige eher stopfend/,
+  /saures Milieu/, /stillsteht|steht der Magen oft still/, /Viertelstunde vor dem Schmerzmittel/,
+  /zu oder nach den Mahlzeiten/, /kein Alarmzeichen/, /reichlich Wasser/,
+  /wirklich schadet/, /häufigste[rn]? vermeidbare/, /abgeschaltet/, /meistgekauft/,
+  /weniger heikel/, /als lange angenommen/, /falsche Werkzeug/,
+  /greift (es|den Magen) nicht an|Greift den Magen nicht an|den Magen nicht angreifen/,
+  /Leitlinien/, /leicht abhängig/, /meist harmlos/, /Fall für sofort/,
+];
+const treffer = magenUndSchmerz.flatMap((g) => unbelegt
+  .filter((r) => r.test(textVon(g))).map((r) => `${g.id}: ${r.source}`));
+check(treffer.length === 0,
+  `kein gestrichener, unbelegter Satz ist zurück${treffer.length ? `: ${treffer.join(' | ')}` : ''}`);
+
+// Warnzeichen der Stufe „sofort" lauten wie auf der Warnkarte (js/app.js, warnTeil).
+const SOFORT = 'nicht auf einen Termin warten – Notaufnahme oder 112';
+check(gruppe('heilerde').hinweis.includes(SOFORT) && gruppe('heilerde').hinweis.includes('verdautes Blut'),
+  'schwarzer Stuhl unter Bismut: harmlos laut Fachinformation, aber das Warnzeichen bleibt eins');
+check((gruppe('triptan').hinweis.split(SOFORT).length - 1) === 2 && !/:\s*sofort\b/.test(gruppe('triptan').hinweis),
+  'beim Triptan beide Notfälle – Brust und Darm – im Wortlaut der Warnkarte');
+
+// Übergebrauch nach ICHD-3: die Schwelle mit ihrer Dauer, nicht ein einzelner Monat.
+const ohneDauer = ['kombi', 'triptan', 'opioid']
+  .filter((id) => !/mehr als drei Monate an zehn oder mehr Tagen im Monat/.test(gruppe(id).hinweis));
+check(ohneDauer.length === 0,
+  `Kombinationsmittel, Triptan und Opioid nennen die Dauer von mehr als drei Monaten${ohneDauer.length ? ` – nicht: ${ohneDauer.join(', ')}` : ''}`);
+
+// Wo Präparate sich unterscheiden, steht das Präparat dabei.
+check(/Iberogast Classic/.test(gruppe('pflanzlich').hinweis) && /Advance enthält kein Schöllkraut/.test(gruppe('pflanzlich').hinweis),
+  'der Leberhinweis gilt Iberogast Classic, nicht Iberogast Advance');
+check(/Neuralgin extra Ibu-Lysinat/.test(gruppe('kombi').hinweis),
+  'unter einer Marke gibt es auch Präparate ohne Koffein (Neuralgin extra)');
+check(/Übelkeit und Erbrechen/.test(gruppe('prokinetika').kurz) && /nicht mehr\s+zugelassen/.test(gruppe('prokinetika').wirkung),
+  'Prokinetika: zugelassen bei Übelkeit und Erbrechen, nicht mehr für Völlegefühl');
+
+/*
+ * Dieselbe Prüfung für die übrigen Schmerz- und Migränemittel, die Mittel bei
+ * ADHS und das Koffein (Fassung 30, zweiter Teil der Datei).
+ */
+const restlich = [...WEITERE_MITTEL.filter((g) => !['triptan', 'opioid'].includes(g.id)),
+  ...ADHS_MITTEL, ...SONSTIGE_MITTEL];
+const textVonAlles = (g) => [g.kurz, g.wirkung, g.einnahme, g.nebenwirkung, g.hinweis].filter(Boolean).join(' ');
+const unbelegtRest = [
+  /ohne Angriff auf den Magen/, /kein Reizstoff/, /die kein Triptan nehmen dürfen/, /Früh im Anfall/,
+  /stundenlang/, /kennt dafür noch keine/, /Schutzschicht des Magens in Ruhe/, /Schleimschicht/,
+  /für den Magen gilt dasselbe/, /wirkt stärker/, /liegen nur woanders/, /als lange angenommen/,
+  /Beide stecken/, /Bereitschaft des Nervensystems/, /schon gar nicht/, /seit 2024/, /gehört das Kopfschmerztagebuch/,
+  /Alkohol verstärkt/, /den Blutdruck stark ansteigen/, /gehören angesprochen/, /hängt vor allem an/,
+  /über Wochen regelmäßig Koffein/, /Ab etwa (zehn|fünfzehn) Tagen/,
+];
+const trefferRest = restlich.flatMap((g) => unbelegtRest
+  .filter((r) => r.test(textVonAlles(g))).map((r) => `${g.id}: ${r.source}`));
+check(trefferRest.length === 0,
+  `auch bei Gepanten, Paracetamol, Vorbeugung, ADHS und Koffein kein gestrichener Satz zurück${trefferRest.length ? `: ${trefferRest.join(' | ')}` : ''}`);
+
+// Metamizol schont den Magen nicht: Die Fachinformation nennt Magen-Darm-Blutungen.
+check(/Metamizol sind auch Magen-Darm-Blutungen/.test(gruppe('nichtnsar').kurz)
+  && /Metamizol nennt die\s+Fachinformation Magen-Darm-Blutungen/.test(gruppe('nichtnsar').wirkung)
+  && /Magenbeschwerden/.test(gruppe('kombipara').wirkung),
+  'Paracetamol und Metamizol: keine NSAR, aber nicht frei von Magen-Darm-Nebenwirkungen');
+
+// Übergebrauch nach ICHD-3 auch hier mit der Dauer – und bei Gepanten die Sammelgruppe.
+const dauer = /mehr als drei Monate an (zehn|fünfzehn) oder mehr Tagen im Monat/;
+check(['nichtnsar', 'kombipara', 'gepant'].every((id) => dauer.test(gruppe(id).hinweis))
+  && /prüft Body Check für diese Mittel nicht/.test(gruppe('gepant').hinweis),
+  'Paracetamol, Paracetamol mit Koffein und Gepante: Grenze mit Dauer; was Body Check nicht prüft, steht dabei');
+
+// Atogepant ist in der EU auch für den Anfall zugelassen; Body Check zählt es trotzdem nicht.
+check(/Atogepant \(Aquipta\) ist zusätzlich/.test(gruppe('prophylaxe').kurz)
+  && /auch Atogepant nicht/.test(gruppe('prophylaxe').hinweis)
+  && /Valproat \(Ergenyl chrono\) schließt die Migränevorbeugung ausdrücklich aus/.test(gruppe('prophylaxe').wirkung.replace(/\s+/g, ' ')),
+  'Vorbeugung: Atogepant als Ausnahme, Valproat und Candesartan nicht zur Migränevorbeugung zugelassen');
+
+// Lasmiditan und das Fahren: so, wie es die Fachinformation sagt.
+check(/mindestens acht Stunden lang kein Fahrzeug/.test(gruppe('gepant').einnahme),
+  'Lasmiditan: mindestens acht Stunden kein Fahrzeug, laut Fachinformation');
+
+// Die ADHS-Hinweise: vollständig, wo die Quelle mehr sagt.
+const adhs = (id) => ADHS_MITTEL.find((g) => g.id === id);
+check(/innerhalb von vierzehn Tagen/.test(adhs('lisdex').hinweis) && /mindestens vierzehn Tagen/.test(adhs('dex').hinweis),
+  'MAO-Hemmer: auch nicht innerhalb von vierzehn Tagen danach (Lisdexamfetamin, Dexamfetamin)');
+check(adhs('atomox').hinweis.indexOf('Nicht eigenmächtig') < adhs('atomox').hinweis.indexOf('Leberschäden')
+  && /unverzüglich die Ärztin oder der Arzt/.test(adhs('atomox').hinweis),
+  'Atomoxetin: Leberzeichen wie in der Packungsbeilage, ohne dass „nicht eigenmächtig" ihr widerspricht');
+check(/sofort an\s+die Ärztin oder den Arzt/.test(adhs('guanf').hinweis.replace(/\s+/g, ' ')),
+  'Guanfacin: Schwindel oder Bewusstseinsverlust sofort ärztlich, wie in der Packungsbeilage');
+
+// Säureblocker und Methylphenidat: am Präparat, nicht an einer erschlossenen Säuregrenze.
+const pellet = MPH_FORMEN.find((f) => f.id === 'pellet');
+check(/am einzelnen Präparat/.test(KLAER_SATZ) && /Medikinet retard und Medikinet adult/.test(KLAER_SATZ)
+  && !/an der Form/.test(KLAER_SATZ),
+  'der Klär-Satz nennt die Präparate, für die die Fachinformation eine Gegenanzeige nennt');
+check(!/weniger sauren Magen|alles auf einmal/.test(pellet.saeure) && /gesamte Wirkstoffmenge rascher frei/.test(pellet.saeure)
+  && /womöglich nicht\s+ausreichend verlängert/.test(pellet.einnahme) && !/es entstehen hohe Spitzen/.test(pellet.einnahme),
+  'Kapsel mit zweierlei Kügelchen: Freisetzung und Nüchterneinnahme so vorsichtig wie die Fachinformation');
 
 /* ---------- Beim Eintragen steht es gleich dabei ---------- */
 

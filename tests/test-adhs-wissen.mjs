@@ -399,13 +399,13 @@ check(probe('anzeige', 'app.js', (t) => `${t}\n// größerer Knopf\n`) === 0,
   'Wächter: ein Entwurf, der keinen Sicherheitstext anfasst, geht durch');
 check(probe('kurz', 'mittel.js', (t) => t.replace("kurz: 'Stimulans bei ADHS, wird erst", "kurz: 'Ein Stimulans bei ADHS, wird erst")) === 0,
   'Wächter: ein umformulierter Kurztext ist erlaubt');
-check(probe('pellet', 'mittel.js', (t) => t.replace('In \'\n      + \'einem weniger sauren Magen', 'Bei \'\n      + \'einem weniger sauren Magen')) === 1,
+check(probe('pellet', 'mittel.js', (t) => t.replace('Zusammen \'\n      + \'mit diesen Mitteln', 'Gemeinsam \'\n      + \'mit diesen Mitteln')) === 1,
   'Wächter: eine Änderung am Säuretext der Kapsel mit zweierlei Kügelchen wird abgewiesen');
 check(probe('klaer', 'mittel.js', (t) => t.replace('das klären Apotheke oder Praxis.', 'das ist meist kein Problem.')) === 1,
   'Wächter: ebenso der Klär-Satz');
 check(probe('saeure-weg', 'mittel.js', (t) => t.replace("    saeure: KLAER_SATZ,\n  },\n  {\n    id: 'oros',", "  },\n  {\n    id: 'oros',")) === 1,
   'Wächter: ebenso ein gestrichener Säure-Satz');
-check(probe('hinweis', 'mittel.js', (t) => t.replace('Plötzliches Absetzen kann laut Fachinformation', 'Absetzen kann laut Fachinformation')) === 1,
+check(probe('hinweis', 'mittel.js', (t) => t.replace('Nach dem Absetzen können laut Fachinformation', 'Nach dem Absetzen können')) === 1,
   'Wächter: ebenso ein ADHS-Hinweis');
 check(probe('karte', 'zusammen.js', (t) => t.replace('Bitte nichts davon eigenmächtig', 'Bitte etwas davon')) === 1,
   'Wächter: ebenso ein Text in js/zusammen.js');
