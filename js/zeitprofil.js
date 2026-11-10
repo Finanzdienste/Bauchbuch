@@ -7,20 +7,36 @@
  * ihr. Das ist eine brauchbare Faustregel und wirft eine der nützlichsten
  * Auskünfte weg, die in einem Tagebuch steckt – nämlich *wann genau*.
  *
- * Der Bauch braucht Zeit, und zwar je nach Ort verschieden lange:
+ * Gezählt wird deshalb in drei Zeitspannen nach der letzten Mahlzeit davor:
+ * 0–2, 2–4 und 4–8 Stunden.
  *
- *   0–2 Stunden   Der Magen ist noch voll. Was hier weh tut, hat mit Säure,
- *                 Dehnung und Magenentleerung zu tun – Reflux, Gastritis,
- *                 funktionelle Dyspepsie.
- *   2–4 Stunden   Der Speisebrei ist im Dünndarm. Fett und Galle brauchen
- *                 ungefähr so lange.
- *   4–8 Stunden   Jetzt erst erreicht der Rest den Dickdarm. Was Bakterien
- *                 vergären – FODMAP, Laktose, Ballaststoffe – meldet sich
- *                 nicht früher. Es *kann* nicht früher sein.
+ * DAS SIND STUNDEN, KEINE ORTE
  *
- * Für die Sprechstunde ist das ein Unterschied ums Ganze: „Nach dem Essen
- * tut es weh" führt zum Säureblocker, „sechs Stunden nach dem Essen tut es
- * weh" führt zur Ernährungsberatung. Beides steht im selben Tagebuch.
+ * Woher eine Beschwerde kommt, lässt sich am Zeitpunkt allein nicht ablesen,
+ * und die App sagt es deshalb nirgends – weder hier noch auf der Karte, im
+ * Bericht oder in der Zusammenfassung. Die Quellen widersprechen einer festen
+ * Zuordnung selbst:
+ *
+ *   - Bei einer Laktoseintoleranz wird der Milchzucker im Dickdarm von
+ *     Darmbakterien vergoren; die Beschwerden treten trotzdem „frühestens
+ *     eine halbe Stunde nach Verzehr" auf und sind „nach etwa eineinhalb bis
+ *     zwei Stunden" am stärksten (gesund.bund.de, Laktoseintoleranz, mit dem
+ *     IQWiG, Stand 23.02.2026, Abschnitte „Woran bemerkt man …" und „Was
+ *     sind die Ursachen …").
+ *   - Bei einem Zwölffingerdarmgeschwür kommen die Beschwerden „eher bei
+ *     leerem Magen", nach dem Essen bessern sie sich oft (gesund.bund.de,
+ *     Zwölffingerdarmgeschwür, Stand 27.01.2022, Abschnitt „Woran erkennt man
+ *     …").
+ *   - Beim Magengeschwür sind die Schmerzen im Oberbauch „oft unabhängig von
+ *     Mahlzeiten" (gesund.bund.de, Magengeschwür, Stand 07.01.2022, Abschnitt
+ *     „Welche Symptome …").
+ *
+ * Eine Angabe für die Sprechstunde ist der Zeitpunkt trotzdem: Bei Sodbrennen
+ * und Reflux ist es laut gesund.bund.de wichtig, beim Arztbesuch anzugeben,
+ * „wann und wie häufig" die Beschwerden auftreten (Sodbrennen und
+ * Refluxkrankheit, Stand 04.04.2025, Abschnitt „Wie wird eine
+ * Refluxerkrankung diagnostiziert?"). Aus dem Kopf weiß das kaum jemand
+ * genau, im Tagebuch steht es. Was daraus folgt, klärt die Praxis.
  *
  * DIE FALLE, DIE DIESE DATEI VERMEIDET
  *
@@ -37,9 +53,10 @@
  * beschwerdefreie Stunde. Sie zählt hier als das, was sie ist: nicht erhoben.
  *
  * Am Abendessen liegt das Fenster meist frei, am Frühstück selten. Wer also
- * wissen will, was der Dickdarm macht, muss länger Tagebuch führen als jemand,
- * der nach dem Magen fragt. Auch das sagt die App lieber, als es durch eine
- * Zahl zu ersetzen, die so aussieht, als wäre sie erhoben worden.
+ * wissen will, was in den späten Stunden kommt, muss länger Tagebuch führen
+ * als jemand, der nach den ersten zwei Stunden fragt. Auch das sagt die App
+ * lieber, als es durch eine Zahl zu ersetzen, die so aussieht, als wäre sie
+ * erhoben worden.
  */
 import { zeitpunkt, stundenDazwischen } from './datum.js';
 import { merkmale, reihenfolgeUnklar } from './auswertung.js';
@@ -48,10 +65,11 @@ import { zaehltFuerBauch } from './wasser.js';
 /**
  * Die drei Fenster.
  *
- * Die Grenzen sind gerundet und stimmen für niemanden genau; die
- * Magenentleerung schwankt zwischen Menschen und Mahlzeiten erheblich. Sie
- * sind trotzdem nicht beliebig: Vergärung im Dickdarm *vor* vier Stunden gibt
- * es nicht, und darauf beruht die ganze Auskunft.
+ * Gerundete Zeitspannen nach der letzten Mahlzeit, nichts weiter. Früher hing
+ * an jedem Fenster ein Ort im Verdauungstrakt und ein Satz dazu („für den
+ * Dickdarm ist es zu früh"); beides ist entfernt, weil die Quellen einer
+ * festen Zuordnung widersprechen (siehe Kopf dieser Datei). Die Grenzen und
+ * alles, was mit ihnen gerechnet wird, sind unverändert.
  */
 export const FENSTER = [
   {
@@ -60,9 +78,6 @@ export const FENSTER = [
     kurz: 'früh',
     von: 0,
     bis: 2,
-    ort: 'Magen und Speiseröhre',
-    deutung: 'So früh kommt Beschwerde aus dem Magen oder der Speiseröhre – '
-      + 'Säure, Dehnung, verzögerte Entleerung. Für den Dickdarm ist es zu früh.',
   },
   {
     id: 'mittel',
@@ -70,9 +85,6 @@ export const FENSTER = [
     kurz: 'mittel',
     von: 2,
     bis: 4,
-    ort: 'Dünndarm und Galle',
-    deutung: 'In dieser Zeit arbeitet der Dünndarm an Fett und Galle. Das '
-      + 'passt eher zu fettem Essen als zu vergärbaren Kohlenhydraten.',
   },
   {
     id: 'spaet',
@@ -80,11 +92,15 @@ export const FENSTER = [
     kurz: 'spät',
     von: 4,
     bis: 8,
-    ort: 'Dickdarm',
-    deutung: 'So spät ist der Rest im Dickdarm angekommen. Was dort vergärt – '
-      + 'FODMAP, Laktose, Ballaststoffe – kann sich gar nicht früher melden.',
   },
 ];
+
+/*
+ * Der eine Satz, der statt eines Ortes dasteht – auf der Karte, im Bericht und
+ * in der Zusammenfassung derselbe. Er behauptet nichts über den Körper, nur,
+ * was der Zeitpunkt nicht hergibt (Belege im Kopf dieser Datei).
+ */
+export const KEIN_ORT = 'Woher eine Beschwerde kommt, lässt sich am Zeitpunkt allein nicht ablesen.';
 
 /** Mindestens so viele beobachtbare Mahlzeiten je Seite und Fenster. */
 const MINDEST_JE_FENSTER = 6;
@@ -136,8 +152,8 @@ function zuordnen(eintraege) {
     // Beschwerde um sieben), ist auch „die letzte Mahlzeit davor" nur geraten
     // – und mit ihr die Stunden. Es ist dieselbe Prüfung wie in
     // stundenSeitEssen (js/auswertung.js); ohne sie stünde hier „vier bis acht
-    // Stunden nach dem Mittag, Dickdarm", wo die Nüchternrechnung zu Recht
-    // „unbekannt" sagt.
+    // Stunden nach dem Mittag", wo die Nüchternrechnung zu Recht „unbekannt"
+    // sagt.
     zu.get(letzte.e.id).push({
       stunden,
       staerke: Number(b.staerke) || 0,
@@ -179,7 +195,7 @@ export function fensterWerte(eintraege) {
      * dieser Mahlzeit eine solche Angabe, oder ist sie selbst nur ungefähr
      * eingetragen, ist keines ihrer Fenster beobachtet: Sonst landete jede
      * „nach dem Essen"-Beschwerde künstlich nach einer halben Stunde, und das
-     * Profil zeigte einen Magen, wo es nur einen Knopf zeigt.
+     * Profil zeigte einen frühen Schwerpunkt, wo es nur einen Knopf zeigt.
      *
      * Und eine Beschwerde, bei der offen ist, ob sie vor oder nach dieser
      * Mahlzeit kam, hängt vielleicht an ihr, vielleicht an der davor. Ohne
@@ -242,7 +258,6 @@ export function zeitBild(eintraege) {
     return {
       id: f.id,
       name: f.name,
-      ort: f.ort,
       anzahl: drin.length,
       anteil: alle.length ? drin.length / alle.length : 0,
       schnitt: mittelwert(drin.map((b) => b.staerke)),
@@ -267,8 +282,12 @@ export function zeitBild(eintraege) {
   // Auch hier: die größte von dreien ist noch kein Schwerpunkt. Sie muss die
   // Hälfte der Zuordnungen tragen und die nächste deutlich schlagen.
   const deutlich = spitze.anteil >= 0.45 && (spitze.anteil - zweite.anteil) >= 0.15;
-  const fenster = FENSTER.find((f) => f.id === spitze.id);
 
+  /*
+   * Nur die Stunden, kein Ort und keine Deutung (siehe Kopf dieser Datei).
+   * Auch „verteilt sich, also kein einzelner Ort" war eine Ortsaussage und
+   * steht deshalb nicht mehr da.
+   */
   return {
     pruefbar: true,
     teile,
@@ -276,14 +295,13 @@ export function zeitBild(eintraege) {
     gesamt,
     schwerpunkt: deutlich ? spitze.id : null,
     satz: deutlich
-      ? `Die meisten Beschwerden kommen ${spitze.name.toLowerCase()} `
-        + `(${Math.round(spitze.anteil * 100)} % der zugeordneten). ${fenster.deutung}`
+      ? `Die meisten Beschwerden kommen ${spitze.name} `
+        + `(${Math.round(spitze.anteil * 100)} % der zugeordneten). ${KEIN_ORT}`
       : 'Die Beschwerden verteilen sich über die Stunden nach dem Essen, ohne '
-        + 'erkennbaren Schwerpunkt. Das spricht eher gegen einen einzelnen Ort '
-        + 'als Ursache.',
+        + 'erkennbaren Schwerpunkt.',
     hinweis: 'Zugeordnet wird immer der letzten Mahlzeit davor. Späte Stunden '
       + 'sind deshalb seltener beobachtbar als frühe – wer alle drei Stunden '
-      + `isst, kann über den Dickdarm wenig erfahren.${ohneStunde}`,
+      + `isst, erfährt über die späten Stunden wenig.${ohneStunde}`,
   };
 }
 
@@ -307,7 +325,6 @@ export function zeitProfil(bewertet, id) {
       id: f.id,
       name: f.name,
       kurz: f.kurz,
-      ort: f.ort,
       pruefbar,
       faelle: mit.length,
       gegenFaelle: ohne.length,
@@ -349,12 +366,13 @@ export function zeitProfil(bewertet, id) {
     };
   }
 
-  const f = FENSTER.find((x) => x.id === spitze.id);
+  // Nur der Zeitpunkt – die frühere Deutung mit einem Ort ist entfernt (siehe
+  // Kopf dieser Datei).
   return {
     teile,
     pruefbare: pruefbare.length,
     schwerpunkt: spitze.id,
-    satz: `Auffällig wird es vor allem ${spitze.name.toLowerCase()}. ${f.deutung}`,
+    satz: `Auffällig wird es vor allem ${spitze.name}.`,
   };
 }
 
@@ -387,7 +405,7 @@ export function spaeteFunde(fenster, ids, bisher = 4) {
     // Erst ab der Stunde, an der die alte Rechnung aufhört zu schauen.
     if (f.von < bisher) return;
     const teil = p.teile.find((x) => x.id === p.schwerpunkt);
-    raus.push({ id, profil: p, teil, fensterName: f.name, ort: f.ort });
+    raus.push({ id, profil: p, teil, fensterName: f.name });
   });
   return raus.sort((a, b) => b.teil.differenz - a.teil.differenz);
 }

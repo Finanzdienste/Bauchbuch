@@ -104,7 +104,10 @@ await page.waitForTimeout(400);
 const voll = await page.locator('.bericht').inputValue();
 
 check(voll.includes('STUHLGANG (BRISTOL)'), 'der Stuhlgang steht als eigener Abschnitt drin');
-check(/Typ 6-7 \(weich\)\s+\d+/.test(voll), 'mit den Anteilen nach Bristol-Gruppe');
+// Typ 6 und 7 heißen auf gesund.bund.de Durchfall, und der ist dort „sehr
+// weicher oder flüssiger Stuhlgang" – bloß „weich" wäre zu schwach.
+check(/Typ 6-7 \(sehr weich\/flüssig\)\s+\d+/.test(voll) && !/Typ 6-7 \(weich\)/.test(voll),
+  'mit den Anteilen nach Bristol-Gruppe, Typ 6-7 als sehr weich bis flüssig');
 check(voll.includes('KRITERIEN'), 'die Kriterien stehen auf dem Zettel');
 check(
   voll.includes('Rom IV, Reizdarmsyndrom'),
@@ -118,6 +121,26 @@ check(
   voll.includes('Erfüllte Kriterien sind KEINE Diagnose'),
   'unmittelbar gefolgt von dem Satz, dass das keine Diagnose ist',
 );
+/*
+ * Was sich nicht belegen ließ, steht nicht mehr auf dem Zettel: die
+ * GerdQ-Schwelle mit Deutung, das Rom-IV-Urteil zur funktionellen Dyspepsie
+ * (Unterformen und Schwellen nicht im Volltext prüfbar) und „ein Tagebuch
+ * untererfasst" – die Werte je Woche rechnen nur über notierte Tage und sind
+ * deshalb keine Untergrenze.
+ */
+const krit = voll.split('KRITERIEN')[1].split('\n\n')[0].replace(/\s+/g, ' ');
+check(!/ab 8 gilt|als wahrscheinlich/.test(krit) && krit.includes('kein ausgefüllter Fragebogen'),
+  'beim GerdQ keine Schwelle mit Deutung, dafür wie gezählt wurde');
+check(!/funktionelle Dyspepsie (Kriterien erfüllt|nicht erfüllt)|PDS|EPS/.test(krit)
+  && /Magenbeschwerden ab Stärke 4 \(gezählt, keine Einordnung\)/.test(krit)
+  && /Druck, Völlegefühl oder früh satt: an \d+ Tagen/.test(krit),
+'die Magenbeschwerden gezählt, ohne Rom-IV-Urteil');
+check(!/untererfasst|eher zu niedrig als zu hoch/.test(krit)
+  && krit.includes('beziehen sich nur auf diese notierten Tage'),
+'und kein „ein Tagebuch untererfasst", sondern worauf sich die Zahlen beziehen');
+check(krit.includes('Von Reizdarm oder Reizmagen wird erst gesprochen, wenn andere Ursachen der Beschwerden ärztlich abgeklärt sind')
+  && !krit.includes('Beide Regelwerke'),
+'die Voraussetzung für Reizdarm und Reizmagen – nicht für „beide Regelwerke" samt GerdQ');
 check(
   voll.includes('Beschwerden seit 2023-01'),
   'die Dauer der Beschwerden, ohne die eine Rom-Bedingung ungeprüft bliebe',
@@ -227,6 +250,15 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   check(!fehlt.length && text.includes('Merkmale (Zahl der Kopfschmerzen)') && text.includes('oft schon beim')
     && text.includes('Stimmung (0 gut') && text.includes('Zusammen eingetragen:') && text.includes('Form: '),
   `Tagebuch ${saat}: alle Abschnitte an${fehlt.length ? ` – es fehlt: ${fehlt.join(', ')}` : ''}`);
+  // Die 30 Tage sind die Umsetzung der App für „Monat", keine Vorgabe der
+  // Neurologie; die Zyklusphasen sind geschätzt, der Eisprung nicht gemessen;
+  // und dass späteres Einschlafen „oft zu ADHS selbst" gehöre, belegt keine
+  // erreichbare Quelle.
+  const flach = text.replace(/\s+/g, ' ');
+  check(flach.includes('Je 30 Kalendertage (jüngster Zeitraum zuerst):') && !flach.includes('Für die Neurologie')
+    && !flach.includes('ADHS selbst')
+    && (!flach.includes('Nach Zyklusphase (') || flach.includes('Eisprung nicht gemessen')),
+  `Tagebuch ${saat}: Kopfschmerztage je 30 Kalendertage, ohne „für die Neurologie" und ohne „ADHS selbst"`);
   const lang = zuLang(text);
   check(!lang.length, `Tagebuch ${saat} (Name ${name.includes(' ') ? 'mit' : 'ohne'} Leerzeichen): keine Zeile mit 80 `
     + `Zeichen oder mehr${lang.length ? `: ${lang[0]}` : ''}`);
@@ -301,8 +333,10 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   eintraege.sort((a, b) => (a.am === b.am ? (a.um < b.um ? -1 : 1) : (a.am < b.am ? -1 : 1)));
   const text = arztBericht({ eintraege, tage: {} }, isoPlus(GRUND, -59), GRUND);
   const kurz = abschnitt(text, 'IN KÜRZE').split('\n  - ').map((x) => x.replace(/\s+/g, ' ').trim());
-  check(kurz[1].startsWith('Im Tagebuch stehen Dinge') && kurz[2].startsWith('Eingetragen sind Methylphenidat als Kapsel '
-    + 'mit zweierlei Kügelchen und ein Säureblocker – laut Fachinformation zusammen eine Gegenanzeige'),
+  check(kurz[1].startsWith('Im Tagebuch stehen Dinge, die zeitnah ärztlich abgeklärt gehören')
+    && kurz[2].startsWith('Eingetragen sind Methylphenidat als Kapsel mit zweierlei Kügelchen (Medikinet retard, '
+      + 'Medikinet adult) und ein Mittel gegen Magensäure. In der Fachinformation dieser Kapseln steht die '
+      + 'Behandlung mit H2-Blockern, Protonenpumpenhemmern oder Antazida unter den Gegenanzeigen'),
   `IN KÜRZE: W1 als erster Satz nach den Warnzeichen (${(kurz[2] || '').slice(0, 40)}…)`);
   check(kurz.length - 1 <= 5, `IN KÜRZE: höchstens fünf Sätze (${kurz.length - 1})`);
   const mittel = abschnitt(text, 'EINGENOMMENE MITTEL');
@@ -314,6 +348,13 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   // So streng, wie die Fachinformation es sagt: eine Gegenanzeige, nicht bloß „nicht vorgesehen".
   check(/unter den\s+Gegenanzeigen/.test(mittel) && !/nicht zusammen\s+vor/.test(mittel),
     'beim Paar steht die Gegenanzeige aus der Fachinformation');
+  // Und so genau: die Gruppen beim Namen, die raschere Freisetzung der
+  // gesamten Wirkstoffmenge – nicht „Säureblocker" und „im weniger sauren Magen".
+  const flachMittel = mittel.replace(/\s+/g, ' ');
+  check(flachMittel.includes('H2-Blockern, Protonenpumpenhemmern oder Antazida')
+    && flachMittel.includes('rascheren Freisetzung der gesamten Wirkstoffmenge')
+    && !flachMittel.includes('weniger sauren Magen'),
+  'beim Paar die Gruppen und der Grund, wie die Fachinformation sie nennt');
   check(!/weglassen|absetzen|nimm|empfohlen|du solltest/i.test(mittel), 'und ohne Rat, etwas wegzulassen oder zu nehmen');
   const bewirkt = abschnitt(text, 'HAT ES ETWAS BEWIRKT?');
   check(bewirkt.includes('Medikinet retard') && bewirkt.replace(/\s+/g, ' ').includes('Seit dem ersten Eintrag')
@@ -326,9 +367,10 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
     : (e.mittel === 'Nexium' ? { ...e, mittel: 'Rennie' } : e))).filter((e) => !e.warnzeichen);
   const t2 = arztBericht({ eintraege: ohneForm, tage: {} }, isoPlus(GRUND, -59), GRUND);
   const kurz2 = abschnitt(t2, 'IN KÜRZE').split('\n  - ').map((x) => x.replace(/\s+/g, ' ').trim());
-  check(kurz2[1].startsWith('Eingetragen sind Methylphenidat ohne Angabe der Form und ein Säureblocker'),
+  check(kurz2[1].startsWith('Eingetragen sind Methylphenidat ohne Angabe der Form und ein Mittel gegen Magensäure'),
     'IN KÜRZE: W1u ohne Warnzeichen als erster Satz');
-  check(kurz2[1].includes('bei manchen Kapseln laut Fachinformation zusammen eine Gegenanzeige')
+  check(kurz2[1].includes('Bei manchen Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung mit '
+    + 'H2-Blockern, Protonenpumpenhemmern oder Antazida in der Fachinformation unter den Gegenanzeigen')
     && /unter den\s+Gegenanzeigen/.test(abschnitt(t2, 'EINGENOMMENE MITTEL')),
   'W1u: in IN KÜRZE und beim Paar die Gegenanzeige, wie die Fachinformation sie nennt');
   check(abschnitt(t2, 'EINGENOMMENE MITTEL').includes('Form: nicht angegeben'), 'ohne Form steht „nicht angegeben“');

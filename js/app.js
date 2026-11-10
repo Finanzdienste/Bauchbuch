@@ -76,7 +76,7 @@ import {
 import { fragenVorschlagen } from './unterleib.js';
 import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import {
-  FENSTER, fensterWerte, spaeteFunde, zeitBild, zeitProfil,
+  FENSTER, KEIN_ORT, fensterWerte, spaeteFunde, zeitBild, zeitProfil,
 } from './zeitprofil.js';
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
@@ -2920,7 +2920,6 @@ function lageTeil(s, d) {
     spaet: d.uebersehen.map((x) => ({
       name: ausloeserName(x.id, s.eigeneAusloeser),
       fensterName: x.fensterName,
-      ort: x.ort,
     })),
     wechsel: d.wechsel.map((w) => ({
       name: ausloeserName(w.id, s.eigeneAusloeser),
@@ -2986,9 +2985,7 @@ function spaetTeil(s, d) {
   return `<div class="karte karte-spaet">
     <h3>Erst später auffällig</h3>
     <p class="klein">Diese Auslöser fallen im eingestellten Fenster von
-      ${s.fenster || 4} Stunden nicht auf – wohl aber später. Das ist kein
-      schwächerer Befund, sondern ein anderer: So spät entsteht Beschwerde im
-      Dickdarm.</p>
+      ${s.fenster || 4} Stunden nicht auf – wohl aber später. ${esc(KEIN_ORT)}</p>
     <ul class="funde">${d.uebersehen.slice(0, 4).map((x) => `<li class="fund f-moeglich">
       <div class="fund-kopf">
         <b>${esc(ausloeserName(x.id, s.eigeneAusloeser))}</b>
@@ -2996,8 +2993,7 @@ function spaetTeil(s, d) {
       </div>
       ${vergleichBalken(x.teil.schnittMit, x.teil.schnittOhne)}
       <p class="klein">${x.teil.faelle} Mahlzeiten damit, ${x.teil.gegenFaelle} ohne
-        – jeweils nur die, bei denen dieses Fenster überhaupt beobachtbar war
-        (${esc(x.ort)})</p>
+        – jeweils nur die, bei denen dieses Fenster überhaupt beobachtbar war</p>
     </li>`).join('')}</ul>
   </div>`;
 }
@@ -3007,9 +3003,15 @@ function spaetTeil(s, d) {
  *
  * „Wann es auftritt" weiter unten zählt nach Tageszeit; das ist eine andere
  * Frage und beantwortet vor allem, wie jemand lebt. Diese Karte zählt die
- * Stunden seit der letzten Mahlzeit, und das sagt etwas über den Ort: Was nach
- * einer halben Stunde brennt, kommt nicht aus dem Dickdarm, und was nach sechs
- * Stunden bläht, kommt nicht aus dem Magen.
+ * Stunden seit der letzten Mahlzeit – eine Angabe für die Sprechstunde, aber
+ * keine über den Ort: Woher eine Beschwerde kommt, lässt sich am Zeitpunkt
+ * allein nicht ablesen. Beschwerden durch Milchzucker, der im Dickdarm
+ * vergoren wird, beginnen frühestens etwa eine halbe Stunde nach dem Essen
+ * (gesund.bund.de, Laktoseintoleranz, Stand 23.02.2026), und ein Blähgefühl
+ * nennt gesund.bund.de auch beim Reizmagen, mit einem verzögerten
+ * Weitertransport des Mageninhalts als einer der vermuteten Ursachen
+ * (Reizmagensyndrom, Stand 05.02.2026). Wie Beschwerden einzuordnen sind,
+ * klärt die Praxis.
  */
 function zeitTeil(d) {
   const z = d.zeit;
@@ -3037,10 +3039,15 @@ function zeitTeil(d) {
 /*
  * Und dasselbe für einen einzelnen Auslöser.
  *
- * Der Zeitpunkt ist die Auskunft, die dem Mechanismus am nächsten kommt: Ein
- * Auslöser, der sich erst nach Stunden meldet, wird im Dickdarm vergoren; einer
- * mit sofortiger Wirkung nicht. In der Sprechstunde ist das der Unterschied
- * zwischen einem Säureblocker und einer Ernährungsberatung.
+ * Der zeitliche Abstand zum Essen ist eine Beobachtung, die sich in der Praxis
+ * besprechen lässt – mehr nicht. Aus dem Zeitpunkt allein lässt sich weder
+ * der Ort noch die Ursache ablesen: Bei einer Laktoseintoleranz vergären
+ * Bakterien den Milchzucker im Dickdarm, und die Beschwerden beginnen
+ * frühestens nach einer halben Stunde; eine allergische Reaktion setzt
+ * „meistens innerhalb einer halben Stunde, spätestens aber einige Stunden
+ * nach dem Verzehr" ein (gesund.bund.de, Laktoseintoleranz, Stand
+ * 23.02.2026; Nahrungsmittelallergie, Stand 27.05.2024). Was die
+ * Beschwerden auslöst und welche Behandlung passt, klärt die Praxis.
  */
 function zeitBlock(profil) {
   const geprueft = profil.teile.filter((t) => t.pruefbar);
@@ -3069,6 +3076,10 @@ function zeitBlock(profil) {
  * kommt zwölfmal vor, „FODMAP" achtzigmal. Und weil es die brauchbarere
  * Auskunft ist – wer weiß, dass es an den Fruktanen liegt, weiß auch etwas
  * über das Lebensmittel, das noch gar nicht im Tagebuch steht.
+ *
+ * Dass die Zuordnung grob ist, sagt die Karte ohne Beispiel. Bis zur
+ * Fassung 29 stand dort „Ein Apfel ist FODMAP-reich, eine Banane kaum"; das
+ * ließ sich in keiner erreichbaren Quelle prüfen.
  */
 function klassenTeil(s, d) {
   const fertig = d.klassen.filter((k) => k.genug);
@@ -5031,11 +5042,43 @@ function warnTeil(d) {
       <span class="klein">${mehrzahl(w.anzahl, 'Mal', 'Mal')} eingetragen,
         zuletzt ${esc(fmtDatum(w.zuletzt, true))}</span>
     </li>`).join('')}</ul>
-    <p class="klein">Bei Blut, schwarzem Stuhl, Schmerz mit Ausstrahlung in
-    Arm oder Kiefer, einem Kopfschmerz, der schlagartig da war, oder einer
-    Lähmung, Sprachstörung oder Verwirrtheit dazu nicht auf einen Termin
-    warten – Notaufnahme oder 112.</p>
+    <p class="klein">Bei erbrochenem Blut, schwarzem, klebrigem Stuhl, Schmerz,
+    der in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß,
+    einem Kopfschmerz, der schlagartig so stark war wie nie, Kopfschmerz mit
+    Fieber und steifem Nacken oder einer plötzlichen Lähmung, Taubheit einer
+    Körperseite, Sprachstörung, einem Sehverlust oder Verwirrtheit nicht auf
+    einen Termin warten – Notaufnahme oder 112.</p>
   </div>`;
+  /*
+   * Der Satz nennt genau die Warnzeichen der Stufe „sofort" aus js/bild.js
+   * (bluterbrechen, teerstuhl, ausstrahlung, donnerschlag, kopfausfall,
+   * kopfnacken) und sagt dazu dasselbe wie dort und wie js/lage.js. Bis zur
+   * Fassung 29 stand „Bei Blut" – das schloss frisches Blut im Stuhl ein, das
+   * in bild.js „zeitnah" ist –, und der Kopfschmerz mit Fieber und steifem
+   * Nacken fehlte.
+   *
+   * Belege, je Zeichen:
+   *   * Ausstrahlender Schmerz: gesund.bund.de, Herzinfarkt (Stand
+   *     28.08.2020): Schmerzen, die „von der Brust in einen Arm, den Rücken,
+   *     den Hals oder den Oberbauch ausstrahlen", „Blässe und kalten Schweiß";
+   *     „sollten die Betroffenen deshalb immer den Notruf 112 wählen".
+   *   * Lähmung, Sprache, Sehen: Schlaganfall (Stand 16.12.2022): „schnell den
+   *     Notruf 112 zu wählen"; Notaufnahme (Stand 31.01.2025): „Plötzlich
+   *     einsetzende Sprach- und Sehstörungen", „Plötzlich aufgetretene
+   *     Lähmungen".
+   *   * Schlagartiger Kopfschmerz: Hirnaneurysma (Stand 13.05.2026):
+   *     „plötzliche, sehr starke Kopfschmerzen" als Anzeichen einer
+   *     Subarachnoidalblutung, „ein lebensbedrohlicher Notfall".
+   *   * Fieber, Kopfschmerz, steifer Nacken: Meningitis (Stand 10.01.2025):
+   *     „sollte man sofort ein Krankenhaus aufsuchen"; dort auch „benommen
+   *     oder verwirrt".
+   *   * Erbrochenes Blut, schwarzer Stuhl: PANTOZOL Control,
+   *     EMA-Produktinformation, Gebrauchsinformation Abschnitt 2: „Informieren
+   *     Sie sofort Ihren Arzt" bei „Erbrechen von Blut" und „Blut im Stuhl,
+   *     der schwarz oder teerig aussehen kann". gesund.bund.de, Magengeschwür
+   *     (Stand 07.01.2022), schreibt dazu „zeitnah ärztlich abklären"; die
+   *     Stufe „sofort" ist in js/bild.js festgelegt und hier nicht geändert.
+   */
 }
 
 function bildTeil(s, d) {

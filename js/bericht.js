@@ -25,7 +25,7 @@ import {
 } from './auswertung.js';
 import { haeltStand, SCHICHT_WORT } from './schichten.js';
 import {
-  FENSTER, fensterWerte, spaeteFunde, zeitBild, zeitProfil,
+  FENSTER, KEIN_ORT, fensterWerte, spaeteFunde, zeitBild, zeitProfil,
 } from './zeitprofil.js';
 import { phasenUrteil, wechselnde } from './wechselwirkung.js';
 import { wasSacheIst } from './lage.js';
@@ -181,20 +181,36 @@ function berReihen(teile, breite) {
  * Die Kernsätze der Paare für den Zettel. Die Karte auf „Tag" spricht den
  * Menschen an, der die Mittel nimmt („In deinen Mitteln …", „bitte nichts
  * weglassen"); der Zettel geht an die Praxis und braucht nur, was die
- * Fachinformation sagt. Die Sätze folgen den Kartentexten aus
- * js/zusammen.js (statt „solchen Mitteln" steht „Säureblockern", weil die
- * Karte davor den Namen nennt) und sind mit ihnen belegt – bei W1 und W1u so
- * streng wie die Quelle: eine Gegenanzeige. Für die übrigen Paare reicht der
- * erste Satz des Hinweises bis zum Gedankenstrich.
+ * Fachinformation sagt. Bei W1 und W1u so streng und so genau wie die
+ * Quelle: eine Gegenanzeige, und die Gruppen mit ihrem Namen statt
+ * „Säureblocker" – sonst fiele darunter auch ein reines Alginat, das die
+ * Fachinformation nicht nennt. Für die übrigen Paare reicht der erste Satz
+ * des Hinweises bis zum Gedankenstrich.
+ *
+ * Quellen W1/W1u: Medikinet retard, www.fachinfo.de/fi/pdf/009621 (Stand
+ * Dezember 2025), und Medikinet adult, /013066 (Stand September 2025), je 4.3
+ * (Gegenanzeige „bei H2-Rezeptorenblockern, Protonenpumpen-Inhibitoren oder
+ * Antazidatherapie") und 4.5 („darf nicht zusammen mit … eingenommen werden,
+ * da es dabei zu einer rascheren Freisetzung der gesamten Wirkstoffmenge
+ * kommen kann").
+ *
+ * W3/W4: Was die Fachinformationen zu Säureblockern sagen, ist von Präparat
+ * zu Präparat verschieden, nicht von Darreichungsform zu Darreichungsform:
+ * Ritalin LA (/010445, Stand September 2025) und Equasym Retard (/012100,
+ * Stand Juni 2026) sind wie Medikinet retard Hartkapseln mit veränderter
+ * Wirkstofffreisetzung und nennen keine Säureblocker.
  */
 const BER_PAAR = {
-  W1: 'In der Fachinformation solcher Kapseln steht die Einnahme zusammen mit Säureblockern '
-    + 'unter den Gegenanzeigen: In einem weniger sauren Magen kann der Wirkstoff früher frei werden.',
-  W1u: 'Bei manchen Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) steht die Einnahme '
-    + 'zusammen mit Säureblockern in der Fachinformation unter den Gegenanzeigen; die Form ist '
-    + 'nicht angegeben.',
-  W3: 'Ob ein Säureblocker zum Präparat passt, hängt bei Methylphenidat an der Form.',
-  W4: 'Ob ein Säureblocker zum Präparat passt, hängt bei Methylphenidat an der Form.',
+  W1: 'In der Fachinformation solcher Kapseln steht die Behandlung mit H2-Blockern, '
+    + 'Protonenpumpenhemmern oder Antazida unter den Gegenanzeigen; zusammen damit kann es laut '
+    + 'Fachinformation zu einer rascheren Freisetzung der gesamten Wirkstoffmenge kommen.',
+  W1u: 'Bei manchen Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung '
+    + 'mit H2-Blockern, Protonenpumpenhemmern oder Antazida in der Fachinformation unter den '
+    + 'Gegenanzeigen; die Form ist nicht angegeben.',
+  W3: 'Was in der Fachinformation zu Säureblockern steht, ist bei Methylphenidat von Präparat zu '
+    + 'Präparat verschieden – das klären Apotheke oder Praxis.',
+  W4: 'Was in der Fachinformation zu Säureblockern steht, ist bei Methylphenidat von Präparat zu '
+    + 'Präparat verschieden – das klären Apotheke oder Praxis.',
 };
 
 function berPaarKern(h) {
@@ -367,7 +383,11 @@ function berAdhs(a, rhythmus, { spannungAn, gewichtDa }) {
       if (v.stress.spaeter !== null && v.stress.sonst !== null) {
         saetze.push(`Anspannung an diesen Tagen ${fmtZahl(v.stress.spaeter)} gegen ${fmtZahl(v.stress.sonst)}.`);
       }
-      saetze.push('Späteres Einschlafen gehört oft auch zu ADHS selbst – beides lässt sich hier nicht trennen.');
+      // Kein Satz mehr, dass späteres Einschlafen „oft auch zu ADHS selbst"
+      // gehöre – das belegt keine erreichbare Quelle für Erwachsene. Was
+      // bleibt, ist die Grenze dieser Rechnung selbst.
+      saetze.push('Ob ein Unterschied an der Einnahmezeit liegt oder an etwas, das mit ihr '
+        + 'zusammenfällt, trennt dieser Vergleich nicht.');
       klammer(saetze);
     }
   }
@@ -611,9 +631,11 @@ export function arztBericht(zustand, von, bis) {
   /*
    * Die Waage steht bei den Warnzeichen und nicht bei den Zahlen.
    *
-   * Ein ungewollter Verlust von fünf Prozent ist das stärkste einzelne
-   * Zeichen, das ein Tagebuch beisteuern kann – und die einzige Angabe darin,
-   * die nicht aus einer Selbsteinschätzung stammt.
+   * Ein unbeabsichtigter Gewichtsverlust gehört zu den Zeichen, bei denen
+   * ärztlicher Rat gesucht werden soll und eine Malignität auszuschließen ist
+   * (EMA, Produktinformation PANTOZOL Control, Fachinformation 4.4). Und die
+   * Waage ist die einzige Angabe im Tagebuch, die nicht aus einer
+   * Selbsteinschätzung stammt.
    */
   const waage = gewichtsBild(zustand.gewicht, bis, zustand.abnehmenGewollt);
   const gewichtDa = waage.urteil !== 'keine' && waage.urteil !== 'zu-kurz';
@@ -765,10 +787,11 @@ export function arztBericht(zustand, von, bis) {
         + (stand.urteil === 'unklar' ? ' – zu wenige Tage mit Angaben zu'
           + ' Anspannung, Schlaf oder Zyklus' : ''));
       // Der Zeitpunkt nur, wenn er deutlich ist. „Verteilt sich" ist für die
-      // Sprechstunde keine Auskunft, sondern eine Zeile mehr zu lesen.
+      // Sprechstunde keine Auskunft, sondern eine Zeile mehr zu lesen. Nur
+      // die Stunden, kein Ort dazu (siehe Kopf von js/zeitprofil.js).
       if (zeit.schwerpunkt) {
         const f = zeit.teile.find((t) => t.id === zeit.schwerpunkt);
-        sag(`    auffällig vor allem ${f.name.toLowerCase()} (${f.ort})`);
+        sag(`    auffällig vor allem ${f.name}`);
       }
       /*
        * Und die Menge – für die Sprechstunde oft die entscheidende Zeile.
@@ -791,10 +814,14 @@ export function arztBericht(zustand, von, bis) {
   /*
    * Und was das Fenster gar nicht sehen konnte.
    *
-   * Vier Stunden sind eine Konvention, keine Physiologie. Was im Dickdarm
-   * vergärt, meldet sich frühestens nach vier bis acht Stunden – für die
-   * Bilanz oben existiert es damit nicht. Diese Zeilen sind der Unterschied
-   * zwischen „nichts gefunden" und „nicht danach gesucht".
+   * Vier Stunden sind eine Konvention, keine Physiologie. Was sich erst nach
+   * dem eingestellten Fenster meldet, fehlt in der Bilanz oben ganz. Diese
+   * Zeilen sind der Unterschied zwischen „nichts gefunden" und „nicht danach
+   * gesucht". Einen Ort nennen sie nicht: Wann sich etwa Vergärung im
+   * Dickdarm bemerkbar macht, ist nicht an vier Stunden gebunden – bei einer
+   * Laktoseintoleranz treten die Beschwerden „frühestens eine halbe Stunde"
+   * nach dem Verzehr auf und sind „nach etwa eineinhalb bis zwei Stunden" am
+   * stärksten (gesund.bund.de, Laktoseintoleranz, Stand 23.02.2026).
    */
   const spaet = spaeteFunde(
     fenster,
@@ -811,8 +838,9 @@ export function arztBericht(zustand, von, bis) {
       sag(`  ${ausloeserName(x.id, zustand.eigeneAusloeser).padEnd(24)} `
         + `${fmtZahl(x.teil.schnittMit)} gegen ${fmtZahl(x.teil.schnittOhne)} `
         + `(${x.teil.faelle} damit, ${x.teil.gegenFaelle} ohne)`);
-      sag(`    ${x.fensterName}, also ${x.ort}`);
+      sag(`    Schwerpunkt ${x.fensterName}`);
     });
+    umbrochen(KEIN_ORT, 66).forEach((z) => sag(`  ${z}`));
     sag();
   }
 
@@ -851,18 +879,23 @@ export function arztBericht(zustand, von, bis) {
   }
 
   /*
-   * Wie lange nach dem Essen – die Frage nach dem Ort.
+   * Wie lange nach dem Essen – nur die Stunden.
    *
-   * „Nach dem Essen tut es weh" führt zum Säureblocker; „sechs Stunden nach dem
-   * Essen tut es weh" führt zur Ernährungsberatung. Aus dem Kopf beantwortet
-   * das niemand, aus dem Tagebuch fällt es ab.
+   * Wann eine Beschwerde kommt, ist eine Angabe für die Sprechstunde: Bei
+   * Sodbrennen und Reflux etwa ist es laut gesund.bund.de wichtig, beim
+   * Arztbesuch anzugeben, „wann und wie häufig" die Beschwerden auftreten
+   * (Sodbrennen und Refluxkrankheit, Stand 04.04.2025, „Wie wird eine
+   * Refluxerkrankung diagnostiziert?"). Aus dem Kopf beantwortet das niemand,
+   * aus dem Tagebuch fällt es ab. Was daraus folgt – und woher eine Beschwerde
+   * kommt –, klärt die Praxis; den Ort verrät der Zeitabstand allein nicht
+   * (Belege im Kopf von js/zeitprofil.js).
    */
   const zb = zeitBild(imZeitraum);
   if (zb.zugeordnet) {
     sag('WIE LANGE NACH DEM ESSEN');
     zb.teile.forEach((t) => {
       sag(`  ${t.name.padEnd(24)} ${String(t.anzahl).padStart(3)} `
-        + `(${prozent(t.anteil)}), im Mittel ${fmtZahl(t.schnitt)}  – ${t.ort}`);
+        + `(${prozent(t.anteil)}), im Mittel ${fmtZahl(t.schnitt)}`);
     });
     umbrochen(zb.satz).forEach((z) => sag(`  ${z}`));
     sag(`  Zugeordnet: ${zb.zugeordnet} von ${zb.gesamt} Beschwerden.`);
@@ -882,12 +915,18 @@ export function arztBericht(zustand, von, bis) {
    */
   const s = stuhlZahlen(imZeitraum, tageImZeitraum);
   if (s.gesamt) {
+    // Die Gruppen wie auf gesund.bund.de: Typ 1 und 2 „deutet auf
+    // Verstopfung", 3 bis 5 „normaler Stuhlgang", 6 und 7 „spricht für
+    // Durchfall" (Verstopfung bei Erwachsenen, Stand 02.10.2023) – und
+    // Durchfall ist dort „sehr weicher oder flüssiger Stuhlgang" (Durchfall,
+    // Stand 08.03.2024). Bloß „weich" wäre zu schwach und hieße in
+    // js/daten.js auch Typ 4 und 5.
     sag('STUHLGANG (BRISTOL)');
-    sag(`  Eingetragen                ${s.gesamt} Mal, ${fmtZahl(s.proTag)} je notiertem Tag`);
-    sag(`  Typ 1-2 (hart)             ${s.hart} (${prozent(s.anteilHart)})`);
-    sag(`  Typ 3-5 (unauffällig)      ${s.normal} (${prozent(s.anteilNormal)})`);
-    sag(`  Typ 6-7 (weich)            ${s.weich} (${prozent(s.anteilWeich)})`);
-    if (s.dringend) sag(`  davon dringend             ${s.dringend}`);
+    sag(`  Eingetragen                  ${s.gesamt} Mal, ${fmtZahl(s.proTag)} je notiertem Tag`);
+    sag(`  Typ 1-2 (hart)               ${s.hart} (${prozent(s.anteilHart)})`);
+    sag(`  Typ 3-5 (unauffällig)        ${s.normal} (${prozent(s.anteilNormal)})`);
+    sag(`  Typ 6-7 (sehr weich/flüssig) ${s.weich} (${prozent(s.anteilWeich)})`);
+    if (s.dringend) sag(`  davon dringend               ${s.dringend}`);
     // Nur mit genug Fällen auf beiden Seiten; sonst gar nicht – siehe
     // wasserVergleich in js/stuhl.js.
     const wasser = wasserSatz(wasserVergleich(imZeitraum, tageImZeitraum));
@@ -915,9 +954,15 @@ export function arztBericht(zustand, von, bis) {
     };
     /*
      * Zwei Blickwinkel: Was im Berichtszeitraum eingetragen wurde (kz, km),
-     * und die Kalenderzahlen der Neurologie über alle Einträge (kzAlle,
-     * kmAlle) – „die letzten 30 Tage" sind die letzten 30 Tage, auch wenn
-     * der Bericht nur achtzehn umfasst.
+     * und die Kalenderzahlen über alle Einträge (kzAlle, kmAlle) – gezählt
+     * über Kalendertage, nicht über notierte Tage: „die letzten 30 Tage" sind
+     * die letzten 30 Tage, auch wenn der Bericht nur achtzehn umfasst.
+     *
+     * Die 30 Tage sind die Umsetzung dieser App für „Monat", keine Vorgabe des
+     * Fachs: Die Kopfschmerzklassifikation zählt „Headache days" über einen
+     * Zeitraum, „commonly one month", und beim Kopfschmerz durch
+     * Übergebrauch von Schmerzmitteln Tage „per month" (ICHD-3, ichd-3.org,
+     * „Definition of terms" und 8.2, abgerufen 2026).
      */
     const km = kopfMittel(imZeitraum, gruppeVon, bis);
     const kzAlle = kopfZahlen(eintraege, tage, bis);
@@ -925,7 +970,7 @@ export function arztBericht(zustand, von, bis) {
     const befundIds = (zustand.befunde || []).map((b) => b.id);
     const kette = (liste, feld) => liste.map((f, i) => `${i ? 'davor ' : ''}${f[feld]}`).join(' · ');
     sag('KOPFSCHMERZEN');
-    sag('  Für die Neurologie, je 30-Tage-Fenster (jüngstes zuerst):');
+    sag('  Je 30 Kalendertage (jüngster Zeitraum zuerst):');
     berSpalte('  Kopfschmerztage            ', kette(kzAlle.fenster, 'kopfTage'),
       `(${kzAlle.notiert30} der letzten 30 Tage notiert)`).forEach(sag);
     if (kmAlle.fenster.some((f) => f.akut)) {
@@ -948,8 +993,15 @@ export function arztBericht(zustand, von, bis) {
       sag(`  ${(BER_KOPF_KURZ[a.id] || a.name).slice(0, 26).padEnd(26)} ${mehrzahl(a.anzahl, 'Mal', 'Mal')}`);
     });
     /*
-     * Die Merkmale so gezählt, wie die Kopfschmerzklassifikation fragt – nur,
-     * wenn im Zeitraum eines der Merkmale steht, die es erst seit der
+     * Einige Merkmale, nach denen die Kopfschmerzklassifikation fragt, so
+     * verknüpft wie dort: eine Seite oder beide und pochend oder drückend
+     * (ICHD-3 1.1 C, 2.1 C), Licht und Lärm zusammen oder nur eins und
+     * Übelkeit oder Erbrechen (1.1 D, 2.1 D), schon beim Aufwachen (10.1.4
+     * A). Nicht alle: Die Verstärkung durch Bewegung (1.1 C4, 2.1 C4) zählt
+     * kopfMerkmale() in js/kopf.js nicht mit, und die Stärke der Übelkeit
+     * (2.3 D) unterscheidet die App nicht. Quelle: ichd-3.org, abgerufen 2026.
+     *
+     * Nur, wenn im Zeitraum eines der Merkmale steht, die es erst seit der
      * Fassung 28 gibt. Ein älteres Tagebuch bekommt keine Zeilen, die es
      * nicht füllen konnte.
      */
@@ -1031,7 +1083,10 @@ export function arztBericht(zustand, von, bis) {
     const kp = kopfNachPhase(imZeitraum, tageImZeitraum);
     if (kp.length > 1) {
       sag('');
-      sag('  Nach Zyklusphase (geschätzt aus den Blutungstagen):');
+      // „Geschätzt" ist wörtlich gemeint: Den Eisprung misst die App nicht,
+      // und laut Fachinformation von ellaOne (EMA, 4.4) kann der Zeitpunkt der
+      // Ovulation nicht vorhergesagt werden.
+      sag('  Nach Zyklusphase (aus den Blutungstagen geschätzt; Eisprung nicht gemessen):');
       kp.forEach((p) => sag(`    ${p.name.padEnd(24)} an ${p.mit} von ${p.tage} Tagen`));
     }
     sag('  Getrennt vom Bauch gezählt: Kein Kopfschmerz zählt in die Werte oben.');
@@ -1147,9 +1202,14 @@ export function arztBericht(zustand, von, bis) {
    * Ob die Mittel etwas bewirkt haben.
    *
    * Für die Sprechstunde ist das oft die nützlichste Zeile des Zettels –
-   * besonders, wenn nichts passiert ist: Ein Säureblocker ohne Wirkung nach
-   * vier bis acht Wochen ist selbst ein Befund und spricht gegen die Säure als
-   * Ursache. Aus dem Kopf beantwortet das niemand belastbar.
+   * besonders, wenn sich unter einem Säureblocker nichts geändert hat. Das
+   * ist eine eigene Auskunft; was es für die Ursache heißt, klärt die Praxis.
+   * Die Fachinformationen ziehen daraus keinen Schluss auf die Ursache, sie
+   * nennen weitere Untersuchungen (Antra MUPS, www.fachinfo.de/fi/pdf/004171,
+   * Stand Mai 2024, 4.2: wenn die Kontrolle der Symptome nach einer
+   * vierwöchigen Behandlung nicht erreicht wurde, „werden weitere
+   * Untersuchungen empfohlen"). Aus dem Kopf beantwortet das niemand
+   * belastbar.
    */
   const ansprechen = mittelBilanz(imZeitraum, tage, {
     heute: bis,
@@ -1170,8 +1230,9 @@ export function arztBericht(zustand, von, bis) {
 
   /*
    * ADHS-MITTEL – nur mit dem Schalter. Ohne eine Einnahme im Zeitraum bleibt
-   * vom Abschnitt der Essensrhythmus: Er ist auch ohne Mittel eine Frage, die
-   * zu ADHS gehört.
+   * vom Abschnitt der Essensrhythmus aus den eigenen Einträgen (Tage ohne
+   * Mahlzeit am Mittag, späte Mahlzeiten, „Kein Appetit"): Er zählt nur, was
+   * eingetragen ist, und braucht dafür keine Einnahme.
    */
   if (adhsAn) {
     const a = adhsAuswertung({
@@ -1220,11 +1281,11 @@ export function arztBericht(zustand, von, bis) {
    * Geprüften.
    *
    * Er ist das Aufwendigste, was dieses Tagebuch hervorbringt – Wochen –, und
-   * die Ernährungsberatung, an die eine Praxis überweist, fängt sonst bei null
-   * an: dieselbe Karenz, dieselben Wochen. Ein Plan mit Ergebnissen erspart
-   * genau das. Und die Karenzweiche gehört mit hinein, gerade wenn sie negativ
-   * ausfiel: „Vier Wochen ohne FODMAPs haben nichts geändert" schließt eine
-   * ganze Richtung aus und ist damit eine der nützlichsten Zeilen des Zettels.
+   * auf dem Zettel sieht die Praxis, was schon geprüft wurde und mit welchem
+   * Ergebnis. Und die Karenzweiche gehört mit hinein, gerade wenn sie negativ
+   * ausfiel: Auch eine Karenz ohne erkennbare Änderung ist ein Ergebnis, das
+   * in die Sprechstunde gehört. Was es bedeutet, beurteilen Praxis oder
+   * Ernährungsberatung, nicht dieses Tagebuch.
    */
   const plan = zustand.stufenplan;
   const plaene = [plan, ...(zustand.stufenplaene || [])].filter(Boolean);
@@ -1253,10 +1314,16 @@ export function arztBericht(zustand, von, bis) {
    * Leerdurchgängen.
    *
    * In der Sprechstunde ist „ich vertrage keine Milch" eine Meinung. „Dreimal
-   * nüchtern 250 ml, dreimal Beschwerden, an zwei Leermorgen nichts" ist eine
-   * Beobachtung mit Protokoll – und sie beantwortet die Frage, die dort als
-   * Nächstes kommt: Lohnt ein Atemtest, oder ist die Sache schon geklärt?
-   * Ohne die Leerdurchgänge wäre es wieder nur eine Meinung.
+   * nüchtern dieselbe Menge, dreimal Beschwerden, an zwei Leermorgen nichts"
+   * ist eine Beobachtung mit Protokoll. Eine Diagnose ist sie nicht, aber sie
+   * gibt der Praxis etwas Konkretes in die Hand, wenn dort besprochen wird, ob
+   * und welcher Test sinnvoll ist – das entscheidet die Praxis. Zur Abklärung
+   * einer Laktoseintoleranz kommen laut gesund.bund.de ein Auslasstest, bei
+   * dem die Ärztin oder der Arzt die Reaktion überwacht, der
+   * Laktosetoleranztest oder der Atemtest infrage; „Das Standardverfahren in
+   * Deutschland ist der Atemtest" (Laktoseintoleranz, Stand 23.02.2026,
+   * „Wie wird eine Laktoseintoleranz diagnostiziert?"). Ohne die
+   * Leerdurchgänge wäre es wieder nur eine Meinung.
    */
   const prov = [zustand.provokation, ...(zustand.provokationen || [])].filter(Boolean);
   if (prov.length) {
@@ -1344,7 +1411,8 @@ export function arztBericht(zustand, von, bis) {
       berAbsatz(`(Zahlen aus den Tagesfragen, keine Einordnung. Unterschiede unter ${grenzen.join(' und ')} `
         + 'zwischen der höchsten und der niedrigsten Phase kommen hier auch zufällig vor.)').forEach(sag);
     }
-    sag('  (Phasen geschätzt aus den eingetragenen Blutungstagen.)');
+    sag('  (Phasen grob geschätzt aus den eingetragenen Blutungstagen;');
+    sag('  den Eisprung misst Body Check nicht.)');
     sag();
   }
 
@@ -1353,9 +1421,14 @@ export function arztBericht(zustand, von, bis) {
    *
    * Ein Auslöser, der nur in einer Phase wirkt, kommt im Schnitt über vier
    * Wochen als „ein bisschen auffällig" heraus – eine Aussage, die für keinen
-   * einzigen Tag stimmt. Für die Sprechstunde ist der Unterschied wichtig:
-   * wechselnde Empfindlichkeit ist etwas anderes als eine Unverträglichkeit,
-   * und sie wird anders behandelt.
+   * einzigen Tag stimmt. Für die Sprechstunde ist der Unterschied eine eigene
+   * Beobachtung. Was dahintersteckt, lässt sich aus dem Tagebuch nicht
+   * ablesen: Gerechnet sind je Phase Mahlzeiten mit und ohne den Auslöser,
+   * keine Mengen, und laut gesund.bund.de können eine Nahrungsmittel-
+   * Unverträglichkeit und ein Reizdarm auch zugleich vorliegen
+   * (Reizdarmsyndrom, Stand 28.08.2024, „Wie wird … festgestellt?"). Früher
+   * stand hier, eine wechselnde Empfindlichkeit sei etwas anderes als eine
+   * Unverträglichkeit und werde anders behandelt; das belegt keine Quelle.
    */
   const wechsel = wechselnde(
     bewertet, alleAusloeser.filter((b) => b.genug).map((b) => b.id), tage,
@@ -1369,8 +1442,9 @@ export function arztBericht(zustand, von, bis) {
           + `${fmtZahl(p.schnittOhne)} (${p.faelle} damit, ${p.gegenFaelle} ohne)`);
       });
     });
-    sag('  (Dieselbe Menge, andere Wirkung – das spricht eher für eine');
-    sag('  wechselnde Empfindlichkeit als für eine Unverträglichkeit.)');
+    sag('  (Nach diesen Auslösern war es je nach Zyklusphase verschieden stark.');
+    sag('  Die Phasen sind geschätzt, die Mengen nicht verglichen; was');
+    sag('  dahintersteckt, lässt sich daraus nicht ablesen.)');
     sag();
   }
 
@@ -1414,18 +1488,39 @@ export function arztBericht(zustand, von, bis) {
     kZeilen.push('    Dafür fehlen Tage ohne Bauchschmerz oder Stuhlgangseinträge,');
     kZeilen.push('    mit denen sich die Schmerztage vergleichen ließen.');
   }
+  /*
+   * Die Magenbeschwerden nur gezählt, ohne Rom-IV-Urteil.
+   *
+   * Die Unterformen (PDS, EPS) und ihre Schwellen je Woche, nach denen
+   * js/kriterien.js rechnet, ließen sich in keiner erreichbaren Quelle im
+   * Volltext prüfen; der Rom-IV-Text (Stanghellini et al. 2016) war nicht
+   * abrufbar. Deshalb steht hier kein „Kriterien erfüllt", sondern nur die
+   * Zählung unter den Beschwerden, die gesund.bund.de für den Reizmagen nennt
+   * („verfrühtes Sättigungsgefühl beim Essen", „Völlegefühl danach",
+   * „Magenschmerzen oder -brennen"; Reizmagensyndrom, Stand 05.02.2026,
+   * „Welche Beschwerden deuten auf einen Reizmagen hin?"). Die Rechnung selbst
+   * ist unverändert.
+   */
   if (k.dyspepsie.pruefbar) {
-    kZeilen.push(`  Rom IV, funktionelle Dyspepsie ${k.dyspepsie.erfuellt ? 'Kriterien erfüllt' : 'nicht erfüllt'}`);
-    [k.dyspepsie.pds, k.dyspepsie.eps].forEach((f) => {
-      kZeilen.push(`    ${f.erfuellt ? '[x]' : '[ ]'} ${f.name}:`);
-      kZeilen.push(`        an ${f.tage} Tagen, ${fmtZahl(f.proWoche)} je Woche der notierten Tage`);
-    });
+    kZeilen.push('  Magenbeschwerden ab Stärke 4 (gezählt, keine Einordnung):');
+    kZeilen.push('    Druck, Völlegefühl oder früh satt:');
+    kZeilen.push(`        an ${k.dyspepsie.pds.tage} Tagen, ${fmtZahl(k.dyspepsie.pds.proWoche)} je Woche der notierten Tage`);
+    kZeilen.push('    Brennen oder Schmerz im Oberbauch:');
+    kZeilen.push(`        an ${k.dyspepsie.eps.tage} Tagen, ${fmtZahl(k.dyspepsie.eps.proWoche)} je Woche der notierten Tage`);
   } else {
-    kZeilen.push('  Rom IV, funktionelle Dyspepsie nicht prüfbar (zu wenige notierte Tage)');
+    kZeilen.push('  Magenbeschwerden              nicht gezählt (zu wenige notierte Tage)');
   }
+  /*
+   * Beim GerdQ steht die Punktzahl, wie Body Check sie aus den Einträgen
+   * zählt, aber keine Schwelle mit Deutung mehr („ab 8 gilt eine
+   * Refluxkrankheit als wahrscheinlich"): Die Originalarbeit (Jones et al.
+   * 2009) war nicht abrufbar, und die Schwelle ist eine diagnostische
+   * Einordnung. Gezählt wird aus Tagebuchtagen, nicht aus einem ausgefüllten
+   * Fragebogen (siehe js/kriterien.js).
+   */
   if (k.gerdq.belastbar) {
     kZeilen.push(`  GerdQ (letzte 7 Tage)         ${k.gerdq.punkte} von 18 Punkten`);
-    kZeilen.push('    (ab 8 gilt eine Refluxkrankheit als wahrscheinlich)');
+    kZeilen.push('    (aus den Einträgen gezählt, kein ausgefüllter Fragebogen)');
   } else {
     kZeilen.push(`  GerdQ (letzte 7 Tage)         nicht belastbar – nur `
       + `${k.gerdq.erfasst} der 7 Tage notiert`);
@@ -1443,10 +1538,25 @@ export function arztBericht(zustand, von, bis) {
     // Formulierung mit Absicht ohne Doppelpunkt nach „Diagnose" – der
     // Berichtstest sucht nach genau diesem Muster, weil es sonst niemandem
     // auffiele, wenn hier eines Tages doch eine zugeschrieben würde.
-    sag('  Erfüllte Kriterien sind KEINE Diagnose. Beide Regelwerke setzen');
-    sag('  voraus, dass nichts Organisches dahintersteckt. Grundlage sind');
-    sag(`  ${k.zeitraum.notierteTage} notierte Tage der letzten 90; ein Tagebuch untererfasst,`);
-    sag('  die Zahlen sind daher eher zu niedrig als zu hoch.');
+    //
+    // Belegt ist die Voraussetzung für Reizdarm und Reizmagen: gesund.bund.de,
+    // Reizdarmsyndrom (Stand 28.08.2024, „Wie wird … festgestellt?"): „keine
+    // Hinweise auf eine andere Erkrankung … , die die Beschwerden verursachen
+    // könnte"; Reizmagensyndrom (Stand 05.02.2026, „Wie wird … diagnostiziert?"):
+    // „erst gesprochen, wenn andere Ursachen für die Beschwerden abgeklärt und
+    // ausgeschlossen wurden". Für den GerdQ gilt sie nicht – die
+    // Refluxkrankheit steht dort selbst unter den auszuschließenden Ursachen.
+    //
+    // Und die Rechnung, in der Sprache der App statt als Aussage über
+    // Tagebücher: Die Werte je Woche beziehen sich nur auf notierte Tage
+    // (proWoche in js/kriterien.js); ob sie dadurch eher zu hoch oder zu
+    // niedrig ausfallen, hängt daran, an welchen Tagen notiert wurde.
+    sag('  Erfüllte Kriterien sind KEINE Diagnose. Von Reizdarm oder Reizmagen');
+    sag('  wird erst gesprochen, wenn andere Ursachen der Beschwerden ärztlich');
+    sag('  abgeklärt sind; auch der GerdQ-Wert ist keine Diagnose. Grundlage');
+    sag(`  sind ${k.zeitraum.notierteTage} notierte Tage der letzten 90. Die Angaben je Woche`);
+    sag('  beziehen sich nur auf diese notierten Tage; ob die Zahlen dadurch eher');
+    sag('  zu hoch oder zu niedrig ausfallen, lässt sich nicht sagen.');
     sag();
   }
 
@@ -1488,7 +1598,6 @@ export function arztBericht(zustand, von, bis) {
     spaet: spaet.map((x) => ({
       name: ausloeserName(x.id, zustand.eigeneAusloeser),
       fensterName: x.fensterName,
-      ort: x.ort,
     })),
     wechsel: wechsel.map((w) => ({
       name: ausloeserName(w.id, zustand.eigeneAusloeser),

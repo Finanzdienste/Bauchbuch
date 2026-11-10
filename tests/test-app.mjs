@@ -14,7 +14,9 @@
  * nicht die halbe Patrone kostet.
  */
 import { chromium } from 'playwright';
-import { URL, KEY, HANDY, SHOT, pruefer } from './umgebung.mjs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { URL, KEY, HANDY, SHOT, ROOT, pruefer } from './umgebung.mjs';
 
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
@@ -159,6 +161,46 @@ check(
 );
 await page.screenshot({ path: `${SHOT}/95-druck.png`, fullPage: true });
 await page.emulateMedia({ media: null });
+
+/* ---------- Wissenstexte seit der Fassung 30 ---------- */
+
+/*
+ * Die Warnkarte nennt im letzten Satz genau die Warnzeichen der Stufe
+ * „sofort" aus js/bild.js, mit demselben Satz wie dort und wie js/lage.js:
+ * nicht auf einen Termin warten – Notaufnahme oder 112. Bis zur Fassung 29
+ * stand dort „Bei Blut", was frisches Blut im Stuhl („zeitnah") einschloss,
+ * und der Kopfschmerz mit Fieber und steifem Nacken fehlte. Kommt in bild.js
+ * ein Zeichen der Stufe „sofort" dazu, schlägt diese Prüfung an.
+ */
+const { WARNZEICHEN } = await import(pathToFileURL(path.join(ROOT, 'js', 'bild.js')).href);
+const SOFORT_WORT = {
+  bluterbrechen: 'erbrochenem Blut',
+  teerstuhl: 'schwarzem, klebrigem Stuhl',
+  ausstrahlung: 'in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß',
+  donnerschlag: 'schlagartig so stark war wie nie',
+  kopfausfall: 'plötzlichen Lähmung, Taubheit einer Körperseite, Sprachstörung, einem Sehverlust oder Verwirrtheit',
+  kopfnacken: 'Kopfschmerz mit Fieber und steifem Nacken',
+};
+const sofortIds = WARNZEICHEN.filter((w) => w.dringlichkeit === 'sofort').map((w) => w.id).sort();
+check(JSON.stringify(sofortIds) === JSON.stringify(Object.keys(SOFORT_WORT).sort()),
+  `die Prüfung kennt alle Warnzeichen der Stufe „sofort“ (${sofortIds.join(', ')})`);
+const heuteIso = new Date().toLocaleDateString('sv-SE');
+await page.evaluate(([k, h]) => localStorage.setItem(k, JSON.stringify({
+  begruesst: true,
+  tab: 'muster',
+  eintraege: [{ id: 'w1', art: 'stuhl', am: h, um: '08:00', form: 4, warnzeichen: ['blutstuhl'] }],
+})), [KEY, heuteIso]);
+await start();
+const warnKarte = page.locator('.karte-warn').first();
+check(await warnKarte.count() === 1, 'mit frischem Blut im Stuhl steht die Warnkarte da');
+const warnSatz = ((await warnKarte.locator('p.klein').last().textContent()) || '').replace(/\s+/g, ' ').trim();
+const fehltWort = Object.entries(SOFORT_WORT).filter(([, w]) => !warnSatz.includes(w)).map(([id]) => id);
+check(fehltWort.length === 0 && warnSatz.endsWith('nicht auf einen Termin warten – Notaufnahme oder 112.'),
+  `ihr letzter Satz nennt jedes „sofort“-Zeichen und sagt dazu: Notaufnahme oder 112${fehltWort.length ? ` – es fehlt: ${fehltWort.join(', ')}` : ''}`);
+check(!/^Bei Blut,/.test(warnSatz) && !warnSatz.includes('frisch'),
+  'frisches Blut im Stuhl (Stufe „zeitnah“) steht nicht in diesem Satz');
+check(((await warnKarte.locator('h3').textContent()) || '').includes('zeitnah'),
+  'die Überschrift richtet sich weiter nach der Stufe der eingetragenen Zeichen');
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

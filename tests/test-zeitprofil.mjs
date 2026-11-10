@@ -1,19 +1,19 @@
 /*
  * Wann kommt es? – und warum das mehr wert ist als „nach dem Essen"
  *
- * Der Bauch braucht Zeit, und je nach Ort verschieden lange. Was eine halbe
- * Stunde nach dem Essen brennt, kommt aus dem Magen; was nach sechs Stunden
- * bläht, aus dem Dickdarm – dorthin ist der Rest vorher gar nicht gelangt. In
- * der Sprechstunde ist das der Unterschied zwischen einem Säureblocker und
- * einer Ernährungsberatung, und beides steht im selben Tagebuch.
+ * Wie viele Stunden nach dem Essen eine Beschwerde kommt, ist eine Angabe für
+ * die Sprechstunde. Einen Ort verrät sie nicht: Die Quellen widersprechen
+ * einer festen Zuordnung (Belege im Kopf von js/zeitprofil.js). Die App nennt
+ * deshalb die Stunden und nirgends einen Ort – weder im Satz zum Profil noch
+ * auf der Karte, im Bericht oder in der Zusammenfassung.
  *
  * Geprüft wird an Tagebüchern, deren richtige Antwort vorher feststeht:
  *
  *   1. FRÜH. Das Merkmal schlägt eine Stunde nach dem Essen zu. Die App muss
- *      das frühe Fenster nennen und den Magen, nicht den Darm.
+ *      das frühe Fenster nennen – und keinen Ort dazu.
  *   2. SPÄT. Dasselbe Merkmal, aber die Beschwerde kommt nach sechs Stunden.
  *      Der Vier-Stunden-Schnitt der alten Rechnung sieht davon fast nichts –
- *      das Zeitprofil muss es finden.
+ *      das Zeitprofil muss es finden, wieder ohne Ort.
  *   3. VERTEILT. Kein Schwerpunkt. Dann darf auch keiner genannt werden.
  *
  * Und die Falle, um die es bei alldem geht: Wer dreimal am Tag isst, dessen
@@ -87,26 +87,53 @@ async function profil(daten) {
   }, [daten.eintraege]);
 }
 
-/* ---------- 1. Früh heißt Magen ---------- */
+/*
+ * Ein Ort im Verdauungstrakt – oder eine Deutung, die einen voraussetzt. Nichts
+ * davon darf in einem Satz stehen, der aus den Stunden gemacht ist.
+ */
+const ORT = /Magen|Speiseröhre|Dünndarm|Dickdarm|Galle|vergär|deutet auf|als Ort|einzelnen Ort|entsteht Beschwerde/i;
+
+/* ---------- 1. Früh: das frühe Fenster, kein Ort ---------- */
 
 const frueh = await profil(bauen({ wann: 1 }));
 check(frueh.schwerpunkt === 'frueh', `eine Stunde danach: frühes Fenster (${frueh.schwerpunkt})`);
 check(
-  /Magen|Speiseröhre/.test(frueh.satz),
-  'und die App nennt den Ort, nicht nur die Uhrzeit',
+  frueh.satz.includes('0–2 Stunden danach'),
+  `und die App nennt die Stunden, mit großem „Stunden" (${frueh.satz})`,
 );
-// Der Dickdarm darf vorkommen – aber nur, um ihn auszuschließen. Nach einer
-// Stunde ist dorthin nichts gelangt, und genau das ist die Auskunft.
-check(
-  /Für den Dickdarm ist es zu früh/.test(frueh.satz),
-  'und schließt den Dickdarm ausdrücklich aus',
-);
+check(!ORT.test(frueh.satz), `aber keinen Ort – den gibt der Zeitpunkt allein nicht her (${frueh.satz})`);
 
-/* ---------- 2. Spät heißt Dickdarm ---------- */
+/* ---------- 2. Spät: das späte Fenster, kein Ort ---------- */
 
 const spaet = await profil(bauen({ wann: 6 }));
 check(spaet.schwerpunkt === 'spaet', `sechs Stunden danach: spätes Fenster (${spaet.schwerpunkt})`);
-check(/Dickdarm/.test(spaet.satz), 'mit der Vergärung als Erklärung');
+check(!ORT.test(spaet.satz), `ohne Dickdarm und ohne Vergärung als Erklärung (${spaet.satz})`);
+
+/*
+ * Und an der Quelle: Die Fenster tragen keinen Ort und keine Deutung mehr,
+ * und das allgemeine Zeitbild sagt statt eines Ortes den einen Satz, dass sich
+ * der Ort am Zeitpunkt nicht ablesen lässt.
+ */
+const quelle = await page.evaluate(async ([e]) => {
+  const z = await import('./js/zeitprofil.js');
+  const bild = z.zeitBild(e);
+  return {
+    felder: z.FENSTER.map((f) => Object.keys(f).sort().join(',')),
+    teile: bild.teile.map((t) => Object.keys(t).join(',')),
+    satz: bild.satz,
+    hinweis: bild.hinweis,
+    keinOrt: z.KEIN_ORT,
+    spaete: z.spaeteFunde(z.fensterWerte(e), ['kaffee']).map((x) => Object.keys(x).join(',')),
+  };
+}, [bauen({ wann: 6 }).eintraege]);
+check(quelle.felder.every((k) => k === 'bis,id,kurz,name,von'),
+  `die Fenster haben nur Stunden und Namen (${quelle.felder[0]})`);
+check(quelle.teile.every((k) => !k.includes('ort')) && quelle.spaete.every((k) => !k.includes('ort')),
+  'weder das Zeitbild noch die späten Funde reichen einen Ort weiter');
+check(quelle.satz.includes(quelle.keinOrt) && !ORT.test(quelle.satz) && !ORT.test(quelle.hinweis),
+  `das Zeitbild sagt, dass sich der Ort am Zeitpunkt nicht ablesen lässt (${quelle.satz})`);
+check(quelle.keinOrt === 'Woher eine Beschwerde kommt, lässt sich am Zeitpunkt allein nicht ablesen.',
+  'mit genau diesem Satz');
 
 /*
  * Und das ist der eigentliche Gewinn: Die alte Rechnung mit ihrem festen
@@ -208,7 +235,24 @@ const zettel = await page.evaluate(async ([e, t]) => {
 }, [bauen({ wann: 6 }).eintraege, bauen({ wann: 6 }).tage]);
 
 check(zettel.includes('WIE LANGE NACH DEM ESSEN'), 'der Bericht führt den Abschnitt');
-check(zettel.includes('Dickdarm'), 'benennt den Ort, den die Stunden nahelegen');
+// Kein Ort in den Abschnitten zu den Stunden – weder in der Tabelle noch beim
+// späten Fund noch in IN KÜRZE. Früher stand dort „– Dickdarm" und „also
+// Dickdarm". (Nur diese Abschnitte: „Magen" steht schon im Titel des Zettels.)
+const abschnitt = (text, titel) => {
+  const zeilen = text.split('\n');
+  const i = zeilen.findIndex((z) => z === titel || z.startsWith(`${titel} (`));
+  if (i < 0) return '';
+  const rest = zeilen.slice(i);
+  return rest.slice(0, rest.indexOf('')).join('\n');
+};
+const zeitTeile = ['WIE LANGE NACH DEM ESSEN', 'ERST NACH DEM FENSTER AUFFÄLLIG', 'IN KÜRZE']
+  .map((t) => abschnitt(zettel, t));
+check(zeitTeile.every(Boolean), 'die drei Abschnitte stehen auf dem Zettel');
+const zettelOrt = zeitTeile.join('\n').split('\n').filter((z) => ORT.test(z));
+check(!zettelOrt.length, `der Bericht nennt keinen Ort zu den Stunden${zettelOrt.length ? `: ${zettelOrt[0]}` : ''}`);
+check(zeitTeile.slice(0, 2).every((t) => t.replace(/\s+/g, ' ')
+  .includes('Woher eine Beschwerde kommt, lässt sich am Zeitpunkt allein nicht ablesen.')),
+'sondern sagt in beiden Abschnitten, dass der Zeitpunkt ihn nicht hergibt');
 
 /*
  * Und der eigentliche Gewinn: Der Kaffee ist im Vier-Stunden-Fenster
@@ -252,6 +296,16 @@ check(
   sicht.includes('Erst später auffällig') && sicht.includes('Kaffee'),
   'und der späte Auslöser steht auch in der App, statt am Fenster zu scheitern',
 );
+// Auf der Karte „Erst später auffällig", der Zeitkarte und in den Sätzen zu
+// den Stunden in „Was Sache ist": kein Ort. Gesucht wird nur dort – „Magen"
+// kommt anderswo in der App zu Recht vor (Magenmittel, Magenspiegelung).
+const karten = (await page.locator('.karte-spaet, .karte-zeit, .lage-satz.l-spaet, .lage-satz.l-zeit')
+  .allTextContents()).map((t) => t.replace(/\s+/g, ' '));
+check(karten.length === 4 && karten.every((t) => !ORT.test(t)),
+  `weder die späte Karte noch die Zeitkarte noch „Was Sache ist" nennt einen Ort (${karten.length} Stellen; `
+    + `${karten.find((t) => ORT.test(t)) || 'keine mit Ort'})`);
+check(karten.filter((t) => t.includes('Woher eine Beschwerde kommt')).length >= 2,
+  'die späte Karte und die Zeitkarte sagen stattdessen, was der Zeitpunkt nicht hergibt');
 
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);
 await page.screenshot({ path: `${SHOT}/zeitprofil.png`, fullPage: true });

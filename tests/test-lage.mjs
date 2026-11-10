@@ -171,6 +171,61 @@ check(
   'und ist als Warnung ausgezeichnet, nicht als Fund unter anderen',
 );
 check(!/Diagnose/i.test(dd.lage.split('.')[0]), 'ohne im ersten Satz eine Diagnose zu stellen');
+check(ersterSatz.includes('zeitnah ärztlich abgeklärt') && !/nächsten Termin|bald/.test(ersterSatz),
+  'ein Zeichen der Stufe „zeitnah": zeitnah abklären, nicht erst beim nächsten Termin');
+
+/*
+ * Ein Zeichen der Stufe „sofort" (js/bild.js) bekommt oben denselben Satz wie
+ * auf der Warnkarte: nicht auf einen Termin warten – Notaufnahme oder 112.
+ * Früher stand hier „bald … der Grund, einen Termin zu machen", also genau die
+ * Handlung der Stufe „zeitnah" – eine Entwarnung, wo die Quellen Eile
+ * verlangen (Belege in js/lage.js).
+ */
+const warnSatz = (warnungen) => wasSacheIst({ warnungen }).saetze.find((x) => x.art === 'warnung').text;
+const SOFORT = { name: 'Schwarzer, klebriger Stuhl', dringlichkeit: 'sofort' };
+const ZEITNAH = { name: 'Fieber dazu', dringlichkeit: 'zeitnah' };
+const nurSofort = warnSatz([SOFORT]);
+check(nurSofort.includes('nicht auf einen Termin warten') && nurSofort.includes('Notaufnahme oder 112'),
+  `„sofort": nicht auf einen Termin warten, Notaufnahme oder 112 (${nurSofort.slice(0, 70)}…)`);
+check(!/\bbald\b|Termin zu machen|nächsten Termin/.test(nurSofort), '„sofort": kein „bald", kein Termin als Ziel');
+check(nurSofort.includes('Schwarzer, klebriger Stuhl'), 'der Name steht, wie er im Bogen steht – nicht klein geschrieben');
+const gemischt = warnSatz([SOFORT, ZEITNAH]);
+check(gemischt.split('Notaufnahme oder 112')[0].includes('Schwarzer, klebriger Stuhl')
+  && !gemischt.split('Notaufnahme oder 112')[0].includes('Fieber dazu')
+  && /Zeitnah abzuklären ist außerdem: Fieber dazu\./.test(gemischt),
+`„sofort" und „zeitnah" zusammen: jedes Zeichen bei seiner Stufe (${gemischt})`);
+const nurZeitnah = warnSatz([ZEITNAH]);
+check(nurZeitnah.includes('zeitnah ärztlich abgeklärt') && !nurZeitnah.includes('112'),
+  '„zeitnah" allein: zeitnah abklären, ohne 112');
+
+/*
+ * Der Zeitabstand nach dem Essen ergibt keinen Ort. Früher stand oben „so spät
+ * entsteht Beschwerde im Dickdarm, nicht im Magen" und „das deutet auf Magen
+ * und Speiseröhre als Ort" – die Quellen widersprechen einer festen
+ * Zuordnung (Kopf von js/zeitprofil.js).
+ */
+const ORT = /Magen|Speiseröhre|Dünndarm|Dickdarm|Galle|als Ort|deutet auf|entsteht Beschwerde/;
+const zeitSaetze = wasSacheIst({
+  spaet: [{ name: 'Zwiebeln', fensterName: '4–8 Stunden danach', ort: 'Dickdarm' }],
+  zeit: { pruefbar: true, schwerpunkt: 'frueh', teile: [{ id: 'frueh', name: '0–2 Stunden danach', ort: 'Magen und Speiseröhre' }] },
+}).saetze.filter((x) => x.art === 'spaet' || x.art === 'zeit').map((x) => x.text);
+check(zeitSaetze.length === 2 && zeitSaetze.every((t) => !ORT.test(t)),
+  `der späte Auslöser und der zeitliche Schwerpunkt: nur die Stunden, kein Ort – auch wenn ein Aufrufer einen mitgibt (${zeitSaetze.join(' / ')})`);
+check(zeitSaetze[0].includes('4–8 Stunden danach') && zeitSaetze[1].includes('0–2 Stunden danach')
+  && zeitSaetze[1].includes('Woher eine Beschwerde kommt, lässt sich am Zeitpunkt allein nicht ablesen.'),
+'mit den Stunden, groß geschrieben, und dem Satz, dass der Zeitpunkt den Ort nicht hergibt');
+
+/*
+ * Methylphenidat mit zweierlei Kügelchen und ein Mittel gegen Magensäure: Die
+ * Gegenanzeige steht nur in der Fachinformation von Medikinet retard und
+ * Medikinet adult, und sie nennt H2-Blocker, Protonenpumpenhemmer und
+ * Antazida. Ritalin LA hat ebenfalls zweierlei Kügelchen und keine solche
+ * Gegenanzeige – der Satz nennt deshalb die beiden Namen.
+ */
+const w1 = wasSacheIst({ paare: [{ id: 'W1' }] }).saetze.find((x) => x.art === 'paar').text;
+check(w1.includes('(Medikinet retard, Medikinet adult)') && w1.includes('H2-Blockern, Protonenpumpenhemmern oder Antazida')
+  && w1.includes('unter den Gegenanzeigen') && w1.includes('ohne etwas eigenmächtig wegzulassen'),
+`W1 oben: welche Kapseln, welche Gruppen, und nichts eigenmächtig weglassen (${w1.slice(0, 60)}…)`);
 
 /* ---------- 5. Und im Bericht, ganz oben ---------- */
 
@@ -196,20 +251,31 @@ check(
   'und dem Verweis darauf, wo die Zahlen dazu stehen',
 );
 
-/* ---------- 6. Ein ADHS-Mittel „hat nichts geändert" nie (B4) ---------- */
+/* ---------- 6. Unveränderte Bauchwerte: nur bei Magenmitteln (B4) ---------- */
 
 /*
- * „Hat in dieser Zeit nichts geändert" ist für einen Säureblocker ein
- * Befund. Für ein ADHS-Mittel wäre es ein Urteil über etwas, das niemand
- * wegen des Bauchs nimmt. Geprüft zweimal: an der Zusammenfassung selbst –
- * auch wenn ein Aufrufer ein Urteil mitgäbe – und am ganzen Bericht.
+ * „Die Bauchwerte waren ähnlich wie davor" ist für einen Säureblocker eine
+ * Auskunft für die Sprechstunde. Für ein ADHS-Mittel, ein Schmerzmittel oder
+ * ein Triptan wäre es ein Urteil über etwas, das niemand wegen des Bauchs
+ * nimmt. Geprüft zweimal: an der Zusammenfassung selbst – auch wenn ein
+ * Aufrufer ein Urteil mitgäbe – und am ganzen Bericht.
  */
-const nichts = (q) => wasSacheIst(q).saetze.some((x) => x.text.includes('nichts geändert'));
+const UNVERAENDERT = 'Bauchwerte ähnlich wie in der Zeit davor';
+const nichts = (q) => wasSacheIst(q).saetze.some((x) => x.text.includes(UNVERAENDERT)
+  || x.text.includes('nichts geändert'));
 check(nichts({ mittel: [{ name: 'Pantoprazol', gruppe: 'ppi', urteil: 'unveraendert' }] }),
-  'ein Säureblocker ohne Wirkung steht oben');
+  'ein Säureblocker ohne Änderung steht oben');
+const ppiSatz = wasSacheIst({ mittel: [{ name: 'Pantoprazol', gruppe: 'ppi', urteil: 'unveraendert' }] })
+  .saetze.find((x) => x.art === 'mittel').text;
+check(!/nichts geändert|selbst ein Befund|gegen die Säure/.test(ppiSatz) && /kein Grund, selbst etwas abzusetzen/.test(ppiSatz),
+  `ohne Urteil über die Ursache und ohne Rat zum Absetzen (${ppiSatz.slice(0, 60)}…)`);
 check(!nichts({ mittel: [{ name: 'Concerta', gruppe: 'mph', urteil: 'unveraendert' }] })
   && !nichts({ mittel: [{ name: 'Strattera', gruppe: 'atomox', urteil: 'unveraendert' }] }),
 'ein ADHS-Mittel nie – auch nicht mit einem Urteil von außen');
+check(!nichts({ mittel: [{ name: 'Ibuprofen', gruppe: 'nsar', urteil: 'unveraendert' }] })
+  && !nichts({ mittel: [{ name: 'Sumatriptan', gruppe: 'triptan', urteil: 'unveraendert' }] })
+  && !nichts({ mittel: [{ name: 'Unbekannt', gruppe: null, urteil: 'unveraendert' }] }),
+'und auch kein Schmerzmittel, Triptan oder unbekanntes Mittel – verglichen wird nur der Bauch');
 
 const adhsTage = {};
 const adhsEintraege = [];
@@ -223,8 +289,9 @@ const adhsZettel = arztBericht({ eintraege: adhsEintraege, tage: adhsTage }, vor
 const inKuerze = (adhsZettel.split('IN KÜRZE')[1] || '').split('ÜBERSICHT')[0];
 check(adhsZettel.includes('HAT ES ETWAS BEWIRKT?') && adhsZettel.includes('Seit dem ersten Eintrag'),
   'der Bericht stellt beim ADHS-Mittel die Zahlen nebeneinander');
-check(!inKuerze.includes('nichts geändert') && !adhsZettel.includes('Kein Unterschied zur Zeit davor'),
-  'und schreibt weder oben noch unten, es habe nichts geändert');
+check(!inKuerze.includes('nichts geändert') && !inKuerze.replace(/\s+/g, ' ').includes(UNVERAENDERT)
+  && !adhsZettel.includes('Kein Unterschied zur Zeit davor'),
+'und schreibt weder oben noch unten, es habe nichts geändert');
 
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);
 await page.screenshot({ path: `${SHOT}/lage.png`, fullPage: true });
