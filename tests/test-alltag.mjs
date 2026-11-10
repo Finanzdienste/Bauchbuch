@@ -231,6 +231,10 @@ const speicher = (page) => page.evaluate(async (k) => {
     'mit Koffein als Tablette – nur der eine Eintrag, der nichts außer Koffein trägt');
   check(karte.includes('Kombinationsmittel') && karte.includes('Paracetamol mit Koffein zählt in der Magenauswertung nicht mehr als NSAR')
     && karte.includes('an zehn oder mehr Tagen im Monat über mehr als drei Monate') && !karte.includes('Grenze von etwa zehn')
+    // Verglichen mit den einfachen Schmerzmitteln (ICHD-3 8.2.3), nicht mit
+    // „einzelnen“: Für ein Opioid allein gelten dieselben zehn Tage (8.2.4).
+    && karte.includes('als für einfache Schmerzmittel wie ASS, Ibuprofen oder Paracetamol allein')
+    && karte.includes('statt an fünfzehn oder mehr') && !karte.includes('einzelne Schmerzmittel')
     && karte.includes('Paracetamol Koffein') && karte.includes('Spalt plus Koffein') && !karte.includes('Kopfweg'),
   'mit den Schmerzmitteln mit Koffein');
   const kombiSatz = (karte.match(/Schmerzmittel mit Koffein[^.]*\./) || [''])[0];

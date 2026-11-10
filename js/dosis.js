@@ -63,7 +63,7 @@ const STUFEN_SCHWELLE = 1;
 
 const schnittVon = (l) => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0);
 
-/** Eine Zehntelzahl mit Komma, wie überall in der Anzeige („3,0"). */
+/** Eine Zehntelzahl mit Komma, wie in der übrigen Anzeige („3,0"). */
 const zehntel = (x) => x.toFixed(1).replace('.', ',');
 
 /** „a, b und c" – oder mit „oder". */
@@ -234,7 +234,9 @@ export function dosisBild(eintraege, id, fenster = 4) {
       stufen,
       gegenFaelle,
       abStufe: niedrigsteAuffaellig,
-      satz: `Schon ${niedrigsteAuffaellig.satz} fällt es auf `
+      // Der Name der Stufe, nicht ihr Satzstück: „Schon nur als Würze" wären
+      // zwei Gradwörter hintereinander.
+      satz: `Schon ${niedrigsteAuffaellig.name} fällt es auf `
         + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
         + `${zehntel(niedrigsteAuffaellig.differenz)} Stufen schlechter). Eine `
         + 'Menge, die durchgeht, ist bisher nicht dabei.',

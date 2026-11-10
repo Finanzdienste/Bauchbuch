@@ -3558,7 +3558,7 @@ function planTeil(s, d) {
       <span class="fund-urteil">${esc(b.karenz.wort)}</span>
     </div>
 
-    <p class="feld-name">1. Karenz — ${p.karenzTage} Tage ab ${esc(fmtDatum(p.start, true))}</p>
+    <p class="feld-name">1. Karenz – ${p.karenzTage} Tage ab ${esc(fmtDatum(p.start, true))}</p>
     ${b.karenz.vorher.notierte >= 2 && b.karenz.karenz.notierte >= 2
     ? vergleichBalken(b.karenz.karenz.schnitt, b.karenz.vorher.schnitt,
       { mit: 'Karenz', ohne: 'davor' }) : ''}
@@ -3569,7 +3569,7 @@ function planTeil(s, d) {
     </div>` : ''}
 
     ${!abbruch && (b.stufen.length || b.stand.phase !== 'karenz') ? `
-      <p class="feld-name">2. Wiedereinführung — eine Gruppe nach der anderen</p>
+      <p class="feld-name">2. Wiedereinführung – eine Gruppe nach der anderen</p>
       ${b.stufen.length ? `<ul class="wartend plan-stufen">${b.stufen.map((x) => `<li class="geprueft g-${x.urteil}">
         <span><b>${esc(x.name)}</b><span class="zeile-tags">${esc(fmtDatum(x.start, true))} ·
           ${x.tageswerte.map((w, i) => `${esc((x.mengen[i] || '?'))}: ${w === null ? '–' : w}`).join(' · ')}</span></span>
@@ -3640,7 +3640,11 @@ function planAngebot(s, d) {
    * eigenen Speiseplan danach, begleitet von einer Ernährungsfachkraft
    * (Whelan et al. 2018, siehe planTeil). Dauer, drei Tage und „dazwischen
    * zurück auf die Karenz" nennen die erreichbaren Abstracts nicht; „Das
-   * Größte, was diese App vorschlägt" steht deshalb nicht mehr da.
+   * Größte, was diese App vorschlägt" steht deshalb nicht mehr da, ebenso
+   * der erste Satz danach („Das einzige Stück dieser App, das am Ende einen
+   * Speiseplan hinterlässt statt einer Auskunft"), der nur die Zeile darüber
+   * wiederholte. Die Gedankenstriche dieser Karte sind wie überall in der
+   * App Halbgeviertstriche („–").
    *
    * Zur Zöliakie: EMA, Wheat starch (containing gluten) used as an excipient,
    * EMA/CHMP/639441/2013 corr. 2, 9. Oktober 2017, S. 4: „Diagnosis is by
@@ -3655,10 +3659,9 @@ function planAngebot(s, d) {
   return `<div class="karte karte-merk">
     <details class="angebotbogen">
     <summary><h3>Der Stufenplan</h3>
-    <span class="klein">Vier bis sechs Wochen — am Ende ein Speiseplan statt
+    <span class="klein">Vier bis sechs Wochen – am Ende ein Speiseplan statt
     einer Auskunft. Zum Lesen antippen.</span></summary>
-    <p class="klein">Das einzige Stück dieser App, das am Ende einen Speiseplan
-    hinterlässt statt einer Auskunft. In der Fachliteratur hat die Ernährung
+    <p class="klein">In der Fachliteratur hat die Ernährung
     ohne die vergärbaren Kohlenhydrate (FODMAP) drei Stufen: weglassen, Gruppe
     für Gruppe wieder einführen, danach ein eigener, weniger strenger
     Speiseplan – begleitet von einer Ernährungsfachkraft. Der Plan hier folgt
@@ -3692,7 +3695,7 @@ function planAngebot(s, d) {
       <button type="button" class="wahl-btn" data-act="plan-start"
               data-n="${n}">${n} Tage</button>`).join('')}</div>
 
-    <p class="klein">Wenn die Karenz nichts bringt, ist der Plan zu Ende — dann
+    <p class="klein">Wenn die Karenz nichts bringt, ist der Plan zu Ende – dann
     wird nicht trotzdem wiedereingeführt, sondern aufgehört. Eine Diät ohne
     Wirkung ist kein neutraler Zustand: Sie kostet Ballaststoffe, Kalzium und
     Vielfalt in der Darmflora, und dafür bekommst du nichts. Genau diese Weiche
@@ -3723,7 +3726,7 @@ function planHistorie(s, d) {
     ${alte.map((p) => {
     const b = planBild(p, s.eintraege, s.tage, d.heute);
     return `<div>
-      <p class="feld-name">Ab ${esc(fmtDatum(p.start, true))} — ${esc(b.karenz.wort)}</p>
+      <p class="feld-name">Ab ${esc(fmtDatum(p.start, true))} – ${esc(b.karenz.wort)}</p>
       <ul class="wartend">${b.stufen.map((x) => `<li class="geprueft g-${x.urteil}">
         <span>${esc(x.name)}</span>
         <span class="klein">${esc(x.wort)}
@@ -4109,6 +4112,16 @@ function v28Punkte(s) {
    * Schmerzmittel gelten ≥15 Tage (8.2.3). „Grenze von etwa zehn Tagen"
    * ließ die drei Monate weg und las sich wie eine erlaubte Menge.
    *
+   * Verglichen wird mit den einfachen Schmerzmitteln ohne Opioid: 8.2.3
+   * Non-opioid analgesic-overuse headache, „regular use of one or more
+   * non-opioid analgesics on 15 or more days/month for more than 3 months",
+   * mit den Unterformen Paracetamol (8.2.3.1) und NSAR (8.2.3.2, darunter
+   * Acetylsalicylsäure, 8.2.3.2.1). Für ein Opioid allein nennt 8.2.4 dieselben
+   * zehn Tage wie für Kombinationsmittel („Regular intake of one or more
+   * opioids on ≥10 days/month for >3 months"). Bis zur Fassung 30 hieß es
+   * „als für einzelne Schmerzmittel" – das schloss ein einzelnes Opioid wie
+   * Tramadol mit ein, für das die Schwelle nicht höher liegt.
+   *
    * Paracetamol mit Koffein ist kein NSAR: „Paracetamol ist ein
    * Anilinderivat … ATC-Code: N02BE51, Paracetamol, Kombinationen …
    * Paracetamol hat eine analgetische, antipyretische und sehr schwache
@@ -4128,8 +4141,8 @@ function v28Punkte(s) {
     // mehr als NSAR zählt (bis zur Fassung 29 standen sie dort).
     punkte.push(`Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel `
       + `(${kombiNamen.join(', ')}). Für sie nennt die internationale Kopfschmerzklassifikation eine niedrigere `
-      + 'Schwelle für Übergebrauch als für einzelne Schmerzmittel: an zehn oder mehr Tagen im Monat über mehr als '
-      + 'drei Monate.'
+      + 'Schwelle für Übergebrauch als für einfache Schmerzmittel wie ASS, Ibuprofen oder Paracetamol allein: an '
+      + 'zehn oder mehr Tagen im Monat über mehr als drei Monate statt an fünfzehn oder mehr.'
       + `${para ? ' Paracetamol mit Koffein zählt in der Magenauswertung nicht mehr als NSAR, weil Paracetamol '
         + 'nicht zu dieser Wirkstoffgruppe gehört – Magenbeschwerden nennt seine Fachinformation trotzdem als '
         + 'mögliche Nebenwirkung.' : ''}`);
@@ -4908,9 +4921,9 @@ function kopfTeil(s, d) {
     <p class="klein">Phasen geschätzt aus den eingetragenen Blutungstagen.</p>` : ''}
     <p class="klein">Der Kopf wird getrennt vom Bauch gezählt: Kein Kopfschmerz
     fließt in eine Bauchauswertung ein. Die Bauchwerte hier stehen nur zum
-    Vergleich daneben. Verbinden können beide die Schmerzmittel: Bei
-    entzündungshemmenden wie Ibuprofen nennt die Fachinformation
-    Magen-Darm-Beschwerden als häufige Nebenwirkung – deshalb stehen sie dabei.
+    Vergleich daneben. Eine Verbindung zwischen Kopf und Bauch können
+    Schmerzmittel sein: Bei Ibuprofen, einem entzündungshemmenden Schmerzmittel,
+    nennt die Fachinformation Magen-Darm-Beschwerden als häufige Nebenwirkung.
     Auch eine Migräne selbst kann mit Übelkeit oder Erbrechen einhergehen.</p>
   </div>`;
   /*
@@ -4921,7 +4934,9 @@ function kopfTeil(s, d) {
    * Erbrechen …". ICHD-3 1.1 (ichd-3.org), Kriterium D: „During headache at
    * least one of the following: nausea and/or vomiting; photophobia and
    * phonophobia". Bis zur Fassung 29 hieß es „Was beide verbindet, ist das
-   * Schmerzmittel" – als einzige Verbindung, und für jedes Akutmittel.
+   * Schmerzmittel" – als einzige Verbindung, und für jedes Akutmittel. Die
+   * erste Fassung 30 („Verbinden können beide die Schmerzmittel … deshalb
+   * stehen sie dabei") ließ offen, wer wen verbindet und was wo steht.
    */
 }
 
@@ -7545,7 +7560,9 @@ function bogenHTML(s) {
      * (eindeutiger als die Quellen) und „seit dreißig Jahren das Maß, mit dem
      * in der Sprechstunde darüber geredet wird – die Zahl allein sagt dort
      * genug" – das trägt keine Quelle; 1997 hieß es noch „not widely used in
-     * clinical practice or research".
+     * clinical practice or research". Ebenso „Die Skala wird in Praxis und
+     * Studien benutzt" (zuerst in der Fassung 30): Das Abstract sagt nur, dass
+     * solche Skalen nützlich sein können, nicht, dass sie benutzt werden.
      *
      * Und zu den Warnzeichen unten, getrennt nach ihrer Stufe in js/bild.js.
      * Schwarzer, klebriger Stuhl (teerstuhl) ist „sofort" und bekommt den
@@ -7579,8 +7596,7 @@ function bogenHTML(s) {
       <p class="klein">Nach der Bristol-Skala deuten 1 und 2 auf Verstopfung,
       3 bis 5 gelten als normaler Stuhlgang, 6 und 7 sprechen für Durchfall. Die
       Form hängt auch damit zusammen, wie lange der Stuhl im Darm bleibt. Die
-      Skala wird in Praxis und Studien benutzt und kann beim Führen eines
-      Stuhltagebuchs helfen.</p>
+      Skala kann beim Führen eines Stuhltagebuchs helfen.</p>
       ${huelleDa(s) ? `<p class="klein huellen-satz">${esc(huellenSatz())}</p>` : ''}
       <p class="feld-name">War sonst etwas?</p>
       <div class="wahl">

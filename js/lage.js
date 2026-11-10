@@ -189,8 +189,9 @@ export function wasSacheIst(q = {}) {
       schlechter: 'Zuletzt wurde es schlechter',
       gleich: 'Zuletzt hat sich nichts Deutliches geändert',
     }[t.richtung] || 'Zuletzt hat sich nichts Deutliches geändert';
-    sag('trend', `${wort}: ${t.jetzt.schnitt.toFixed(1)} im Mittel über die `
-      + `letzten ${t.jetzt.tage} notierten Tage gegen ${t.davor.schnitt.toFixed(1)} `
+    // Zehntel mit Komma wie in der übrigen Anzeige (bis zur Fassung 30 mit Punkt).
+    sag('trend', `${wort}: ${t.jetzt.schnitt.toFixed(1).replace('.', ',')} im Mittel über die `
+      + `letzten ${t.jetzt.tage} notierten Tage gegen ${t.davor.schnitt.toFixed(1).replace('.', ',')} `
       + `über die ${t.davor.tage} davor.`);
   }
 
@@ -234,7 +235,7 @@ export function wasSacheIst(q = {}) {
         ? ' Ob kleinere Mengen anders wirken, lässt sich aus dem Tagebuch noch nicht sagen.'
         : '');
     sag('fund', `Am deutlichsten fällt ${bester.name} auf: danach war es im `
-      + `Mittel um ${bester.differenz.toFixed(1)} Stufen schlechter `
+      + `Mittel um ${bester.differenz.toFixed(1).replace('.', ',')} Stufen schlechter `
       + `(${bester.faelle} Mahlzeiten damit, ${bester.gegenFaelle} ohne).${gehalten}${menge}`);
   }
 

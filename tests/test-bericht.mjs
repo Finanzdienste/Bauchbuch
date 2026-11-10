@@ -138,6 +138,25 @@ check(!/funktionelle Dyspepsie (Kriterien erfüllt|nicht erfüllt)|PDS|EPS/.test
 check(!/untererfasst|eher zu niedrig als zu hoch/.test(krit)
   && krit.includes('beziehen sich nur auf diese notierten Tage'),
 'und kein „ein Tagebuch untererfasst", sondern worauf sich die Zahlen beziehen');
+
+// Ein einziger Tag heißt „an 1 Tag", nicht „an 1 Tagen" (bis zur Fassung 30).
+{
+  const tage = {};
+  const ein = [];
+  for (let t = 40; t >= 1; t--) {
+    tage[vorTagen(t)] = { stress: 1 };
+    ein.push({ id: `e${t}`, am: vorTagen(t), um: '12:00', art: 'essen', was: 'Mittag', zutaten: [], portion: 'normal' });
+  }
+  ein.push({ id: 'd1', am: vorTagen(5), um: '13:00', art: 'beschwerde', staerke: 5, arten: ['druck'] });
+  ein.push({ id: 'b1', am: vorTagen(6), um: '13:00', art: 'beschwerde', staerke: 5, arten: ['brennen'] });
+  ein.push({ id: 'b2', am: vorTagen(7), um: '13:00', art: 'beschwerde', staerke: 5, arten: ['brennen'] });
+  const { arztBericht: zettelVon } = await import('../js/bericht.js');
+  const k1 = (zettelVon({ eintraege: ein, tage }, vorTagen(40), vorTagen(1)).split('KRITERIEN')[1] || '')
+    .split('\n\n')[0].replace(/\s+/g, ' ');
+  check(k1.includes('Druck, Völlegefühl oder früh satt: an 1 Tag, ')
+    && k1.includes('Brennen oder Schmerz im Oberbauch: an 2 Tagen, ') && !k1.includes('an 1 Tagen'),
+  `die Magenbeschwerden mit Einzahl und Mehrzahl (${(k1.match(/früh satt: [^,]*/) || [''])[0]})`);
+}
 check(krit.includes('Von Reizdarm oder Reizmagen wird erst gesprochen, wenn andere Ursachen der Beschwerden ärztlich abgeklärt sind')
   && !krit.includes('Beide Regelwerke'),
 'die Voraussetzung für Reizdarm und Reizmagen – nicht für „beide Regelwerke" samt GerdQ');

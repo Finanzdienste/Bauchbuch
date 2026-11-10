@@ -21,7 +21,9 @@
  *     Schreibfehler war (Fassung 29, siehe mittelPunkt unten).
  *   * und die Sätze, die die Fassung 30 nach dem Abgleich mit den Quellen
  *     berichtigt hat – jeder einzeln, mit neuem und altem Wortlaut (siehe
- *     WORTLAUT_30 unten). Zahlen und Urteile bleiben dabei, wie sie waren.
+ *     WORTLAUT_30 unten). Zahlen und Urteile bleiben dabei, wie sie waren;
+ *     dazu gehören auch Zehntel, die jetzt wie sonst in der App ein Komma
+ *     haben, und ein Halbgeviertstrich statt eines Geviertstrichs.
  *
  * Verglichen wird mit dem Gold (tests/gold/v27-ansichten.json): derselbe
  * Speicherstand, dieselbe Uhr, dieselbe iPhone-Kennung, als App vom
@@ -392,10 +394,41 @@ const WORTLAUT_30 = [
   {
     tab: 'muster',
     teil: true,
-    neu: ' Verbinden können beide die Schmerzmittel: Bei entzündungshemmenden wie Ibuprofen nennt die '
-      + 'Fachinformation Magen-Darm-Beschwerden als häufige Nebenwirkung – deshalb stehen sie dabei. Auch eine '
-      + 'Migräne selbst kann mit Übelkeit oder Erbrechen einhergehen.',
+    neu: ' Eine Verbindung zwischen Kopf und Bauch können Schmerzmittel sein: Bei Ibuprofen, einem '
+      + 'entzündungshemmenden Schmerzmittel, nennt die Fachinformation Magen-Darm-Beschwerden als häufige '
+      + 'Nebenwirkung. Auch eine Migräne selbst kann mit Übelkeit oder Erbrechen einhergehen.',
     alt: ' Was beide verbindet, ist das Schmerzmittel – deshalb steht es dabei.',
+  },
+
+  /*
+   * ----- „Muster": Zehntel mit Komma (js/lage.js, js/wechselwirkung.js) -----
+   * Wie in der übrigen Anzeige; die Zahlen werden übernommen, nur das Komma
+   * wird für den Vergleich wieder ein Punkt.
+   */
+  {
+    tab: 'muster',
+    teil: true,
+    neu: /(: )(\d+),(\d)( im Mittel über die letzten \d+ notierten Tage gegen )(\d+),(\d)( über die \d+ davor\.)/,
+    alt: '$1$2.$3$4$5.$6$7',
+  },
+  {
+    tab: 'muster',
+    teil: true,
+    neu: /(danach war es im Mittel um )(\d+),(\d)( Stufen schlechter)/,
+    alt: '$1$2.$3$4',
+  },
+  {
+    tab: 'muster',
+    teil: true,
+    neu: /(in der Phase „[^"]+" \()(\d+),(\d)( im Mittel über \d+ Tage\), am schwächsten in der Phase „[^"]+" \()(\d+),(\d)( über \d+ Tage\))/,
+    alt: '$1$2.$3$4$5.$6$7',
+  },
+
+  /* ----- „Muster": Stufenplan (js/app.js), Halbgeviertstrich statt Geviertstrich ----- */
+  {
+    tab: 'muster',
+    neu: 'Vier bis sechs Wochen – am Ende ein Speiseplan statt einer Auskunft. Zum Lesen antippen.',
+    alt: 'Vier bis sechs Wochen — am Ende ein Speiseplan statt einer Auskunft. Zum Lesen antippen.',
   },
 
   /* ----- „Muster": Bewegung als Tagesfrage (js/app.js) ----- */
@@ -425,6 +458,13 @@ const WORTLAUT_30 = [
   },
 
   /* ----- „Mehr": Gewicht (js/gewicht.js, js/app.js) und Beginn der Beschwerden (js/app.js) ----- */
+  // Zehntel mit Komma wie in der übrigen Anzeige; die Zahlen werden übernommen.
+  {
+    tab: 'mehr',
+    teil: true,
+    neu: /^(\d+),(\d)( kg zuletzt gegen )(\d+),(\d)( kg vor )/,
+    alt: '$1.$2$3$4.$5$6',
+  },
   {
     tab: 'mehr',
     teil: true,
@@ -475,9 +515,11 @@ function wortlaut30(zeilen, tab, mal) {
       raus.push(...[].concat(typeof ganz.r.alt === 'function' ? ganz.r.alt(...ganz.treffer) : ganz.r.alt));
       i += ganz.folge.length;
     } else {
-      raus.push(regeln.filter((r) => r.teil && zeilen[i].includes(r.neu)).reduce((z, r) => {
+      // Ein Stück als Text oder als Muster mit Gruppen (dann `alt` mit $1 …).
+      const hat = (r, z) => (r.neu instanceof RegExp ? r.neu.test(z) : z.includes(r.neu));
+      raus.push(regeln.filter((r) => r.teil && hat(r, zeilen[i])).reduce((z, r) => {
         zaehle(r);
-        return z.split(r.neu).join(r.alt);
+        return r.neu instanceof RegExp ? z.replace(r.neu, r.alt) : z.split(r.neu).join(r.alt);
       }, zeilen[i]));
       i += 1;
     }

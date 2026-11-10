@@ -210,6 +210,9 @@ check(
   sicht.includes('kommt ein Unterschied von'),
   'die Schwelle steht als Zahl in der App, nicht nur im Programm',
 );
+// Zehntel mit Komma wie in der übrigen Anzeige (bis zur Fassung 30 mit Punkt).
+check(/kommt ein Unterschied von etwa \d+,\d Stufen/.test(sicht),
+  `mit Komma, nicht mit Punkt (${(sicht.match(/etwa \d+[.,]\d Stufen/) || [''])[0]})`);
 
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);
 await page.screenshot({ path: `${SHOT}/zufall.png`, fullPage: true });

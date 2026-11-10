@@ -872,14 +872,15 @@ of routine physical activity", Kriterium D1: „nausea and/or vomiting". -->
 Unter „Was noch fehlt" bekommt die Frage nach Magenschutz oder Alternative den
 Zusatz, wogegen das Mittel genommen wurde, und ist so formuliert, dass man sie
 vorlesen kann – „regelmäßig" stimmt bei anfallsweiser Einnahme nicht. Mit
-Gastritis Typ C im Befund steht dazu, was feststeht und was nicht: Neben dem
-Rückfluss von Darminhalt gehören entzündungshemmende Schmerzmittel zu den
-häufigsten Ursachen einer chemisch bedingten Schleimhautschädigung; ob sie es
+Gastritis Typ C im Befund steht dazu, was feststeht und was nicht: Neben
+zurücklaufender Gallenflüssigkeit aus dem Zwölffingerdarm gehören
+entzündungshemmende Schmerzmittel zu den häufigsten Ursachen einer chemisch
+bedingten Schleimhautschädigung; ob sie es
 *im Einzelfall* sind, steht im Befund und nicht im Tagebuch. Bei
 Magen-Darm-Störungen in der Vorgeschichte sehen Fachinformationen mancher dieser
 Mittel eine besonders sorgfältige ärztliche Überwachung vor; was das bedeutet,
 klären Praxis oder Apotheke. Mit
-Zwerchfellbruch im Befund wird aus Blutbild und Ferritin eine konkrete Frage:
+Zwerchfellbruch im Befund wird aus der Blutuntersuchung eine konkrete Frage:
 An der Engstelle eines großen Bruchs können kleine Schleimhautdefekte entstehen
 (Cameron-Läsionen), die langsam und unbemerkt bluten und zu Eisenmangel führen
 können; in einer Studie fanden sie sich bei häufiger Einnahme entzündungshemmender
@@ -1815,6 +1816,28 @@ B12 im Dünndarm“. Weitere Belege jeweils am Code: am Verdacht 'ulkus' in
 js/luecken.js, über MUSTER in js/bild.js, an 'gastritis-a' in js/befunde.js,
 bei ratKarte in js/app.js und in js/dosis.js. -->
 
+In „Was keine App beantwortet“ sagen auch die Sätze zum Vorlesen bei den
+Gallensteinen und bei den Schmerzmitteln nur noch, was das Tagebuch zeigt:
+fettes Essen nur, wenn es unter „Dafür spricht“ steht, und ohne eingetragenes
+Mittel keine Einnahme. Bei Gallensteinen und Blutarmut stehen Beschwerden
+und Untersuchung so, wie gesund.bund.de sie beschreibt – ohne Dauer und
+Vorbereitung des Ultraschalls, ohne „die billigste Untersuchung“ und ohne den
+Satz, ein Blutbild beantworte, ob Blut verlorengeht oder eine Zöliakie Spuren
+hinterlassen hat. Steht
+schwarzer, klebriger Stuhl im Tagebuch, steht auch dort der Satz der
+Warnkarte. Auf der Karte „Was sich an deinen Zahlen geändert hat“ liegt die
+Schwelle der Kombinationsmittel unter der für einfache Schmerzmittel wie ASS,
+Ibuprofen oder Paracetamol allein – nicht unter der für „einzelne“: Für ein
+Opioid allein nennt die Kopfschmerzklassifikation dieselben zehn Tage. Im
+Stuhlbogen steht nicht mehr, die Bristol-Skala werde in Praxis und Studien
+benutzt. Zehntelzahlen stehen jetzt auch in „Was Sache ist“, im Bericht,
+beim Zyklus und beim Gewicht mit Komma. Die Rechnungen dahinter sind
+unverändert. <!-- Quellen: gesund.bund.de/gallensteine (mit IQWiG, Stand
+04.04.2025) und gesund.bund.de/blutarmut-anaemie (mit IQWiG, Stand
+13.07.2021); ICHD-3 8.2.3, 8.2.4 und 8.2.5. Belege jeweils am Code: an den
+Verdachten 'galle', 'nsar' und 'blut' in js/luecken.js, am Warnzeichen
+'blaesse' in js/bild.js, bei v28Punkte und beim Stuhlbogen in js/app.js. -->
+
 Das Gold der Fassung 27 bleibt, wie es erzeugt wurde. `tests/test-gold.mjs`
 und `tests/test-gleich-v27.mjs` geben jeder berichtigten Stelle vor dem
 Vergleich ihren alten Wortlaut zurück – jeder einzeln, mit neuem und altem
@@ -1852,7 +1875,7 @@ steht seine Quelle mit Abschnitt und Stand. Benutzt wurden:
 * gesund.bund.de, meist in Zusammenarbeit mit dem IQWiG: Laktoseintoleranz,
   Gastritis, Reizdarm, Reizmagen, Sodbrennen und Reflux, Magen- und
   Zwölffingerdarmgeschwür, Nahrungsmittelallergie, Migräne, prämenstruelles
-  Syndrom, Regelschmerzen, Schlaganfall und weitere;
+  Syndrom, Regelschmerzen, Schlaganfall, Gallensteine, Blutarmut und weitere;
 * Zusammenfassungen von Fachartikeln auf PubMed: Rom IV und Rom V, GerdQ, die
   Ernährung ohne vergärbare Kohlenhydrate (FODMAP) und ihre Wiedereinführung,
   Atemtests auf Milch- und Fruchtzucker, Fruktane, reaktive Gastropathie,

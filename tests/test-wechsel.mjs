@@ -145,6 +145,9 @@ check(
   phasen.urteil.satz.includes('geschätzt'),
   'und es steht dabei, dass die Phasen geschätzt sind',
 );
+// Zehntel mit Komma wie in der übrigen Anzeige (bis zur Fassung 30 mit Punkt).
+check(phasen.urteil.deutlich && (/\(\d+,\d im Mittel über \d+ Tage\)/.test(phasen.urteil.satz) && !/\d\.\d/.test(phasen.urteil.satz)),
+  `die Mittel je Phase mit Komma (${phasen.urteil.satz.slice(0, 90)}…)`);
 check(!phasen.leer.pruefbar, 'ohne Tage in den Phasen wird nichts behauptet');
 
 /* ---------- Und in der Anzeige ---------- */

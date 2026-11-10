@@ -184,8 +184,8 @@ export function phasenWirkung(bewertet, id, tage, vergleiche = 1) {
       schwaechste,
       spanne,
       satz: `In der Phase „${staerkste.name}" fällt das deutlich stärker aus `
-        + `(${staerkste.differenz.toFixed(1)} Stufen Unterschied) als in der Phase `
-        + `„${schwaechste.name}" (${schwaechste.differenz.toFixed(1)}). Dieselbe `
+        + `(${staerkste.differenz.toFixed(1).replace('.', ',')} Stufen Unterschied) als in der Phase `
+        + `„${schwaechste.name}" (${schwaechste.differenz.toFixed(1).replace('.', ',')}). Dieselbe `
         + 'Menge, andere Wirkung – das spricht eher für eine wechselnde '
         + 'Empfindlichkeit als für eine Unverträglichkeit.',
     };
@@ -238,8 +238,8 @@ export function phasenUrteil(bilanz, tage, mindestTage = 5) {
     mild,
     spanne,
     satz: `Am stärksten ist es in der Phase „${schlimm.name}" `
-      + `(${schlimm.schnitt.toFixed(1)} im Mittel über ${schlimm.tage} Tage), `
-      + `am schwächsten in der Phase „${mild.name}" (${mild.schnitt.toFixed(1)} `
+      + `(${schlimm.schnitt.toFixed(1).replace('.', ',')} im Mittel über ${schlimm.tage} Tage), `
+      + `am schwächsten in der Phase „${mild.name}" (${mild.schnitt.toFixed(1).replace('.', ',')} `
       + `über ${mild.tage} Tage). Die Phasen sind aus den eingetragenen `
       + 'Blutungstagen geschätzt.',
   };

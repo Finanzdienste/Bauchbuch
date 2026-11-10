@@ -328,6 +328,8 @@ await page.waitForTimeout(700);
 
 const sicht = (await page.locator('#view').textContent()).replace(/\s+/g, ' ');
 check(sicht.includes('Stufenplan'), 'der Plan steht im Muster-Reiter');
+// Halbgeviertstriche wie überall in der App, keine Geviertstriche.
+check(!sicht.includes('—'), 'kein Geviertstrich „—“ auf der Karte');
 check(sicht.includes('verträgst du'), 'mit dem Urteil der ersten Gruppe');
 check(sicht.includes('kommt auf die Menge an'), 'und der Mengenschwelle der zweiten');
 check(

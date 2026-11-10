@@ -50,6 +50,15 @@ check(
   await page.locator('.bristol-bild').count() === 7,
   'und mit einer Zeichnung: Eine Frage, die peinlich und umständlich ist, wird gar nicht beantwortet',
 );
+// Der Satz darunter sagt, was die Quellen tragen: dass die Skala beim
+// Stuhltagebuch helfen kann – nicht, dass sie „in Praxis und Studien benutzt“
+// wird (Lewis und Heaton 1997 nennen sie nur nützlich).
+{
+  const bogen = ((await page.locator('.bristol').locator('xpath=following-sibling::p[1]').textContent()) || '')
+    .replace(/\s+/g, ' ');
+  check(bogen.includes('Die Skala kann beim Führen eines Stuhltagebuchs helfen.') && !bogen.includes('benutzt'),
+    `unter der Skala kein „wird in Praxis und Studien benutzt“ (${bogen.slice(-70)})`);
+}
 /*
  * Die Warnzeichen im Bogen, getrennt nach ihrer Stufe in js/bild.js:
  * Schwarzer, klebriger Stuhl ist „sofort" und bekommt den Wortlaut der

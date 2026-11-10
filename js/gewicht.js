@@ -112,7 +112,7 @@ export function gewichtsBild(messungen, heute, gewollt = false) {
       urteil: 'zu-kurz',
       messungen: liste,
       aktuell,
-      satz: `Zuletzt ${aktuell.toFixed(1)} kg. Eine Richtung zeigt Body Check erst bei `
+      satz: `Zuletzt ${aktuell.toFixed(1).replace('.', ',')} kg. Eine Richtung zeigt Body Check erst bei `
         + `Messungen, die mindestens ${MINDEST_ABSTAND} Tage auseinanderliegen – so ist `
         + 'die App eingestellt, damit einzelne Wiegungen nicht als Verlauf gelten.',
     };
@@ -123,7 +123,8 @@ export function gewichtsBild(messungen, heute, gewollt = false) {
   const anteil = davor ? differenz / davor : 0;
   const spanne = tageZwischen(frueher[frueher.length - 1].am, jetzt[0].am);
 
-  const grundlage = `${aktuell.toFixed(1)} kg zuletzt gegen ${davor.toFixed(1)} kg `
+  // Zehntel mit Komma wie in der übrigen Anzeige (bis zur Fassung 30 mit Punkt).
+  const grundlage = `${aktuell.toFixed(1).replace('.', ',')} kg zuletzt gegen ${davor.toFixed(1).replace('.', ',')} kg `
     + `vor gut ${Math.round(spanne / 30)} Monaten `
     + `(${jetzt.length} gegen ${frueher.length} Messungen).`;
 

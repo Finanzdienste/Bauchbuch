@@ -84,6 +84,9 @@ check(
   /ärztlich\s+abgeklärt/.test(verlust.satz.replace(/\s+/g, ' ')),
   'mit der Folgerung, die dazugehört',
 );
+// Zehntel mit Komma wie in der übrigen Anzeige (bis zur Fassung 30 mit Punkt).
+check(/^\d+,\d kg zuletzt gegen \d+,\d kg/.test(verlust.satz) && /^Zuletzt \d+,\d kg\./.test(kurz.satz),
+  `Kilo mit Komma, nicht mit Punkt (${verlust.satz.slice(0, 30)}… / ${kurz.satz.slice(0, 16)}…)`);
 /*
  * Und ohne die Anmaßung, die daraus leicht wird: Fünf Prozent sind die Grenze
  * dieser App und keine Diagnose – seit der Fassung 30 auch nicht mehr „die

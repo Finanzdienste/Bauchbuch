@@ -117,6 +117,9 @@ check(
   /nicht dabei/.test(immer.satz),
   'sondern der Satz, dass keine Menge durchgeht',
 );
+// Der Name der Stufe, nicht „Schon nur als Würze" mit zwei Gradwörtern.
+check(immer.satz.startsWith('Schon als Würze fällt es auf') && !immer.satz.includes('nur als'),
+  `„Schon als Würze“, nicht „Schon nur als Würze“ (${immer.satz.slice(0, 40)}…)`);
 
 /* ---------- 3. In jeder geprüften Menge harmlos ---------- */
 

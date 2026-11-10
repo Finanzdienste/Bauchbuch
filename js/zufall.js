@@ -125,7 +125,7 @@ function gesucht(gruppen) {
 export function spielraumSatz(spielraum, vergleiche) {
   if (!Number.isFinite(spielraum)) return '';
   return `Bei ${vergleiche} verglichenen Merkmalen kommt ein Unterschied von `
-    + `etwa ${spielraum.toFixed(1)} Stufen auch dann vor, wenn gar nichts `
+    + `etwa ${spielraum.toFixed(1).replace('.', ',')} Stufen auch dann vor, wenn gar nichts `
     + 'dahintersteckt – wer oft genug fragt, findet immer etwas. Erst darüber '
     + 'steht hier ein Urteil.';
 }

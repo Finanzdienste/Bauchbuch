@@ -76,6 +76,10 @@ check(
   'mit dem Hinweis, dass er die Störfaktorenprüfung überstanden hat',
 );
 check(a.saetze >= 2 && a.saetze <= 5, `zwischen zwei und fünf Sätze (${a.saetze})`);
+// Zehntel mit Komma wie in der übrigen Anzeige (bis zur Fassung 30 mit Punkt).
+check(/im Mittel um \d+,\d Stufen schlechter/.test(a.lage) && /\d+,\d im Mittel über die letzten/.test(a.lage)
+  && !/\d\.\d/.test(a.lage),
+`Fund und Verlauf mit Komma, nicht mit Punkt (${(a.lage.match(/\d+[.,]\d[^.]{0,30}/g) || []).join(' | ')})`);
 
 /*
  * Und die Regel, an der sich das Ganze messen lässt: Was oben steht, steht

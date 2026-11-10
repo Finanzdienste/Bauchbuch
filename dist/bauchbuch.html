@@ -9019,7 +9019,7 @@ function gesucht(gruppen) {
 function spielraumSatz(spielraum, vergleiche) {
   if (!Number.isFinite(spielraum)) return '';
   return `Bei ${vergleiche} verglichenen Merkmalen kommt ein Unterschied von `
-    + `etwa ${spielraum.toFixed(1)} Stufen auch dann vor, wenn gar nichts `
+    + `etwa ${spielraum.toFixed(1).replace('.', ',')} Stufen auch dann vor, wenn gar nichts `
     + 'dahintersteckt – wer oft genug fragt, findet immer etwas. Erst darüber '
     + 'steht hier ein Urteil.';
 }
@@ -14615,7 +14615,13 @@ const VERDAECHTE = [
      * Milchzuckerlösung wird der Gehalt von Wasserstoff in der Atemluft
      * mehrmals gemessen." Bis zur Fassung 30: „H2-Atemtest, dauert einen
      * Vormittag. Je Zucker ein Termin." – die Dauer und die Termine nennt
-     * keine geprüfte Quelle, und zur Fruktose liegt keine vor.
+     * keine geprüfte Quelle. Einen Atemtest auf Fruktose belegt der North
+     * American Consensus (Am J Gastroenterol 2017, PMID 28323273, Abstract:
+     * „Consensus doses for lactulose, glucose, fructose and lactose BT …";
+     * siehe provokationTeil in js/app.js); Dauer und Termine nennt auch er
+     * nicht. Der sichtbare Satz beschreibt das Verfahren nur für Laktose, so
+     * wie gesund.bund.de es beschreibt, und überlässt die Wahl des Tests bei
+     * jedem Zucker der Praxis.
      */
     untersuchung: 'Bei Laktose etwa ein Atemtest: Nach dem Trinken einer '
       + 'Milchzuckerlösung wird laut gesund.bund.de mehrmals der Wasserstoff in der '
@@ -14690,20 +14696,43 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quelle (Fassung 30): gesund.bund.de/gallensteine (mit IQWiG, Stand
+   * 04.04.2025). „Auf einen Blick": „Gallensteine sind Ablagerungen aus
+   * verdickter Gallenflüssigkeit. Sie können zu krampfartigen Schmerzen im
+   * Oberbauch führen. Viele Menschen haben Gallensteine, ohne es zu merken."
+   * „Welche Symptome …?": „Die Schmerzen kommen in Wellen und können in den
+   * Rücken und die rechte Schulter ausstrahlen." „Wie diagnostiziert man
+   * …?": „Um die Symptome besser deuten zu können, ist es wichtig, der Ärztin
+   * oder dem Arzt zu Beginn der Untersuchung alle Beschwerden genau zu
+   * beschreiben." – „Auf das Untersuchungsgespräch folgt eine körperliche
+   * Untersuchung und ein Ultraschall des Bauchraums. Meist ist das bereits
+   * ausreichend."
+   *
+   * Bis zur Fassung 30 hieß es „klassisch nach fettem Essen und oft abends
+   * oder nachts. Häufig, und im Tagebuch leicht mit einer Gastritis zu
+   * verwechseln", zum Ultraschall „Zehn Minuten, keine Vorbereitung außer
+   * nüchtern sein" und zur Stelle „Für die Unterscheidung ist genau das die
+   * erste Frage" – das alles steht dort nicht. Die Frage zum Vorlesen
+   * behauptete immer „Der Schmerz kommt nach fettem Essen", auch wenn das
+   * Tagebuch nichts dafür zeigte; jetzt nennt sie den Fettbezug nur, wenn er
+   * unter „Dafür spricht" steht, und auch dann nur, was gezählt ist.
+   */
   {
     id: 'galle',
     name: 'Gallensteine',
-    was: 'Krampfartiger Schmerz im rechten Oberbauch, klassisch nach fettem Essen '
-      + 'und oft abends oder nachts. Häufig, und im Tagebuch leicht mit einer '
-      + 'Gastritis zu verwechseln.',
-    untersuchung: 'Ultraschall des Oberbauchs. Zehn Minuten, keine Vorbereitung '
-      + 'außer nüchtern sein.',
-    frage: 'Der Schmerz kommt nach fettem Essen – wäre ein Ultraschall der '
-      + 'Gallenblase sinnvoll?',
+    was: 'Ablagerungen aus verdickter Gallenflüssigkeit. Sie können laut '
+      + 'gesund.bund.de krampfartige Schmerzen im Oberbauch auslösen, die in Wellen '
+      + 'kommen und in den Rücken und die rechte Schulter ausstrahlen können. Viele '
+      + 'Menschen haben Gallensteine, ohne es zu merken.',
+    untersuchung: 'Gespräch, körperliche Untersuchung und ein Ultraschall des '
+      + 'Bauchraums – laut gesund.bund.de reicht das zur Diagnose meist aus.',
+    frage: 'Wäre ein Ultraschall der Gallenblase sinnvoll?',
     pruefe: (d) => {
       const dafuer = [];
       const f = (d.klassen || []).find((k) => k.id === 'fett');
-      if (f && f.genug && f.differenz >= 0.5) {
+      const fett = !!(f && f.genug && f.differenz >= 0.5);
+      if (fett) {
         dafuer.push(`Fett: danach im Mittel ${f.schnittMit.toFixed(1).replace('.', ',')} `
           + `statt ${f.schnittOhne.toFixed(1).replace('.', ',')} (${f.faelle} Mahlzeiten damit).`);
       }
@@ -14711,13 +14740,21 @@ const VERDAECHTE = [
         dafuer.push(`In ${Math.round(d.krampfAnteil * 100)} % der Eintragungen ging es `
           + 'um Krämpfe oder Bauchschmerz.');
       }
+      // Die Frage so, wie sie sich vorlesen lässt: den Fettbezug nur, wenn das
+      // Tagebuch ihn zeigt, und dann nur den Vergleich, den es gerechnet hat.
+      const frage = fett
+        ? 'Nach fettem Essen sind meine Beschwerden laut Tagebuch im Mittel stärker '
+          + '– wäre ein Ultraschall der Gallenblase sinnvoll?'
+        : undefined;
       return {
         stand: dafuer.length >= 2 ? 'moeglich' : 'offen',
+        ...(frage ? { frage } : {}),
         dafuer,
         dagegen: [],
-        offen: 'Ob der Schmerz rechts sitzt, weiß dieses Tagebuch nicht – es fragt '
-          + 'nicht nach der Stelle. Für die Unterscheidung ist genau das die erste '
-          + 'Frage.',
+        offen: 'Wo der Schmerz sitzt und wohin er ausstrahlt, weiß dieses Tagebuch '
+          + 'nicht – es fragt nicht nach der Stelle. Laut gesund.bund.de ist es wichtig, '
+          + 'der Ärztin oder dem Arzt alle Beschwerden genau zu beschreiben, damit sie '
+          + 'sich besser deuten lassen.',
       };
     },
   },
@@ -14780,10 +14817,21 @@ const VERDAECHTE = [
        * hier „Sicher ist nur: Sie treffen eine Schleimhaut, die schon gereizt
        * ist" – stärker als jede dieser Quellen, und ein älterer Befund kann
        * abgeheilt sein.
+       *
+       * „Rückfluss von Darminhalt" (zuerst in der Fassung 30) machte aus dem
+       * Zwölffingerdarm („duodenal contents") den ganzen Darm, und der
+       * Befundtext (js/befunde.js) nennt dieselbe Ursache mit gesund.bund.de
+       * „zurücklaufende Gallenflüssigkeit" (glossar/typ-c-gastritis: „Neben
+       * zurücklaufender Gallenflüssigkeit, Alkohol oder bestimmten
+       * Schmerzmitteln …"). Dass die Galle am Zwölffingerdarm ankommt:
+       * gesund.bund.de/gallensteine (Stand 04.04.2025, Diagnostik) beschreibt
+       * die Spiegelung „über die Speiseröhre, den Magen und den Anfang des
+       * Zwölffingerdarms bis zur Mündung des Gallengangs".
        */
       if (gastritisC && d.nsarTage >= 1) {
         dafuer.push('Deine Gastritis ist als Typ C eingetragen – durch chemische Stoffe '
-          + 'entstanden. Neben dem Rückfluss von Darminhalt gehören entzündungshemmende '
+          + 'entstanden. Neben zurücklaufender Gallenflüssigkeit aus dem Zwölffingerdarm '
+          + 'gehören entzündungshemmende '
           + 'Schmerzmittel zu den häufigsten Ursachen einer solchen Schleimhautschädigung; '
           + 'ob sie es bei dir sind, steht in deinem Befund, nicht hier. Bei '
           + 'Magen-Darm-Störungen in der Vorgeschichte sehen Fachinformationen mancher '
@@ -14800,13 +14848,20 @@ const VERDAECHTE = [
       if (d.nsarTage >= 3) stand = 'gestuetzt';
       else if (d.nsarTage >= 1) stand = 'moeglich';
       // Die Frage so, dass sie sich in der Sprechstunde vorlesen lässt:
-      // „regelmäßig" stimmt bei anfallsweiser Einnahme nicht.
-      const frage = d.nsarKopfTage > 0 || (d.nsarTage >= 1 && d.nsarTage < 3)
-        ? `${d.nsarKopfTage > 0 ? 'Bei Kopfschmerzen' : 'Gelegentlich'} nehme ich ein `
+      // „regelmäßig" stimmt bei anfallsweiser Einnahme nicht. Und ohne ein
+      // eingetragenes Mittel behauptet sie keine Einnahme (bis zur Fassung 30
+      // stand dann „Ich nehme regelmäßig …" neben „Kein solches Schmerzmittel
+      // eingetragen").
+      let frage;
+      if (d.nsarKopfTage > 0 || (d.nsarTage >= 1 && d.nsarTage < 3)) {
+        frage = `${d.nsarKopfTage > 0 ? 'Bei Kopfschmerzen' : 'Gelegentlich'} nehme ich ein `
           + 'entzündungshemmendes Schmerzmittel'
           + `${gastritisC ? ' – mit meiner Gastritis Typ C' : ''}: Ist das so in Ordnung, `
-          + 'braucht es einen Magenschutz dazu, oder gibt es für mich eine andere Lösung?'
-        : undefined;
+          + 'braucht es einen Magenschutz dazu, oder gibt es für mich eine andere Lösung?';
+      } else if (!(d.nsarTage >= 1)) {
+        frage = 'Falls ich ein entzündungshemmendes Schmerzmittel brauche: Gibt es eine '
+          + 'magenfreundlichere Alternative, oder wäre ein Magenschutz angezeigt?';
+      }
       return {
         stand,
         ...(frage ? { frage } : {}),
@@ -14818,34 +14873,91 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quelle (Fassung 30): gesund.bund.de/blutarmut-anaemie (mit IQWiG, Stand
+   * 13.07.2021). „Häufige Ursache für die Blutarmut ist ein Eisenmangel."
+   * „Wie entsteht …?": Ein Eisenmangel ist möglich, wenn „aufgrund einer
+   * Erkrankung wie einer Glutenunverträglichkeit (Zöliakie) zu wenig Eisen
+   * aus dem Darm aufgenommen wird" oder „es zu einem chronischen Blutverlust
+   * kommt, etwa nach Verletzungen im Magen-Darm-Trakt, durch eine
+   * Magenschleimhautentzündung oder bei starken Regelblutungen". „Wie kann
+   * …verlaufen?": „bleibt oft lange unbemerkt". „Wie wird …diagnostiziert?":
+   * „Dabei werden zum Beispiel der Gehalt an rotem Blutfarbstoff (Hämoglobin)
+   * bestimmt und die Zahl der roten Blutkörperchen überprüft. Im Blut kann man
+   * zudem die Menge an Eisen … messen" – und „Lässt sich ein Eisenmangel nicht
+   * durch eine zu geringe Aufnahme mit der Nahrung erklären", schauen
+   * Ärztinnen und Ärzte nach einer Darmentzündung und prüfen, „ob zum Beispiel
+   * kleine Wunden im Darm zu einem chronischen Blutverlust führen".
+   *
+   * Bis zur Fassung 30 stand hier „seine häufigste stille Folge", das Blutbild
+   * mit Ferritin beantworte in „einer Viertelstunde" „zwei Fragen auf einmal:
+   * ob Blut verlorengeht und ob eine Zöliakie schon Spuren hinterlassen hat",
+   * und es sei „die billigste Untersuchung auf dieser Liste" und schließe „am
+   * meisten auf einmal" aus. Eine Rangfolge und eine Dauer nennt die Seite
+   * nicht, und woher ein Eisenmangel kommt, beantwortet die Blutprobe dort
+   * nicht – danach wird weiter gesucht. Ferritin nennt keine geprüfte Quelle
+   * beim Namen; die Frage zum Vorlesen fragt deshalb nach der Untersuchung,
+   * nicht nach einem Laborwert.
+   *
+   * Schwarzer, klebriger Stuhl (teerstuhl) ist in js/bild.js „sofort" und
+   * bekommt den Satz der Warnkarte (warnTeil in js/app.js), wie beim Geschwür
+   * oben; Zeichen einer Blutarmut (blaesse) sind „zeitnah": gesund.bund.de/
+   * magengeschwuer (Stand 07.01.2022) nennt „Anzeichen einer Blutarmut
+   * (Anämie) wie Abgeschlagenheit, Luftnot bei körperlichen Anstrengungen oder
+   * Blässe" unter dem, was „zeitnah ärztlich abklären zu lassen" ist.
+   */
   {
     id: 'blut',
     name: 'Blutarmut, Eisenmangel',
-    was: 'Kein Verdauungsproblem, aber seine häufigste stille Folge – eine '
-      + 'Blutung, die man nicht sieht, oder eine Aufnahmestörung.',
-    untersuchung: 'Blutbild und Ferritin. Eine Viertelstunde, und es beantwortet '
-      + 'zwei Fragen auf einmal: ob Blut verlorengeht und ob eine Zöliakie '
-      + 'schon Spuren hinterlassen hat.',
-    frage: 'Wären ein Blutbild und Ferritin sinnvoll?',
+    was: 'Häufige Ursache einer Blutarmut ist laut gesund.bund.de ein Eisenmangel. '
+      + 'Er kann mit dem Verdauungstrakt zu tun haben: durch einen chronischen '
+      + 'Blutverlust, etwa nach Verletzungen im Magen-Darm-Trakt oder durch eine '
+      + 'Magenschleimhautentzündung, oder weil bei einer Zöliakie zu wenig Eisen '
+      + 'aufgenommen wird. Eine Blutarmut bleibt oft lange unbemerkt.',
+    untersuchung: 'Eine Blutuntersuchung: Laut gesund.bund.de werden dabei etwa der '
+      + 'rote Blutfarbstoff und die Zahl der roten Blutkörperchen bestimmt, und die '
+      + 'Menge an Eisen lässt sich messen. Lässt sich ein Eisenmangel nicht durch die '
+      + 'Ernährung erklären, suchen Ärztinnen und Ärzte laut derselben Seite weiter '
+      + 'nach dem Grund, etwa nach einem Blutverlust im Darm.',
+    frage: 'Wäre eine Blutuntersuchung auf Blutarmut und Eisenmangel sinnvoll?',
     pruefe: (d) => {
       const dafuer = [];
-      if (d.warnIds.includes('blaesse') || d.warnIds.includes('teerstuhl')) {
+      const teer = d.warnIds.includes('teerstuhl');
+      const blass = d.warnIds.includes('blaesse');
+      if (blass || teer) {
         dafuer.push('Im Tagebuch steht ein Warnzeichen, das dazu passt.');
       }
-      // Die eine Lage, in der Blutbild und Ferritin keine Routine sind, sondern
-      // eine konkrete Frage: Defekte an der Engstelle eines Zwerchfellbruchs
-      // bluten unbemerkt, und ein NSAR macht sie wahrscheinlicher.
+      /*
+       * Mit Zwerchfellbruch und NSAR wird die Untersuchung zu einer konkreten
+       * Frage. Moskovitz, Am J Gastroenterol 1992 (PMID 1595651, Abstract):
+       * bei großen Brüchen „small erosions at the waist of the hernia which
+       * bleed slowly"; Kimer, BMJ Case Rep 2010 (PMID 22791730, Abstract):
+       * „associated with occult bleeding and development of chronic iron
+       * deficiency anaemia"; Gray, Dis Esophagus 2015 (PMID 24758713,
+       * Abstract): „frequent non-steroidal anti-inflammatory drug (NSAID) use
+       * … significantly greater with Cameron lesions" und „Large HH size and
+       * NSAID use were identified as independent risk factors". Bis zur
+       * Fassung 30: „selten, aber genau die Frage, die ein Blutbild
+       * beantwortet" – ob ein Bruch blutet, zeigt eine Blutprobe nicht.
+       */
       if ((d.befundIds || []).includes('hiatushernie') && d.nsarTage >= 1) {
         dafuer.push('Zwerchfellbruch und entzündungshemmendes Schmerzmittel zusammen: '
-          + 'An der Engstelle des Bruchs können kleine Defekte unbemerkt bluten – '
-          + 'selten, aber genau die Frage, die ein Blutbild beantwortet.');
+          + 'An der Engstelle des Bruchs können, vor allem bei großen Brüchen, kleine '
+          + 'Schleimhautdefekte entstehen, die langsam und unbemerkt bluten und zu '
+          + 'Eisenmangel führen können; in einer Studie fanden sie sich bei häufiger '
+          + 'Einnahme solcher Mittel öfter. Ob das bei dir zutrifft, klärt die Praxis.');
       }
+      const eile = [
+        teer ? 'Bei schwarzem, klebrigem Stuhl nicht auf einen Termin warten – '
+          + 'Notaufnahme oder 112.' : '',
+        blass ? 'Zeichen einer Blutarmut gehören laut gesund.bund.de zeitnah ärztlich '
+          + 'abgeklärt.' : '',
+      ].filter(Boolean).join(' ');
       return {
         stand: dafuer.length > 1 ? 'moeglich' : 'offen',
         dafuer,
         dagegen: [],
-        offen: 'Aus einem Tagebuch nie zu sehen. Steht hier, weil es die billigste '
-          + 'Untersuchung auf dieser Liste ist und am meisten auf einmal ausschließt.',
+        offen: `Aus einem Tagebuch nicht zu sehen.${eile ? ` ${eile}` : ''}`,
       };
     },
   },
@@ -15767,8 +15879,8 @@ function phasenWirkung(bewertet, id, tage, vergleiche = 1) {
       schwaechste,
       spanne,
       satz: `In der Phase „${staerkste.name}" fällt das deutlich stärker aus `
-        + `(${staerkste.differenz.toFixed(1)} Stufen Unterschied) als in der Phase `
-        + `„${schwaechste.name}" (${schwaechste.differenz.toFixed(1)}). Dieselbe `
+        + `(${staerkste.differenz.toFixed(1).replace('.', ',')} Stufen Unterschied) als in der Phase `
+        + `„${schwaechste.name}" (${schwaechste.differenz.toFixed(1).replace('.', ',')}). Dieselbe `
         + 'Menge, andere Wirkung – das spricht eher für eine wechselnde '
         + 'Empfindlichkeit als für eine Unverträglichkeit.',
     };
@@ -15821,8 +15933,8 @@ function phasenUrteil(bilanz, tage, mindestTage = 5) {
     mild,
     spanne,
     satz: `Am stärksten ist es in der Phase „${schlimm.name}" `
-      + `(${schlimm.schnitt.toFixed(1)} im Mittel über ${schlimm.tage} Tage), `
-      + `am schwächsten in der Phase „${mild.name}" (${mild.schnitt.toFixed(1)} `
+      + `(${schlimm.schnitt.toFixed(1).replace('.', ',')} im Mittel über ${schlimm.tage} Tage), `
+      + `am schwächsten in der Phase „${mild.name}" (${mild.schnitt.toFixed(1).replace('.', ',')} `
       + `über ${mild.tage} Tage). Die Phasen sind aus den eingetragenen `
       + 'Blutungstagen geschätzt.',
   };
@@ -15919,7 +16031,7 @@ const STUFEN_SCHWELLE = 1;
 
 const schnittVon = (l) => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0);
 
-/** Eine Zehntelzahl mit Komma, wie überall in der Anzeige („3,0"). */
+/** Eine Zehntelzahl mit Komma, wie in der übrigen Anzeige („3,0"). */
 const zehntel = (x) => x.toFixed(1).replace('.', ',');
 
 /** „a, b und c" – oder mit „oder". */
@@ -16090,7 +16202,9 @@ function dosisBild(eintraege, id, fenster = 4) {
       stufen,
       gegenFaelle,
       abStufe: niedrigsteAuffaellig,
-      satz: `Schon ${niedrigsteAuffaellig.satz} fällt es auf `
+      // Der Name der Stufe, nicht ihr Satzstück: „Schon nur als Würze" wären
+      // zwei Gradwörter hintereinander.
+      satz: `Schon ${niedrigsteAuffaellig.name} fällt es auf `
         + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
         + `${zehntel(niedrigsteAuffaellig.differenz)} Stufen schlechter). Eine `
         + 'Menge, die durchgeht, ist bisher nicht dabei.',
@@ -16244,7 +16358,7 @@ function gewichtsBild(messungen, heute, gewollt = false) {
       urteil: 'zu-kurz',
       messungen: liste,
       aktuell,
-      satz: `Zuletzt ${aktuell.toFixed(1)} kg. Eine Richtung zeigt Body Check erst bei `
+      satz: `Zuletzt ${aktuell.toFixed(1).replace('.', ',')} kg. Eine Richtung zeigt Body Check erst bei `
         + `Messungen, die mindestens ${MINDEST_ABSTAND} Tage auseinanderliegen – so ist `
         + 'die App eingestellt, damit einzelne Wiegungen nicht als Verlauf gelten.',
     };
@@ -16255,7 +16369,8 @@ function gewichtsBild(messungen, heute, gewollt = false) {
   const anteil = davor ? differenz / davor : 0;
   const spanne = tageZwischen(frueher[frueher.length - 1].am, jetzt[0].am);
 
-  const grundlage = `${aktuell.toFixed(1)} kg zuletzt gegen ${davor.toFixed(1)} kg `
+  // Zehntel mit Komma wie in der übrigen Anzeige (bis zur Fassung 30 mit Punkt).
+  const grundlage = `${aktuell.toFixed(1).replace('.', ',')} kg zuletzt gegen ${davor.toFixed(1).replace('.', ',')} kg `
     + `vor gut ${Math.round(spanne / 30)} Monaten `
     + `(${jetzt.length} gegen ${frueher.length} Messungen).`;
 
@@ -18229,8 +18344,9 @@ function wasSacheIst(q = {}) {
       schlechter: 'Zuletzt wurde es schlechter',
       gleich: 'Zuletzt hat sich nichts Deutliches geändert',
     }[t.richtung] || 'Zuletzt hat sich nichts Deutliches geändert';
-    sag('trend', `${wort}: ${t.jetzt.schnitt.toFixed(1)} im Mittel über die `
-      + `letzten ${t.jetzt.tage} notierten Tage gegen ${t.davor.schnitt.toFixed(1)} `
+    // Zehntel mit Komma wie in der übrigen Anzeige (bis zur Fassung 30 mit Punkt).
+    sag('trend', `${wort}: ${t.jetzt.schnitt.toFixed(1).replace('.', ',')} im Mittel über die `
+      + `letzten ${t.jetzt.tage} notierten Tage gegen ${t.davor.schnitt.toFixed(1).replace('.', ',')} `
       + `über die ${t.davor.tage} davor.`);
   }
 
@@ -18274,7 +18390,7 @@ function wasSacheIst(q = {}) {
         ? ' Ob kleinere Mengen anders wirken, lässt sich aus dem Tagebuch noch nicht sagen.'
         : '');
     sag('fund', `Am deutlichsten fällt ${bester.name} auf: danach war es im `
-      + `Mittel um ${bester.differenz.toFixed(1)} Stufen schlechter `
+      + `Mittel um ${bester.differenz.toFixed(1).replace('.', ',')} Stufen schlechter `
       + `(${bester.faelle} Mahlzeiten damit, ${bester.gegenFaelle} ohne).${gehalten}${menge}`);
   }
 
@@ -18826,8 +18942,18 @@ const WARNZEICHEN = [
     id: 'blaesse',
     name: 'Auffällige Blässe, Schwäche oder Luftnot bei Anstrengung',
     dringlichkeit: 'zeitnah',
-    warum: 'Zeichen, die zu einer Blutarmut passen – ein Blutbild klärt das in '
-      + 'einer Viertelstunde.',
+    /*
+     * gesund.bund.de/blutarmut-anaemie (mit IQWiG, Stand 13.07.2021): „Eine
+     * Anämie macht sich meist durch Blässe, Müdigkeit, Kopfschmerzen und
+     * Schwächegefühl bemerkbar", dazu „Kurzatmigkeit bei Anstrengung"; „Um eine
+     * Anämie festzustellen, ist ein umfangreiches ärztliches Gespräch
+     * (Anamnese) wesentlich. … Anschließend wird eine Blutprobe … untersucht."
+     * Bis zur Fassung 30: „ein Blutbild klärt das in einer Viertelstunde" –
+     * die Dauer nennt keine geprüfte Quelle.
+     */
+    warum: 'Blässe, Schwäche und Kurzatmigkeit bei Anstrengung nennt gesund.bund.de '
+      + 'als mögliche Zeichen einer Blutarmut. Festgestellt wird sie im ärztlichen '
+      + 'Gespräch und mit einer Blutprobe.',
   },
   {
     id: 'fieber',
@@ -19209,8 +19335,14 @@ function musterUnterleib(d) {
  *                    wird eine Laktoseintoleranz diagnostiziert?"): „Das
  *                    Standardverfahren in Deutschland ist der Atemtest." Bis zur
  *                    Fassung 30: „H2-Atemtest, dauert einen Vormittag" – die
- *                    Dauer nennt keine geprüfte Quelle, und zur Fruktose liegt
- *                    keine vor.
+ *                    Dauer nennt keine geprüfte Quelle. Einen Atemtest auf
+ *                    Fruktose belegt der North American Consensus (Am J
+ *                    Gastroenterol 2017, PMID 28323273, Abstract: „Consensus
+ *                    doses for lactulose, glucose, fructose and lactose BT
+ *                    …"; siehe provokationTeil in js/app.js); eine Dauer
+ *                    nennt auch er nicht. Der sichtbare Satz bleibt bei Laktose,
+ *                    weil er die Seite von gesund.bund.de wiedergibt, und
+ *                    überlässt die Wahl des Tests der Praxis.
  *   Zöliakie         EMA/CHMP/639441/2013 corr. 2 (9. Oktober 2017), S. 4:
  *                    „Diagnosis is by blood tests to check for relevant
  *                    antibodies, followed by endoscopy/gastroscopy and biopsy.
@@ -21824,9 +21956,9 @@ function arztBericht(zustand, von, bis) {
   if (k.dyspepsie.pruefbar) {
     kZeilen.push('  Magenbeschwerden ab Stärke 4 (gezählt, keine Einordnung):');
     kZeilen.push('    Druck, Völlegefühl oder früh satt:');
-    kZeilen.push(`        an ${k.dyspepsie.pds.tage} Tagen, ${fmtZahl(k.dyspepsie.pds.proWoche)} je Woche der notierten Tage`);
+    kZeilen.push(`        an ${mehrzahl(k.dyspepsie.pds.tage, 'Tag', 'Tagen')}, ${fmtZahl(k.dyspepsie.pds.proWoche)} je Woche der notierten Tage`);
     kZeilen.push('    Brennen oder Schmerz im Oberbauch:');
-    kZeilen.push(`        an ${k.dyspepsie.eps.tage} Tagen, ${fmtZahl(k.dyspepsie.eps.proWoche)} je Woche der notierten Tage`);
+    kZeilen.push(`        an ${mehrzahl(k.dyspepsie.eps.tage, 'Tag', 'Tagen')}, ${fmtZahl(k.dyspepsie.eps.proWoche)} je Woche der notierten Tage`);
   } else {
     kZeilen.push('  Magenbeschwerden              nicht gezählt (zu wenige notierte Tage)');
   }
@@ -25420,7 +25552,7 @@ function planTeil(s, d) {
       <span class="fund-urteil">${esc(b.karenz.wort)}</span>
     </div>
 
-    <p class="feld-name">1. Karenz — ${p.karenzTage} Tage ab ${esc(fmtDatum(p.start, true))}</p>
+    <p class="feld-name">1. Karenz – ${p.karenzTage} Tage ab ${esc(fmtDatum(p.start, true))}</p>
     ${b.karenz.vorher.notierte >= 2 && b.karenz.karenz.notierte >= 2
     ? vergleichBalken(b.karenz.karenz.schnitt, b.karenz.vorher.schnitt,
       { mit: 'Karenz', ohne: 'davor' }) : ''}
@@ -25431,7 +25563,7 @@ function planTeil(s, d) {
     </div>` : ''}
 
     ${!abbruch && (b.stufen.length || b.stand.phase !== 'karenz') ? `
-      <p class="feld-name">2. Wiedereinführung — eine Gruppe nach der anderen</p>
+      <p class="feld-name">2. Wiedereinführung – eine Gruppe nach der anderen</p>
       ${b.stufen.length ? `<ul class="wartend plan-stufen">${b.stufen.map((x) => `<li class="geprueft g-${x.urteil}">
         <span><b>${esc(x.name)}</b><span class="zeile-tags">${esc(fmtDatum(x.start, true))} ·
           ${x.tageswerte.map((w, i) => `${esc((x.mengen[i] || '?'))}: ${w === null ? '–' : w}`).join(' · ')}</span></span>
@@ -25502,7 +25634,11 @@ function planAngebot(s, d) {
    * eigenen Speiseplan danach, begleitet von einer Ernährungsfachkraft
    * (Whelan et al. 2018, siehe planTeil). Dauer, drei Tage und „dazwischen
    * zurück auf die Karenz" nennen die erreichbaren Abstracts nicht; „Das
-   * Größte, was diese App vorschlägt" steht deshalb nicht mehr da.
+   * Größte, was diese App vorschlägt" steht deshalb nicht mehr da, ebenso
+   * der erste Satz danach („Das einzige Stück dieser App, das am Ende einen
+   * Speiseplan hinterlässt statt einer Auskunft"), der nur die Zeile darüber
+   * wiederholte. Die Gedankenstriche dieser Karte sind wie überall in der
+   * App Halbgeviertstriche („–").
    *
    * Zur Zöliakie: EMA, Wheat starch (containing gluten) used as an excipient,
    * EMA/CHMP/639441/2013 corr. 2, 9. Oktober 2017, S. 4: „Diagnosis is by
@@ -25517,10 +25653,9 @@ function planAngebot(s, d) {
   return `<div class="karte karte-merk">
     <details class="angebotbogen">
     <summary><h3>Der Stufenplan</h3>
-    <span class="klein">Vier bis sechs Wochen — am Ende ein Speiseplan statt
+    <span class="klein">Vier bis sechs Wochen – am Ende ein Speiseplan statt
     einer Auskunft. Zum Lesen antippen.</span></summary>
-    <p class="klein">Das einzige Stück dieser App, das am Ende einen Speiseplan
-    hinterlässt statt einer Auskunft. In der Fachliteratur hat die Ernährung
+    <p class="klein">In der Fachliteratur hat die Ernährung
     ohne die vergärbaren Kohlenhydrate (FODMAP) drei Stufen: weglassen, Gruppe
     für Gruppe wieder einführen, danach ein eigener, weniger strenger
     Speiseplan – begleitet von einer Ernährungsfachkraft. Der Plan hier folgt
@@ -25554,7 +25689,7 @@ function planAngebot(s, d) {
       <button type="button" class="wahl-btn" data-act="plan-start"
               data-n="${n}">${n} Tage</button>`).join('')}</div>
 
-    <p class="klein">Wenn die Karenz nichts bringt, ist der Plan zu Ende — dann
+    <p class="klein">Wenn die Karenz nichts bringt, ist der Plan zu Ende – dann
     wird nicht trotzdem wiedereingeführt, sondern aufgehört. Eine Diät ohne
     Wirkung ist kein neutraler Zustand: Sie kostet Ballaststoffe, Kalzium und
     Vielfalt in der Darmflora, und dafür bekommst du nichts. Genau diese Weiche
@@ -25585,7 +25720,7 @@ function planHistorie(s, d) {
     ${alte.map((p) => {
     const b = planBild(p, s.eintraege, s.tage, d.heute);
     return `<div>
-      <p class="feld-name">Ab ${esc(fmtDatum(p.start, true))} — ${esc(b.karenz.wort)}</p>
+      <p class="feld-name">Ab ${esc(fmtDatum(p.start, true))} – ${esc(b.karenz.wort)}</p>
       <ul class="wartend">${b.stufen.map((x) => `<li class="geprueft g-${x.urteil}">
         <span>${esc(x.name)}</span>
         <span class="klein">${esc(x.wort)}
@@ -25971,6 +26106,16 @@ function v28Punkte(s) {
    * Schmerzmittel gelten ≥15 Tage (8.2.3). „Grenze von etwa zehn Tagen"
    * ließ die drei Monate weg und las sich wie eine erlaubte Menge.
    *
+   * Verglichen wird mit den einfachen Schmerzmitteln ohne Opioid: 8.2.3
+   * Non-opioid analgesic-overuse headache, „regular use of one or more
+   * non-opioid analgesics on 15 or more days/month for more than 3 months",
+   * mit den Unterformen Paracetamol (8.2.3.1) und NSAR (8.2.3.2, darunter
+   * Acetylsalicylsäure, 8.2.3.2.1). Für ein Opioid allein nennt 8.2.4 dieselben
+   * zehn Tage wie für Kombinationsmittel („Regular intake of one or more
+   * opioids on ≥10 days/month for >3 months"). Bis zur Fassung 30 hieß es
+   * „als für einzelne Schmerzmittel" – das schloss ein einzelnes Opioid wie
+   * Tramadol mit ein, für das die Schwelle nicht höher liegt.
+   *
    * Paracetamol mit Koffein ist kein NSAR: „Paracetamol ist ein
    * Anilinderivat … ATC-Code: N02BE51, Paracetamol, Kombinationen …
    * Paracetamol hat eine analgetische, antipyretische und sehr schwache
@@ -25990,8 +26135,8 @@ function v28Punkte(s) {
     // mehr als NSAR zählt (bis zur Fassung 29 standen sie dort).
     punkte.push(`Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel `
       + `(${kombiNamen.join(', ')}). Für sie nennt die internationale Kopfschmerzklassifikation eine niedrigere `
-      + 'Schwelle für Übergebrauch als für einzelne Schmerzmittel: an zehn oder mehr Tagen im Monat über mehr als '
-      + 'drei Monate.'
+      + 'Schwelle für Übergebrauch als für einfache Schmerzmittel wie ASS, Ibuprofen oder Paracetamol allein: an '
+      + 'zehn oder mehr Tagen im Monat über mehr als drei Monate statt an fünfzehn oder mehr.'
       + `${para ? ' Paracetamol mit Koffein zählt in der Magenauswertung nicht mehr als NSAR, weil Paracetamol '
         + 'nicht zu dieser Wirkstoffgruppe gehört – Magenbeschwerden nennt seine Fachinformation trotzdem als '
         + 'mögliche Nebenwirkung.' : ''}`);
@@ -26770,9 +26915,9 @@ function kopfTeil(s, d) {
     <p class="klein">Phasen geschätzt aus den eingetragenen Blutungstagen.</p>` : ''}
     <p class="klein">Der Kopf wird getrennt vom Bauch gezählt: Kein Kopfschmerz
     fließt in eine Bauchauswertung ein. Die Bauchwerte hier stehen nur zum
-    Vergleich daneben. Verbinden können beide die Schmerzmittel: Bei
-    entzündungshemmenden wie Ibuprofen nennt die Fachinformation
-    Magen-Darm-Beschwerden als häufige Nebenwirkung – deshalb stehen sie dabei.
+    Vergleich daneben. Eine Verbindung zwischen Kopf und Bauch können
+    Schmerzmittel sein: Bei Ibuprofen, einem entzündungshemmenden Schmerzmittel,
+    nennt die Fachinformation Magen-Darm-Beschwerden als häufige Nebenwirkung.
     Auch eine Migräne selbst kann mit Übelkeit oder Erbrechen einhergehen.</p>
   </div>`;
   /*
@@ -26783,7 +26928,9 @@ function kopfTeil(s, d) {
    * Erbrechen …". ICHD-3 1.1 (ichd-3.org), Kriterium D: „During headache at
    * least one of the following: nausea and/or vomiting; photophobia and
    * phonophobia". Bis zur Fassung 29 hieß es „Was beide verbindet, ist das
-   * Schmerzmittel" – als einzige Verbindung, und für jedes Akutmittel.
+   * Schmerzmittel" – als einzige Verbindung, und für jedes Akutmittel. Die
+   * erste Fassung 30 („Verbinden können beide die Schmerzmittel … deshalb
+   * stehen sie dabei") ließ offen, wer wen verbindet und was wo steht.
    */
 }
 
@@ -29407,7 +29554,9 @@ function bogenHTML(s) {
      * (eindeutiger als die Quellen) und „seit dreißig Jahren das Maß, mit dem
      * in der Sprechstunde darüber geredet wird – die Zahl allein sagt dort
      * genug" – das trägt keine Quelle; 1997 hieß es noch „not widely used in
-     * clinical practice or research".
+     * clinical practice or research". Ebenso „Die Skala wird in Praxis und
+     * Studien benutzt" (zuerst in der Fassung 30): Das Abstract sagt nur, dass
+     * solche Skalen nützlich sein können, nicht, dass sie benutzt werden.
      *
      * Und zu den Warnzeichen unten, getrennt nach ihrer Stufe in js/bild.js.
      * Schwarzer, klebriger Stuhl (teerstuhl) ist „sofort" und bekommt den
@@ -29441,8 +29590,7 @@ function bogenHTML(s) {
       <p class="klein">Nach der Bristol-Skala deuten 1 und 2 auf Verstopfung,
       3 bis 5 gelten als normaler Stuhlgang, 6 und 7 sprechen für Durchfall. Die
       Form hängt auch damit zusammen, wie lange der Stuhl im Darm bleibt. Die
-      Skala wird in Praxis und Studien benutzt und kann beim Führen eines
-      Stuhltagebuchs helfen.</p>
+      Skala kann beim Führen eines Stuhltagebuchs helfen.</p>
       ${huelleDa(s) ? `<p class="klein huellen-satz">${esc(huellenSatz())}</p>` : ''}
       <p class="feld-name">War sonst etwas?</p>
       <div class="wahl">

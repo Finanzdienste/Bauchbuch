@@ -239,6 +239,12 @@ await setze(muster(nurKopf));
 check(await page.locator('.karte-kopf').count() === 1, 'die Kopfkarte steht auf dem Musterreiter');
 check(/Kopfschmerztage je 30 Tage\s*20 \(20 notiert\) · davor 0 · davor 0/.test(await karte()), 'mit den drei Fenstern');
 check(!/Kaffee[^.]*auffällig/.test(eng(await page.locator('#view').textContent())), 'Kaffee steht nirgends als auffällig');
+// Der letzte Absatz sagt, wer wen verbindet (bis zur Fassung 30: „Verbinden
+// können beide die Schmerzmittel … deshalb stehen sie dabei“).
+check((await karte()).includes('Eine Verbindung zwischen Kopf und Bauch können Schmerzmittel sein: Bei Ibuprofen, '
+  + 'einem entzündungshemmenden Schmerzmittel, nennt die Fachinformation Magen-Darm-Beschwerden als häufige Nebenwirkung.')
+  && !(await karte()).includes('stehen sie dabei'),
+'die Verbindung von Kopf und Bauch in einem Satz, der sich beim ersten Lesen versteht');
 
 // Und die andere Richtung: nur Kopf, keine Mahlzeit – für den Bauch sind das
 // zwanzig Lücken, keine zwanzig beschwerdefreien Tage.
@@ -655,7 +661,7 @@ fehlt = eng(await page.locator('#view').textContent());
 check(fehlt.includes('als Typ C eingetragen'), 'mit Gastritis Typ C im Befund nennt die Frage den Zusammenhang');
 check(fehlt.includes('ob sie es bei dir sind, steht in deinem Befund'), '– ohne ihre Gastritis dem Mittel zuzuschreiben');
 check(fehlt.includes('mit meiner Gastritis Typ C'), 'und die Sprechstundenfrage passt dazu');
-check(fehlt.includes('Engstelle des Bruchs'), 'Zwerchfellbruch plus Schmerzmittel macht aus Blutbild und Ferritin eine konkrete Frage');
+check(fehlt.includes('Engstelle des Bruchs'), 'Zwerchfellbruch plus Schmerzmittel macht aus der Blutuntersuchung eine konkrete Frage');
 check(fehlt.includes('passt bei meinen Kopfschmerzen dazu'), 'und die Kopfkarte stellt die Frage nach dem passenden Akutmittel – ohne eine Migräne zu unterstellen');
 
 /* ---------- 12. Nachtragen von der Tageskarte aus ---------- */

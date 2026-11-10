@@ -239,6 +239,13 @@ const TEXTE = [
     neu: 'isst, erfährt über die späten Stunden wenig.',
     alt: 'isst, kann über den Dickdarm wenig erfahren.',
   },
+  // Zehntel mit Komma wie in der übrigen Anzeige (js/wechselwirkung.js); die
+  // Zahlen selbst werden übernommen, nur das Komma wird wieder ein Punkt.
+  {
+    wo: ['phasenUrteil'],
+    neu: /(in der Phase „[^"]+" \()(\d+),(\d)( im Mittel über \d+ Tage\), am schwächsten in der Phase „[^"]+" \()(\d+),(\d)( über \d+ Tage\))/g,
+    alt: (z, a, b, c, d, e, f, g) => `${a}${b}.${c}${d}${e}.${f}${g}`,
+  },
 ];
 
 /*
@@ -416,6 +423,33 @@ const BERICHT = [
     neu: '    (aus den Einträgen gezählt, kein ausgefüllter Fragebogen)',
     alt: '    (ab 8 gilt eine Refluxkrankheit als wahrscheinlich)',
   },
+  /*
+   * Zehntel mit Komma wie in der übrigen Anzeige: Trend und stärkster Fund in
+   * IN KÜRZE (js/lage.js), der Zufallsspielraum (js/zufall.js) und das
+   * Gewicht (js/gewicht.js). Komma und Punkt sind gleich breit, die Umbrüche
+   * bleiben also, wo sie waren; die Zahlen werden übernommen.
+   */
+  {
+    neu: /(: )(\d+),(\d)(\s+im\s+Mittel\s+über\s+die\s+letzten\s+\d+\s+notierten\s+Tage\s+gegen\s+)(\d+),(\d)(\s+über\s+die)/g,
+    alt: (z, a, b, c, d, e, f, g) => `${a}${b}.${c}${d}${e}.${f}${g}`,
+  },
+  {
+    neu: /(danach\s+war\s+es\s+im\s+Mittel\s+um\s+)(\d+),(\d)(\s+Stufen\s+schlechter)/g,
+    alt: (z, a, b, c, d) => `${a}${b}.${c}${d}`,
+  },
+  {
+    neu: /(kommt\s+ein\s+Unterschied\s+von\s+etwa\s+)(\d+),(\d)(\s+Stufen\s+auch\s+dann\s+vor)/g,
+    alt: (z, a, b, c, d) => `${a}${b}.${c}${d}`,
+  },
+  {
+    neu: /(\d+),(\d)( kg zuletzt gegen )(\d+),(\d)( kg)/g,
+    alt: (z, a, b, c, d, e, f) => `${a}.${b}${c}${d}.${e}${f}`,
+  },
+  // Und die Zyklusphasen (js/wechselwirkung.js), wie bei phasenUrteil oben.
+  {
+    neu: /(in\s+der\s+Phase\s+„[^"]+"\s+\()(\d+),(\d)(\s+im\s+Mittel\s+über\s+\d+\s+Tage\),\s+am\s+schwächsten\s+in\s+der\s+Phase\s+„[^"]+"\s+\()(\d+),(\d)(\s+über)/g,
+    alt: (z, a, b, c, d, e, f, g) => `${a}${b}.${c}${d}${e}.${f}${g}`,
+  },
   {
     neu: new RegExp('  Erfüllte Kriterien sind KEINE Diagnose\\. Von Reizdarm oder Reizmagen\\n'
       + '  wird erst gesprochen, wenn andere Ursachen der Beschwerden ärztlich\\n'
@@ -436,7 +470,18 @@ const gegriffen = new Map([...TEXTE, ...BERICHT].map((r) => [r, 0]));
 /** Ein Text einer Rechnung mit dem Wortlaut der Fassung 27. */
 function textZurueck(t, wo) {
   return TEXTE.reduce((s, r) => {
-    if (!r.wo.includes(wo) || !(r.teil ? s.includes(r.neu) : s === r.neu)) return s;
+    if (!r.wo.includes(wo)) return s;
+    // Ein Muster mit Gruppen: jede Stelle für sich, die Zahlen darin bleiben.
+    if (r.neu instanceof RegExp) {
+      let mal = 0;
+      const raus = s.replace(r.neu, (...m) => {
+        mal += 1;
+        return r.alt(...m);
+      });
+      gegriffen.set(r, gegriffen.get(r) + mal);
+      return raus;
+    }
+    if (!(r.teil ? s.includes(r.neu) : s === r.neu)) return s;
     gegriffen.set(r, gegriffen.get(r) + 1);
     return r.teil ? s.split(r.neu).join(r.alt) : r.alt;
   }, t);
@@ -475,7 +520,7 @@ function zurueck(jetzt) {
   // Über JSON, wie der Vergleich unten: NaN und undefined wie dort.
   const roh = JSON.parse(JSON.stringify(jetzt));
   const raus = { ...roh };
-  ['raete', 'bildLesen', ...MIT_ORT].forEach((k) => { raus[k] = texteZurueck(roh[k], k); });
+  ['raete', 'bildLesen', 'phasenUrteil', ...MIT_ORT].forEach((k) => { raus[k] = texteZurueck(roh[k], k); });
   raus.arztBericht = roh.arztBericht.map(berichtZurueck);
   return raus;
 }

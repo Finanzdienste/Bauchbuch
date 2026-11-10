@@ -505,7 +505,13 @@ const VERDAECHTE = [
      * Milchzuckerlösung wird der Gehalt von Wasserstoff in der Atemluft
      * mehrmals gemessen." Bis zur Fassung 30: „H2-Atemtest, dauert einen
      * Vormittag. Je Zucker ein Termin." – die Dauer und die Termine nennt
-     * keine geprüfte Quelle, und zur Fruktose liegt keine vor.
+     * keine geprüfte Quelle. Einen Atemtest auf Fruktose belegt der North
+     * American Consensus (Am J Gastroenterol 2017, PMID 28323273, Abstract:
+     * „Consensus doses for lactulose, glucose, fructose and lactose BT …";
+     * siehe provokationTeil in js/app.js); Dauer und Termine nennt auch er
+     * nicht. Der sichtbare Satz beschreibt das Verfahren nur für Laktose, so
+     * wie gesund.bund.de es beschreibt, und überlässt die Wahl des Tests bei
+     * jedem Zucker der Praxis.
      */
     untersuchung: 'Bei Laktose etwa ein Atemtest: Nach dem Trinken einer '
       + 'Milchzuckerlösung wird laut gesund.bund.de mehrmals der Wasserstoff in der '
@@ -580,20 +586,43 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quelle (Fassung 30): gesund.bund.de/gallensteine (mit IQWiG, Stand
+   * 04.04.2025). „Auf einen Blick": „Gallensteine sind Ablagerungen aus
+   * verdickter Gallenflüssigkeit. Sie können zu krampfartigen Schmerzen im
+   * Oberbauch führen. Viele Menschen haben Gallensteine, ohne es zu merken."
+   * „Welche Symptome …?": „Die Schmerzen kommen in Wellen und können in den
+   * Rücken und die rechte Schulter ausstrahlen." „Wie diagnostiziert man
+   * …?": „Um die Symptome besser deuten zu können, ist es wichtig, der Ärztin
+   * oder dem Arzt zu Beginn der Untersuchung alle Beschwerden genau zu
+   * beschreiben." – „Auf das Untersuchungsgespräch folgt eine körperliche
+   * Untersuchung und ein Ultraschall des Bauchraums. Meist ist das bereits
+   * ausreichend."
+   *
+   * Bis zur Fassung 30 hieß es „klassisch nach fettem Essen und oft abends
+   * oder nachts. Häufig, und im Tagebuch leicht mit einer Gastritis zu
+   * verwechseln", zum Ultraschall „Zehn Minuten, keine Vorbereitung außer
+   * nüchtern sein" und zur Stelle „Für die Unterscheidung ist genau das die
+   * erste Frage" – das alles steht dort nicht. Die Frage zum Vorlesen
+   * behauptete immer „Der Schmerz kommt nach fettem Essen", auch wenn das
+   * Tagebuch nichts dafür zeigte; jetzt nennt sie den Fettbezug nur, wenn er
+   * unter „Dafür spricht" steht, und auch dann nur, was gezählt ist.
+   */
   {
     id: 'galle',
     name: 'Gallensteine',
-    was: 'Krampfartiger Schmerz im rechten Oberbauch, klassisch nach fettem Essen '
-      + 'und oft abends oder nachts. Häufig, und im Tagebuch leicht mit einer '
-      + 'Gastritis zu verwechseln.',
-    untersuchung: 'Ultraschall des Oberbauchs. Zehn Minuten, keine Vorbereitung '
-      + 'außer nüchtern sein.',
-    frage: 'Der Schmerz kommt nach fettem Essen – wäre ein Ultraschall der '
-      + 'Gallenblase sinnvoll?',
+    was: 'Ablagerungen aus verdickter Gallenflüssigkeit. Sie können laut '
+      + 'gesund.bund.de krampfartige Schmerzen im Oberbauch auslösen, die in Wellen '
+      + 'kommen und in den Rücken und die rechte Schulter ausstrahlen können. Viele '
+      + 'Menschen haben Gallensteine, ohne es zu merken.',
+    untersuchung: 'Gespräch, körperliche Untersuchung und ein Ultraschall des '
+      + 'Bauchraums – laut gesund.bund.de reicht das zur Diagnose meist aus.',
+    frage: 'Wäre ein Ultraschall der Gallenblase sinnvoll?',
     pruefe: (d) => {
       const dafuer = [];
       const f = (d.klassen || []).find((k) => k.id === 'fett');
-      if (f && f.genug && f.differenz >= 0.5) {
+      const fett = !!(f && f.genug && f.differenz >= 0.5);
+      if (fett) {
         dafuer.push(`Fett: danach im Mittel ${f.schnittMit.toFixed(1).replace('.', ',')} `
           + `statt ${f.schnittOhne.toFixed(1).replace('.', ',')} (${f.faelle} Mahlzeiten damit).`);
       }
@@ -601,13 +630,21 @@ const VERDAECHTE = [
         dafuer.push(`In ${Math.round(d.krampfAnteil * 100)} % der Eintragungen ging es `
           + 'um Krämpfe oder Bauchschmerz.');
       }
+      // Die Frage so, wie sie sich vorlesen lässt: den Fettbezug nur, wenn das
+      // Tagebuch ihn zeigt, und dann nur den Vergleich, den es gerechnet hat.
+      const frage = fett
+        ? 'Nach fettem Essen sind meine Beschwerden laut Tagebuch im Mittel stärker '
+          + '– wäre ein Ultraschall der Gallenblase sinnvoll?'
+        : undefined;
       return {
         stand: dafuer.length >= 2 ? 'moeglich' : 'offen',
+        ...(frage ? { frage } : {}),
         dafuer,
         dagegen: [],
-        offen: 'Ob der Schmerz rechts sitzt, weiß dieses Tagebuch nicht – es fragt '
-          + 'nicht nach der Stelle. Für die Unterscheidung ist genau das die erste '
-          + 'Frage.',
+        offen: 'Wo der Schmerz sitzt und wohin er ausstrahlt, weiß dieses Tagebuch '
+          + 'nicht – es fragt nicht nach der Stelle. Laut gesund.bund.de ist es wichtig, '
+          + 'der Ärztin oder dem Arzt alle Beschwerden genau zu beschreiben, damit sie '
+          + 'sich besser deuten lassen.',
       };
     },
   },
@@ -670,10 +707,21 @@ const VERDAECHTE = [
        * hier „Sicher ist nur: Sie treffen eine Schleimhaut, die schon gereizt
        * ist" – stärker als jede dieser Quellen, und ein älterer Befund kann
        * abgeheilt sein.
+       *
+       * „Rückfluss von Darminhalt" (zuerst in der Fassung 30) machte aus dem
+       * Zwölffingerdarm („duodenal contents") den ganzen Darm, und der
+       * Befundtext (js/befunde.js) nennt dieselbe Ursache mit gesund.bund.de
+       * „zurücklaufende Gallenflüssigkeit" (glossar/typ-c-gastritis: „Neben
+       * zurücklaufender Gallenflüssigkeit, Alkohol oder bestimmten
+       * Schmerzmitteln …"). Dass die Galle am Zwölffingerdarm ankommt:
+       * gesund.bund.de/gallensteine (Stand 04.04.2025, Diagnostik) beschreibt
+       * die Spiegelung „über die Speiseröhre, den Magen und den Anfang des
+       * Zwölffingerdarms bis zur Mündung des Gallengangs".
        */
       if (gastritisC && d.nsarTage >= 1) {
         dafuer.push('Deine Gastritis ist als Typ C eingetragen – durch chemische Stoffe '
-          + 'entstanden. Neben dem Rückfluss von Darminhalt gehören entzündungshemmende '
+          + 'entstanden. Neben zurücklaufender Gallenflüssigkeit aus dem Zwölffingerdarm '
+          + 'gehören entzündungshemmende '
           + 'Schmerzmittel zu den häufigsten Ursachen einer solchen Schleimhautschädigung; '
           + 'ob sie es bei dir sind, steht in deinem Befund, nicht hier. Bei '
           + 'Magen-Darm-Störungen in der Vorgeschichte sehen Fachinformationen mancher '
@@ -690,13 +738,20 @@ const VERDAECHTE = [
       if (d.nsarTage >= 3) stand = 'gestuetzt';
       else if (d.nsarTage >= 1) stand = 'moeglich';
       // Die Frage so, dass sie sich in der Sprechstunde vorlesen lässt:
-      // „regelmäßig" stimmt bei anfallsweiser Einnahme nicht.
-      const frage = d.nsarKopfTage > 0 || (d.nsarTage >= 1 && d.nsarTage < 3)
-        ? `${d.nsarKopfTage > 0 ? 'Bei Kopfschmerzen' : 'Gelegentlich'} nehme ich ein `
+      // „regelmäßig" stimmt bei anfallsweiser Einnahme nicht. Und ohne ein
+      // eingetragenes Mittel behauptet sie keine Einnahme (bis zur Fassung 30
+      // stand dann „Ich nehme regelmäßig …" neben „Kein solches Schmerzmittel
+      // eingetragen").
+      let frage;
+      if (d.nsarKopfTage > 0 || (d.nsarTage >= 1 && d.nsarTage < 3)) {
+        frage = `${d.nsarKopfTage > 0 ? 'Bei Kopfschmerzen' : 'Gelegentlich'} nehme ich ein `
           + 'entzündungshemmendes Schmerzmittel'
           + `${gastritisC ? ' – mit meiner Gastritis Typ C' : ''}: Ist das so in Ordnung, `
-          + 'braucht es einen Magenschutz dazu, oder gibt es für mich eine andere Lösung?'
-        : undefined;
+          + 'braucht es einen Magenschutz dazu, oder gibt es für mich eine andere Lösung?';
+      } else if (!(d.nsarTage >= 1)) {
+        frage = 'Falls ich ein entzündungshemmendes Schmerzmittel brauche: Gibt es eine '
+          + 'magenfreundlichere Alternative, oder wäre ein Magenschutz angezeigt?';
+      }
       return {
         stand,
         ...(frage ? { frage } : {}),
@@ -708,34 +763,91 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quelle (Fassung 30): gesund.bund.de/blutarmut-anaemie (mit IQWiG, Stand
+   * 13.07.2021). „Häufige Ursache für die Blutarmut ist ein Eisenmangel."
+   * „Wie entsteht …?": Ein Eisenmangel ist möglich, wenn „aufgrund einer
+   * Erkrankung wie einer Glutenunverträglichkeit (Zöliakie) zu wenig Eisen
+   * aus dem Darm aufgenommen wird" oder „es zu einem chronischen Blutverlust
+   * kommt, etwa nach Verletzungen im Magen-Darm-Trakt, durch eine
+   * Magenschleimhautentzündung oder bei starken Regelblutungen". „Wie kann
+   * …verlaufen?": „bleibt oft lange unbemerkt". „Wie wird …diagnostiziert?":
+   * „Dabei werden zum Beispiel der Gehalt an rotem Blutfarbstoff (Hämoglobin)
+   * bestimmt und die Zahl der roten Blutkörperchen überprüft. Im Blut kann man
+   * zudem die Menge an Eisen … messen" – und „Lässt sich ein Eisenmangel nicht
+   * durch eine zu geringe Aufnahme mit der Nahrung erklären", schauen
+   * Ärztinnen und Ärzte nach einer Darmentzündung und prüfen, „ob zum Beispiel
+   * kleine Wunden im Darm zu einem chronischen Blutverlust führen".
+   *
+   * Bis zur Fassung 30 stand hier „seine häufigste stille Folge", das Blutbild
+   * mit Ferritin beantworte in „einer Viertelstunde" „zwei Fragen auf einmal:
+   * ob Blut verlorengeht und ob eine Zöliakie schon Spuren hinterlassen hat",
+   * und es sei „die billigste Untersuchung auf dieser Liste" und schließe „am
+   * meisten auf einmal" aus. Eine Rangfolge und eine Dauer nennt die Seite
+   * nicht, und woher ein Eisenmangel kommt, beantwortet die Blutprobe dort
+   * nicht – danach wird weiter gesucht. Ferritin nennt keine geprüfte Quelle
+   * beim Namen; die Frage zum Vorlesen fragt deshalb nach der Untersuchung,
+   * nicht nach einem Laborwert.
+   *
+   * Schwarzer, klebriger Stuhl (teerstuhl) ist in js/bild.js „sofort" und
+   * bekommt den Satz der Warnkarte (warnTeil in js/app.js), wie beim Geschwür
+   * oben; Zeichen einer Blutarmut (blaesse) sind „zeitnah": gesund.bund.de/
+   * magengeschwuer (Stand 07.01.2022) nennt „Anzeichen einer Blutarmut
+   * (Anämie) wie Abgeschlagenheit, Luftnot bei körperlichen Anstrengungen oder
+   * Blässe" unter dem, was „zeitnah ärztlich abklären zu lassen" ist.
+   */
   {
     id: 'blut',
     name: 'Blutarmut, Eisenmangel',
-    was: 'Kein Verdauungsproblem, aber seine häufigste stille Folge – eine '
-      + 'Blutung, die man nicht sieht, oder eine Aufnahmestörung.',
-    untersuchung: 'Blutbild und Ferritin. Eine Viertelstunde, und es beantwortet '
-      + 'zwei Fragen auf einmal: ob Blut verlorengeht und ob eine Zöliakie '
-      + 'schon Spuren hinterlassen hat.',
-    frage: 'Wären ein Blutbild und Ferritin sinnvoll?',
+    was: 'Häufige Ursache einer Blutarmut ist laut gesund.bund.de ein Eisenmangel. '
+      + 'Er kann mit dem Verdauungstrakt zu tun haben: durch einen chronischen '
+      + 'Blutverlust, etwa nach Verletzungen im Magen-Darm-Trakt oder durch eine '
+      + 'Magenschleimhautentzündung, oder weil bei einer Zöliakie zu wenig Eisen '
+      + 'aufgenommen wird. Eine Blutarmut bleibt oft lange unbemerkt.',
+    untersuchung: 'Eine Blutuntersuchung: Laut gesund.bund.de werden dabei etwa der '
+      + 'rote Blutfarbstoff und die Zahl der roten Blutkörperchen bestimmt, und die '
+      + 'Menge an Eisen lässt sich messen. Lässt sich ein Eisenmangel nicht durch die '
+      + 'Ernährung erklären, suchen Ärztinnen und Ärzte laut derselben Seite weiter '
+      + 'nach dem Grund, etwa nach einem Blutverlust im Darm.',
+    frage: 'Wäre eine Blutuntersuchung auf Blutarmut und Eisenmangel sinnvoll?',
     pruefe: (d) => {
       const dafuer = [];
-      if (d.warnIds.includes('blaesse') || d.warnIds.includes('teerstuhl')) {
+      const teer = d.warnIds.includes('teerstuhl');
+      const blass = d.warnIds.includes('blaesse');
+      if (blass || teer) {
         dafuer.push('Im Tagebuch steht ein Warnzeichen, das dazu passt.');
       }
-      // Die eine Lage, in der Blutbild und Ferritin keine Routine sind, sondern
-      // eine konkrete Frage: Defekte an der Engstelle eines Zwerchfellbruchs
-      // bluten unbemerkt, und ein NSAR macht sie wahrscheinlicher.
+      /*
+       * Mit Zwerchfellbruch und NSAR wird die Untersuchung zu einer konkreten
+       * Frage. Moskovitz, Am J Gastroenterol 1992 (PMID 1595651, Abstract):
+       * bei großen Brüchen „small erosions at the waist of the hernia which
+       * bleed slowly"; Kimer, BMJ Case Rep 2010 (PMID 22791730, Abstract):
+       * „associated with occult bleeding and development of chronic iron
+       * deficiency anaemia"; Gray, Dis Esophagus 2015 (PMID 24758713,
+       * Abstract): „frequent non-steroidal anti-inflammatory drug (NSAID) use
+       * … significantly greater with Cameron lesions" und „Large HH size and
+       * NSAID use were identified as independent risk factors". Bis zur
+       * Fassung 30: „selten, aber genau die Frage, die ein Blutbild
+       * beantwortet" – ob ein Bruch blutet, zeigt eine Blutprobe nicht.
+       */
       if ((d.befundIds || []).includes('hiatushernie') && d.nsarTage >= 1) {
         dafuer.push('Zwerchfellbruch und entzündungshemmendes Schmerzmittel zusammen: '
-          + 'An der Engstelle des Bruchs können kleine Defekte unbemerkt bluten – '
-          + 'selten, aber genau die Frage, die ein Blutbild beantwortet.');
+          + 'An der Engstelle des Bruchs können, vor allem bei großen Brüchen, kleine '
+          + 'Schleimhautdefekte entstehen, die langsam und unbemerkt bluten und zu '
+          + 'Eisenmangel führen können; in einer Studie fanden sie sich bei häufiger '
+          + 'Einnahme solcher Mittel öfter. Ob das bei dir zutrifft, klärt die Praxis.');
       }
+      const eile = [
+        teer ? 'Bei schwarzem, klebrigem Stuhl nicht auf einen Termin warten – '
+          + 'Notaufnahme oder 112.' : '',
+        blass ? 'Zeichen einer Blutarmut gehören laut gesund.bund.de zeitnah ärztlich '
+          + 'abgeklärt.' : '',
+      ].filter(Boolean).join(' ');
       return {
         stand: dafuer.length > 1 ? 'moeglich' : 'offen',
         dafuer,
         dagegen: [],
-        offen: 'Aus einem Tagebuch nie zu sehen. Steht hier, weil es die billigste '
-          + 'Untersuchung auf dieser Liste ist und am meisten auf einmal ausschließt.',
+        offen: `Aus einem Tagebuch nicht zu sehen.${eile ? ` ${eile}` : ''}`,
       };
     },
   },

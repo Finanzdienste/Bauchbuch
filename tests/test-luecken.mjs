@@ -309,6 +309,50 @@ check(
   const nochUlkus = wegUlkus.filter((w) => lUlkus.includes(w));
   check(nochUlkus.length === 0 && lUlkus.includes('Ist die Frage ausgeschaltet, zählt dieser Posten immer null'),
     `auch diese Sätze sind gestrichen oder neu gefasst (${nochUlkus.join(', ') || 'keiner übrig'})`);
+
+  /*
+   * Gallensteine, Schmerzmittel und Blutarmut (Fassung 30, vierte Runde). Die
+   * Fragen zum Vorlesen behaupten nur, was das Tagebuch zeigt; die Texte sagen
+   * nur, was gesund.bund.de trägt; und schwarzer, klebriger Stuhl bekommt
+   * auch hier den Satz der Warnkarte. Belege an den Verdachten in js/luecken.js.
+   */
+  const fettKlasse = (differenz) => ({
+    id: 'fett', name: 'Fett', genug: true, differenz, schnittMit: 3 + differenz, schnittOhne: 3, faelle: 12, gegenFaelle: 40,
+  });
+  const galleOhne = luecken({ ...d, klassen: [fettKlasse(-1)] }).verdaechte.find((v) => v.id === 'galle');
+  check(galleOhne.frage === 'Wäre ein Ultraschall der Gallenblase sinnvoll?' && galleOhne.dafuer.length === 0,
+    `Gallensteine ohne Fettbezug: die Frage behauptet keinen (${galleOhne.frage})`);
+  const galleMit = luecken({ ...d, klassen: [fettKlasse(1.2)] }).verdaechte.find((v) => v.id === 'galle');
+  check(galleMit.frage.startsWith('Nach fettem Essen sind meine Beschwerden laut Tagebuch im Mittel stärker')
+    && galleMit.dafuer.some((x) => x.startsWith('Fett: danach im Mittel 4,2 statt 3,0')),
+  `mit Fettbezug sagt sie nur, was gezählt ist (${galleMit.frage})`);
+  check(galleOhne.was.includes('laut gesund.bund.de krampfartige Schmerzen im Oberbauch')
+    && galleOhne.untersuchung.includes('Ultraschall des Bauchraums'),
+  'Gallensteine: Beschwerden und Untersuchung so, wie gesund.bund.de sie nennt');
+  const nsar0 = luecken(d).verdaechte.find((v) => v.id === 'nsar');
+  check(nsar0.dagegen.includes('Kein solches Schmerzmittel eingetragen.') && !/Ich nehme/.test(nsar0.frage)
+    && nsar0.frage.startsWith('Falls ich ein entzündungshemmendes Schmerzmittel brauche'),
+  `ohne eingetragenes Schmerzmittel behauptet die Frage keine Einnahme (${nsar0.frage})`);
+  check(satzC.includes('zurücklaufender Gallenflüssigkeit aus dem Zwölffingerdarm') && !satzC.includes('Darminhalt'),
+    'Typ C: dieselbe Ursache wie im Befundtext, nicht „Darminhalt“');
+  const blut = (warnIds) => luecken({ ...d, warnIds }).verdaechte.find((v) => v.id === 'blut');
+  const blutTeer = blut(['teerstuhl']);
+  check(blutTeer.offen.includes('Bei schwarzem, klebrigem Stuhl nicht auf einen Termin warten – Notaufnahme oder 112.')
+    && blutTeer.dafuer.length === 1,
+  `Blutarmut mit schwarzem, klebrigem Stuhl: der Satz der Warnkarte steht dabei (${blutTeer.offen})`);
+  check(blut(['blaesse']).offen.includes('zeitnah ärztlich abgeklärt') && !blut(['blaesse']).offen.includes('112')
+    && blut([]).offen === 'Aus einem Tagebuch nicht zu sehen.',
+  'Blässe „zeitnah“, ohne Warnzeichen kein Zusatz');
+  const wegRunde4 = ['klassisch nach fettem Essen', 'abends oder nachts', 'mit einer Gastritis zu verwechseln',
+    'Zehn Minuten', 'außer nüchtern', 'die erste Frage', 'häufigste stille Folge', 'Viertelstunde',
+    'zwei Fragen auf einmal', 'Spuren hinterlassen', 'billigste', 'am meisten auf einmal', 'Ferritin',
+    'Der Schmerz kommt nach fettem Essen', 'Darminhalt',
+    'genau die Frage, die ein Blutbild beantwortet', 'zur Fruktose liegt keine vor'];
+  const lRunde4 = JSON.stringify([l, luecken({ ...d, klassen: [fettKlasse(1.2)], warnIds: ['teerstuhl', 'blaesse'],
+    befundIds: ['hiatushernie', 'gastritis-c'], nsarTage: 4 })]);
+  const nochRunde4 = wegRunde4.filter((w) => lRunde4.includes(w));
+  check(nochRunde4.length === 0 && lRunde4.includes('Engstelle des Bruchs'),
+    `auch diese Sätze sind gestrichen oder neu gefasst (${nochRunde4.join(', ') || 'keiner übrig'})`);
 }
 
 /*

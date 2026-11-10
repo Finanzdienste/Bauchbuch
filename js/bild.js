@@ -99,8 +99,18 @@ export const WARNZEICHEN = [
     id: 'blaesse',
     name: 'Auffällige Blässe, Schwäche oder Luftnot bei Anstrengung',
     dringlichkeit: 'zeitnah',
-    warum: 'Zeichen, die zu einer Blutarmut passen – ein Blutbild klärt das in '
-      + 'einer Viertelstunde.',
+    /*
+     * gesund.bund.de/blutarmut-anaemie (mit IQWiG, Stand 13.07.2021): „Eine
+     * Anämie macht sich meist durch Blässe, Müdigkeit, Kopfschmerzen und
+     * Schwächegefühl bemerkbar", dazu „Kurzatmigkeit bei Anstrengung"; „Um eine
+     * Anämie festzustellen, ist ein umfangreiches ärztliches Gespräch
+     * (Anamnese) wesentlich. … Anschließend wird eine Blutprobe … untersucht."
+     * Bis zur Fassung 30: „ein Blutbild klärt das in einer Viertelstunde" –
+     * die Dauer nennt keine geprüfte Quelle.
+     */
+    warum: 'Blässe, Schwäche und Kurzatmigkeit bei Anstrengung nennt gesund.bund.de '
+      + 'als mögliche Zeichen einer Blutarmut. Festgestellt wird sie im ärztlichen '
+      + 'Gespräch und mit einer Blutprobe.',
   },
   {
     id: 'fieber',
@@ -482,8 +492,14 @@ function musterUnterleib(d) {
  *                    wird eine Laktoseintoleranz diagnostiziert?"): „Das
  *                    Standardverfahren in Deutschland ist der Atemtest." Bis zur
  *                    Fassung 30: „H2-Atemtest, dauert einen Vormittag" – die
- *                    Dauer nennt keine geprüfte Quelle, und zur Fruktose liegt
- *                    keine vor.
+ *                    Dauer nennt keine geprüfte Quelle. Einen Atemtest auf
+ *                    Fruktose belegt der North American Consensus (Am J
+ *                    Gastroenterol 2017, PMID 28323273, Abstract: „Consensus
+ *                    doses for lactulose, glucose, fructose and lactose BT
+ *                    …"; siehe provokationTeil in js/app.js); eine Dauer
+ *                    nennt auch er nicht. Der sichtbare Satz bleibt bei Laktose,
+ *                    weil er die Seite von gesund.bund.de wiedergibt, und
+ *                    überlässt die Wahl des Tests der Praxis.
  *   Zöliakie         EMA/CHMP/639441/2013 corr. 2 (9. Oktober 2017), S. 4:
  *                    „Diagnosis is by blood tests to check for relevant
  *                    antibodies, followed by endoscopy/gastroscopy and biopsy.

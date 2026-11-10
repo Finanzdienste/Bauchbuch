@@ -1521,9 +1521,9 @@ export function arztBericht(zustand, von, bis) {
   if (k.dyspepsie.pruefbar) {
     kZeilen.push('  Magenbeschwerden ab Stärke 4 (gezählt, keine Einordnung):');
     kZeilen.push('    Druck, Völlegefühl oder früh satt:');
-    kZeilen.push(`        an ${k.dyspepsie.pds.tage} Tagen, ${fmtZahl(k.dyspepsie.pds.proWoche)} je Woche der notierten Tage`);
+    kZeilen.push(`        an ${mehrzahl(k.dyspepsie.pds.tage, 'Tag', 'Tagen')}, ${fmtZahl(k.dyspepsie.pds.proWoche)} je Woche der notierten Tage`);
     kZeilen.push('    Brennen oder Schmerz im Oberbauch:');
-    kZeilen.push(`        an ${k.dyspepsie.eps.tage} Tagen, ${fmtZahl(k.dyspepsie.eps.proWoche)} je Woche der notierten Tage`);
+    kZeilen.push(`        an ${mehrzahl(k.dyspepsie.eps.tage, 'Tag', 'Tagen')}, ${fmtZahl(k.dyspepsie.eps.proWoche)} je Woche der notierten Tage`);
   } else {
     kZeilen.push('  Magenbeschwerden              nicht gezählt (zu wenige notierte Tage)');
   }
