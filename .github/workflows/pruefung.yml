@@ -90,7 +90,10 @@ jobs:
 
   klicken:
     name: Browsertests
-    runs-on: ubuntu-latest
+    # Fest auf 24.04: Auf ubuntu-latest (26.04) kann die Playwright-Fassung
+    # aus package-lock.json die Abhängigkeiten von Chromium nicht installieren,
+    # und kein einziger Test liefe an.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
