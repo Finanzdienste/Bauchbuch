@@ -12,9 +12,19 @@
  *
  * Ein Provokationstest macht daraus etwas Kurzes und Wiederholbares. Eine
  * festgelegte Menge, nüchtern, ein festes Beobachtungsfenster – und das Ganze
- * mehrmals. Genau so wird auf Laktose- und Fruktoseunverträglichkeit geprüft;
- * in der Klinik misst dabei ein Atemtest den Wasserstoff mit, zu Hause bleibt
- * die Beschwerdestärke. Der Aufbau ist derselbe.
+ * mehrmals. Ähnlich gedacht, aber nicht gleich, ist der Atemtest in einer
+ * Praxis: Nach dem Trinken einer Milchzuckerlösung wird mehrmals der
+ * Wasserstoff in der Atemluft gemessen, und nur wenn während des Tests
+ * typische Beschwerden auftreten, lässt sich eine Laktoseintoleranz sicher
+ * feststellen (gesund.bund.de/laktoseintoleranz, Stand 23.02.2026, „Wie wird
+ * eine Laktoseintoleranz diagnostiziert?“); für Fruktose gibt es einen
+ * solchen Atemtest ebenso (North American Consensus, Am J Gastroenterol 2017,
+ * PMID 28323273, Abstract), und die europäische Leitlinie verlangt dazu eine
+ * Erfassung der Beschwerden während des Tests (UEG J 2022, PMID 34431620,
+ * Abstract). Zu Hause fehlt die Messung, es bleibt die Beschwerdestärke.
+ * Wiederholung und Leerdurchgang gehören zum Aufbau dieser App, nicht zum
+ * Test in der Praxis. („Genau so wird … geprüft“ stand hier bis zur Fassung
+ * 29.)
  *
  * DREI DINGE MACHEN DEN UNTERSCHIED ZU „ICH TRINK MAL EIN GLAS MILCH"
  *
@@ -28,10 +38,12 @@
  *   3. DER LEERDURCHGANG. Derselbe Ablauf ohne die Sache – nüchtern, gleiche
  *      Uhrzeit, gleiches Fenster, nur ohne Milch. Er kostet einen Morgen und
  *      ist das Wertvollste am ganzen Test: Ohne ihn wird das Nüchternsein
- *      selbst zum Verdächtigen. Nüchternschmerz ist bei Magenbeschwerden ein
- *      eigenes Muster – diese App führt es an anderer Stelle sogar auf. Wer
- *      ohne Leerdurchgang testet, kann einen Magen, der leer wehtut, nicht von
- *      einer Unverträglichkeit unterscheiden.
+ *      selbst zum Verdächtigen. Manche Magenbeschwerden treten gerade bei
+ *      leerem Magen auf (beim Zwölffingerdarmgeschwür „eher bei leerem Magen“,
+ *      gesund.bund.de/zwoelffingerdarmgeschwuer, Stand 27.01.2022) – diese App
+ *      führt Nüchternschmerz an anderer Stelle sogar auf. Wer ohne
+ *      Leerdurchgang testet, kann solche Beschwerden nicht von einer
+ *      Unverträglichkeit unterscheiden.
  *
  * WARUM EIN GEPLANTER TEST WENIGER VERLANGT ALS EIN FUND IM TAGEBUCH
  *
@@ -45,13 +57,18 @@
  *
  * WAS ER NICHT IST
  *
- * Nicht verblindet. Wer das Glas trinkt, weiß, was drin ist, und Erwartung
- * erzeugt bei Bauchbeschwerden echte Beschwerden – das ist keine Einbildung
- * zweiter Klasse, das ist Physiologie. Daraus folgt eine Schieflage, die in
- * jeder Ausgabe steht: **Ein Test, der nichts findet, ist verlässlicher als
- * einer, der etwas findet.** Die Erwartung schiebt nur in eine Richtung. Wer
- * nach drei sauberen Durchgängen nichts merkt, hat eine echte Entlastung; wer
- * etwas merkt, hat einen starken Verdacht und keinen Beweis.
+ * Nicht verblindet. Wer das Glas trinkt, weiß, was drin ist, und schon die
+ * Erwartung kann echte Beschwerden auslösen (Nocebo-Effekt: „stellen sich
+ * manchmal tatsächlich Symptome … ein“, gesund.bund.de/elektromagnetische-
+ * felder-emf, Stand 24.03.2022; das heißt nicht, dass sich jemand Beschwerden
+ * einbildet). Sie kann Beschwerden aber auch abschwächen: Bei gleicher
+ * tatsächlicher Glutenmenge hatten Menschen, die glutenfreies Brot erwarteten,
+ * deutlich weniger Magen-Darm-Beschwerden als die, die Gluten erwarteten
+ * (de Graaf et al., Lancet Gastroenterol Hepatol 2024, PMID 38040019,
+ * Abstract). Deshalb steht in jeder Ausgabe: **Ohne Verblindung ist keines der
+ * Ergebnisse ein Nachweis** – weder das mit noch das ohne Reaktion. Bis zur
+ * Fassung 29 hieß es hier, die Erwartung schiebe „nur in eine Richtung“ und
+ * ein Test ohne Befund sei deshalb verlässlicher; das trägt keine Quelle.
  *
  * Reine Rechnung. Was gestartet und eingetragen wird, steht in js/store.js.
  */
@@ -66,7 +83,13 @@ export const MINDEST_LAEUFE = 3;
 /** Und so viele Leerdurchgänge, damit gegen sie verglichen werden darf. */
 export const MINDEST_LEER = 2;
 
-/** Zwischen zwei Durchgängen: so viele Tage, damit nichts nachwirkt. */
+/**
+ * Zwischen zwei Durchgängen: so viele Tage – eine Festlegung dieser App,
+ * keine Vorgabe aus einer Quelle. Nach Milchzucker können Beschwerden „über
+ * mehrere Stunden andauern“ (gesund.bund.de/laktoseintoleranz, Stand
+ * 23.02.2026); wie lange ein Durchgang nachwirken kann, sagt keine
+ * erreichbare Quelle. („damit nichts nachwirkt“ stand hier bis zur Fassung 29.)
+ */
 export const ABSTAND_TAGE = 2;
 
 /** Eine ganze Stufe – dieselbe Schwelle wie überall in dieser App. */
@@ -84,47 +107,116 @@ const mittelAus = (l) => (l.length ? l.reduce((a, b) => a + b, 0) / l.length : 0
  * Eine kurze feste Liste und keine Ableitung aus der Bilanz, denn nicht jeder
  * Verdacht taugt für dieses Verfahren. „Fettiges" hat keine Menge, die man
  * nüchtern zu sich nimmt; Milchzucker, Fruchtzucker, Zuckeralkohole und Koffein
- * schon. Genau deshalb gibt es für diese vier auch in der Klinik einen Test.
+ * schon. Für Milch- und Fruchtzucker gibt es in der Praxis außerdem einen
+ * Atemtest (siehe oben; North American Consensus, PMID 28323273: „Consensus
+ * doses for … fructose and lactose BT were … 25 and 25 g“); für
+ * Zuckeralkohole und Koffein nennt keine geprüfte Quelle einen solchen Test.
+ * („Genau deshalb gibt es für diese vier auch in der Klinik einen Test“ stand
+ * hier bis zur Fassung 29.)
  *
- * DIE MENGEN SIND ABSICHTLICH KLEINER ALS IN DER KLINIK. Ein Atemtest arbeitet
- * mit 25 g Laktose – das sind gut 500 ml Milch, und die Menge beantwortet die
- * Frage „liegt eine Malabsorption vor". Hier steht eine alltagsübliche Menge,
- * weil hier die andere Frage zählt: „macht mir das, was ich tatsächlich esse,
- * Beschwerden". Nur die zweite ändert etwas am Alltag – und die Testdosis
- * eigenhändig zu Hause zu nehmen, macht vor allem einen scheußlichen Tag.
+ * DIE MENGEN SIND ABSICHTLICH KLEINER ALS IN DER PRAXIS. Der Atemtest arbeitet
+ * mit 25 g Laktose (PMID 28323273); 24 g stecken in etwa 500 ml Milch
+ * (gesund.bund.de/laktoseintoleranz: „bis zu 24 Gramm Laktose über den Tag
+ * verteilt: zum Beispiel 500 Milliliter Milch“). Seine Messwerte zeigen, ob
+ * Milchzucker unverdaut bleibt; ob er Beschwerden macht, zeigen erst die
+ * Beschwerden während des Tests (gesund.bund.de; europäische Leitlinie, PMID
+ * 34431620). Hier steht dagegen eine Portion, wie sie im Alltag vorkommt, weil
+ * hier die Frage zählt: „macht mir das, was ich tatsächlich esse,
+ * Beschwerden".
+ *
+ * Woher die Mengen kommen: 250 ml Milch nennt gesund.bund.de als Beispiel für
+ * „bis zu 12 Gramm Laktose auf einmal“, die normalerweise gut verträglich
+ * sind. Die übrigen (Apfelsaft oder Apfel, Kaugummis oder Trockenpflaumen,
+ * eine Tasse Kaffee) hat Body Check als Alltagsportionen festgelegt; sie
+ * stammen aus keiner Quelle. Ob eine Unverträglichkeit vorliegt, klären
+ * Ärztin oder Arzt – das sagt die Karte dazu (js/app.js).
  */
 export const PRUEFBAR = [
+  /*
+   * Quelle: gesund.bund.de/laktoseintoleranz (Stand 23.02.2026), „Was sind die
+   * Ursachen?“: Reicht die Laktase nicht aus, „bleibt im Dünndarm Milchzucker
+   * übrig“, der im Dickdarm vergoren wird; „Woran bemerkt man …?“: Blähungen,
+   * Unterbauchschmerzen, Durchfall u. a., „frühestens eine halbe Stunde“ danach,
+   * am stärksten „nach etwa eineinhalb bis zwei Stunden“, „über mehrere
+   * Stunden“. Bis zur Fassung 29: „Fehlt das spaltende Enzym“ und „meist ein
+   * bis vier Stunden danach“ – so stand es dort nicht.
+   */
   {
     id: 'laktose',
     name: 'Laktose – Milchzucker',
     was: '250 ml Milch',
-    warum: 'Fehlt das spaltende Enzym, bleibt der Milchzucker liegen und wird im '
-      + 'Dickdarm vergoren: Gas, Krämpfe, weicher Stuhl, meist ein bis vier '
-      + 'Stunden danach.',
+    warum: 'Reicht das spaltende Enzym (Laktase) nicht aus, bleibt Milchzucker übrig und '
+      + 'wird im Dickdarm von Bakterien vergoren: Blähungen, Bauchschmerzen, Durchfall. '
+      + 'Die Beschwerden beginnen frühestens nach einer halben Stunde, sind nach etwa '
+      + 'eineinhalb bis zwei Stunden am stärksten und können mehrere Stunden anhalten.',
   },
+  /*
+   * Quelle: EMA/CHMP/460886/2014, Information for the package leaflet regarding
+   * fructose and sorbitol (9. Oktober 2017), 3.1: „fructose absorption is
+   * dose-dependent and facilitated by the simultaneous ingestion of glucose“;
+   * 4.1: „It occurs when the amount of fructose consumed is more than the small
+   * intestines can absorb. Unabsorbed fructose acts as an osmotic load which
+   * can cause diarrhoea and other gastrointestinal symptoms“, und die erbliche
+   * Fruktoseintoleranz (HFI) ist davon zu unterscheiden – bei ihr reichert sich
+   * in der Leber ein giftiges Abbauprodukt an. Bis zur Fassung 29: „Der
+   * häufigste und der am meisten übersehene“ und „Apfelsaft ist die
+   * unbarmherzigste Form“ – das sagt keine erreichbare Quelle.
+   */
   {
     id: 'fruktose',
     name: 'Fruktose – Fruchtzucker',
     was: '200 ml Apfelsaft oder ein großer Apfel',
-    warum: 'Der häufigste und der am meisten übersehene: Fruchtzucker wird nur '
-      + 'begrenzt aufgenommen, und was übrig bleibt, wird vergoren. Apfelsaft '
-      + 'ist die unbarmherzigste Form, weil er viel davon auf einmal liefert.',
+    warum: 'Der Dünndarm nimmt Fruchtzucker nur bis zu einer gewissen Menge auf; wie '
+      + 'viel, hängt davon ab, wie viel auf einmal kommt und ob gleichzeitig Traubenzucker '
+      + 'dabei ist. Was nicht aufgenommen wird, kann Durchfall und andere '
+      + 'Magen-Darm-Beschwerden auslösen. Nicht gedacht bei der seltenen erblichen '
+      + 'Fruktoseintoleranz – das ist eine andere Erkrankung.',
   },
+  /*
+   * Quellen: EMA/CHMP/460886/2014 (siehe oben), 3.1: „Sorbitol is incompletely
+   * absorbed“, Aufnahme als Einzeldosis „no more than 2–10 g“, „it has been
+   * suggested that, when given together, sorbitol and fructose compete for
+   * absorption“; Tabelle: „Sorbitol may cause gastrointestinal discomfort and
+   * mild laxative effect“; Sorbitol „is a source of fructose“ (Hinweis zur
+   * HFI). medikamio.com, Fructoseintoleranz: Sorbit steckt „in zuckerfreien
+   * Süßigkeiten und Früchten wie Pflaumen oder Marillen“; medikamio.com,
+   * Verstopfung: „Trockenpflaumen … enthalten jedoch oft eine große Menge an
+   * Sorbit, das an sich abführend wirkt“. Bis zur Fassung 29: „in allem
+   * Zuckerfreien“, „kaum aufgenommen“, „verstärkt obendrein die Wirkung“ – zu
+   * bestimmt für diese Quellen.
+   */
   {
     id: 'sorbit',
     name: 'Sorbit – Zuckeralkohol',
     was: '3 zuckerfreie Kaugummis oder 5 Trockenpflaumen',
-    warum: 'Steckt in allem „Zuckerfreien" und in getrocknetem Obst. Wird kaum '
-      + 'aufgenommen und zieht Wasser in den Darm – und verstärkt obendrein die '
-      + 'Wirkung von Fruchtzucker, wenn beides zusammen kommt.',
+    warum: 'Steckt als Süßungsmittel in manchen „zuckerfreien" Süßigkeiten und kommt in '
+      + 'manchen Früchten vor, in Trockenpflaumen oft reichlich. Der Darm nimmt es nur '
+      + 'begrenzt auf; größere Mengen können Bauchbeschwerden machen und leicht '
+      + 'abführend wirken. Zusammen mit Fruchtzucker konkurriert es womöglich um die '
+      + 'Aufnahme. Nicht gedacht bei der seltenen erblichen Fruktoseintoleranz.',
   },
+  /*
+   * Quellen: Nehlig, Effects of Coffee on the Gastro-Intestinal Tract,
+   * Nutrients 2022;14(2):399, PMID 35057580, Abstract: „the stimulation of
+   * gastric acid secretion … the stimulation of colic motility“ – das gilt für
+   * Kaffee, nicht für Koffein allein. Beschwerden bei leerem Magen:
+   * gesund.bund.de/zwoelffingerdarmgeschwuer (Stand 27.01.2022): „eher bei
+   * leerem Magen“; gesund.bund.de/reizmagen-funktionelle-dyspepsie (Stand
+   * 05.02.2026): „Treten diese Beschwerden über Monate hinweg immer wieder auf,
+   * sollte man sie ärztlich abklären lassen.“ Bis zur Fassung 29: „Nüchtern
+   * trifft es am deutlichsten“ und „Ein leerer Magen tut auch ohne Kaffee weh“
+   * – das Erste sagt keine Quelle, das Zweite machte ein Zeichen, das abgeklärt
+   * gehören kann, zum Normalfall.
+   */
   {
     id: 'koffein',
     name: 'Koffein',
     was: 'eine Tasse Kaffee',
-    warum: 'Regt die Säurebildung an und beschleunigt den Darm. Nüchtern trifft '
-      + 'es am deutlichsten – deshalb ist gerade hier der Leerdurchgang wichtig: '
-      + 'Ein leerer Magen tut auch ohne Kaffee weh.',
+    warum: 'Kaffee regt laut einer Übersichtsarbeit die Bildung von Magensäure und die '
+      + 'Bewegung des Dickdarms an. Getestet wird nüchtern, und Beschwerden bei leerem '
+      + 'Magen können auch andere Ursachen haben – deshalb ist gerade hier der '
+      + 'Leerdurchgang wichtig. Kommen Magenbeschwerden über Monate immer wieder, '
+      + 'gehören sie ärztlich abgeklärt.',
   },
 ];
 
@@ -132,17 +224,25 @@ export const PRUEFBAR = [
  * Wofür dieses Verfahren *nicht* gedacht ist.
  *
  * Der eine Satz, der in dieser Datei aus einem anderen Grund steht als alle
- * übrigen. Eine Unverträglichkeit ist mengenabhängig und unangenehm; eine
- * Allergie ist etwas anderes und kann in Minuten gefährlich werden. Wer bei
- * einem Lebensmittel schon einmal Ausschlag, Schwellung, Atemnot oder
- * Kreislaufprobleme hatte, darf es nicht auf eigene Faust noch einmal
- * versuchen – das gehört unter Aufsicht, mit dem Nötigen im Raum.
+ * übrigen. Eine Milchzucker-Unverträglichkeit „ist keine Allergie“: Wer sie
+ * hat, verträgt bestimmte Mengen (gesund.bund.de/laktoseintoleranz). Eine
+ * Nahrungsmittelallergie setzt meist innerhalb einer halben Stunde ein und
+ * kann zu einer anaphylaktischen Reaktion führen, mit Blutdruckabfall,
+ * Bewusstlosigkeit, Schwellungen und Atemnot; mögliche Zeichen sind auch
+ * Schwellungen der Mund- und Rachenschleimhaut und Hautausschläge. Weil
+ * andere Erkrankungen ähnliche Beschwerden machen können („Die
+ * Verwechslungsgefahr ist hoch“), gehört ein Verdacht ärztlich abgeklärt; ein
+ * Provokationstest findet dann „unter ärztlicher Beobachtung“ statt
+ * (gesund.bund.de/nahrungsmittelallergie, Stand 27.05.2024). Bis zur
+ * Fassung 29 hieß es „Das wäre eine Allergie“ – das stellte eine Diagnose,
+ * wo die Quelle einen Verdacht nennt.
  */
-export const NICHT_BEI_ALLERGIE = 'Nicht anwenden, wenn du bei dieser Sache '
-  + 'schon einmal Ausschlag, Schwellung im Mund oder Hals, Atemnot oder '
-  + 'Kreislaufprobleme hattest. Das wäre eine Allergie und keine '
-  + 'Unverträglichkeit – die wird nicht zu Hause provoziert, sondern ärztlich '
-  + 'abgeklärt.';
+export const NICHT_BEI_ALLERGIE = 'Nicht anwenden, wenn du nach dieser Sache '
+  + 'schon einmal Ausschlag, Schwellungen im Mund oder Rachen, Atemnot oder '
+  + 'Kreislaufprobleme hattest. Solche Beschwerden können auf eine Allergie '
+  + 'hindeuten, ähnliche aber auch andere Ursachen haben. Das wird nicht zu Hause '
+  + 'provoziert, sondern ärztlich abgeklärt – ein Provokationstest findet dann unter '
+  + 'ärztlicher Beobachtung statt.';
 
 /**
  * Ein einzelner Durchgang: was danach kam, und ob er zählt.
@@ -179,8 +279,8 @@ export function laufBild(eintraege, lauf, p, vorheriger = null) {
    * Eine Beschwerde „morgens" ohne Bezug zum Essen ist offen auf dieselbe
    * Weise, und doch etwas anderes: Sie *ist* das Ergebnis. Wer Durchgänge mit
    * einer solchen Beschwerde verwirft, verwirft genau die mit Reaktion und
-   * behält die ruhigen – und am Ende stünde „bestätigt sich nicht", das
-   * Ergebnis, das dieser Test das belastbarste nennt. Deshalb zählt sie als
+   * behält die ruhigen – und am Ende stünde „bestätigt sich nicht", obwohl
+   * gerade die Reaktionen aussortiert wären. Deshalb zählt sie als
    * Wert des Durchgangs, bei Durchgängen mit der Sache wie bei
    * Leerdurchgängen. War sie in Wahrheit schon vorher da, ist sie genau das,
    * was der Leerdurchgang auffängt: Sie steht dann auf beiden Seiten.
@@ -200,9 +300,9 @@ export function laufBild(eintraege, lauf, p, vorheriger = null) {
     .reduce((m, e) => Math.max(m, Number(e.staerke) || 0), 0);
 
   /*
-   * Zu dicht am vorherigen Durchgang ist ebenfalls unsauber, und zwar aus
-   * demselben Grund: Was noch von gestern nachhallt, gehört nicht dem heutigen
-   * Glas.
+   * Zu dicht am vorherigen Durchgang zählt ebenfalls nicht: Der Abstand
+   * (ABSTAND_TAGE) ist eine Festlegung dieser App, damit jeder Durchgang für
+   * sich ausgewertet wird (siehe dort).
    */
   const zuNah = vorheriger ? tageDazwischen(vorheriger.am, lauf.am) < ABSTAND_TAGE : false;
 
@@ -288,10 +388,16 @@ export const PROVOKATION_WORT = {
  * Zwei Zahlen tragen es, und beide stehen in der Ausgabe: wie *stark* im Mittel
  * reagiert wurde, und in wie *vielen* Durchgängen überhaupt. Sie sagen
  * Verschiedenes. Dreimal mittelmäßig ist ein anderer Befund als einmal heftig
- * und zweimal gar nicht, obwohl der Mittelwert derselbe sein kann – und der
- * zweite Fall ist der häufigere, weil eine Unverträglichkeit von der Menge und
- * vom Tag abhängt. Nur den Mittelwert zu zeigen hieße, den Unterschied
- * zwischen „das ist es" und „da ist noch etwas anderes im Spiel" zu verstecken.
+ * und zweimal gar nicht, obwohl der Mittelwert derselbe sein kann. Welcher
+ * Fall häufiger ist, sagt keine Quelle („der zweite Fall ist der häufigere“
+ * stand hier bis zur Fassung 29). Ein wechselndes Ergebnis lässt mehrere
+ * Deutungen zu: Bei einer Laktoseintoleranz hängt es von der Menge ab, ob
+ * Beschwerden auftreten, und davon, ob Milch zusammen mit anderen
+ * Lebensmitteln aufgenommen wird (gesund.bund.de/laktoseintoleranz, Stand
+ * 23.02.2026); ein Reizdarm zeigt sich häufig schubweise
+ * (gesund.bund.de/reizdarmsyndrom, Stand 28.08.2024); und die Beschwerden
+ * können mit der Sache auch nichts zu tun haben. Nur den Mittelwert zu zeigen
+ * hieße, diesen Unterschied zu verstecken.
  */
 export function provokationsBild(p, eintraege, heute) {
   if (!p) return null;
@@ -383,8 +489,9 @@ export function provokationsBild(p, eintraege, heute) {
     : ' Verglichen wird hier mit dem eigenen Alltag zur selben Uhrzeit – an diesen '
       + 'Tagen wurde aber gefrühstückt und an den Testtagen nicht. Zwei '
       + 'Leerdurchgänge (nüchtern, gleiche Zeit, ohne die Sache) würden genau '
-      + 'diesen Rest ausräumen: Ein Magen, der leer wehtut, sieht sonst aus wie '
-      + 'eine Unverträglichkeit.';
+      + 'diesen Rest ausräumen: Manche Magenbeschwerden treten gerade bei leerem '
+      + 'Magen auf und sähen sonst aus wie eine Unverträglichkeit. Kommen sie über '
+      + 'Monate immer wieder, gehören sie ärztlich abgeklärt.';
 
   if (vergleichsWerte.length < 2) {
     return {
@@ -395,8 +502,9 @@ export function provokationsBild(p, eintraege, heute) {
       schnitt,
       satz: 'Es fehlt der Vergleich. Zwei Leerdurchgänge – nüchtern, gleiche Uhrzeit, '
         + 'ohne die Sache – machen aus den Durchgängen erst einen Test. Ohne sie '
-        + 'ist nicht zu trennen, ob die Beschwerden von der Sache kommen oder vom '
-        + 'leeren Magen.',
+        + 'lässt sich nicht trennen, ob die Beschwerden von der Sache kommen oder '
+        + 'damit zusammenhängen, nüchtern zu sein – manche Magenbeschwerden treten '
+        + 'gerade bei leerem Magen auf.',
     };
   }
 
@@ -413,22 +521,33 @@ export function provokationsBild(p, eintraege, heute) {
         + `deutlich stärker als ohne: ${zahlen} Weil die Frage vorher feststand, `
         + `zählt dieser Unterschied schwerer als derselbe Unterschied im Tagebuch – `
         + `hier musste niemand erst suchen. Was fehlt, ist die Verblindung: Du `
-        + `wusstest jedes Mal, was du zu dir nimmst, und Erwartung erzeugt echte `
-        + `Beschwerden. Das ist ein starker Verdacht und kein Nachweis.${nachsatz}`,
+        + `wusstest jedes Mal, was du zu dir nimmst, und schon die Erwartung kann `
+        + `echte Beschwerden auslösen. Das ist ein Hinweis und kein Nachweis; `
+        + `einordnen lässt er sich in der Praxis.${nachsatz}`,
     };
   }
 
+  /*
+   * Quellen zum Satz: gesund.bund.de/laktoseintoleranz (Menge, „gleichzeitig
+   * mit anderen Lebensmitteln“), /reizdarmsyndrom („schubweise“),
+   * /praemenstruelles-syndrom-pms (Stand 21.10.2022: vor der Regelblutung
+   * „Schlaf- oder Verdauungsprobleme“). Bis zur Fassung 29 stand hier „der
+   * häufigste“ Befund und der Rat, mit einer kleineren Menge weiterzumachen
+   * statt wegzulassen – beides ist gestrichen: eine Empfehlung zum Essen gibt
+   * Body Check nicht.
+   */
   if (reagiert > 0 && reagiert <= echte.length / 2) {
     return {
       ...gemeinsam,
       urteil: 'wechselhaft',
       wort: PROVOKATION_WORT.wechselhaft,
       satz: `In ${reagiert} von ${echte.length} Durchgängen kam es, in den übrigen `
-        + `nicht (${zahlen}) Das ist selbst ein Befund und der häufigste: Dann hängt `
-        + `es nicht an der Sache allein, sondern an der Menge oder am Tag – wie viel `
-        + `es war, wie voll der Bauch, welche Zyklusphase. Weglassen wäre hier `
-        + `wahrscheinlich zu viel; eher lohnt ein zweiter Satz Durchgänge mit einer `
-        + `kleineren Menge.${nachsatz}`,
+        + `nicht (${zahlen}) Das ist selbst ein Befund: Die Beschwerden kamen nicht `
+        + `jedes Mal. Woran das liegt, lässt sich daraus nicht sicher ablesen. Bei einer `
+        + `Laktoseintoleranz etwa hängt es von der Menge ab und davon, ob zugleich `
+        + `anderes gegessen wird; Darmbeschwerden kommen auch in Schüben, und vor der `
+        + `Regelblutung können Verdauungsprobleme auftreten. Was daraus für dein Essen `
+        + `folgt, lässt sich in der Praxis besprechen.${nachsatz}`,
     };
   }
 
@@ -436,9 +555,9 @@ export function provokationsBild(p, eintraege, heute) {
    * Mehr als die Hälfte der Durchgänge über dem Vergleich, aber der
    * Unterschied noch innerhalb dessen, was bei dieser Streuung und so wenigen
    * Werten auch der Zufall hergibt. Das ist kein „bestätigt sich" – und erst
-   * recht kein „kein Unterschied": Das stünde mit dem Satz da, es sei das
-   * belastbarste Ergebnis, während die Zahlen gerade in die andere Richtung
-   * zeigen. Was hilft, sind mehr Durchgänge auf beiden Seiten.
+   * recht kein „kein Unterschied": Das stünde da, während die Zahlen gerade
+   * in die andere Richtung zeigen. Was hilft, sind mehr Durchgänge auf
+   * beiden Seiten.
    */
   if (reagiert > echte.length / 2) {
     return {
@@ -456,11 +575,16 @@ export function provokationsBild(p, eintraege, heute) {
     ...gemeinsam,
     urteil: 'nicht-bestaetigt',
     wort: PROVOKATION_WORT['nicht-bestaetigt'],
-    satz: `Kein Unterschied zum Vergleich: ${zahlen} Das ist das belastbarste `
-      + `Ergebnis, das dieser Test hergibt, und zwar mehr wert als ein positives: `
-      + `Die Erwartung, die hier nicht ausgeschaltet werden kann, schiebt nur in `
-      + `eine Richtung – zur Reaktion hin. Wer nüchtern und mehrfach nichts merkt, `
-      + `hat das trotz dieser Schieflage nicht gemerkt.${nachsatz}`,
+    /*
+     * Ohne „das belastbarste Ergebnis“ und „schiebt nur in eine Richtung“
+     * (bis zur Fassung 29): Erwartung kann Beschwerden auch abschwächen
+     * (de Graaf 2024, PMID 38040019, siehe Kopf dieser Datei).
+     */
+    satz: `Kein Unterschied zum Vergleich: ${zahlen} Mit dieser Menge zeigte sich in `
+      + `diesen Durchgängen keine Reaktion. Auch dieses Ergebnis ist ohne Verblindung `
+      + `kein Nachweis: Du wusstest jedes Mal, was du zu dir nimmst, und Erwartungen `
+      + `können Beschwerden verstärken, aber auch abschwächen. Was das für dein Essen `
+      + `heißt, lässt sich in der Praxis besprechen.${nachsatz}`,
   };
 }
 
@@ -488,8 +612,9 @@ export function naechsterSchritt(p, heute, urteil = null) {
       dran: false,
       am: plusTage(letzter.am, ABSTAND_TAGE),
       titel: `Body Check: ${p.was || 'Provokationstest'} – nächster Durchgang`,
-      satz: `Heute nicht – zwischen zwei Durchgängen liegen ${ABSTAND_TAGE} Tage, `
-        + 'sonst hallt der letzte noch nach.',
+      satz: `Heute nicht – Body Check lässt zwischen zwei Durchgängen ${ABSTAND_TAGE} `
+        + 'Tage Abstand, damit jeder für sich ausgewertet wird. Das ist eine Festlegung '
+        + 'der App, keine ärztliche Vorgabe.',
     };
   }
   if (echte < MINDEST_LAEUFE) {

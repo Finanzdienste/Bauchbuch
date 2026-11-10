@@ -1,13 +1,11 @@
 /*
- * Der Unterleib – der Teil, der jemandem Jahre sparen kann.
+ * Der Unterleib – Fragen, nach denen ein Magentagebuch sonst nicht fragt.
  *
- * Endometriose wird im Mittel sieben bis zehn Jahre lang für einen Reizdarm
- * gehalten. Wenn diese App das Muster erkennt, ist das der wertvollste Satz,
- * den sie ausgibt. Wenn sie es falsch erkennt, schickt sie jemanden in eine
- * Sprechstunde, in der nichts gefunden wird – und beim nächsten Mal glaubt
- * ihr niemand mehr.
+ * Bis eine Endometriose erkannt wird, dauert es oft Jahre, und sie kann für
+ * einen Reizdarm gehalten werden (Quellen im Kopf von js/unterleib.js). Die
+ * Regel, wann dieses Modul ein Muster ausgibt, ist eine Festlegung der App.
  *
- * Geprüft wird deshalb in beide Richtungen, und die zweite ist die wichtigere:
+ * Geprüft wird in beide Richtungen, und die zweite ist die wichtigere:
  *
  *   * Das volle Muster wird erkannt.
  *   * Ohne eingeschaltete Fragen sagt die App NICHT „unauffällig", sondern
@@ -18,8 +16,12 @@
  *     nicht als Beleg.
  *   * Sex ohne Schmerz wird nicht mit „kam nicht vor" verwechselt.
  */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { chromium } from 'playwright';
-import { URL, KEY, HANDY, SHOT, pruefer, vorTagen } from './umgebung.mjs';
+import {
+  URL, KEY, HANDY, SHOT, ROOT, pruefer, vorTagen,
+} from './umgebung.mjs';
 
 const { check, ende } = pruefer();
 const browser = await chromium.launch();
@@ -295,6 +297,20 @@ const nachNein = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)),
 check(
   !nachNein.tagesfragen.includes('sexschmerz'),
   'ohne dass dabei etwas eingeschaltet worden wäre',
+);
+
+/*
+ * Seit der Fassung 30: Die Begründungen im Kopf von js/unterleib.js stellen
+ * die Zwei-Wege-Regel als Festlegung der App dar und nicht als Befund. Die
+ * Sätze, die den Quellen widersprachen – Endometriose schwanke „verlässlich“
+ * mit der Blutung, tiefer Schmerz beim Sex „trägt allein“, die übrigen
+ * Merkmale seien einzeln „alltäglich“ –, kommen nicht wieder.
+ */
+const quelltext = readFileSync(path.join(ROOT, 'js', 'unterleib.js'), 'utf8');
+check(
+  !/Endometriose tut das|trägt allein|Einzeln sind sie alltäglich|größten\s+Gewicht|sieben bis zehn|Normalzustand\./.test(quelltext)
+    && /Festlegung dieser\s+(\*\s+)?App/.test(quelltext),
+  'js/unterleib.js begründet die Regel als Festlegung der App, nicht mit unbelegten Befunden',
 );
 
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);

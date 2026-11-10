@@ -1,12 +1,12 @@
 /*
  * Die einzige Zahl, die nicht aus dem Gefühl kommt
  *
- * Ein ungewollter Gewichtsverlust ist das stärkste einzelne Zeichen dafür, dass
- * hinter Bauchbeschwerden mehr steckt als eine gereizte Verdauung. Damit hat
- * diese Rechnung als einzige in der App die Aufgabe, jemanden zum Arzt zu
- * schicken – und ausgerechnet sie kann auf zwei Arten Schaden anrichten:
+ * Ein deutlicher, ungewollter Gewichtsverlust gehört zu den Zeichen, bei denen
+ * Bauchbeschwerden eher eine andere Ursache als einen Reizdarm haben können
+ * (Quellen im Kopf von js/gewicht.js). Diese Rechnung kann auf zwei Arten
+ * Schaden anrichten:
  *
- *   ZU LAUT. Wer bei jedem Wasserverlust Alarm schlägt oder eine gewollte Diät
+ *   ZU LAUT. Wer bei jeder einzelnen Wiegung Alarm schlägt oder eine gewollte Diät
  *   für ein Alarmzeichen hält, verbrennt genau die Aufmerksamkeit, die im
  *   Ernstfall gebraucht wird. Nach dem dritten Fehlalarm liest niemand mehr hin.
  *
@@ -49,20 +49,24 @@ const reihe = (plan) => plan.map(([tage, kg]) => ({ am: vorTagen(tage), kg }));
 const leer = await waage([]);
 check(leer.urteil === 'keine', `ohne Messung kein Urteil (${leer.urteil})`);
 check(!leer.warnung, 'und schon gar kein Warnzeichen');
+// Seit der Fassung 30 ohne Rangfolge („das wichtigste Zeichen“), die keine Quelle angibt.
+check(!/wichtigste/.test(leer.satz) && /Blut\s+im Stuhl/.test(leer.satz),
+  'der Satz ohne Messung stellt den Gewichtsverlust neben andere Zeichen, nicht über sie');
 
 /* ---------- 2. Zwei Wiegungen aus derselben Woche ---------- */
 
 /*
  * Vier Kilo weniger in fünf Tagen sind über neun Prozent – und trotzdem darf
- * hier kein Verlust stehen. Wer nach einem Magen-Darm-Infekt wiegt, misst
- * Flüssigkeit. Eine Richtung braucht Abstand, und wo der fehlt, sagt die App
- * lieber nichts als etwas Falsches.
+ * hier kein Verlust stehen. Eine Richtung braucht Abstand (mindestens 30 Tage,
+ * eine Festlegung dieser App), und wo der fehlt, sagt die App lieber nichts
+ * als etwas Falsches.
  */
 const kurz = await waage(reihe([[0, 60], [5, 64]]));
 check(kurz.urteil === 'zu-kurz', `ohne Abstand keine Richtung (${kurz.urteil})`);
-check(!kurz.warnung, 'und kein Alarm aus fünf Tagen Wasserhaushalt');
+check(!kurz.warnung, 'und kein Alarm aus zwei Wiegungen in fünf Tagen');
+// Seit der Fassung 30 als Einstellung der App begründet, nicht mit „Wasser“.
 check(
-  /Wasser und nicht den Verlauf/.test(kurz.satz),
+  /nicht als Verlauf gelten/.test(kurz.satz) && !/Wasser/.test(kurz.satz),
   'sondern die Begründung, warum hier noch nichts steht',
 );
 
@@ -70,7 +74,7 @@ check(
 
 /*
  * 70 auf 66 Kilo in vier Monaten: fünfeinhalb Prozent, ungewollt. Genau der
- * Verlust, der in jeder Leitlinie unter den Alarmzeichen steht.
+ * Fall, für den die Grenze dieser App gedacht ist.
  */
 const verlustPlan = [[0, 66.2], [10, 66.0], [20, 65.8], [110, 70.1], [120, 69.9], [130, 70.0]];
 const verlust = await waage(reihe(verlustPlan));
@@ -81,11 +85,13 @@ check(
   'mit der Folgerung, die dazugehört',
 );
 /*
- * Und ohne die Anmaßung, die daraus leicht wird: Fünf Prozent sind die Grenze,
- * ab der nachgesehen wird, und keine Diagnose.
+ * Und ohne die Anmaßung, die daraus leicht wird: Fünf Prozent sind die Grenze
+ * dieser App und keine Diagnose – seit der Fassung 30 auch nicht mehr „die
+ * Grenze, ab der nachgesehen wird“, die keine erreichbare Quelle nennt.
  */
 check(
-  /keine Diagnose/.test(verlust.satz),
+  /keine Diagnose/.test(verlust.satz) && /Grenze dieser App/.test(verlust.satz)
+    && !/ab der\s+nachgesehen/.test(verlust.satz),
   'aber ausdrücklich ohne Diagnose',
 );
 
@@ -109,7 +115,7 @@ check(/ändern/.test(gewollt.satz), 'mit dem Hinweis, wo man das umstellt');
 /* ---------- 5. Schwankungen sind kein Verlust ---------- */
 
 /*
- * Ein Mensch schwankt am Tag um ein bis zwei Kilo. Wenn das reicht, um Alarm
+ * Einzelne Wiegungen liegen mal höher, mal tiefer. Wenn das reicht, um Alarm
  * auszulösen, ist die Rechnung wertlos: Sie schlägt dann irgendwann bei jedem
  * an, und damit sagt ihr Anschlagen nichts mehr.
  */
@@ -118,6 +124,9 @@ const rauschen = await waage(reihe([
 ]));
 check(rauschen.urteil === 'stabil', `Tagesschwankungen bleiben stabil (${rauschen.urteil})`);
 check(!rauschen.warnung, 'und lösen keinen Alarm aus');
+// Seit der Fassung 30: „stabil“ ohne Entwarnung – die Waage zeigt nicht alle Zeichen.
+check(!/gute Nachricht|wichtigste/.test(rauschen.satz) && /Blut im\s+Stuhl/.test(rauschen.satz),
+  'stabil heißt hier keine Entwarnung, und der Satz nennt, was die Waage nicht zeigt');
 
 /* Nach oben gilt dieselbe Grenze – aber ohne Alarmzeichen. */
 const zunahme = await waage(reihe([
@@ -125,6 +134,9 @@ const zunahme = await waage(reihe([
 ]));
 check(zunahme.urteil === 'zunahme', `deutlich mehr wird auch benannt (${zunahme.urteil})`);
 check(!zunahme.warnung, 'zählt aber nicht als Warnzeichen');
+// Seit der Fassung 30 ohne „Kein Alarmzeichen“: Einordnen kann das nur die Praxis.
+check(!/Alarmzeichen/.test(zunahme.satz) && /Praxis/.test(zunahme.satz),
+  'und der Satz entwarnt nicht, sondern verweist auf die Praxis');
 
 /* ---------- 6. Alte Messungen zählen nicht mit ---------- */
 

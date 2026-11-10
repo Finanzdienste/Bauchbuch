@@ -179,9 +179,16 @@ check(
   zettel.includes('WIRKUNG WECHSELT MIT DER ZYKLUSPHASE'),
   'der Bericht führt den Abschnitt eigens',
 );
+/*
+ * Seit der Fassung 30 sagt der Bericht nicht mehr, das spreche „eher für eine
+ * wechselnde Empfindlichkeit als für eine Unverträglichkeit“ – das belegt
+ * keine Quelle (Kommentar in js/bericht.js). Er nennt den Unterschied je
+ * Phase und dass sich daraus nicht ablesen lässt, was dahintersteckt.
+ */
 check(
-  zettel.includes('wechselnde Empfindlichkeit'),
-  'und benennt den Unterschied zur Unverträglichkeit',
+  /je nach Zyklusphase verschieden stark/.test(zettel.replace(/\s+/g, ' '))
+    && !/eher für eine\s+wechselnde Empfindlichkeit/.test(zettel),
+  'und beschreibt den Unterschied je Phase, ohne ihn zu deuten',
 );
 
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);

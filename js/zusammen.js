@@ -11,20 +11,46 @@
  *
  * Der eine Fall, um den es vor allem geht: Methylphenidat als Kapsel mit
  * zweierlei Kügelchen (Medikinet retard, Medikinet adult) und ein
- * Säureblocker. Die Fachinformation führt die Behandlung mit einem
- * Säureblocker unter den Gegenanzeigen – in einem weniger sauren Magen kann
- * der ganze Wirkstoff auf einmal frei werden. Säureblocker und
- * Methylphenidat werden oft von zwei verschiedenen Praxen verordnet, und auf
- * keiner der beiden Packungen steht der Name der anderen.
+ * Säureblocker. Die Fachinformationen beider Präparate führen die Behandlung
+ * mit H2-Blockern, Protonenpumpenhemmern oder Antazida unter den
+ * Gegenanzeigen (4.3); zusammen damit kann es „zu einer rascheren Freisetzung
+ * der gesamten Wirkstoffmenge kommen“ (4.5) – Medikinet retard,
+ * www.fachinfo.de/fi/pdf/009621 (Dezember 2025), Medikinet adult, /013066
+ * (September 2025). Fassung 30: „in einem weniger sauren Magen … auf einmal“
+ * stand so in keiner der beiden.
  *
- * DIE STUFEN
+ * Warum Body Check das Paar selbst nennt: Die Packungsbeilagen von Medikinet
+ * retard (Dezember 2025) und Medikinet adult (patienteninfo-service.de/gi/14524/,
+ * September 2025) nennen die Säureblocker nur als Gruppe, ohne Wirkstoff- oder
+ * Handelsnamen; in den Fachinformationen von Pantozol 40 mg, Pantozol Control,
+ * Nexium mups, Nexium Control, Antra MUPS und Esomeprazol TAD bei Sodbrennen
+ * (fachinfo.de 006633, 020222, 004417, 023305, 004171, 021133) kommt
+ * Methylphenidat nicht vor. Manche Säureblocker gibt es auch ohne Rezept
+ * (Pantozol Control, Nexium Control: „Apothekenpflichtig“, jeweils Abschnitt
+ * 11). Wie oft beide aus verschiedenen Praxen kommen, sagt keine Quelle – das
+ * stand hier bis zur Fassung 29 und ist gestrichen.
+ *
+ * DIE STUFEN – sie bestimmen nur die Reihenfolge und ob die Karte auf „Tag"
+ * steht; wie wichtig ein Paar für jemanden ist, sagen sie nicht.
  *
  *   A  ein Paar, das die Fachinformation unter den Gegenanzeigen führt (W1),
  *      oder eines, bei dem es so sein könnte, weil die Form fehlt (W1u). Die
  *      Karte auf „Tag" zeigt es, bis es gelesen ist.
- *   B  ein Paar, bei dem die Fachinformation eine Veränderung beschreibt.
- *   C  ein Paar, das in der Fachinformation steht, aber selten ist oder nur
- *      in der US-Fassung.
+ *   B  eine Frage, die sich in Apotheke oder Praxis klären lässt:
+ *      Methylphenidat in einer anderen Form als der Kapsel mit zweierlei
+ *      Kügelchen zusammen mit einem Säureblocker (W3, W4) – die
+ *      Fachinformationen dieser Präparate nennen Säureblocker nicht (Ritalin
+ *      LA 010445, Ritalin Adult 015153, Ritalin 002958, Medikinet Tabletten
+ *      002039, Kinecteen 021528, Methylphenidat-HCl-ratiopharm Retardtabletten
+ *      022094, jeweils 4.5), der Hinweis behauptet deshalb keine Veränderung
+ *      (KLAER_SATZ in js/mittel.js); dazu die Paare, bei denen die
+ *      Fachinformation eine Veränderung beschreibt (W5, W6).
+ *   C  die übrigen Paare, die die Fachinformation unter den Wechselwirkungen
+ *      nennt, ohne Häufigkeit und nicht unter den Gegenanzeigen (W8, W9;
+ *      W10 und W11 nach „Berichten mit Hinweisen“), oder eines, das nur die
+ *      US-Fassung ausdrücklich nennt (W7: Triptane). Fassung 30: Bis hierher
+ *      hieß C „selten oder nur in der US-Fassung“ – eine Häufigkeit nennt aber
+ *      keine der Quellen, und W9 steht auch in der deutschen Fachinformation.
  *
  * Jeder Text endet bei Praxis oder Apotheke, und keiner sagt, eines der
  * Mittel wegzulassen – auch nicht den Säureblocker: Wer ihn von sich aus
@@ -44,16 +70,47 @@ export const WECHSEL_TAGE = 30;
  * Natron ist bewusst keine Gruppe: Als Mittel gegen Sodbrennen zählt es
  * dort nirgends mit, und eine neue Gruppe änderte Zahlen, die bisher
  * stimmten. Hier zählt es nur für die Paare.
+ *
+ * Das Muster erkennt Namen, es behauptet nicht, dass sie alle denselben Stoff
+ * bezeichnen. Belegt ist: Natriumhydrogencarbonat heißt in
+ * Gebrauchsinformationen auch Natriumbicarbonat (GI Natriumhydrogencarbonat
+ * 8,4 % B. Braun, Stand 07.2014, Wiedergabe medikamio, Abschnitt 6: „Der
+ * Wirkstoff ist Natriumhydrogencarbonat (Natriumbicarbonat).“), und Original
+ * Bullrich Salz enthält als Wirkstoff Natriumhydrogencarbonat (GI, 08/2023,
+ * medikamio). „Natron“ allein ist im Alltag nicht eindeutig, und andere
+ * Bullrich-Produkte sind nicht geprüft.
  */
 const W_NATRON = /natron|natriumhydrogencarbonat|natriumbicarbonat|bullrich/;
 const W_VITC = /vitamin[\s-]*c\b|ascorbin/;
 const W_METAMIZOL = /metamizol|novalgin|novaminsulfon/;
-// Nur, was die Fachinformation von Atomoxetin nennt. Bupropion war dort nicht
-// zu belegen und steht deshalb nicht dabei.
+// Nur, was die Fachinformation von Atomoxetin unter den CYP2D6-Hemmern nennt
+// (Atomoxetin-ratiopharm, www.fachinfo.de/fi/pdf/022556, September 2024, 4.5:
+// „SSRIs (z. B. Fluoxetin, Paroxetin), Chinidin, Terbinafin“; Terbinafin
+// erkennt das Muster bisher nicht). Bupropion steht dort nicht unter diesen
+// Hemmern – wohl aber unter den Mitteln, die die Krampfschwelle herabsetzen
+// können; dieses Paar bildet Body Check nicht ab.
 const W_CYP2D6 = /fluoxetin|paroxetin|chinidin/;
+// Trizyklika und SSRI: „einigen Antidepressiva (trizyklische Antidepressiva und
+// selektive Serotonin-Wiederaufnahme-Inhibitoren)“, deren Metabolismus
+// Methylphenidat laut Berichten hemmen kann (FI Ritalin 10 mg,
+// www.fachinfo.de/fi/pdf/002958, September 2025, 4.5). Das Muster trifft auch
+// Escitalopram, ebenfalls ein SSRI; nicht jedes Mittel dieser Gruppen steht darin.
 const W_TRIZ_SSRI = /amitriptylin|nortriptylin|imipramin|clomipramin|doxepin|trimipramin|citalopram|sertralin|fluoxetin|paroxetin/;
 const W_CUMARIN = /phenprocoumon|marcumar|falithrom|warfarin/;
 
+/*
+ * Was hier als Mittel gegen Magensäure zählt. Die Fachinformationen von
+ * Medikinet retard und Medikinet adult (4.3/4.5) nennen H2-Blocker,
+ * Protonenpumpenhemmer und Antazida, die Packungsbeilagen „säurebindende“
+ * Mittel; Natron (Natriumhydrogencarbonat) ist ein solches Mittel (Original
+ * Bullrich Salz, GI 08/2023: „ein Arzneimittel zur Neutralisierung der
+ * Magensäure“). Alginate nennen sie nicht eigens: Gaviscon Dual ist laut
+ * Packungsbeilage „eine Kombination aus einem Alginat und zwei Antazida“
+ * (GI 01/2020, Wiedergabe medikamio), Gaviscon Advance beschreibt eine
+ * Schutzschicht, deren Wirkung „physikalischer Natur“ ist (GI 08/2021). Die
+ * Gruppe 'alginat' bleibt deshalb hier, aber die Karten sagen bei ihr dazu,
+ * dass die Fachinformation Alginate nicht nennt (W_ALGINAT_SATZ unten).
+ */
 const W_SAEURE_GRUPPEN = ['ppi', 'h2', 'antazida', 'alginat'];
 
 const wKlein = (name) => String(name || '').toLowerCase().trim();
@@ -156,33 +213,99 @@ function wEingetragen(standardMittel, eintraege, heute) {
 }
 
 /*
- * Die Texte. Jeder hat seine Quelle; was sich nicht belegen ließ, fehlt –
- * auch als Bedingung: Antazida, Alginat und Vitamin C bei Dexamfetamin
- * (W5) und Bupropion bei Atomoxetin (W9) sind deshalb nicht dabei.
+ * Die Texte. Jeder hat seine Quelle; was sich nicht belegen ließ, fehlt.
+ *
+ * Nicht dabei, und warum (Fassung 30 – vorher hieß es, das sei nicht zu
+ * belegen, und das stimmte nicht):
+ *   * Antazida und Alginat bei Dexamfetamin (W5): Die Attentin-Fachinformation
+ *     (www.fachinfo.de/fi/pdf/020945, August 2024, 4.5) nennt unter den
+ *     „Stoffe[n], die den pH-Wert im Gastrointestinaltrakt erhöhen“ nur
+ *     Natriumbicarbonat beim Namen; W5 greift deshalb nur bei Natron.
+ *   * Vitamin C bei Dexamfetamin: Dieselbe Stelle nennt Ascorbinsäure und
+ *     Fruchtsaft unter den Stoffen, die „zu einer verminderten Aufnahme von
+ *     Dexamfetamin“ führen. Als Paar steht das hier nicht – eine Auswahl,
+ *     kein fehlender Beleg.
+ *   * Bupropion bei Atomoxetin: Die Atomoxetin-Fachinformation
+ *     (www.fachinfo.de/fi/pdf/022556, September 2024, 4.5) nennt Bupropion nicht
+ *     unter den CYP2D6-Hemmern, die den Atomoxetin-Spiegel erhöhen (W9), wohl
+ *     aber unter den Mitteln, „die die Krampfschwelle herabsetzen können“.
+ *     Auch dieses Paar bildet Body Check nicht ab.
  */
 
 /*
  * W1 und W1u – Quellen: Medikinet retard FI, www.fachinfo.de/fi/pdf/009621
- * (12/2025), 4.3/4.5; Rote Liste 19655-1; Medikinet adult FI,
- * www.fachinfo.de/fi/pdf/013066 (09/2025), 4.3; Gebrauchsinformation Medikinet
- * adult (Wiedergabe apomio.de, patienteninfo-service.de/gi/14524/).
+ * (Dezember 2025), 4.3 („Bekannte ausgeprägte Anazidität des Magens mit einem
+ * pH-Wert über 5,5, bei H2-Rezeptorenblockern, Protonenpumpen-Inhibitoren oder
+ * Antazidatherapie“) und 4.5 („darf nicht zusammen mit H2-Rezeptorenblockern,
+ * Protonenpumpen-Inhibitoren oder Antazida eingenommen werden, da es dabei zu
+ * einer rascheren Freisetzung der gesamten Wirkstoffmenge kommen kann“);
+ * Medikinet adult FI, www.fachinfo.de/fi/pdf/013066 (September 2025), 4.3 und
+ * 4.5 sinngleich (dieselben drei Gruppen, „rascheren Freisetzung der gesamten
+ * Wirkstoffmenge“); Rote Liste 19655-1; Gebrauchsinformation Medikinet adult,
+ * patienteninfo-service.de/gi/14524/ (September 2025), Abschnitt 2: als eigener
+ * Punkt unter „darf nicht eingenommen werden“ Arzneimittel, „um die Sekretion
+ * von Magensäure zu vermindern oder eine starke Übersäuerung des Magens zu
+ * behandeln (H2-Rezeptorenblocker, säurebindende Mittel oder
+ * Protonenpumpenhemmern)“.
  *
- * Unter den Gegenanzeigen steht dort ausdrücklich die Behandlung mit
- * H2-Blockern, Protonenpumpenhemmern oder Antazida, nicht nur ein Magen ohne
- * Säure; die Karte sagt es deshalb so und nicht milder.
+ * Unter den Gegenanzeigen steht also ausdrücklich die Behandlung mit diesen
+ * Mitteln, nicht nur ein Magen ohne Säure; die Karte sagt es deshalb so und
+ * nicht milder. Sie nennt die Gruppen beim Namen, wie die Fachinformation,
+ * und die beiden Präparate, denn andere Kapseln mit zweierlei Kügelchen
+ * (Ritalin LA, 010445) nennen Säureblocker nicht. „In einem weniger sauren
+ * Magen kann der Wirkstoff früher frei werden“ stand bis zur Fassung 29 da;
+ * die Quelle verbindet die raschere Freisetzung mit der Einnahme zusammen mit
+ * diesen Mitteln.
+ *
+ * Wie ${b} beschrieben wird: als Mittel bei Säurebeschwerden. PPI und
+ * H2-Blocker verringern die Magensäure, Antazida und Natron binden sie (GI
+ * 14524: „zur Verringerung der Magensäurebildung oder gegen Übersäuerung des
+ * Magens“; GI Original Bullrich Salz, 08/2023: „zur Neutralisierung der
+ * Magensäure … bei Sodbrennen und säurebedingten Magenbeschwerden“), Alginate
+ * werden angewendet bei „Beschwerden durch Rückfluss von saurem Mageninhalt“
+ * (GI Gaviscon Advance, 08/2021) und verhindern, „dass die im Magen benötigte
+ * Magensäure in die Speiseröhre aufsteigt“ (GI Gaviscon Liquid, 05/2022). Bis
+ * zur Fassung 29 hieß es für alle „ein Mittel gegen oder gegen zu viel
+ * Magensäure“ – für ein Alginat traf das nicht zu. Kurz gehalten, weil die
+ * Karte W1u auf kleinen Bildschirmen nicht höher werden soll als bisher
+ * (tests/test-rueckfrage.mjs prüft, was danach unter der Meldung liegt).
  */
-const wKarteW1 = (b) => 'Zum Nachfragen: In deinen Mitteln stehen Methylphenidat als Kapsel '
-  + `mit zweierlei Kügelchen und ${b}, ein Mittel gegen oder gegen zu viel Magensäure. In der `
-  + 'Fachinformation solcher Kapseln steht die Einnahme zusammen mit solchen Mitteln unter den '
-  + 'Gegenanzeigen: In einem weniger sauren Magen kann der Wirkstoff früher frei werden. '
+const W_MITTEL_SATZ = 'ein Mittel bei Säurebeschwerden';
+
+/*
+ * Bei einem Alginat (Gruppe 'alginat' in js/mittel.js) sagt die Karte dazu,
+ * dass die Fachinformation es nicht nennt – sonst stünde da mehr, als die
+ * Quelle hergibt. Dass manche Alginat-Präparate auch Antazida enthalten:
+ * GI Gaviscon Dual (siehe W_SAEURE_GRUPPEN oben).
+ */
+const W_ALGINAT_SATZ = (b) => 'Alginate nennt die Fachinformation nicht eigens; manche '
+  + 'Alginat-Präparate enthalten laut Packungsbeilage auch Antazida. Ob das für '
+  + `${b} gilt, kann die Apotheke sagen. `;
+
+const wKarteW1 = (b, alginat = false) => 'Zum Nachfragen: In deinen Mitteln stehen Methylphenidat als Kapsel '
+  + `mit zweierlei Kügelchen und ${b}, ${W_MITTEL_SATZ}. In der Fachinformation solcher `
+  + 'Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung mit H2-Blockern, '
+  + 'Protonenpumpenhemmern oder Antazida unter den Gegenanzeigen: Zusammen damit kann die '
+  + `gesamte Wirkstoffmenge rascher frei werden. ${alginat ? W_ALGINAT_SATZ(b) : ''}`
   + `Bitte nichts davon eigenmächtig weglassen – auch ${b} nicht – und es zeitnah in der `
   + 'Praxis oder Apotheke ansprechen.';
 
-const wKarteW1u = (a, b) => `Zum Nachfragen: In deinen Mitteln stehen Methylphenidat (${a}) `
-  + `und ${b}, ein Mittel gegen oder gegen zu viel Magensäure. Bei manchen `
-  + 'Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) steht die Einnahme zusammen '
-  + 'mit solchen Mitteln in der Fachinformation unter den Gegenanzeigen. Welche Form du hast, '
-  + 'steht auf der Packung; du kannst sie bei deinem Mittel unter „Meine Mittel“ angeben. '
+/*
+ * „Welche Form du hast, steht auf der Packung“ stand hier bis zur Fassung 29.
+ * Auf der Verpackung steht der Markenname (gesund.bund.de,
+ * arzneimittel-beipackzettel, Stand 17.02.2026: „der Markenname, der auf der
+ * Verpackung steht“), und die Bezeichnung nennt die Darreichungsform – aber
+ * nicht immer die Form, wie diese App sie einteilt: Medikinet retard, Ritalin
+ * LA und Equasym Retard heißen alle „Hartkapseln mit veränderter
+ * Wirkstofffreisetzung“ (FI 009621, 010445, 012100, jeweils Abschnitt 1).
+ * Deshalb verweist die Karte für die Form an die Apotheke.
+ */
+const wKarteW1u = (a, b, alginat = false) => `Zum Nachfragen: In deinen Mitteln stehen Methylphenidat (${a}) `
+  + `und ${b}, ${W_MITTEL_SATZ}. Bei manchen Kapseln (Medikinet retard, Medikinet adult) `
+  + 'steht die Behandlung mit H2-Blockern, Protonenpumpenhemmern oder Antazida in der '
+  + `Fachinformation unter den Gegenanzeigen. ${alginat ? W_ALGINAT_SATZ(b) : ''}Welche Form `
+  + 'dein Präparat hat, weiß die Apotheke; du kannst sie bei deinem Mittel unter „Meine '
+  + 'Mittel“ angeben. '
   + `Bitte nichts eigenmächtig weglassen – auch ${b} nicht – und es in Praxis oder Apotheke `
   + 'klären.';
 
@@ -196,10 +319,24 @@ const wTextW5 = 'Laut Fachinformation erhöhen basische Mittel wie Natron die Au
 /*
  * W6 und W7 – Quelle: US-Fachinformation Vyvanse,
  * www.accessdata.fda.gov/drugsatfda_docs/label/2025/021977s054%2C208510s011lbl.pdf
- * (Urin-pH: Ascorbinsäure, Natriumhydrogencarbonat; Serotoninsyndrom mit Triptanen).
- * Gemeint ist dort der Blutspiegel des Amfetamins, das aus der Vorstufe
- * entsteht – Lisdexamfetamin selbst wird im Blut gespalten, sein Spiegel
- * hängt nicht am Urin.
+ * (Revised 09/2025), 2.6: „Acidifying agents (e.g., ascorbic acid) decrease
+ * blood levels, while alkalinizing agents (e.g., sodium bicarbonate) increase
+ * blood levels“ (gemeint: „blood levels of amphetamine“); 5.7: Serotoninsyndrom
+ * mit anderen serotonergen Mitteln, darunter „triptans“. Gemeint ist also der
+ * Blutspiegel des Amfetamins, das aus der Vorstufe entsteht: Lisdexamfetamin
+ * wird laut US-Fachinformation (12.3) und Fachinformation Elvanse
+ * (www.fachinfo.de/fi/pdf/020737, Oktober 2026, 5.1) „primär von den
+ * Erythrozyten zu Dexamfetamin hydrolysiert“. Bis zur Fassung 29 stand hier
+ * zusätzlich, der Spiegel der Vorstufe selbst hänge nicht am Urin – das sagt
+ * keine der beiden Quellen.
+ *
+ * W6 steht auch in der deutschen Fachinformation Elvanse (4.5), dort als
+ * Ausscheidung und Halbwertszeit: Ascorbinsäure und andere Stoffe, die den
+ * Urin ansäuern, „steigern die Ausscheidung von Amfetamin im Urin und
+ * verkürzen dessen Halbwertszeit“; Natriumhydrogencarbonat und andere, die ihn
+ * alkalisieren, „vermindern die Ausscheidung“. Den Spiegel nennt die US-Fassung,
+ * deshalb nennt der Text sie. Triptane (W7) nennt nur die US-Fassung; die
+ * deutsche nennt ein Serotonin-Syndrom „selten“ mit SSRI und SNRI.
  */
 const wTextW6 = 'Laut US-Fachinformation senken Mittel, die den Urin saurer machen, etwa '
   + 'Vitamin C, den Spiegel des Wirkstoffs, der im Körper aus Lisdexamfetamin entsteht; '
@@ -211,27 +348,44 @@ const wTextW7 = 'Die US-Fachinformation von Lisdexamfetamin nennt Triptane unter
 
 /*
  * W8 – Quelle: EMA, CMDh-Schlussfolgerungen PSUSA 00001997 (2020) zu Metamizol,
- * www.ema.europa.eu/de/documents/psusa/metamizole-cmdh-scientific-conclusions-and-grounds-variation-amendments-product-information-and-timetable-implementation-psusa-00001997-202003_de.pdf
+ * www.ema.europa.eu/de/documents/psusa/metamizole-cmdh-scientific-conclusions-and-grounds-variation-amendments-product-information-and-timetable-implementation-psusa-00001997-202003_de.pdf;
+ * gleichlautend FI Novalgin Filmtabletten, www.fachinfo.de/fi/pdf/014708
+ * (November 2024), 4.5: Metamizol mit Bupropion „kann eine Reduktion der
+ * Plasmakonzentration dieser Arzneimittel … bewirken“.
  */
 const wTextW8 = 'Laut Fachinformation von Metamizol kann damit der Bupropion-Spiegel sinken – '
   + 'in Praxis oder Apotheke ansprechen.';
 
 /*
- * W9 – Quelle: US-Label Strattera (Wiedergabe medlibrary.org): Fluoxetin, Paroxetin
- * und Chinidin erhöhen die Atomoxetin-Exposition deutlich.
+ * W9 – Quelle: FI Atomoxetin-ratiopharm Hartkapseln, www.fachinfo.de/fi/pdf/022556
+ * (September 2024), 4.5: Bei CYP2D6-Inhibitoren („SSRIs (z. B. Fluoxetin,
+ * Paroxetin), Chinidin, Terbinafin“) „ist die AUC von Atomoxetin ca. 6- bis
+ * 8-fach … höher“. Die US-Fachinformation Strattera nennt in der Fassung 1/2022
+ * (7.2) Paroxetin, Fluoxetin und Chinidin, in der Fassung 6/2026 nur noch
+ * Paroxetin und Fluoxetin; bis zur Fassung 29 stand hier nur eine Wiedergabe
+ * des US-Labels als Quelle.
  */
 const wTextW9 = (b) => `Laut Fachinformation erhöht ${b} den Atomoxetin-Spiegel deutlich – `
   + 'in Praxis oder Apotheke ansprechen.';
 
 /*
- * W10 und W11 – Quelle: Gebrauchsinformation Methylphenidat-ratiopharm 10 mg
- * (Wiedergabe medikamio.com/de-de/medikamente/methylphenidat-ratiopharm-10-mg-tabletten/pil):
- * Cumarin-Antikoagulanzien und Mittel gegen Depressionen, deren Abbau gehemmt werden kann.
+ * W10 und W11 – Quelle: Fachinformation Methylphenidat, 4.5, etwa Ritalin 10 mg
+ * (www.fachinfo.de/fi/pdf/002958, September 2025) und Methylphenidat-ratiopharm
+ * Hartkapseln (/022528, August 2025): „Es liegen jedoch Berichte mit Hinweisen
+ * vor, dass Methylphenidat den Metabolismus von Antikoagulanzien vom
+ * Cumarin-Typ … und einigen Antidepressiva (trizyklische Antidepressiva und
+ * selektive Serotonin-Wiederaufnahme-Inhibitoren) hemmen kann.“
+ *
+ * Bis zur Fassung 29 stand „Laut Packungsbeilage“ und als Quelle eine alte
+ * Gebrauchsinformation von Methylphenidat-ratiopharm 10 mg (Wiedergabe
+ * medikamio, ohne Stand), die nur Trizyklika nennt. Die heutigen
+ * Packungsbeilagen sprechen nicht vom Abbau, nur davon, dass Methylphenidat
+ * die Wirkung anderer Mittel beeinflussen kann.
  */
-const wTextW10 = 'Laut Packungsbeilage kann Methylphenidat den Abbau mancher Mittel gegen '
-  + 'Depression hemmen – in Praxis oder Apotheke ansprechen.';
-const wTextW11 = 'Laut Packungsbeilage kann Methylphenidat den Abbau von Blutverdünnern dieser '
-  + 'Art hemmen – in Praxis oder Apotheke ansprechen.';
+const wTextW10 = 'Laut Fachinformation gibt es Hinweise, dass Methylphenidat den Abbau mancher '
+  + 'Mittel gegen Depression hemmen kann – in Praxis oder Apotheke ansprechen.';
+const wTextW11 = 'Laut Fachinformation gibt es Hinweise, dass Methylphenidat den Abbau von '
+  + 'Blutverdünnern dieser Art hemmen kann – in Praxis oder Apotheke ansprechen.';
 
 /* Die Fragen für die Sprechstunde, in Ich-Form wie überall im Bericht. */
 const W_FRAGE_A = 'Passt mein Säureblocker zu meinem Methylphenidat?';
@@ -287,8 +441,10 @@ export function wechselHinweise(standardMittel, eintraege, heute) {
   // Methylphenidat und Säureblocker – je nach Form.
   paare('mph', (b) => wIstSaeure(b.name), (a, b) => {
     const form = formZu(a.name, standardMittel, eintraege, heute);
-    if (form === 'pellet') dazu('W1', a, b, wKarteW1(b.name), W_FRAGE_A);
-    else if (form === 'unbekannt') dazu('W1u', a, b, wKarteW1u(a.name, b.name), W_FRAGE_A);
+    // Nur der Text unterscheidet sich beim Alginat (W_ALGINAT_SATZ), nicht, ob und wo die Karte steht.
+    const alginat = b.gruppe === 'alginat';
+    if (form === 'pellet') dazu('W1', a, b, wKarteW1(b.name, alginat), W_FRAGE_A);
+    else if (form === 'unbekannt') dazu('W1u', a, b, wKarteW1u(a.name, b.name, alginat), W_FRAGE_A);
     else if (form === 'sodas') dazu('W3', a, b, KLAER_SATZ, W_FRAGE_B);
     else if (form === 'sofort' || form === 'retardtab') dazu('W4', a, b, KLAER_SATZ, W_FRAGE_B);
   });

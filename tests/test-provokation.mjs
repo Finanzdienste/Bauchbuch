@@ -13,8 +13,8 @@
  *      Beschwerden bekommt, während die Leerdurchgänge ruhig bleiben, muss ein
  *      „bestätigt sich" lesen – sonst ist das Verfahren wertlos.
  *   2. ER FÄLLT NICHT AUF DEN LEEREN MAGEN HEREIN. Das ist der eigentliche
- *      Fallstrick, und er ist bei Magenbeschwerden garantiert vorhanden:
- *      Nüchternschmerz. Wer an den Testmorgen leidet und an den Leermorgen
+ *      Fallstrick: Manche Magenbeschwerden treten gerade bei leerem Magen auf
+ *      (Quellen in js/provokation.js). Wer an den Testmorgen leidet und an den Leermorgen
  *      genauso, hat nichts über die Milch erfahren. Sagt die App hier
  *      „bestätigt sich", schickt sie jemanden grundlos in ein Leben ohne
  *      Milchprodukte.
@@ -22,9 +22,11 @@
  *      hat keinen Durchgang gemacht, sondern gefrühstückt. Solche Durchgänge
  *      müssen herausfallen, sichtbar und mit Begründung.
  *
- * Dazu die Asymmetrie, die dieses Verfahren ehrlich hält: Ein Test ohne Befund
- * wiegt schwerer als einer mit, weil die Erwartung nur in eine Richtung schiebt.
- * Das muss dastehen, sonst liest sich „bestätigt sich nicht" wie ein Misserfolg.
+ * Dazu, was dieses Verfahren ehrlich hält: Ohne Verblindung ist keines der
+ * Ergebnisse ein Nachweis, und Erwartung kann Beschwerden verstärken wie
+ * abschwächen. Seit der Fassung 30 steht das so da – vorher hieß es, ein Test
+ * ohne Befund wiege schwerer, weil die Erwartung nur in eine Richtung schiebe;
+ * das trägt keine Quelle (siehe Kopf von js/provokation.js).
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, SHOT, pruefer, vorTagen } from './umgebung.mjs';
@@ -105,7 +107,7 @@ check(klar.reagiert === 3, `in allen drei Durchgängen (${klar.reagiert})`);
 /*
  * Und der Satz muss die Grenze mitliefern. „Bestätigt sich" ohne den Hinweis
  * auf die fehlende Verblindung wäre eine Diagnose, und die steht hier niemandem
- * zu: Wer weiß, was im Glas ist, bekommt davon auch echte Beschwerden.
+ * zu: Wer weiß, was im Glas ist, kann schon davon echte Beschwerden bekommen.
  */
 check(
   /Verblindung/.test(klar.satz),
@@ -122,8 +124,8 @@ check(
  * DER WICHTIGSTE FALL DIESER DATEI.
  *
  * Dieselben Beschwerden an den Testmorgen – aber an den Leermorgen genauso.
- * Dieser Mensch hat Nüchternschmerz, ein eigenes Muster, das diese App an
- * anderer Stelle sogar auflistet. Über Milch sagt das nichts.
+ * Hier sind es Beschwerden bei leerem Magen, ein eigenes Muster, das diese App
+ * an anderer Stelle sogar auflistet. Über Milch sagt das nichts.
  *
  * Ohne Leerdurchgang sähe dieses Tagebuch aus wie Fall 1: dreimal nüchtern
  * Milch, dreimal Beschwerden. Genau deshalb gibt es den Leerdurchgang.
@@ -144,25 +146,30 @@ check(
 /* ---------- 3. Ein Ergebnis ohne Befund ist eines ---------- */
 
 /*
- * Es darf sich nicht wie ein Fehlschlag lesen. Der negative Test ist hier
- * sogar der belastbarere – die Erwartung schiebt nur in eine Richtung –, und
- * genau das muss dastehen, sonst macht jemand aus Enttäuschung weiter.
+ * Es darf sich nicht wie ein Fehlschlag lesen, aber auch nicht wie eine
+ * Entwarnung. Seit der Fassung 30 steht dabei, dass auch dieses Ergebnis ohne
+ * Verblindung kein Nachweis ist – Erwartung kann Beschwerden verstärken und
+ * abschwächen (de Graaf 2024, PMID 38040019) –, und nicht mehr, es sei das
+ * belastbarste.
  */
 check(
-  /belastbarste|mehr wert/.test(nuechtern.satz),
-  'und die App sagt, dass das ein starkes Ergebnis ist',
+  /keine Reaktion/.test(nuechtern.satz) && /kein Nachweis/.test(nuechtern.satz)
+    && !/belastbarste|mehr wert|nur in eine Richtung/.test(nuechtern.satz),
+  'die App sagt, was sich gezeigt hat, und dass das kein Nachweis ist',
 );
 check(
-  /nur in eine Richtung|Erwartung/.test(nuechtern.satz),
-  'mit der Begründung, warum es mehr wiegt als ein positives',
+  /verstärken, aber auch abschwächen/.test(nuechtern.satz) && /Praxis/.test(nuechtern.satz),
+  'mit dem Grund – Erwartung wirkt in beide Richtungen – und dem Verweis auf die Praxis',
 );
 
 /* ---------- 4. Mal so, mal so ist auch eine Antwort ---------- */
 
 /*
- * Der häufigste Fall im echten Leben: einmal heftig, zweimal nichts. Daraus
- * „bestätigt sich" zu machen wäre falsch, „bestätigt sich nicht" auch. Es
- * heißt, dass etwas anderes mitspielt – die Menge oder der Tag.
+ * Einmal heftig, zweimal nichts. Daraus „bestätigt sich" zu machen wäre
+ * falsch, „bestätigt sich nicht" auch. Woran es liegt, lässt sich daraus nicht
+ * sicher ablesen – und seit der Fassung 30 gibt die App dazu keinen Rat
+ * („Weglassen wäre hier wahrscheinlich zu viel; eher lohnt … eine kleinere
+ * Menge“), sondern verweist auf die Praxis.
  */
 const wechsel = await pruefen(bauen([
   [20, false, 8], [17, false, 1], [14, false, 0],
@@ -170,12 +177,12 @@ const wechsel = await pruefen(bauen([
 ]));
 check(wechsel.urteil === 'wechselhaft', `mal so, mal so (${wechsel.urteil})`);
 check(
-  /Menge oder am Tag/.test(wechsel.satz),
-  'mit dem, was das heißt',
+  /nicht sicher ablesen/.test(wechsel.satz) && /Menge/.test(wechsel.satz),
+  'mit dem, was das heißen kann – und was nicht',
 );
 check(
-  /Weglassen wäre hier wahrscheinlich zu viel/.test(wechsel.satz),
-  'und der Warnung, dass Streichen zu weit ginge',
+  !/Weglassen|kleineren Menge|der häufigste/.test(wechsel.satz) && /Praxis/.test(wechsel.satz),
+  'ohne Rat zum Essen, mit dem Verweis auf die Praxis',
 );
 
 /* ---------- 5. Wer frühstückt, hat keinen Durchgang gemacht ---------- */
@@ -234,7 +241,7 @@ check(
  * nach dem Glas kam, ist offen. Sie zählt als Wert des Durchgangs – bei
  * Durchgängen mit der Sache wie bei Leerdurchgängen. Früher fielen damit
  * genau die Durchgänge mit Reaktion heraus, und übrig blieb „bestätigt sich
- * nicht", das Ergebnis, das dieser Test das belastbarste nennt.
+ * nicht", obwohl gerade die Reaktionen aussortiert waren.
  */
 const knopfMorgen = (tage, i, staerke) => ({
   id: `k${i}`, am: vorTagen(tage), um: '08:00', art: 'beschwerde', staerke, ungefaehr: true, tageszeit: 'morgens',
@@ -338,12 +345,15 @@ check(
 
 /*
  * Der Allergie-Satz ist der einzige in diesem Modul, der aus einem anderen
- * Grund dasteht als alle übrigen: Eine Unverträglichkeit ist unangenehm, eine
- * Allergie kann in Minuten gefährlich werden. Er darf nirgends fehlen, wo
- * jemand aufgefordert wird, etwas absichtlich zu sich zu nehmen.
+ * Grund dasteht als alle übrigen: Eine Nahrungsmittelallergie kann zu einer
+ * anaphylaktischen Reaktion führen (Quelle in js/provokation.js). Er darf
+ * nirgends fehlen, wo jemand aufgefordert wird, etwas absichtlich zu sich zu
+ * nehmen. Seit der Fassung 30 nennt er einen Verdacht statt einer Diagnose
+ * („Das wäre eine Allergie“).
  */
 check(
-  /Allergie und keine Unverträglichkeit/.test(sicht),
+  /können auf eine Allergie\s+hindeuten/.test(sicht) && /ärztlich abgeklärt/.test(sicht)
+    && !/Das wäre eine Allergie/.test(sicht),
   'und die Warnung vor der Allergie steht dabei',
 );
 
@@ -400,9 +410,11 @@ const text = await page.evaluate(async ([k, h, v]) => {
 }, [KEY, heute, vorTagen(60)]);
 check(/PROVOKATIONSTESTS/.test(text), 'der Bericht hat einen eigenen Abschnitt');
 check(/3 Durchgänge, 2 Leerdurchgänge/.test(text), 'mit den Zahlen beider Seiten');
+// Dass der Test nicht verblindet ist, steht dabei; wie der Bericht das
+// begründet, steht in js/bericht.js.
 check(
-  /nur in eine Richtung/.test(text),
-  'und dem Satz, warum ein Test ohne Befund hier schwerer wiegt',
+  /Nicht verblindet/.test(text),
+  'und dem Hinweis, dass der Test nicht verblindet ist',
 );
 
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);

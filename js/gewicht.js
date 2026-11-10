@@ -10,27 +10,41 @@
  * eine Folge: Kein Wert in dieser App lässt sich von außen nachprüfen.
  *
  * Das Gewicht schon. Es ist die eine Zahl, die eine Waage sagt und nicht der
- * Mensch, und ausgerechnet sie ist die klinisch wichtigste, die ein Tagebuch
- * beitragen kann.
+ * Mensch.
  *
- * WAS SIE ENTSCHEIDET
+ * WOZU SIE DA IST
  *
- * Bei Bauchbeschwerden verläuft die entscheidende Grenze zwischen
- * „funktionell" – unangenehm, oft langwierig, aber ohne Schaden – und „da muss
- * jemand nachsehen". Ein ungewollter Gewichtsverlust ist das stärkste einzelne
- * Zeichen, das auf die zweite Seite deutet, und er steht in jeder Leitlinie
- * unter den Alarmzeichen. Fünf Prozent des Körpergewichts in sechs Monaten
- * gilt als die Grenze, ab der nachgesehen wird.
+ * Ein deutlicher Gewichtsverlust gehört – neben Blut im Stuhl, Fieber oder
+ * Blässe – zu den Zeichen, bei denen es sich eher um andere Darmerkrankungen
+ * als einen Reizdarm handeln kann (gesund.bund.de/reizdarmsyndrom, Stand
+ * 28.08.2024, „Wie wird ein Reizdarmsyndrom festgestellt?“: „Kommt es zu
+ * deutlichem Gewichtsverlust, Blut im Stuhl, Fieber oder Blässe, kann es sich
+ * eher um andere Darmerkrankungen handeln.“). Bei Magenkrebs nennt
+ * gesund.bund.de/magenkrebs (Stand 22.12.2023) einen „unklaren
+ * Gewichtsverlust“ unter den Symptomen, bei denen Ärzte eine Spiegelung
+ * empfehlen. Eine Rangfolge der Zeichen gibt keine der Quellen an; bis zur
+ * Fassung 29 stand hier, das Gewicht sei „die klinisch wichtigste“ Angabe
+ * eines Tagebuchs und der Verlust „das stärkste einzelne Zeichen“ und stehe
+ * „in jeder Leitlinie“ – das war nicht belegt.
+ *
+ * Die fünf Prozent in sechs Monaten sind eine Festlegung dieser App. Als Zahl
+ * kommt „≥ 5 % in 6 Monaten“ etwa in der Konsensdefinition der Tumorkachexie
+ * vor, die die EMA wiedergibt (Adlumiz, EMA/647868/2017, 2.5.2: „involuntary
+ * weight loss of ≥ 5% body weight within 6 months“, nach Fearon et al.
+ * 2011); eine allgemeine Grenze, ab der ein Verlust abgeklärt wird, nennen
+ * die erreichbaren Quellen nicht.
  *
  * Bisher stand das hier nur zum Ankreuzen. Angekreuzt wird es aber von dem,
  * der es schon bemerkt hat – und schleichende Verluste bemerkt niemand.
  *
  * ZWEI DINGE, DIE DIESE DATEI RICHTIG MACHEN MUSS
  *
- *   1. **Nicht auf Wasser hereinfallen.** Ein Mensch schwankt am Tag um ein
- *      bis zwei Kilo, je nach Trinken, Salz, Stuhlgang und Zyklus. Verglichen
- *      werden deshalb keine Einzelwerte, sondern Mittel aus mehreren
- *      Messungen, und zwischen ihnen muss ordentlich Zeit liegen.
+ *   1. **Nicht auf einzelne Wiegungen hereinfallen.** Eine einzelne Messung
+ *      kann zufällig hoch oder niedrig liegen. Verglichen werden deshalb keine
+ *      Einzelwerte, sondern Mittel aus mehreren Messungen, und zwischen ihnen
+ *      müssen mindestens MINDEST_ABSTAND Tage liegen – eine Festlegung dieser
+ *      App. (Die frühere Angabe, ein Mensch schwanke am Tag um ein bis zwei
+ *      Kilo, ließ sich an keiner erreichbaren Quelle prüfen.)
  *   2. **Nicht bei jeder Diät Alarm schlagen.** Fünf Prozent weniger sind ein
  *      Warnzeichen, wenn sie *ungewollt* kommen, und ein Erfolg, wenn jemand
  *      dafür gearbeitet hat. Den Unterschied sieht keine Rechnung – deshalb
@@ -71,10 +85,12 @@ export function gewichtsBild(messungen, heute, gewollt = false) {
     return {
       urteil: 'keine',
       messungen: liste,
-      satz: 'Noch nichts gewogen. Alle ein bis zwei Wochen reicht – es ist die '
-        + 'einzige Zahl hier, die nicht aus dem Gefühl kommt, und ein '
-        + 'ungewollter Verlust ist das wichtigste Zeichen, das ein Tagebuch '
-        + 'überhaupt liefern kann.',
+      // Quelle zum Gewichtsverlust: gesund.bund.de/reizdarmsyndrom (siehe oben).
+      satz: 'Noch nichts gewogen. Das Gewicht ist die einzige Zahl hier, die nicht aus '
+        + 'dem Gefühl kommt. Ein deutlicher, ungewollter Gewichtsverlust gehört wie Blut '
+        + 'im Stuhl oder Fieber zu den Zeichen, bei denen Bauchbeschwerden eher eine '
+        + 'andere Ursache als einen Reizdarm haben können. Eine Richtung zeigt Body Check, '
+        + `sobald Messungen mindestens ${MINDEST_ABSTAND} Tage auseinanderliegen.`,
     };
   }
 
@@ -84,8 +100,9 @@ export function gewichtsBild(messungen, heute, gewollt = false) {
 
   /*
    * „Früher" sind die ältesten Messungen im Fenster – aber nur, wenn sie weit
-   * genug zurückliegen. Zwei Wiegungen aus derselben Woche zu vergleichen
-   * misst den Wasserhaushalt, nicht den Verlauf.
+   * genug zurückliegen (MINDEST_ABSTAND, eine Festlegung dieser App). Bis zur
+   * Fassung 29 stand hier, zwei Wiegungen aus derselben Woche mäßen den
+   * Wasserhaushalt – das war nicht belegt.
    */
   const weitGenug = imFenster.filter((g) => tageZwischen(g.am, jetzt[0].am) >= MINDEST_ABSTAND);
   const frueher = weitGenug.slice(-JE_SEITE);
@@ -95,9 +112,9 @@ export function gewichtsBild(messungen, heute, gewollt = false) {
       urteil: 'zu-kurz',
       messungen: liste,
       aktuell,
-      satz: `Zuletzt ${aktuell.toFixed(1)} kg. Für eine Richtung braucht es `
-        + `Messungen, die mindestens ${MINDEST_ABSTAND} Tage auseinanderliegen – `
-        + 'darunter misst man Wasser und nicht den Verlauf.',
+      satz: `Zuletzt ${aktuell.toFixed(1)} kg. Eine Richtung zeigt Body Check erst bei `
+        + `Messungen, die mindestens ${MINDEST_ABSTAND} Tage auseinanderliegen – so ist `
+        + 'die App eingestellt, damit einzelne Wiegungen nicht als Verlauf gelten.',
     };
   }
 
@@ -129,11 +146,15 @@ export function gewichtsBild(messungen, heute, gewollt = false) {
         ? `${grundlage} Das sind ${Math.abs(anteil * 100).toFixed(0)} Prozent – `
           + 'du hast angegeben, dass das so gewollt ist, deshalb steht hier kein '
           + 'Warnzeichen. Sollte sich das ändern, stell es unter „Mehr" um.'
+        /*
+         * Quellen: gesund.bund.de/reizdarmsyndrom und /magenkrebs (siehe oben).
+         * Die fünf Prozent sind die Grenze dieser App, keine Leitliniengrenze.
+         */
         : `${grundlage} Das sind ${Math.abs(anteil * 100).toFixed(0)} Prozent `
-          + 'weniger. Ein ungewollter Verlust ab fünf Prozent gehört ärztlich '
-          + 'abgeklärt – das ist keine Diagnose, sondern die Grenze, ab der '
-          + 'nachgesehen wird. Wenn du absichtlich abnimmst, sag es der App '
-          + 'unter „Mehr", dann hört sie damit auf.',
+          + 'weniger. Ein deutlicher, ungewollter Gewichtsverlust gehört zu den Zeichen, '
+          + 'die ärztlich abgeklärt werden. Body Check meldet sich ab fünf Prozent – das '
+          + 'ist keine Diagnose, sondern die Grenze dieser App. Wenn du absichtlich '
+          + 'abnimmst, sag es der App unter „Mehr", dann hört sie damit auf.',
     };
   }
 
@@ -146,8 +167,14 @@ export function gewichtsBild(messungen, heute, gewollt = false) {
       differenz,
       anteil,
       spanne,
+      /*
+       * Bis zur Fassung 29: „Kein Alarmzeichen“ – eine Entwarnung, die keine
+       * Quelle trägt (gesund.bund.de/herzschwaeche, Stand 14.03.2024, nennt etwa
+       * eine „Gewichtszunahme aufgrund der Wassereinlagerungen“ als Zeichen).
+       * Gerechnet wird wie bisher; nur der Satz sagt nicht mehr, was das heißt.
+       */
       satz: `${grundlage} Das sind ${(anteil * 100).toFixed(0)} Prozent mehr. `
-        + 'Kein Alarmzeichen – aber eine Zahl, die zum übrigen Bild gehört.',
+        + 'Auch eine Zunahme gehört zum übrigen Bild; einordnen kann sie die Praxis.',
     };
   }
 
@@ -159,9 +186,14 @@ export function gewichtsBild(messungen, heute, gewollt = false) {
     differenz,
     anteil,
     spanne,
-    satz: `${grundlage} Das Gewicht ist damit stabil, und das ist bei `
-      + 'Bauchbeschwerden eine gute Nachricht: Der wichtigste Hinweis darauf, '
-      + 'dass mehr dahintersteckt, ist ein ungewollter Verlust.',
+    /*
+     * Ohne Entwarnung: Die Waage zeigt nur eines der Zeichen, die
+     * gesund.bund.de/reizdarmsyndrom nennt (siehe oben). Bis zur Fassung 29:
+     * „eine gute Nachricht: Der wichtigste Hinweis … ist ein ungewollter
+     * Verlust“ – eine Rangfolge, die keine Quelle angibt.
+     */
+    satz: `${grundlage} Das Gewicht ist damit stabil. Über andere Zeichen wie Blut im `
+      + 'Stuhl, Fieber oder Blässe sagt die Waage nichts.',
   };
 }
 

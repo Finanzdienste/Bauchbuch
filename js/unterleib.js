@@ -1,30 +1,61 @@
 /*
  * Der Unterleib – und warum ein Magentagebuch danach fragt.
  *
- * Endometriose wird im Mittel sieben bis zehn Jahre lang nicht erkannt, und
- * die häufigste Fehldeutung auf diesem Weg ist „Reizdarm". Das ist kein
- * Zufall: Endometrioseherde am Darm oder im Douglasraum machen Blähungen,
- * Krämpfe, Durchfall und Verstopfung – dieselben Beschwerden, die dieses
- * Tagebuch ohnehin zählt, nur mit einer anderen Ursache.
+ * Bis eine Endometriose erkannt wird, dauert es oft Jahre; bis dahin halten
+ * viele Frauen ihre Schmerzen für normale Menstruationsbeschwerden
+ * (gesund.bund.de/endometriose, Stand 21.08.2025, „Was ist eine
+ * Endometriose?“). Eine Endometriose kann zusammen mit einem Reizdarm
+ * vorkommen oder für einen gehalten werden („may coexist with or be
+ * misdiagnosed as pelvic inflammatory disease or IBS“, Ballard et al., BJOG
+ * 2008, PMID 18715240, Abstract). Zu ihren Beschwerden können krampfartige
+ * Schmerzen, Übelkeit, Erbrechen und Durchfall gehören, und wie sie sich
+ * äußern, hängt unter anderem davon ab, wo die Herde sitzen (gesund.bund.de,
+ * „Was sind die Symptome?“); manche Betroffene haben Schmerzen beim Stuhlgang
+ * (EMA, Ryeqo, Bewertungsbericht EMA/528959/2023, 2.1.1: „painful bowel
+ * movements (dyschezia)“). Das sind zum Teil dieselben Beschwerden, die dieses
+ * Tagebuch ohnehin zählt. Fassung 30: Die frühere feste Spanne in Jahren,
+ * „die häufigste Fehldeutung“ und die Zuordnung der Darmbeschwerden zu Herden
+ * am Darm oder im Douglasraum standen so in keiner geprüften Quelle.
  *
- * Was die beiden auseinanderhält, steht in Daten, die eine Magensprechstunde
- * nicht erhebt:
+ * Dazu zählt dieses Modul vier Merkmale, nach denen ein Magentagebuch sonst
+ * nicht fragt. Keines davon trennt Endometriose und Reizdarm sicher; das kann
+ * nur die Praxis.
  *
- *   * **Zyklusbindung.** Reizdarmbeschwerden schwanken auch, aber nicht
- *     verlässlich mit der Blutung. Endometriose tut das.
- *   * **Tiefer Schmerz beim Sex.** Das ist das Merkmal mit dem größten
- *     Gewicht und zugleich das, nach dem am seltensten gefragt wird. Schmerz
- *     am Eingang deutet woanders hin (Beckenboden, Trockenheit, Vaginismus) –
- *     deshalb wird hier getrennt gezählt.
- *   * **Starker Regelschmerz**, der Schmerzmittel oder Fehltage erzwingt.
- *   * **Darmbeschwerden, die zur Blutung hin schlimmer werden**, oft mit
- *     schmerzhaftem Stuhlgang während der Periode.
+ *   * **Bezug zur Blutung.** Endometriosebeschwerden treten oft während der
+ *     Monatsblutung auf (gesund.bund.de/endometriose), sekundäre Regelschmerzen
+ *     – auch durch Endometriose – „können auch außerhalb der Monatsblutung
+ *     vorkommen“ (gesund.bund.de/regelschmerzen, Stand 27.08.2024), und ein
+ *     Reizdarm zeigt sich häufig schubweise (gesund.bund.de/reizdarmsyndrom,
+ *     Stand 28.08.2024). Ein Muster zur Blutung hin unterscheidet die beiden
+ *     deshalb nicht sicher, und fehlt es, ist eine Endometriose damit nicht
+ *     ausgeschlossen. Bis zur Fassung 29 stand hier, Endometriose schwanke
+ *     „verlässlich“ mit der Blutung – das widerspricht diesen Quellen.
+ *   * **Tiefer Schmerz beim Sex.** Schmerzen beim oder nach dem
+ *     Geschlechtsverkehr können auf Endometriose hinweisen (gesund.bund.de);
+ *     eine Übersichtsarbeit nennt starken tiefen Schmerz beim Sex und Schmerz
+ *     beim Stuhlgang als Beschwerden, die zu bestimmten Orten der Herde passen
+ *     (Fauconnier & Chapron, Hum Reprod Update 2005, PMID 16172113, Abstract).
+ *     Gezählt wird hier nur der tiefe; Schmerz am Eingang zählt getrennt und
+ *     nicht als Merkmal – eine Festlegung dieser App, kein Ausschluss. Dass
+ *     tiefer Schmerz „das größte Gewicht“ habe und „am seltensten“ erfragt
+ *     werde, stand bis zur Fassung 29 hier und ist nicht belegt.
+ *   * **Starker Regelschmerz**, der Schmerzmittel oder Fehltage erzwingt. Bis
+ *     zu 50 Prozent der Frauen mit stark schmerzhaften Regelblutungen haben
+ *     laut gesund.bund.de/endometriose („Wie häufig?“) eine Endometriose.
+ *   * **Bauch schlechter zur Blutung hin und schmerzhafter Stuhlgang während
+ *     der Blutung.** Schmerz beim Stuhlgang während der Periode sagte in einer
+ *     großen Studie unter Frauen vor einer Bauchspiegelung eine Endometriose
+ *     am stärksten voraus (Nnoaham et al., Fertil Steril 2012, PMID 22657249,
+ *     Abstract: „Menstrual dyschezia … most strongly predicted“). Magen-Darm-
+ *     Beschwerden vor oder während der Periode hatten in einer Befragung aber
+ *     auch 73 % gesunder Frauen (Bernstein et al., BMC Womens Health 2014,
+ *     PMID 24450290, Abstract).
  *
  * WAS DIESES MODUL NICHT TUT: eine Diagnose stellen. Endometriose wird
  * bildgebend und letztlich durch eine Bauchspiegelung festgestellt, nie durch
- * ein Tagebuch. Was hier herauskommt, ist ein Satz für die Sprechstunde – und
- * der ist trotzdem viel wert, weil er eine Frage auslöst, die sonst über Jahre
- * nicht gestellt wird.
+ * ein Tagebuch (gesund.bund.de/endometriose: Gespräch, Untersuchung, „bis hin
+ * zu einer Spiegelung der Bauchhöhle (Laparoskopie)“). Was hier herauskommt,
+ * ist ein Satz für die Sprechstunde: eine Frage, die sich dort stellen lässt.
  *
  * UND ES SCHWEIGT LIEBER. Alle vier Merkmale sind nur zu haben, wenn jemand
  * die Fragen dazu eingeschaltet und ein paar Wochen ausgefüllt hat. Fehlen
@@ -84,7 +115,8 @@ export function unterleibsBild(eintraege, tage, tagesWert) {
     mitSchmerz: schmerzhaft.length,
     tief: tief.length,
     anteil: mitAngabe.length ? schmerzhaft.length / mitAngabe.length : 0,
-    // Der stärkste einzelne Hinweis: tiefer Schmerz, mehrfach.
+    // Tiefer Schmerz, mehrfach – der eine Weg, der hier allein reicht (eine
+    // Festlegung dieser App, siehe „Zwei Wege“ unten).
     tiefWiederholt: tief.length >= 2,
     fehlt: Math.max(0, GENUG_SEX - mitAngabe.length),
   };
@@ -156,6 +188,7 @@ export function unterleibsBild(eintraege, tage, tagesWert) {
     {
       id: 'sextief',
       name: 'Tiefer Schmerz beim Sex',
+      // Doppelt gezählt – eine Festlegung dieser App, kein Befund aus einer Quelle.
       gewicht: 2,
       pruefbar: sexSchmerz.pruefbar,
       erfuellt: sexSchmerz.pruefbar && sexSchmerz.tiefWiederholt,
@@ -204,19 +237,35 @@ export function unterleibsBild(eintraege, tage, tagesWert) {
    * Wann ein Satz in den Bericht gehört – und warum die Schwelle nicht
    * niedriger sein darf, als sie beim ersten Entwurf war.
    *
-   * Erst hieß die Regel „zwei Punkte genügen". Die Prüfung hat gezeigt, was
-   * das bedeutet: Schmerzhafte Perioden und ein Bauch, der zur Blutung hin
-   * schlechter wird, sind zusammen bei sehr vielen Menschen der Normalzustand.
-   * Eine App, die daraufhin bei jeder Zweiten Endometriose in den Raum stellt,
-   * schickt Leute in Sprechstunden, in denen nichts gefunden wird – und beim
-   * nächsten Mal, wenn es wirklich etwas wäre, glaubt ihr niemand mehr.
+   * Erst hieß die Regel „zwei Punkte genügen". Regelschmerzen sind aber weit
+   * verbreitet (gesund.bund.de/regelschmerzen, Stand 27.08.2024), und
+   * Magen-Darm-Beschwerden vor oder während der Periode hatten in einer
+   * Befragung 73 % gesunder Frauen (Bernstein et al. 2014, PMID 24450290,
+   * Abstract); schmerzhafte Beschwerden sind auch ohne Endometriose häufig
+   * („painful symptoms are frequent in women without this pathology“,
+   * Fauconnier & Chapron 2005, PMID 16172113, Abstract). Mit zwei Punkten
+   * hätte dieses Modul sehr oft angeschlagen. Bis zur Fassung 29 hieß es hier,
+   * beides zusammen sei „bei sehr vielen Menschen der Normalzustand“ – das
+   * beziffert keine Quelle, und gesund.bund.de schreibt, starke Schmerzen, die
+   * monatlich für mehrere Tage das Leben beeinträchtigen, „müssen aber nicht als
+   * ‚natürlich‘ hingenommen werden“.
    *
-   * Deshalb zwei Wege statt eines Schwellwerts:
+   * Deshalb zwei Wege statt eines Schwellwerts – beide eine Festlegung dieser
+   * App, keine Leitlinie:
    *
-   *   * Tiefer Schmerz beim Sex, wiederholt. Das ist das Merkmal mit der
-   *     eigenen Aussagekraft und trägt allein.
-   *   * Oder ALLE drei übrigen zusammen. Einzeln sind sie alltäglich, zu
-   *     dritt sind sie es nicht mehr.
+   *   * tiefer Schmerz beim Sex, mehrfach eingetragen;
+   *   * oder alle drei übrigen Merkmale zusammen.
+   *
+   * Das sagt nichts darüber, welches Merkmal medizinisch mehr wiegt. In
+   * Studien hängen starker Regelschmerz, Schmerz beim Sex und Schmerz beim
+   * Stuhlgang während der Periode jeweils mit Endometriose zusammen (Ballard
+   * 2008, PMID 18715240: Dysmenorrhö OR 8,1, Dyspareunie und/oder Blutung nach
+   * dem Verkehr OR 6,8; Nnoaham 2012, PMID 22657249; Fauconnier & Chapron 2005).
+   * Bis zur Fassung 29 stand hier, nur der tiefe Schmerz habe „eigene
+   * Aussagekraft“ und die übrigen seien einzeln „alltäglich“ – das widerspricht
+   * diesen Quellen. Bei sehr starken oder sich verschlimmernden Schmerzen ist
+   * laut gesund.bund.de/regelschmerzen eine ärztliche Untersuchung sinnvoll,
+   * auch wenn dieses Modul kein Muster ausgibt.
    */
   const ansprechen = (sexSchmerz.pruefbar && sexSchmerz.tiefWiederholt) || punkte >= 3;
 

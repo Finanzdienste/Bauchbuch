@@ -5,9 +5,9 @@
  * Fällen, mit Zufallsschranke. Das ist richtig für einen Befund und nutzlos
  * für die Frage, die abends um sieben ansteht: Was kann ich jetzt essen?
  *
- * Wer eine Gastritis hat und auf die meisten Sachen keinen Appetit, weiß nach
- * drei Tagen, was geht – nur stand es nirgends. Also: zwei Listen, selbst
- * gefüllt, ohne Fallzahl und ohne Urteil.
+ * Wer gerade auf vieles keinen Appetit hat, merkt meist selbst bald, was
+ * geht – nur stand es nirgends. Also: zwei Listen, selbst gefüllt, ohne
+ * Fallzahl und ohne Urteil.
  *
  * Geprüft wird in vier Richtungen, und die zweite ist die, bei der es
  * gefährlich würde:
@@ -226,9 +226,10 @@ check(
 );
 
 /*
- * Und die andere Richtung, die oft vergessen wird: Wer sich etwas verbietet,
- * das gar nichts macht, isst ohne Grund enger. Pfefferminze steht hier auf
- * „Geht nicht", und die Zahlen sehen keinen Unterschied.
+ * Und die andere Richtung, die oft vergessen wird: Pfefferminze steht hier auf
+ * „Geht nicht", und die Zahlen sehen keinen Unterschied. Seit der Fassung 30
+ * rät die App dann nicht mehr, es wieder zu probieren – ob ein Verzicht nötig
+ * ist, lässt sich ärztlich abklären (Quellen in js/kueche.js).
  */
 const umsonst = await zeigen([
   { id: 'k2', name: 'Pfefferminze', art: 'nicht', am: vorTagen(5) },
@@ -238,8 +239,9 @@ check(
   'auch umgekehrt: etwas unnötig Weggelassenes fällt auf',
 );
 check(
-  /ohne Grund enger/.test(umsonst),
-  'und wird als Einladung formuliert, nicht als Fehler',
+  /Ob ein Verzicht nötig ist, lässt sich ärztlich abklären/.test(umsonst)
+    && !/es wieder zu probieren|ohne Grund enger/.test(umsonst),
+  'ohne Rat, es wieder zu essen, und mit dem Verweis auf die ärztliche Abklärung',
 );
 
 /*

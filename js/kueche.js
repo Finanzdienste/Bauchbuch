@@ -10,10 +10,13 @@
  *
  *     „Was kann ich jetzt essen, ohne darüber nachzudenken?"
  *
- * Darauf antwortet keine Statistik rechtzeitig. Wer eine Gastritis hat und auf
- * die meisten Sachen keinen Appetit, hat nach drei Tagen eine klare Vorstellung
- * davon, was geht – nur steht sie nirgends, und beim nächsten Einkauf fängt
- * das Überlegen wieder von vorn an.
+ * Darauf antwortet keine Statistik rechtzeitig. Wer gerade auf vieles keinen
+ * Appetit hat – Appetitlosigkeit kann zum Beispiel bei einer akuten Gastritis
+ * vorkommen (gesund.bund.de/gastritis, Stand 13.11.2025, „Welche Symptome
+ * zeigen sich bei einer Gastritis?“) –, merkt meist selbst bald, was geht.
+ * Nur steht das nirgends, und beim nächsten Einkauf fängt das Überlegen wieder
+ * von vorn an. (Bis zur Fassung 29 stand hier ein Fall mit Gastritis und einer
+ * festen Zahl von Tagen; beides las sich wie eine Angabe zum Krankheitsverlauf.)
  *
  * Deshalb: keine Fallzahl, keine Schwelle, kein Urteil. Zwei Listen, die man
  * selbst füllt. Das Gegenstück zu allem anderen in dieser App – und das Stück,
@@ -99,8 +102,9 @@ export function widersprechendeFunde(kueche, bilanz, namen) {
      *   „geht gut"  + die Auswertung sieht es auffällig schlechter
      *   „geht nicht" + die Auswertung sieht keinen Unterschied
      *
-     * Die zweite Richtung ist die freundlichere und wird oft vergessen: Wer
-     * sich etwas verbietet, das gar nichts macht, isst ohne Grund enger.
+     * Die zweite Richtung wird oft vergessen: Etwas steht auf „geht nicht",
+     * und die Zahlen sehen keinen Unterschied. Was das heißt, sagt die App
+     * nicht – nur, dass beides nicht zusammenpasst (widerspruchsSatz).
      */
     if (e.art === 'geht' && z.differenz >= 1) {
       treffer.push({ ...e, zeile: z, richtung: 'schlechter' });
@@ -120,7 +124,19 @@ export function widerspruchsSatz(t) {
       + 'Das muss nicht heißen, dass du dich irrst – vielleicht isst du es an '
       + 'Tagen, an denen ohnehin wenig geht. Aber es ist einen Blick wert.';
   }
-  return `Aus ${n} Mahlzeiten damit lässt sich kein Unterschied erkennen. `
-    + 'Vielleicht lohnt ein Versuch, es wieder zu probieren – wer etwas '
-    + 'weglässt, das nichts macht, isst ohne Grund enger.';
+  /*
+   * Ohne Rat zum Essen (bis zur Fassung 29: „Vielleicht lohnt ein Versuch, es
+   * wieder zu probieren – wer etwas weglässt, das nichts macht, isst ohne Grund
+   * enger“). Die Quellen binden den Weg aus einem unnötigen Verzicht an eine
+   * ärztliche Abklärung: „Durch eine sorgfältige Diagnose können Ärzte
+   * herausfinden, ob eine Allergie vorliegt … So lässt sich auch vermeiden,
+   * dass Patientinnen und Patienten auf bestimmte Nahrungsmittel unnötig
+   * verzichten“ (gesund.bund.de/nahrungsmittelallergie, Stand 27.05.2024), und
+   * bei Milchzucker soll zuerst eine Ärztin oder ein Arzt die Unverträglichkeit
+   * feststellen, „bevor man die Ernährung umstellt“
+   * (gesund.bund.de/laktoseintoleranz, Stand 23.02.2026).
+   */
+  return `Aus ${n} Mahlzeiten damit lässt sich in deinen Einträgen kein Unterschied `
+    + 'erkennen. Das heißt nicht, dass du es verträgst. Ob ein Verzicht nötig ist, '
+    + 'lässt sich ärztlich abklären.';
 }

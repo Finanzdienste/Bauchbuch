@@ -2,21 +2,39 @@
  * Der Stuhlgang: die Angabe, ohne die der halbe Bauch unsichtbar bleibt.
  *
  * Dieses Tagebuch hat lange nur nach oben geschaut – Brennen, Druck, Übelkeit.
- * Das reicht für die Magenfragen und für die Darmfragen überhaupt nicht: Ein
- * Reizdarmsyndrom wird an drei Dingen festgemacht, und zwei davon sind
- * Häufigkeit und Form des Stuhlgangs. Ohne sie lässt sich ein Reizdarm von
- * einer funktionellen Dyspepsie im Tagebuch grundsätzlich nicht trennen, und
- * der Typ – Verstopfung, Durchfall, gemischt – entscheidet in der Praxis über
- * die Behandlung.
+ * Das reicht für die Magenfragen und für die Darmfragen überhaupt nicht: Nach
+ * den Rom-IV-Kriterien gehören zum Reizdarmsyndrom wiederkehrende
+ * Bauchschmerzen, die mit mindestens zwei von drei Merkmalen verbunden sind –
+ * „Related to defecation“, „Associated with a change in frequency of stool“,
+ * „Associated with a change in form (appearance) of stool“ (FDA, NDA 211801
+ * Ibsrela, Multidisciplinary Review, Version 12.09.2018, 2.1, Table 1, nach
+ * Mearin et al. 2016). Alle drei betreffen den Stuhlgang; ohne Angaben dazu
+ * lassen sie sich im Tagebuch nicht nachrechnen. Ob ein Reizdarm, ein
+ * Reizmagen oder beides vorliegt, klärt die ärztliche Untersuchung. Der Typ –
+ * Verstopfung, Durchfall, gemischt – richtet sich nach dem vorherrschenden
+ * Stuhlmuster, und die medikamentöse Behandlung richtet sich meist danach,
+ * welche Beschwerden im Vordergrund stehen („The pharmacological treatment of
+ * IBS is usually symptomatic, and depends on the predominance of the
+ * symptoms“, EMA, Truberzi, Beurteilungsbericht EMA/549473/2016, 2.1); manche
+ * Arzneimittel sind nur für einen Typ zugelassen (Constella: „Reizdarmsyndrom
+ * mit Obstipation (RDS-O)“, Produktinformation 4.1). Fassung 30: Vorher hieß
+ * es, ohne Stuhlangaben lasse sich ein Reizdarm von einer funktionellen
+ * Dyspepsie „grundsätzlich nicht trennen“ und der Typ „entscheide“ über die
+ * Behandlung – beides ging über die Quellen hinaus.
  *
  * Gerechnet wird hier nur, gefragt wird woanders. Wie überall in dieser
  * Schicht: reine Funktionen, alles kommt als Argument herein.
  *
  * Zur Einordnung der Zahlen: Die Anteile unten sind über *alle* eingetragenen
- * Stuhlgänge gerechnet, nicht über Tage. Die Rom-Kriterien rechnen ähnlich,
- * aber nicht identisch – dort geht es um Tage mit mindestens einem auffälligen
- * Stuhlgang. Der Unterschied ist klein und die Zahl hier nachvollziehbar;
- * beides steht in der Anzeige dabei.
+ * Stuhlgänge gerechnet, nicht über Tage. So setzen auch die erreichbaren
+ * amtlichen Wiedergaben der Rom-Kriterien die Schwelle von einem Viertel an:
+ * Rom III in der EMA-Leitlinie zum Reizdarm (CPMP/EWP/785/97 Rev. 1,
+ * 25.09.2014, Kapitel 4: „… <25% of the bowel movements“), Rom IV im
+ * FDA-Prüfbericht zu Ibsrela (Table 2: „More than one-fourth (25%) of bowel
+ * movements with Bristol Stool Scale Types 1-2“). Ob die Originalfassung von
+ * Rom IV nur bestimmte Tage einbezieht, ist hier nicht belegt; bis zur
+ * Fassung 29 stand, dort gehe es um Tage mit mindestens einem auffälligen
+ * Stuhlgang. Die Einordnung selbst gehört in die Praxis.
  */
 import { bristolVon } from './daten.js';
 import { tagZaehlt, wasserVon, zaehltFuerBauch } from './wasser.js';
@@ -145,9 +163,13 @@ export function schmerzVergleich(eintraege, tage, schmerzArten = ['krampf']) {
 /**
  * Wie oft eine Beschwerde sich mit dem Stuhlgang geändert hat.
  *
- * Das dritte Rom-Merkmal, und das einzige, das sich nicht rechnen lässt:
- * Dass an einem Tag Schmerz und Stuhlgang beide vorkamen, sagt nichts darüber,
- * ob das eine das andere verändert hat. Also wird gefragt (STUHLBEZUG in
+ * Eines der drei Rom-Merkmale, und das einzige, das sich nicht rechnen lässt:
+ * der Bezug des Bauchschmerzes zum Stuhlgang – in Rom IV „Related to
+ * defecation“ (FDA, NDA 211801, Table 1), in der Rom-III-Fassung der EMA noch
+ * „Improvement with defecation“ (CPMP/EWP/785/97 Rev. 1, Kapitel 4). Dass an
+ * einem Tag Schmerz und Stuhlgang beide vorkamen, sagt nichts darüber, ob das
+ * eine das andere verändert hat. (Bis zur Fassung 29 hieß es „das dritte“
+ * Merkmal; in beiden Wiedergaben steht es an erster Stelle.) Also wird gefragt (STUHLBEZUG in
  * js/daten.js) und hier nur ausgezählt. Unbeantwortete Beschwerden zählen
  * nirgends mit – weder dafür noch dagegen.
  */
@@ -183,9 +205,14 @@ const WASSER_GENUG = 5;
  * einer, an dem nicht gezählt wurde, und ein Tag ohne Stuhlgang sagt über die
  * Form nichts.
  *
- * Verglichen wird derselbe Tag. Was am Vortag getrunken wurde, wie viel
- * gegessen, ob Bewegung dazukam, steckt alles mit darin – deshalb sagt die
- * Anzeige nur, was gezählt ist, und nichts darüber, woran es liegt.
+ * Verglichen wird derselbe Tag; was an den Tagen davor war, bildet der
+ * Vergleich nicht ab. Wie lange der Stuhl im Darm bleibt und wie er aussieht,
+ * hängt unter anderem davon ab, was gegessen und getrunken wurde und wie viel
+ * Bewegung dazukam (gesund.bund.de/verstopfung-bei-erwachsenen, Stand
+ * 02.10.2023: „faserarme Nahrung mit wenig Ballaststoffen, zu wenig trinken,
+ * mangelnde Bewegung“; „Diese Ursachen führen aber nur bei manchen Menschen zu
+ * Beschwerden“) – das steckt alles mit darin. Deshalb sagt die Anzeige nur,
+ * was gezählt ist, und nichts darüber, woran es liegt.
  */
 export function wasserVergleich(eintraege, tage) {
   const stuhl = stuhlgaenge(eintraege);

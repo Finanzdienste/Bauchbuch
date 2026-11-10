@@ -2,7 +2,8 @@
  * Der Stuhlgang: eintragen, zählen, und das eine Warnzeichen nicht verlieren.
  *
  * Die Angabe ist neu und sie ist die größte Lücke, die dieses Tagebuch hatte –
- * ohne sie lässt sich ein Reizdarm gar nicht prüfen. Geprüft wird deshalb
+ * ohne sie lassen sich die Rom-Kriterien zum Reizdarm im Tagebuch nicht
+ * nachrechnen (Quellen in js/stuhl.js). Geprüft wird deshalb
  * dreierlei:
  *
  *   1. Dass sich die Form überhaupt eintragen lässt und ohne Form nichts

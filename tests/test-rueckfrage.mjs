@@ -383,6 +383,30 @@ for (const [was, gleichDanach] of [['am selben Tag', true], ['drei Tage später'
   check(await zahl(page, '.wechsel-karte') === 1
     && (await text(page, '.wechsel-karte')).includes('Kapsel mit zweierlei Kügelchen und Pantoprazol 20 mg'),
   'danach steht die Karte W1 von selbst da');
+  /*
+   * Seit der Fassung 30 gibt die Karte W1 die Fachinformation genauer wieder
+   * (Quellen in js/zusammen.js): die Gruppen beim Namen, die raschere
+   * Freisetzung der gesamten Wirkstoffmenge – nicht „in einem weniger sauren
+   * Magen … früher frei“ und nicht „ein Mittel gegen oder gegen zu viel
+   * Magensäure“. Bei einem Alginat sagt sie dazu, dass die Fachinformation es
+   * nicht eigens nennt; beim Protonenpumpenhemmer nicht.
+   */
+  const w1Karte = (await text(page, '.wechsel-karte')).replace(/\s+/g, ' ');
+  check(w1Karte.includes('steht die Behandlung mit H2-Blockern, Protonenpumpenhemmern oder Antazida unter den Gegenanzeigen')
+    && w1Karte.includes('gesamte Wirkstoffmenge rascher frei')
+    && !/weniger sauren Magen|gegen oder gegen zu viel|Alginate nennt/.test(w1Karte),
+  'die Karte W1 nennt die Gruppen und den Grund so, wie die Fachinformation sie nennt');
+  const w1Alginat = await page.evaluate(async () => {
+    const z = await import('./js/zusammen.js');
+    const mph = [{ id: 'a', mittel: 'Medikinet adult' }];
+    const mit = (name) => z.wechselHinweise([...mph, { id: 'b', mittel: name }], [], '2026-11-10');
+    return { gaviscon: mit('Gaviscon Advance'), pantoprazol: mit('Pantoprazol') };
+  });
+  check(w1Alginat.gaviscon.length === 1 && w1Alginat.gaviscon[0].id === 'W1' && w1Alginat.gaviscon[0].stufe === 'A'
+    && w1Alginat.gaviscon[0].text.includes('Alginate nennt die Fachinformation nicht eigens')
+    && w1Alginat.gaviscon[0].text.includes('Ob das für Gaviscon Advance gilt, kann die Apotheke sagen')
+    && !w1Alginat.pantoprazol[0].text.includes('Alginate'),
+  'beim Alginat bleibt W1 (Stufe A), sagt aber dazu, dass die Fachinformation Alginate nicht nennt');
   const m = await meldung(page);
   check(m.startsWith('Pantoprazol 20 mg steht jetzt bei deinen Mitteln – ohne Dosis. Eine Einnahme ist damit nicht notiert.')
     && m.includes(HINWEIS_OBEN), `die Meldung sagt, wo der Hinweis steht (${m})`);

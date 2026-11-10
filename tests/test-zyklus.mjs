@@ -4,13 +4,15 @@
  * Zwei Dinge werden geprüft, und das zweite ist wichtiger als das erste.
  *
  * Erstens die Rechnung: Wo fängt ein Zyklus an, wie lang ist er, in welche
- * Phase fällt ein Tag. Eine Lücke von zwei Tagen mitten in der Periode darf
- * keinen neuen Zyklus erzeugen – sonst käme eine Zykluslänge von vier Tagen
- * heraus und alles Weitere wäre Unsinn.
+ * Phase fällt ein Tag. Ein Tag ohne Blutung mitten in der Periode darf hier
+ * keinen neuen Zyklus erzeugen – sonst käme eine Zykluslänge von wenigen Tagen
+ * heraus und alles Weitere wäre Unsinn (die Grenze ist eine Festlegung der
+ * App, siehe LUECKE in js/zyklus.js).
  *
  * Zweitens das Schweigen. Ohne abgeschlossenen Zyklus gibt es keine mittlere
  * Länge, und ohne die keine Phasen. Still 28 Tage anzunehmen wäre bequem und
- * bei jedem, dessen Zyklus 24 oder 34 Tage dauert, durchgehend falsch. Und
+ * bei jedem, dessen Zyklus zum Beispiel 26 oder 34 Tage dauert, durchgehend
+ * falsch. Und
  * nirgends darf eine Vorhersage stehen: Das hier ist kein Verhütungsmittel.
  */
 import { chromium } from 'playwright';
@@ -51,10 +53,10 @@ check(z[1].laenge === 30, `der zweite dauert 30 Tage (${z[1].laenge})`);
 check(z[2].laenge === null, 'der letzte läuft noch und hat deshalb keine Länge');
 check(z[0].blutungsTage === 4, `vier Blutungstage im ersten Zyklus (${z[0].blutungsTage})`);
 
-// Eine Pause von zwei Tagen mitten in der Periode ist keine neue Periode.
+// Ein Tag ohne Blutung mitten in der Periode (6. auf 8.) ist keine neue Periode.
 const mitLuecke = tageMit(['2026-01-05', '2026-01-06', '2026-01-08', '2026-02-02']);
 const zl = await rechne('zyklen', mitLuecke);
-check(zl.length === 2, `zwei Zyklen trotz Lücke von zwei Tagen (${zl.length})`);
+check(zl.length === 2, `zwei Zyklen trotz eines Tages ohne Blutung (${zl.length})`);
 
 check(await rechne('mittlereLaenge', zwei) === 29, 'die mittlere Länge ist 29');
 const spanne = await rechne('schwankung', zwei);

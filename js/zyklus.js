@@ -1,18 +1,33 @@
 /*
  * Der Zyklus – gerechnet aus dem, was eingetragen wurde, und aus nichts sonst.
  *
- * Warum das in ein Magentagebuch gehört: Bei vielen Menschen schwanken
- * Übelkeit, Blähungen, Sodbrennen und Appetit mit dem Zyklus, und wer das
- * nicht mitzählt, sucht die Ursache vier Wochen lang im Essen. Ein Muster, das
+ * Warum das in ein Magentagebuch gehört: Bei manchen Menschen verändern sich
+ * Verdauung und Appetit mit dem Zyklus. Vor der Periode kommen etwa
+ * Verdauungsprobleme, Heißhunger oder ein aufgeschwemmtes Gefühl vor
+ * (gesund.bund.de/praemenstruelles-syndrom-pms, Stand 21.10.2022; „Abdominal
+ * bloating“ unter den typischen PMS-Beschwerden, EMA/HMPC/606741/2018,
+ * Tabelle 5), während der Periode bei einigen Frauen auch Übelkeit oder
+ * Durchfall (gesund.bund.de/regelschmerzen, Stand 27.08.2024: „Einige Frauen
+ * leiden zusätzlich zu Krämpfen an Übelkeit, Erbrechen oder Durchfall.“). Wer
+ * das nicht mitzählt, sucht die Ursache womöglich im Essen. Ein Muster, das
  * sich alle vier Wochen wiederholt, sieht man nur, wenn man weiß, wo die
- * Wochen anfangen.
+ * Wochen anfangen. (Bis zur Fassung 29: „Bei vielen Menschen schwanken
+ * Übelkeit, Blähungen, Sodbrennen und Appetit“ – „viele“ und Sodbrennen
+ * trägt keine dieser Quellen.)
  *
  * WOFÜR DAS HIER NICHT TAUGT, und das ist keine Formalie:
  *
  *   * **Nicht zur Verhütung.** Der Eisprung wird hier nicht gemessen, sondern
- *     aus der halben Zykluslänge geschätzt. Er verschiebt sich, und zwar
- *     gerade dann, wenn jemand krank ist oder unter Druck steht – also genau
- *     in den Zeiträumen, um die es in dieser App geht.
+ *     aus der halben Zykluslänge geschätzt, und sein Zeitpunkt lässt sich nicht
+ *     vorhersagen (EMA, ellaOne, Fachinformation 4.4: „Da der Zeitpunkt der
+ *     Ovulation nicht vorhergesagt werden kann“). Der Zyklus kann sich außerdem
+ *     verändern – die Regelblutung kann etwa ausbleiben, „wenn man psychisch
+ *     belastet ist oder wenn man zu wenig wiegt“ (gesund.bund.de, ICD N91.1),
+ *     und eine Schilddrüsenunterfunktion kann den Menstruationszyklus stören
+ *     (gesund.bund.de/schilddruesenunterfunktion, Stand 23.02.2026). Dann liegt
+ *     die Schätzung daneben. (Bis zur Fassung 29: Er verschiebe sich „gerade
+ *     dann, wenn jemand krank ist oder unter Druck steht“ – so steht es in
+ *     keiner dieser Quellen.)
  *   * **Nicht als Vorhersage.** „Nächste Periode am …" steht nirgends. Eine
  *     Zahl, die aus drei beobachteten Zyklen stammt, sieht genauso aus wie
  *     eine, die aus dreißig stammt – und wird genauso geglaubt.
@@ -26,11 +41,16 @@ import { plusTage, tageDazwischen } from './datum.js';
 const BLUTUNG_AB = 1;
 
 /**
- * Eine Lücke von so vielen Tagen trennt zwei Zyklen.
+ * Liegen zwei eingetragene Blutungstage mindestens so viele Tage auseinander –
+ * also mit mindestens zwei Tagen ohne Blutung dazwischen –, beginnt hier ein
+ * neuer Zyklus; ein einzelner Tag ohne Blutung trennt nicht. Sonst käme bei
+ * einer kurzen Pause eine Zykluslänge von wenigen Tagen heraus.
  *
- * Zwei Tage Pause mitten in der Periode sind nichts Ungewöhnliches; würde man
- * schon daraus einen neuen Zyklus machen, käme eine Zykluslänge von vier Tagen
- * heraus. Drei Tage ist die übliche Grenze.
+ * Das ist eine Festlegung dieser App für die Auswertung, keine medizinische
+ * Grenze. Bis zur Fassung 29 hieß es, zwei Tage Pause seien „nichts
+ * Ungewöhnliches“ und drei Tage „die übliche Grenze“ – dafür fand sich keine
+ * Quelle. Wie lange und wie gleichmäßig eine Periode verläuft, ist von Mensch
+ * zu Mensch verschieden; Fragen dazu gehören in die gynäkologische Praxis.
  */
 const LUECKE = 3;
 
@@ -86,8 +106,15 @@ export function zyklen(tage) {
  *
  * Ohne abgeschlossenen Zyklus gibt es keine – dann liefert das hier `null`,
  * und alles, was darauf aufbaut, hält den Mund. 28 als stille Annahme
- * einzusetzen wäre bequem und falsch: Es gibt genug Menschen, bei denen 24
- * oder 34 der Normalfall ist, und deren Phasen lägen dann durchgehend daneben.
+ * einzusetzen wäre bequem und falsch: Zykluslängen unterscheiden sich. Als zu
+ * selten gilt erst ein Abstand von mehr als 35 Tagen, als zu häufig je nach
+ * Definition einer von weniger als 21 bis 25 Tagen (EMA/HMPC/606741/2018,
+ * 4.2.2.6/4.2.2.7: „intervals greater than 35 days“, „more frequently than
+ * every 21 to 25 days“; gesund.bund.de/glossar/oligomenorrhoe). Wer zum
+ * Beispiel 26 oder 34 Tage hat, läge mit einer 28-Tage-Annahme bei den Phasen
+ * durchgehend daneben. (Bis zur Fassung 29: „genug Menschen, bei denen 24
+ * oder 34 der Normalfall ist“ – eine Häufigkeit nennt keine Quelle, und 24
+ * liegt nach mancher Definition schon unter der Grenze.)
  */
 export function mittlereLaenge(tage) {
   const fertig = zyklen(tage).filter((z) => z.laenge && z.laenge >= 15 && z.laenge <= 60);
@@ -126,8 +153,12 @@ export function zyklusTag(tage, iso) {
  *
  * Grob und offen gesagt grob: Die Periode kommt aus den Eintragungen, die
  * Mitte wird aus der halben Zykluslänge geschätzt, der Rest teilt sich davor
- * und danach auf. Feiner geht es ohne Temperatur- oder Hormonmessung nicht,
- * und feiner zu *tun* wäre schlimmer als grob zu sein.
+ * und danach auf. Feiner geht es aus den Blutungstagen allein nicht: Ob der
+ * Eisprung unmittelbar bevorsteht, „lässt sich zeitnah nur mit einer
+ * Ultraschall-Untersuchung feststellen“ (gesund.bund.de/notfallverhuetung,
+ * Stand 29.10.2025). Feiner zu *tun* wäre schlimmer als grob zu sein. (Bis zur
+ * Fassung 29 hieß es „ohne Temperatur- oder Hormonmessung“; die Quelle nennt
+ * den Ultraschall.)
  */
 export function phaseVon(tage, iso) {
   const tag = zyklusTag(tage, iso);
