@@ -1051,7 +1051,9 @@ for (const [wer, sm] of [
 const NEU_TEXTE = [
   // Ohne Wertung: Die Stufen der Paare sagen, was die Fachinformation dazu
   // schreibt – nicht, welche „wichtig" sind.
-  'Zu einigen wenigen Paaren von Mitteln zeigt Body Check jetzt einen Hinweis, vor allem zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Alle stehen unter „Mehr“ › „Meine Mittel“, einige auch hier oben.',
+  // Seit der Fassung 30 mit dem Satz, dass es vom Präparat abhängt: Belegt
+  // ist das Paar nur für bestimmte Formen (Kommentar über v29Karte).
+  'Zu einigen wenigen Paaren von Mitteln zeigt Body Check jetzt einen Hinweis, vor allem zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Was in der Fachinformation dazu steht, ist bei Methylphenidat von Präparat zu Präparat verschieden. Alle stehen unter „Mehr“ › „Meine Mittel“, einige auch hier oben.',
   'Steht kein Hinweis da, heißt das nicht, dass deine Mittel zusammenpassen. Body Check prüft nicht alle Mittel – das kann die Apotheke.',
   'Es klappt nur mit Mitteln, die hier stehen: unter „Meine Mittel“ oder in den letzten 30 Tagen notiert. Was du regelmäßig nimmst, kannst du unter „Meine Mittel“ anlegen. Eine Einnahme wird dabei nicht notiert. Alles bleibt auf diesem Gerät.',
 ];

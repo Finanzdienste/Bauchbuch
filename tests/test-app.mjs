@@ -202,6 +202,22 @@ check(!/^Bei Blut,/.test(warnSatz) && !warnSatz.includes('frisch'),
 check(((await warnKarte.locator('h3').textContent()) || '').includes('zeitnah'),
   'die Überschrift richtet sich weiter nach der Stufe der eingetragenen Zeichen');
 
+/*
+ * Die Wissenstexte unter „Mehr": ohne die Studienbehauptung zu Magen-Darm
+ * und ADHS, ohne „fand eine Übersichtsarbeit keinen Zusammenhang“, ohne
+ * „merkt man selbst oft nicht“ und ohne „vor allem zum Schutz der Zähne“.
+ */
+await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'mehr' })), KEY);
+await start();
+const wissen = ((await page.locator('#mitdenken').textContent()) || '').replace(/\s+/g, ' ');
+check(wissen.includes('kann ein Tagebuch nicht klären') && !wissen.includes('in großen Studien häufiger')
+  && !wissen.includes('fand eine Übersichtsarbeit keinen Zusammenhang'),
+'„Was dazu bekannt ist“ zu ADHS: nur, was eine erreichbare Quelle trägt');
+check(!wissen.includes('merkt man selbst oft nicht') && !wissen.includes('vor allem zum Schutz der Zähne')
+  && wissen.includes('die Zähne vor Abrieb schützt oder Kiefer- oder Kopfschmerz verringert, ist in Studien nicht sicher belegt')
+  && wissen.includes('nur elf Studien'),
+'„Was dazu bekannt ist“ zu Kiefer und Schiene: so, wie es die Übersichtsarbeiten im Abstract sagen');
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();
 ende();

@@ -9,34 +9,65 @@
  *
  * Zwei Quellen, sauber getrennt und in der Anzeige unterscheidbar:
  *
- *   'eigen'      Kommt aus ihren eigenen Eintragungen. Belastbar, soweit die
+ *   'eigen'      Kommt aus den eigenen Eintragungen. Belastbar, soweit die
  *                Fallzahl reicht, und die steht dabei.
- *   'allgemein'  Kommt aus dem, was bei Magenbeschwerden üblicherweise
- *                empfohlen wird. Gilt für einen Durchschnitt, den es nicht
- *                gibt – deshalb immer nachrangig hinter dem eigenen Verlauf.
+ *   'allgemein'  Nicht aus den eigenen Eintragungen gerechnet. Teils Hinweise,
+ *                die allgemeine Gesundheitsinformationen bei Magen-Darm-
+ *                Beschwerden nennen (Schonkost, kleine Portionen, Bewegung,
+ *                Entspannung) – und für vieles davon ist nicht gut
+ *                untersucht, ob es hilft: „Ob diese Maßnahmen helfen, ist aber
+ *                nicht ausreichend erforscht" (gesund.bund.de, Gastritis,
+ *                Stand 13.11.2025, „Nicht medikamentöse Behandlung"); beim
+ *                Reizmagen gibt es zur Ernährung „keine verlässlichen
+ *                Empfehlungen" (Reizmagensyndrom, Stand 05.02.2026,
+ *                Behandlung). Teils der Verweis auf die Atemübungen unter
+ *                „Ruhe" und die Liste der eingenommenen Mittel, die kein Rat
+ *                ist. Deshalb immer nachrangig hinter dem eigenen Verlauf.
+ *                Bis zur Fassung 29 hieß es hier „was bei Magenbeschwerden
+ *                üblicherweise empfohlen wird" – das traf auf die Atem- und
+ *                Sportkarten und auf die Mittelliste nicht zu.
  *
- * WAS HIER NICHT VORKOMMT: welches Medikament sie nehmen soll. Diese Wahl
+ * WAS HIER NICHT VORKOMMT: welches Medikament jemand nehmen soll. Diese Wahl
  * hängt an Diagnose, anderen Medikamenten, Nieren, Leber, Schwangerschaft –
  * nichts davon weiß diese App, und keines davon kann sie erfragen, ohne so zu
- * tun, als wüsste sie es dann. Was stattdessen kommt: was sie selbst
- * eingenommen hat, wann zuletzt, und die Frage dazu für den nächsten Termin.
+ * tun, als wüsste sie es dann. Was stattdessen kommt: was selbst eingenommen
+ * wurde, wann zuletzt, und die Frage dazu für den nächsten Termin.
+ *
+ * Die Überschriften der Karten beschreiben, worum es geht, statt etwas
+ * anzuordnen („Bewegung kurz nach dem Essen" statt „Erst in zwei Stunden
+ * intensiv"). Feste Zeiten und Minutenzahlen, die keine Quelle nennt, stehen
+ * nicht mehr in den Texten; die Rechnung, wann welche Karte kommt, ist
+ * unverändert.
  */
 import { UMSTAND_IDS, ausloeserName } from './daten.js';
 import { einstufung, tagesWert } from './auswertung.js';
 import { phaseVon, phasenName } from './zyklus.js';
 
 /**
- * Was bei gereiztem Magen üblicherweise gut vertragen wird.
+ * Was gesund.bund.de bei akuter Magenschleimhautentzündung als Schonkost und
+ * bei akutem Durchfall als magenschonend nennt.
  *
- * Bewusst kurz und bewusst langweilig. Das ist keine Diät und keine
- * Empfehlung auf Dauer – wer wochenlang nur das isst, isst zu einseitig.
- * Gedacht für die zwei, drei Tage, an denen ohnehin nichts anderes geht.
+ *   Gastritis (Stand 13.11.2025, „Nicht medikamentöse Behandlung"): „Außerdem
+ *   wird oft zu Schonkost wie Zwieback oder Haferschleim und Ausruhen
+ *   geraten." Und: „Ob diese Maßnahmen helfen, ist aber nicht ausreichend
+ *   erforscht."
+ *   Durchfall (Stand 08.03.2024, „Wie wird eine Durchfallerkrankung
+ *   behandelt?"): „Reis, Bananen oder Zwieback sind magenschonend und werden
+ *   ebenfalls häufig bei akutem Durchfall empfohlen."
+ *
+ * Bis zur Fassung 29 standen hier auch gestampfte Kartoffeln, gedünstete
+ * Karotte oder Zucchini, mageres Geflügel oder Fisch, Kamillen- oder
+ * Fencheltee und stilles Wasser, und die Karte zeigte davon sechs – ohne den
+ * Zwieback. Keine erreichbare Quelle nennt sie so; jetzt steht nur, was die
+ * beiden Seiten nennen.
+ *
+ * Gedacht für akute Tage: Eine akute Gastritis klingt laut derselben Seite
+ * „für gewöhnlich … nach ein paar Tagen von selbst wieder ab", akuter
+ * Durchfall dauert „meist wenige Tage bis eine Woche". Halten die Beschwerden
+ * an, gehört das in die Praxis – das sagt die Karte auch. („Zwei, drei Tage"
+ * und „auf Dauer zu einseitig", wie es hier stand, nennt keine Quelle.)
  */
-export const SCHONKOST = [
-  'Haferbrei mit Wasser', 'Kartoffeln, gestampft', 'gedünstete Karotte oder Zucchini',
-  'Reis', 'Banane', 'mageres Geflügel oder Fisch', 'Zwieback',
-  'Kamillen- oder Fencheltee', 'stilles Wasser',
-];
+export const SCHONKOST = ['Zwieback', 'Haferschleim', 'Reis', 'Banane'];
 
 const rat = (id, bereich, titel, text, warum, quelle) => ({
   id, bereich, titel, text, warum, quelle,
@@ -54,18 +85,52 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
  *
  *   'bremse'  Schalter ADHS an, eine Einnahme in den letzten 14 Tagen, und
  *             ungewollt abgenommen oder „Kein Appetit" an mindestens 3 der
- *             letzten 7 Bauch-Tage: „Heute eher ohne …" und „Die letzte
- *             Mahlzeit früher legen" entfallen.
- *   'zusatz'  Schalter und Einnahme, sonst nichts: „Die letzte Mahlzeit früher
- *             legen" bekommt einen Satz dazu.
+ *             letzten 7 Bauch-Tage: „Heute eher ohne …" und „Spätes Essen
+ *             und Liegen" entfallen.
+ *   'zusatz'  Schalter und Einnahme, sonst nichts: „Spätes Essen und Liegen"
+ *             bekommt einen Satz dazu.
  *
  * Berechnet wird das in js/app.js (ratKarte) und hier nur gelesen – diese
  * Datei bleibt rein und kennt keinen Schalter.
  */
 export const ESSEN_VORSICHT = ['bremse', 'zusatz'];
 
-const SPAET_ZUSATZ = 'Wenn der Appetit tagsüber fehlt und erst abends kommt, ist die späte Mahlzeit '
-  + 'vielleicht nötig – das wägt die Praxis ab, nicht diese Karte.';
+/*
+ * Der Satz dazu sagt nur, was die Fachinformationen hergeben.
+ *
+ * „Verminderter Appetit – Sehr häufig" (Elvanse, www.fachinfo.de/fi/pdf/
+ * 020737, Stand Oktober 2026, 4.8) und „Appetitverlust – Sehr häufig"
+ * (Ritalin LA, www.fachinfo.de/fi/pdf/010445, Stand September 2025, 4.8);
+ * dazu Elvanse 4.4, bei Erwachsenen: „Das Körpergewicht ist unter der
+ * Behandlung mit Stimulanzien zu überwachen". Dass der Appetit tagsüber fehle
+ * und erst abends komme und die späte Mahlzeit deshalb „vielleicht nötig"
+ * sei, wie es bis zur Fassung 29 hieß, steht in keiner der beiden.
+ */
+const SPAET_ZUSATZ = 'Weniger Appetit steht etwa bei Methylphenidat und Lisdexamfetamin unter den sehr '
+  + 'häufigen Nebenwirkungen, und das Gewicht wird dabei ärztlich beobachtet. Wann gegessen wird, '
+  + 'wägt deshalb die Praxis ab, nicht diese Karte.';
+
+/*
+ * Bewegung und Reflux – derselbe Satz auf mehreren Karten.
+ *
+ * gesund.bund.de, Sodbrennen und Refluxkrankheit (Stand 04.04.2025,
+ * Ursachen): „Auch nach körperlicher Anstrengung oder durch bestimmte
+ * Körperhaltungen, etwa beim Bücken oder Liegen, können vermehrt Probleme
+ * auftreten."
+ */
+const REFLUX_ANSTRENGUNG = 'Bei Reflux können nach körperlicher Anstrengung und beim Bücken oder Liegen '
+  + 'vermehrt Beschwerden auftreten.';
+
+/*
+ * Für Erwachsene bis 65 nennt gesund.bund.de, Gesund durch Bewegung (Stand
+ * 25.11.2025), „mindestens 150 Minuten mäßig anstrengende … Bewegung …
+ * – oder mindestens 75 Minuten anstrengende körperliche Aktivität" in der
+ * Woche, und bei chronischen Erkrankungen: „das Trainingsprogramm vorab mit
+ * der behandelnden Ärztin oder dem behandelnden Arzt abzusprechen".
+ */
+const BEWEGUNG_RICHTWERT = 'Die allgemeinen Richtwerte für Erwachsene nennen auch anstrengende Bewegung; '
+  + 'bei Reflux können danach vermehrt Beschwerden auftreten.';
+const BEWEGUNG_PRAXIS = 'Welche Bewegung für dich passt, kann die Praxis einschätzen.';
 
 /**
  * @param {object} d
@@ -98,7 +163,7 @@ export function raete(d) {
 
   /* ---------- Essen ---------- */
 
-  // Was ihr eigener Verlauf hergibt, steht vor allem Allgemeinen. Ohne die
+  // Was der eigene Verlauf hergibt, steht vor allem Allgemeinen. Ohne die
   // Umstände: „Heute eher ohne Auswärts gegessen" ist kein Satz, und für
   // Portion und Uhrzeit gibt es unten eigene Vorschläge.
   const auffaellig = (d.bilanz || [])
@@ -110,11 +175,24 @@ export function raete(d) {
 
   if (auffaellig.length && !bremse) {
     const namen = auffaellig.map((b) => ausloeserName(b.id, d.eigene)).join(', ');
+    /*
+     * Was ein Tagebuch dabei kann und was nicht. gesund.bund.de,
+     * Reizmagensyndrom (Stand 05.02.2026): „durch das Führen eines
+     * Beschwerde-Tagebuchs herauszufinden, ob bestimmte Lebensmittel die
+     * Symptome auslösen"; sicher festgestellt wird eine Unverträglichkeit
+     * aber im Test, bei einer Allergie mit einem Provokationstest „unter
+     * ärztlicher Beobachtung" (Laktoseintoleranz, Stand 23.02.2026;
+     * Nahrungsmittelallergie, Stand 27.05.2024, Diagnose). Bis zur
+     * Fassung 29 stand hier „Ein Auslöser, der sich in zwei Wochen ohne ihn
+     * nicht bestätigt, war keiner" – diese Frist und diesen Schluss nennt
+     * keine Quelle.
+     */
     raus.push(rat('essen-eigen', 'essen',
       `Heute eher ohne ${namen}`,
-      'Nicht für immer streichen – nur an Tagen wie diesem einmal weglassen und '
-      + 'schauen, ob es einen Unterschied macht. Ein Auslöser, der sich in zwei '
-      + 'Wochen ohne ihn nicht bestätigt, war keiner.',
+      'Nicht für immer streichen – an Tagen wie diesem einmal weglassen und im '
+      + 'Tagebuch schauen, ob es einen Unterschied macht. Ob ein Lebensmittel '
+      + 'wirklich der Auslöser ist, lässt sich so allein nicht sicher sagen; das '
+      + 'kann die Praxis abklären.',
       auffaellig.map((b) => `${ausloeserName(b.id, d.eigene)}: danach im Mittel `
         + `${b.schnittMit.toFixed(1).replace('.', ',')} statt `
         + `${b.schnittOhne.toFixed(1).replace('.', ',')} `
@@ -123,20 +201,37 @@ export function raete(d) {
   }
 
   if (akut) {
+    // Quellen bei SCHONKOST oben. Ein Tageswert ab 6 ist keine Diagnose
+    // „Gastritis" – deshalb nennt der Text, wofür die Seiten das schreiben.
     raus.push(rat('essen-schon', 'essen',
-      'Heute klein und mild',
-      `Mehrere kleine Portionen statt zwei großen, und dabei bleiben bei: `
-      + `${SCHONKOST.slice(0, 6).join(', ')}.`,
+      'Schonkost an Tagen mit starken Beschwerden',
+      'Bei akuter Magenschleimhautentzündung wird laut gesund.bund.de oft zu '
+      + 'kleinen Portionen und Schonkost wie Zwieback oder Haferschleim geraten – '
+      + 'ob das hilft, ist nicht ausreichend erforscht. Bei akutem Durchfall gelten '
+      + 'dort Reis, Bananen und Zwieback als magenschonend. Halten die Beschwerden '
+      + 'an, gehört das in die Praxis.',
       `Der heutige Wert liegt bei ${heuteWert} von 10.`,
       'allgemein'));
   }
 
   const spaet = (d.bilanz || []).find((b) => b.id === 'spaet');
   if (spaet && spaet.genug && spaet.differenz >= 1 && !bremse) {
+    /*
+     * Die drei Stunden stehen in der Packungsbeilage von PANTOZOL Control
+     * (EMA-Produktinformation, deutsch, Gebrauchsinformation, Abschnitt
+     * „Empfehlungen zum Lebenswandel und zur Änderung der Ernährung"): „Vermeiden
+     * Sie, weniger als 3 Stunden vor dem Zubettgehen zu essen" – dort für
+     * Sodbrennen und säurebedingte Symptome. Fürs Liegen gesund.bund.de, siehe
+     * REFLUX_ANSTRENGUNG. Die Karte rechnet aber mit allen Bauchbeschwerden;
+     * deshalb sagt der Text, wofür die Quellen gelten. Die „Schwerkraft" von
+     * früher nennt keine Quelle.
+     */
     raus.push(rat('essen-spaet', 'essen',
-      'Die letzte Mahlzeit früher legen',
-      'Zwischen dem letzten Essen und dem Hinlegen etwa drei Stunden – im Liegen '
-      + 'hat der Magen keine Schwerkraft mehr auf seiner Seite.',
+      'Spätes Essen und Liegen',
+      'Bei Sodbrennen nennt die Packungsbeilage eines rezeptfreien Säureblockers, in '
+      + 'den letzten drei Stunden vor dem Zubettgehen nichts mehr zu essen; im Liegen '
+      + 'können Refluxbeschwerden zunehmen. Ob das auch für deine Beschwerden gilt, '
+      + 'kann die Praxis oder Apotheke einordnen.',
       `Nach Mahlzeiten nach 20 Uhr lag der Wert bei `
       + `${spaet.schnittMit.toFixed(1).replace('.', ',')} statt `
       + `${spaet.schnittOhne.toFixed(1).replace('.', ',')} (${spaet.faelle} Fälle).`
@@ -146,10 +241,21 @@ export function raete(d) {
 
   const gross = (d.bilanz || []).find((b) => b.id === 'gross');
   if (gross && gross.genug && gross.differenz >= 1) {
+    /*
+     * gesund.bund.de, Sodbrennen und Refluxkrankheit (Stand 04.04.2025): „Durch
+     * beispielsweise ein üppiges Mahl kann der Magen stark gedehnt werden."
+     * Reizmagensyndrom (Stand 05.02.2026): „Andere machen gute Erfahrungen
+     * damit, über den Tag verteilt kleinere Mahlzeiten zu sich zu nehmen. …
+     * Deshalb gibt es dazu keine verlässlichen Empfehlungen." Ähnlich beim
+     * Reizdarm (Stand 28.08.2024): „Bei manchen … verringern sich die
+     * Beschwerden". „Fünf statt drei" und „der Magen muss nie viel auf einmal
+     * bewegen" nennt keine Quelle.
+     */
     raus.push(rat('essen-portion', 'essen',
-      'Lieber öfter und kleiner',
-      'Fünf kleine Mahlzeiten belasten weniger als drei große – der Magen muss '
-      + 'dann nie viel auf einmal bewegen.',
+      'Große Portionen',
+      'Ein üppiges Essen kann den Magen stark dehnen. Manche kommen mit mehreren '
+      + 'kleineren Mahlzeiten über den Tag besser zurecht als mit wenigen großen – '
+      + 'verlässlich untersucht ist das laut gesund.bund.de nicht.',
       `Nach großen Portionen lag der Wert bei `
       + `${gross.schnittMit.toFixed(1).replace('.', ',')} statt `
       + `${gross.schnittOhne.toFixed(1).replace('.', ',')} (${gross.faelle} Fälle).`,
@@ -158,25 +264,48 @@ export function raete(d) {
 
   /* ---------- Entspannung ---------- */
 
+  /*
+   * Was über Atmen und Anspannung belegt ist – und was nicht.
+   *
+   * gesund.bund.de, Stress (Stand 14.01.2026): Bei einer akuten Stressreaktion
+   * werden Vorgänge zurückgefahren, „Das betrifft unter anderem die Magen-,
+   * Darm- und Blasentätigkeit", und „Tiefes Ein- und Ausatmen kann die
+   * Entspannung fördern." Schlafstörungen (Stand 04.04.2025, Behandlung):
+   * Atemübungen „insbesondere vor dem Schlafengehen" stehen unter den
+   * Methoden, „deren Wirksamkeit jedoch nicht hinreichend untersucht ist".
+   * Zu 4–7–8 selbst: „Square and 4-7-8 breathing are popularly promoted by
+   * psychotherapists but have little empirical support" (Marchant et al.,
+   * Appl Psychophysiol Biofeedback 2025;50(2):261-276, PMID 39864026,
+   * Abstract).
+   *
+   * Nicht belegt waren und deshalb nicht mehr da: dass langes Ausatmen auf
+   * den Teil des Nervensystems umschalte, unter dem der Darm arbeitet; dass
+   * 4–7–8 „zum Runterkommen" und Gleichmaß „fürs Sitzen" sei; und dass die
+   * Übung „ursprünglich fürs Einschlafen gedacht" sei. Die Dauer stimmte
+   * auch nicht: 4–7–8 hat 19 Sekunden je Runde und vier Runden vorgegeben
+   * (js/atem.js), das ist gut eine Minute, nicht „gut zwei".
+   */
   const stress = d.faktoren && d.faktoren.stress;
   const heuteAngespannt = Number(heuteTag.stress) >= 3;
   const schlechtGeschlafen = Number(heuteTag.schlaf) >= 3;
 
   if (stress && stress.genug && stress.differenz >= 1) {
     raus.push(rat('ruhe-eigen', 'ruhe',
-      heuteAngespannt ? 'Heute wäre eine Atemrunde dran' : 'Anspannung ist bei dir ein Faktor',
-      'Bei dir hängen Anspannung und Beschwerden messbar zusammen. Langes '
-      + 'Ausatmen schaltet auf den Teil des Nervensystems um, unter dem der Darm '
-      + 'arbeitet – unter „Ruhe" liegt 4–7–8, gut zwei Minuten.',
+      heuteAngespannt ? 'Atemübung unter „Ruhe"' : 'Anspannung ist bei dir ein Faktor',
+      'Bei dir hängen Anspannung und Beschwerden messbar zusammen. Bei akutem Stress '
+      + 'fährt der Körper laut gesund.bund.de unter anderem die Magen- und '
+      + 'Darmtätigkeit zurück; tiefes Ein- und Ausatmen kann die Entspannung fördern. '
+      + 'Unter „Ruhe" liegt die Übung 4–7–8, mit vier Runden gut eine Minute.',
       `An angespannten Tagen ${stress.hoch.schnitt.toFixed(1).replace('.', ',')} `
       + `statt ${stress.niedrig.schnitt.toFixed(1).replace('.', ',')} `
       + `(${stress.hoch.tage} gegen ${stress.niedrig.tage} Tage).`,
       'eigen'));
   } else if (heuteAngespannt || akut) {
     raus.push(rat('ruhe-heute', 'ruhe',
-      'Zwei Minuten Atmen',
-      'Unter „Ruhe": 4–7–8 zum Runterkommen, Gleichmaß fürs Sitzen zwischendurch. '
-      + 'Mit Ton, damit die Augen zubleiben können.',
+      'Atemübungen unter „Ruhe"',
+      'Unter „Ruhe" liegen Atemübungen, etwa 4–7–8 und Gleichmaß, mit Ton, damit '
+      + 'die Augen zubleiben können. Tiefes Ein- und Ausatmen kann laut '
+      + 'gesund.bund.de die Entspannung fördern.',
       heuteAngespannt ? 'Du hast heute viel Anspannung eingetragen.'
         : `Der heutige Wert liegt bei ${heuteWert} von 10.`,
       'allgemein'));
@@ -184,9 +313,11 @@ export function raete(d) {
 
   if (schlechtGeschlafen) {
     raus.push(rat('ruhe-schlaf', 'ruhe',
-      'Heute Abend 4–7–8 vor dem Schlafen',
-      'Die Übung ist ursprünglich fürs Einschlafen gedacht. Vier Runden im Bett, '
-      + 'Licht schon aus.',
+      'Atemübung vor dem Schlafen',
+      'Atemübungen vor dem Schlafengehen zählt gesund.bund.de zu den '
+      + 'Entspannungstechniken bei Schlafproblemen; wie gut sie wirken, ist nicht '
+      + 'hinreichend untersucht, und zu 4–7–8 gibt es bisher wenig Studien. Die '
+      + 'Übung liegt unter „Ruhe".',
       'Du hast für heute schlechten Schlaf eingetragen.',
       'allgemein'));
   }
@@ -216,12 +347,12 @@ export function raete(d) {
   return raus.filter(Boolean);
 }
 
-/** Bis wie viele Stunden nach dem Essen die Karte „Erst in zwei Stunden intensiv" steht. */
+/** Bis wie viele Stunden nach dem Essen die Karte „Bewegung kurz nach dem Essen" steht. */
 const NACH_ESSEN_STUNDEN = 2;
 
 /**
- * „Die letzte Mahlzeit ist 25 Minuten her." – der Grund unter „Erst in zwei
- * Stunden intensiv".
+ * „Die letzte Mahlzeit ist 25 Minuten her." – der Grund unter „Bewegung kurz
+ * nach dem Essen".
  *
  * Bis zur Fassung 29 stand hier die Zehntelstunde mit Punkt: „0.4 Stunden".
  * Jetzt unter einer Stunde in Minuten, darunter „gerade eben" (so zählt
@@ -237,9 +368,10 @@ const NACH_ESSEN_STUNDEN = 2;
  * zurück, auch wo das Teilen einen Rest hinterlässt.
  *
  * Nur knapp unter der Grenze (117 bis 119 Minuten) ergäbe die Zehntelstunde
- * schon die Grenze selbst – „Erst in zwei Stunden intensiv … ist 2 Stunden
- * her" widerspräche sich. Dort steht „knapp 2 Stunden"; alle anderen Zahlen
- * bleiben.
+ * schon die Grenze selbst. Die Karte steht nur bis zwei Stunden nach dem
+ * Essen; bis zur Fassung 29 hieß sie „Erst in zwei Stunden intensiv", und
+ * „… ist 2 Stunden her" darunter widersprach ihr. Dort steht weiter „knapp 2
+ * Stunden"; alle anderen Zahlen bleiben.
  */
 function seitLetzterMahlzeit(stunden) {
   const minuten = Math.round(stunden * 60);
@@ -254,13 +386,40 @@ function seitLetzterMahlzeit(stunden) {
 }
 
 /**
- * Intensiv oder moderat?
+ * Welche Bewegung zu welcher Lage – beschrieben, nicht angeordnet.
  *
- * Bewegung hilft bei fast allem hier – aber nicht jede Bewegung zu jeder
- * Stunde. Zwei Regeln sind unstrittig genug, um sie hinzuschreiben: nicht
- * intensiv direkt nach dem Essen (im Liegen und Springen kommt hoch, was
- * unten bleiben soll), und nicht intensiv, während es akut weh tut. Alles
- * andere kommt aus ihrem eigenen Verlauf.
+ * Belegt ist, und das tragen die Karten:
+ *
+ *   * Viele Fachleute nennen Bewegung und Sport, „weil das die Verdauung
+ *     anregt" (gesund.bund.de, Reizmagensyndrom, Stand 05.02.2026,
+ *     Behandlung); „Ausreichend Bewegung und eine ausgewogene Ernährung
+ *     gelten als Voraussetzungen für eine gesunde Verdauung"
+ *     (Reizdarmsyndrom, Stand 28.08.2024, Behandlung).
+ *   * Bei Reflux können nach Anstrengung und im Liegen vermehrt Beschwerden
+ *     auftreten (siehe REFLUX_ANSTRENGUNG).
+ *   * Mit vollem Magen: In Studien mit gesunden Freiwilligen löste Laufen
+ *     nach dem Essen mehr Rückfluss aus als nüchtern, und mehr, je
+ *     intensiver: „Postprandial exercise showed a similar pattern of induced
+ *     gastroesophageal reflux, although of greater amount" (Clark et al.,
+ *     JAMA 1989;261(24):3599-601, PMID 2724505); „Postprandial running
+ *     exercises induce gastroesophageal reflux, which correlates with
+ *     exercise intensity" (Choi et al., J Korean Med Sci 2001;16(2):183-7,
+ *     PMID 11306744); „The presence of food in the stomach greatly increased
+ *     the amount of reflux during post-prandial running" (Yazaki et al.,
+ *     Aust J Sci Med Sport 1996;28(4):93-6, PMID 9040897). Alle drei
+ *     Abstracts.
+ *   * „Gesundheitsfördernd ist es, mittags in Ruhe … zu essen und
+ *     anschließend einen kleinen Verdauungsspaziergang zu machen"
+ *     (Gesund durch Bewegung, Stand 25.11.2025).
+ *   * Bei Stress: „Alltagsbewegung und Sport helfen abzuschalten, wirken
+ *     Stress entgegen" (Stress, Stand 14.01.2026).
+ *
+ * Nicht belegt und deshalb nicht mehr da: „Bewegung hilft bei fast allem
+ * hier", die Grenze „erst in zwei Stunden intensiv" (NACH_ESSEN_STUNDEN
+ * entscheidet weiter nur, wann die Karte steht), „mindestens eine Stunde,
+ * bevor du dich hinlegst", „Zwanzig Minuten gehen", „30 bis 45 Minuten",
+ * der Sprechtest und „Intensive Intervalle tun an einem angespannten Tag das
+ * Gegenteil". Alles andere kommt aus dem eigenen Verlauf.
  */
 function sportRat(d, k) {
   const seitEssen = d.letzteMahlzeitStunden;
@@ -270,38 +429,36 @@ function sportRat(d, k) {
     .some((p) => p.phase === phase && p.schnitt >= 4 && p.tage >= 4);
 
   if (k.akut) {
-    return rat('sport', 'sport', 'Heute nur spazieren',
-      'Bei einem Wert wie heute bringt intensives Training nichts und kann die '
-      + 'Beschwerden verstärken. Zwanzig Minuten gehen hilft der Verdauung '
-      + 'trotzdem.',
+    return rat('sport', 'sport', 'Bewegung bei starken Beschwerden',
+      `${REFLUX_ANSTRENGUNG} Welche Bewegung an einem Tag mit starken Beschwerden `
+      + 'passt, kann die Praxis einschätzen.',
       `Der heutige Wert liegt bei ${k.heuteWert} von 10.`, 'allgemein');
   }
   if (frischGegessen) {
-    return rat('sport', 'sport', 'Erst in zwei Stunden intensiv',
-      'Jetzt passt ein Spaziergang. Intensives Training kurz nach dem Essen '
-      + 'drückt auf den vollen Magen – danach spricht nichts dagegen.',
+    return rat('sport', 'sport', 'Bewegung kurz nach dem Essen',
+      'In Studien mit gesunden Freiwilligen löste Laufen mit vollem Magen mehr '
+      + 'Rückfluss aus als nüchtern, und mehr, je intensiver gelaufen wurde. Ein '
+      + 'kleiner Spaziergang nach dem Essen gilt als gesundheitsfördernd.',
       seitLetzterMahlzeit(seitEssen),
       'allgemein');
   }
   if (phasenSchlecht) {
-    return rat('sport', 'sport', 'Heute eher moderat',
-      'Ausdauer in ruhigem Tempo, 30 bis 45 Minuten. In dieser Zyklusphase war '
-      + 'es bei dir bisher schwerer – das heißt nicht „gar nichts", sondern '
-      + '„nicht auf Zeit".',
+    return rat('sport', 'sport', 'Bewegung in dieser Zyklusphase',
+      'In dieser Zyklusphase war es bei dir bisher schwerer. Was das für Bewegung '
+      + `heißt, sagt dieser Verlauf nicht. ${BEWEGUNG_PRAXIS}`,
       `In der Phase „${phasenName(phase)}" lagen deine Werte höher als sonst.`,
       'eigen');
   }
   if (k.heuteAngespannt) {
-    return rat('sport', 'sport', 'Moderate Ausdauer wäre heute richtig',
-      'Laufen, Rad, zügiges Gehen in einem Tempo, bei dem Reden noch geht – das '
-      + 'baut Anspannung ab, ohne neuen Stress zu machen. Intensive Intervalle '
-      + 'tun an einem angespannten Tag das Gegenteil.',
+    return rat('sport', 'sport', 'Bewegung und Anspannung',
+      'Alltagsbewegung und Sport helfen laut gesund.bund.de abzuschalten und wirken '
+      + `Stress entgegen. ${BEWEGUNG_PRAXIS}`,
       'Du hast heute viel Anspannung eingetragen.', 'allgemein');
   }
   if (k.leicht) {
-    return rat('sport', 'sport', 'Moderat spricht nichts dagegen',
-      'Bei leichten Beschwerden ist Bewegung eher hilfreich als schädlich. '
-      + 'Intensiv würde ich heute noch nicht ansetzen.',
+    return rat('sport', 'sport', 'Bewegung bei leichten Beschwerden',
+      'Bewegung und Sport regen nach Ansicht vieler Fachleute die Verdauung an. '
+      + `${REFLUX_ANSTRENGUNG} ${BEWEGUNG_PRAXIS}`,
       `Der heutige Wert liegt bei ${k.heuteWert} von 10.`, 'allgemein');
   }
   /*
@@ -318,22 +475,26 @@ function sportRat(d, k) {
    * lebt.
    *
    * Also: Steht für heute etwas da, darf der Rat sich darauf berufen. Steht
-   * nichts da, sagt er nichts über den Tag, sondern stellt eine Bedingung.
+   * nichts da, sagt er nichts über den Tag. „An beschwerdefreien Tagen spricht
+   * nichts gegen intensives Training, und danach mindestens eine Stunde, bevor
+   * du dich hinlegst" stand hier bis zur Fassung 29; beides nennt keine
+   * Quelle. Jetzt steht ohne Eintrag nur der Satz zu Reflux, mit Eintrag
+   * ohne Beschwerden die allgemeinen Richtwerte und dazu Reflux. Kurz
+   * gehalten, nicht länger als vorher: Die Karte steht auf „Tag" über den
+   * Knöpfen zum Eintragen, und test-rueckfrage und test-standardmittel tippen
+   * dort auf Knöpfe, die nicht unter den Rand rutschen dürfen.
    */
   if (!k.heuteNotiert) {
     const wozu = k.heuteAnderes ? ' zum Bauch' : '';
-    return rat('sport', 'sport', 'Wenn es dir heute gut geht, geht auch intensiv',
+    return rat('sport', 'sport', 'Bewegung heute',
       `Für heute steht${wozu} noch nichts im Tagebuch, deshalb keine Aussage über den `
-      + 'Tag – nur die Regel: An beschwerdefreien Tagen spricht nichts gegen '
-      + 'intensives Training, und danach mindestens eine Stunde, bevor du dich '
-      + 'hinlegst.',
+      + `Tag. ${REFLUX_ANSTRENGUNG}`,
       `Für heute ist${wozu} noch nichts eingetragen – das heißt nicht, dass nichts war.`,
       'allgemein');
   }
 
-  return rat('sport', 'sport', 'Heute geht auch intensiv',
-    'Beschwerdefrei und ausgeruht: Wenn du intensiv trainieren willst, ist heute '
-    + 'der Tag dafür. Danach mindestens eine Stunde, bevor du dich hinlegst.',
+  return rat('sport', 'sport', 'Bewegung heute',
+    BEWEGUNG_RICHTWERT,
     'Für heute ist etwas eingetragen, aber keine Beschwerden und keine hohe '
     + 'Anspannung.',
     'allgemein');

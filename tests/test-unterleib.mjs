@@ -244,8 +244,22 @@ check(
   'bei zyklischem Bauch schlägt die App die Fragen vor',
 );
 check(
-  /Stufen.* schlechter als/.test(hinweisText) && hinweisText.includes('sieben bis zehn'),
+  /Stufen.* schlechter als/.test(hinweisText) && hinweisText.includes('Bis zu dieser Diagnose dauert es oft Jahre'),
   'und sagt dazu, warum – mit ihrer eigenen Zahl',
+);
+/*
+ * Seit der Fassung 30 ohne die Entwarnung „für sich genommen harmlos“, ohne
+ * „im Mittel sieben bis zehn Jahre lang für einen Reizdarm gehalten“ und ohne
+ * „nach denen in der Magensprechstunde niemand fragt“ – keine erreichbare
+ * Quelle trägt das (Quellen im Kommentar über unterleibVorschlag in
+ * js/app.js). Dafür steht, wann eine ärztliche Untersuchung sinnvoll ist.
+ */
+const hinweisKarte = await text(page.locator('.karte', { hasText: 'Zwei Fragen, die hier weiterhelfen könnten' }));
+check(
+  !hinweisKarte.includes('harmlos') && !hinweisKarte.includes('sieben bis zehn')
+    && !hinweisKarte.includes('Magensprechstunde')
+    && hinweisKarte.includes('Bei sehr starken oder sich verschlimmernden Schmerzen ist eine ärztliche Untersuchung sinnvoll'),
+  'die Hinweiskarte entwarnt nicht und sagt, wann eine Untersuchung sinnvoll ist',
 );
 
 await page.locator('[data-act="unterleib-an"]').click();

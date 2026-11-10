@@ -5,14 +5,16 @@
  * befolgt man blind oder gar nicht – beides schlecht. Geprüft wird deshalb
  * weniger, *dass* etwas vorgeschlagen wird, als woraus es folgt:
  *
- *   * Jeder Vorschlag nennt sein „warum" und woher es kommt – aus ihrem
- *     eigenen Verlauf oder aus dem, was allgemein empfohlen wird.
- *   * Der Sportvorschlag richtet sich nach der Lage: bei starken Beschwerden
- *     nichts Intensives, kurz nach dem Essen auch nicht, an einem guten Tag
- *     ruhig.
- *   * Es steht nirgends, welches Medikament sie nehmen soll. Das ist die eine
- *     Empfehlung, die diese App nicht gibt, und sie darf sich nicht durch die
- *     Hintertür einschleichen.
+ *   * Jeder Vorschlag nennt sein „warum" und woher es kommt – aus dem
+ *     eigenen Verlauf oder aus allgemeinen Hinweisen.
+ *   * Der Sportvorschlag richtet sich nach der Lage, beschreibt sie aber nur:
+ *     Seit der Fassung 30 nennt keine Karte mehr eine feste Zeit oder
+ *     Minutenzahl, die keine Quelle trägt („Erst in zwei Stunden intensiv",
+ *     „Zwanzig Minuten gehen", „mindestens eine Stunde, bevor du dich
+ *     hinlegst").
+ *   * Es steht nirgends, welches Medikament jemand nehmen soll. Das ist die
+ *     eine Empfehlung, die diese App nicht gibt, und sie darf sich nicht durch
+ *     die Hintertür einschleichen.
  */
 import { chromium } from 'playwright';
 import path from 'node:path';
@@ -56,6 +58,11 @@ check(
   rat.includes('Nicht für immer streichen'),
   'mit dem Hinweis, es nicht dauerhaft zu streichen – ein Verdacht ist kein Urteil',
 );
+check(
+  !rat.includes('war keiner') && !rat.includes('in zwei Wochen ohne ihn')
+    && rat.includes('lässt sich so allein nicht sicher sagen; das kann die Praxis abklären'),
+  'und ohne den Schluss „Ein Auslöser, der sich in zwei Wochen ohne ihn nicht bestätigt, war keiner“ – das sagt ein Tagebuch nicht',
+);
 await page.screenshot({ path: `${SHOT}/92-rat.png` });
 
 /* ---------- Sport richtet sich nach der Lage ---------- */
@@ -63,9 +70,20 @@ await page.screenshot({ path: `${SHOT}/92-rat.png` });
 await setze({
   eintraege: [{ id: 's1', am: heute, um: '08:00', art: 'beschwerde', staerke: 8, arten: ['krampf'] }],
 });
+const stark = await page.locator('.rat-sport').textContent();
 check(
-  (await page.locator('.rat-sport').textContent()).includes('nur spazieren'),
-  'bei starken Beschwerden heute kein intensives Training',
+  stark.includes('Bewegung bei starken Beschwerden') && stark.includes('kann die Praxis einschätzen'),
+  'bei starken Beschwerden: was zu Reflux und Anstrengung bekannt ist, und der Verweis auf die Praxis',
+);
+check(
+  !/nur spazieren|Zwanzig Minuten|bringt intensives Training nichts/.test(stark),
+  'ohne „Heute nur spazieren“ und ohne Minutenzahl – beides trägt keine Quelle',
+);
+const schon = await page.locator('.rat-essen').first().textContent();
+check(
+  schon.includes('Zwieback oder Haferschleim') && schon.includes('nicht ausreichend erforscht')
+    && schon.includes('gehört das in die Praxis') && !/Kartoffel|Zucchini|Geflügel|dabei bleiben/.test(schon),
+  'die Schonkost nur mit dem, was gesund.bund.de nennt, samt „nicht ausreichend erforscht“',
 );
 
 /*
@@ -85,8 +103,12 @@ check(
   'ein leerer Tag wird nicht als beschwerdefrei ausgegeben',
 );
 check(
-  /Wenn es dir heute gut geht/.test(leer),
-  'sondern als Bedingung formuliert',
+  /keine Aussage über den Tag/.test(leer),
+  'sondern ausdrücklich ohne Aussage über den Tag',
+);
+check(
+  !/spricht nichts gegen|mindestens eine Stunde/.test(leer),
+  'und ohne „spricht nichts gegen intensives Training“ und „mindestens eine Stunde, bevor du dich hinlegst“',
 );
 check(
   /noch nichts eingetragen/.test(leer) && /nicht, dass nichts war/.test(leer),
@@ -100,7 +122,9 @@ check(
  */
 await setze({ eintraege: [], tage: { [heute]: { stimmung: 1, stress: 0 } } });
 const gut = await page.locator('.rat-sport').textContent();
-check(gut.includes('auch intensiv'), 'an einem eingetragenen Tag ohne Beschwerden geht es');
+check(gut.includes('Bewegung heute') && gut.includes('nennen auch anstrengende Bewegung'),
+  'an einem eingetragenen Tag ohne Beschwerden: die allgemeinen Richtwerte, die auch anstrengende Bewegung nennen');
+check(!/ist heute der Tag dafür|mindestens eine Stunde/.test(gut), 'ohne Zeitregel fürs Hinlegen');
 check(
   /etwas eingetragen/.test(gut),
   'und der Beleg sagt, worauf er sich stützt',
@@ -125,13 +149,22 @@ await setze({
 });
 const ruhe = await page.locator('.rat-ruhe').first().textContent();
 check(ruhe.length > 0, 'bei viel Anspannung kommt ein Vorschlag zur Ruhe');
+const ruheText = await page.locator('.rat').textContent();
 check(
-  (await page.locator('.rat').textContent()).includes('4–7–8'),
+  ruheText.includes('4–7–8'),
   'und nennt die Übung beim Namen',
 );
 check(
-  (await page.locator('.rat-sport').textContent()).includes('Moderate Ausdauer'),
-  'an einem angespannten Tag wird moderat statt intensiv vorgeschlagen',
+  !/schaltet auf den Teil des Nervensystems|zum Runterkommen|ursprünglich fürs Einschlafen|Zwei Minuten Atmen/.test(ruheText)
+    && ruheText.includes('kann laut gesund.bund.de die Entspannung fördern')
+    && ruheText.includes('nicht hinreichend untersucht'),
+  'die Atemkarten sagen nur, was belegt ist: tiefes Atmen „kann“ die Entspannung fördern, vor dem Schlafen nicht hinreichend untersucht',
+);
+const angespannt = await page.locator('.rat-sport').textContent();
+check(
+  angespannt.includes('Bewegung und Anspannung') && angespannt.includes('wirken Stress entgegen')
+    && !/Intervalle|Reden noch geht|wäre heute richtig/.test(angespannt),
+  'an einem angespannten Tag: Bewegung wirkt Stress entgegen – ohne die unbelegte Warnung vor Intervallen',
 );
 
 /* ---------- Kein Medikamentenvorschlag ---------- */
@@ -192,28 +225,29 @@ const ratText = async () => (await page.locator('.rat').textContent()) || '';
 
 await setze({ eintraege: [...essenRat, einnahme, ...appetit] });
 let r = await ratText();
-check(r.includes('Heute eher ohne Kaffee') && r.includes('Die letzte Mahlzeit früher legen'),
+check(r.includes('Heute eher ohne Kaffee') && r.includes('Spätes Essen und Liegen'),
   'ohne den Schalter ADHS: die Vorschläge zum Essen wie bisher');
 await setze({ adhsAn: true, eintraege: [...essenRat, einnahme, ...appetit] });
 r = await ratText();
-check(!r.includes('Heute eher ohne') && !r.includes('Die letzte Mahlzeit früher legen'),
+check(!r.includes('Heute eher ohne') && !r.includes('Spätes Essen und Liegen'),
   'mit ADHS-Mittel und „Kein Appetit“ an 3 der letzten 7 Tage: kein Rat, weniger oder später zu essen');
 await setze({ adhsAn: true, eintraege: [...essenRat, einnahme, ...appetit.slice(0, 2)] });
 r = await ratText();
-check(r.includes('Heute eher ohne Kaffee') && r.includes('Die letzte Mahlzeit früher legen')
-  && r.includes('ist die späte Mahlzeit vielleicht nötig – das wägt die Praxis ab, nicht diese Karte.'),
-'an 2 von 7 Tagen: die Vorschläge bleiben, die späte Mahlzeit bekommt den Satz dazu');
+check(r.includes('Heute eher ohne Kaffee') && r.includes('Spätes Essen und Liegen')
+  && r.includes('Wann gegessen wird, wägt deshalb die Praxis ab, nicht diese Karte.')
+  && !r.includes('vielleicht nötig'),
+'an 2 von 7 Tagen: die Vorschläge bleiben, die späte Mahlzeit bekommt den Satz dazu – ohne „vielleicht nötig“');
 const waage = [
   { am: vorTagen(1), kg: 60 }, { am: vorTagen(8), kg: 60.2 }, { am: vorTagen(15), kg: 60.1 },
   { am: vorTagen(70), kg: 64 }, { am: vorTagen(80), kg: 64.2 }, { am: vorTagen(90), kg: 64.1 },
 ];
 await setze({ adhsAn: true, gewicht: waage, abnehmenGewollt: false, eintraege: [...essenRat, einnahme] });
 r = await ratText();
-check(!r.includes('Heute eher ohne') && !r.includes('Die letzte Mahlzeit früher legen'),
+check(!r.includes('Heute eher ohne') && !r.includes('Spätes Essen und Liegen'),
   'mit ADHS-Mittel und ungewolltem Abnehmen: ebenfalls kein Rat, weniger oder später zu essen');
 await setze({ adhsAn: true, gewicht: waage, abnehmenGewollt: false, eintraege: essenRat });
 r = await ratText();
-check(r.includes('Heute eher ohne Kaffee') && !r.includes('vielleicht nötig'),
+check(r.includes('Heute eher ohne Kaffee') && !r.includes('wägt deshalb die Praxis ab'),
   'ohne Einnahme in den letzten 14 Tagen gilt das alles nicht');
 
 /* Und dieselbe Rechnung ohne Anzeige: raete() liest essenVorsicht, sonst nichts. */
@@ -230,9 +264,9 @@ const bremse = raete({ ...grundlage, essenVorsicht: 'bremse' });
 const zusatz = raete({ ...grundlage, essenVorsicht: 'zusatz' });
 check(ids(ohne).includes('essen-eigen') && ids(ohne).includes('essen-spaet')
   && !ids(bremse).includes('essen-eigen') && !ids(bremse).includes('essen-spaet'),
-'raete(): die Bremse nimmt „Heute eher ohne …“ und „Die letzte Mahlzeit früher legen“ heraus');
+'raete(): die Bremse nimmt „Heute eher ohne …“ und „Spätes Essen und Liegen“ heraus');
 check(JSON.stringify(ohne.filter((x) => x.id !== 'essen-spaet')) === JSON.stringify(zusatz.filter((x) => x.id !== 'essen-spaet'))
-  && zusatz.find((x) => x.id === 'essen-spaet').warum.endsWith('das wägt die Praxis ab, nicht diese Karte.'),
+  && zusatz.find((x) => x.id === 'essen-spaet').warum.endsWith('wägt deshalb die Praxis ab, nicht diese Karte.'),
 'raete(): der Zusatz ändert nur den Grund unter der späten Mahlzeit');
 /*
  * Kein Satz rät zu einem Mittel. „Nimm die Liste mit zum Termin" ist der Satz
@@ -246,6 +280,56 @@ const saetze = [ohne, bremse, zusatz].flat().flatMap((x) => [x.titel, x.text, x.
 const geraten2 = saetze.filter((t) => RAT_RE.test(t));
 check(geraten2.length === 0, `kein Satz der Vorschläge trifft den Empfehlungs-Ausdruck${geraten2.length ? `: ${geraten2[0]}` : ''}`);
 
+/* ---------- Was die Karten seit der Fassung 30 nicht mehr sagen ---------- */
+
+/*
+ * Jede Karte „Für heute“ in jeder Lage, die raete() kennt – und darin keine
+ * der Aussagen, die keine Quelle trägt: feste Zeiten und Minutenzahlen für
+ * Bewegung, die Schwerkraft, „fünf statt drei“, das umschaltende
+ * Nervensystem, der Ursprung von 4–7–8. Dazu, was stattdessen dasteht.
+ */
+const { SCHONKOST } = await import(pathToFileURL(path.join(ROOT, 'js', 'rat.js')).href);
+const { UEBUNGEN, gesamtDauer } = await import(pathToFileURL(path.join(ROOT, 'js', 'atem.js')).href);
+const heuteIso = vorTagen(0);
+const basis = {
+  eintraege: [], tage: {}, heute: heuteIso, eigene: [], bilanz: [],
+  faktoren: {}, phasen: [], mittel: [],
+};
+const lagen = [
+  { letzteMahlzeitStunden: null },
+  { letzteMahlzeitStunden: 0.5 },
+  { letzteMahlzeitStunden: null, eintraege: [{ id: 'l1', am: heuteIso, um: '10:00', art: 'beschwerde', staerke: 3, arten: ['druck'] }] },
+  { letzteMahlzeitStunden: null, eintraege: [{ id: 'l2', am: heuteIso, um: '10:00', art: 'beschwerde', staerke: 7, arten: ['krampf'] }] },
+  { letzteMahlzeitStunden: null, tage: { [heuteIso]: { stress: 4, schlaf: 3 } } },
+  { letzteMahlzeitStunden: null, tage: { [heuteIso]: { stimmung: 1, stress: 0 } } },
+  { letzteMahlzeitStunden: null, faktoren: { stress: { genug: true, differenz: 2, hoch: { schnitt: 5, tage: 9 }, niedrig: { schnitt: 2, tage: 20 } } } },
+];
+const alleRaete = lagen.flatMap((l) => raete({ ...basis, ...l }));
+const alleSaetze = alleRaete.concat(ohne, bremse, zusatz).map((x) => `${x.titel} | ${x.text} | ${x.warum}`).join('\n');
+const UNBELEGT = [
+  /Erst in zwei Stunden/, /Zwanzig Minuten/, /30 bis 45 Minuten/, /mindestens eine Stunde/,
+  /Intervalle/, /Reden noch geht/, /spricht nichts dagegen/, /Schwerkraft/, /Fünf kleine Mahlzeiten/,
+  /nie viel auf einmal/, /Nervensystems/, /ursprünglich fürs Einschlafen/, /zum Runterkommen/,
+  /dabei bleiben bei/, /war keiner/, /vielleicht nötig/, /gut zwei Minuten/,
+];
+const treffer = UNBELEGT.filter((re) => re.test(alleSaetze));
+check(treffer.length === 0, `keine der unbelegten Aussagen von früher steht noch auf einer Karte${treffer.length ? `: ${treffer.join(', ')}` : ''}`);
+check(alleSaetze.includes('Bewegung kurz nach dem Essen')
+  && alleSaetze.includes('löste Laufen mit vollem Magen mehr Rückfluss aus als nüchtern'),
+'kurz nach dem Essen steht, was die Studien mit gesunden Freiwilligen zeigen – keine Frist');
+check(alleSaetze.includes('Bei Reflux können nach körperlicher Anstrengung und beim Bücken oder Liegen vermehrt Beschwerden auftreten.'),
+  'der Satz zu Reflux und Anstrengung steht so, wie gesund.bund.de ihn hergibt');
+check(JSON.stringify(SCHONKOST) === JSON.stringify(['Zwieback', 'Haferschleim', 'Reis', 'Banane']),
+  `die Schonkost-Liste nennt nur, was gesund.bund.de nennt (${SCHONKOST.join(', ')})`);
+const vierSiebenAcht = UEBUNGEN.find((u) => u.id === '478');
+const sek = gesamtDauer(vierSiebenAcht);
+check(sek >= 60 && sek < 90 && alleSaetze.includes('mit vier Runden gut eine Minute') && vierSiebenAcht.runden === 4,
+  `die Dauer von 4–7–8 auf der Karte passt zur Übung (${sek} Sekunden, ${vierSiebenAcht.runden} Runden)`);
+const portion = raete({ ...grundlage, bilanz: [{ id: 'gross', genug: true, differenz: 2, schnittMit: 5, schnittOhne: 2, faelle: 8, gegenFaelle: 20 }] })
+  .find((x) => x.id === 'essen-portion');
+check(portion && portion.titel === 'Große Portionen' && portion.text.includes('verlässlich untersucht ist das laut gesund.bund.de nicht'),
+  'große Portionen: beschrieben als Erfahrung mancher, mit dem Hinweis, dass es nicht verlässlich untersucht ist');
+
 /* ---------- Zeiten und Daten in deutscher Schreibweise ---------- */
 
 /*
@@ -256,7 +340,8 @@ check(geraten2.length === 0, `kein Satz der Vorschläge trifft den Empfehlungs-A
  * wie es heißen soll: unter einer Stunde in Minuten, ab einer Stunde mit
  * derselben Zehntelstunde wie vorher, nur mit Komma, und die Einzahl, wo sie
  * hingehört. Knapp unter zwei Stunden ergäbe die Zehntelstunde schon „2" –
- * unter „Erst in zwei Stunden intensiv" ein Widerspruch; dort steht „knapp 2
+ * die Karte „Bewegung kurz nach dem Essen" (bis zur Fassung 29 „Erst in zwei
+ * Stunden intensiv") steht aber nur bis zwei Stunden; dort steht „knapp 2
  * Stunden". Die Rechnung dahinter – ab wann „frisch gegessen" gilt – bleibt.
  */
 const leerGrund = {
@@ -279,8 +364,8 @@ const zeiten = [
   [1.5, 'Die letzte Mahlzeit ist 1,5 Stunden her.'],
   [1.26, 'Die letzte Mahlzeit ist 1,3 Stunden her.'],
   [116 / 60, 'Die letzte Mahlzeit ist 1,9 Stunden her.'],
-  // Knapp unter der Grenze ergäbe die Zehntelstunde schon „2" – unter
-  // „Erst in zwei Stunden intensiv" ein Widerspruch.
+  // Knapp unter der Grenze ergäbe die Zehntelstunde schon „2" – unter einer
+  // Karte, die nur bis zwei Stunden steht, ein Widerspruch.
   [117 / 60, 'Die letzte Mahlzeit ist knapp 2 Stunden her.'],
   [1.97, 'Die letzte Mahlzeit ist knapp 2 Stunden her.'],
   [119 / 60, 'Die letzte Mahlzeit ist knapp 2 Stunden her.'],
@@ -291,14 +376,14 @@ zeiten.forEach(([std, soll]) => {
 });
 const alleZeiten = zeiten.map(([std]) => sportGrund(std));
 check(alleZeiten.every((t) => !/\d\.\d/.test(t)), 'in keiner dieser Zeiten ein Dezimalpunkt');
-check(raete({ ...leerGrund, letzteMahlzeitStunden: 2 }).find((x) => x.id === 'sport').titel !== 'Erst in zwei Stunden intensiv',
-  'ab zwei Stunden wie bisher kein „Erst in zwei Stunden intensiv" – die Grenze selbst bleibt');
-// Jede ganze Minute bis zur Grenze: Solange die Karte „Erst in zwei Stunden
-// intensiv" sagt, nennt ihr Grund nie zwei Stunden oder mehr.
+check(raete({ ...leerGrund, letzteMahlzeitStunden: 2 }).find((x) => x.id === 'sport').titel !== 'Bewegung kurz nach dem Essen',
+  'ab zwei Stunden wie bisher keine Karte „Bewegung kurz nach dem Essen" – die Grenze selbst bleibt');
+// Jede ganze Minute bis zur Grenze: Solange die Karte „Bewegung kurz nach dem
+// Essen" steht, nennt ihr Grund nie zwei Stunden oder mehr.
 const widersprueche = [];
 for (let min = 0; min < 120; min++) {
   const r = raete({ ...leerGrund, letzteMahlzeitStunden: min / 60 }).find((x) => x.id === 'sport');
-  if (r.titel !== 'Erst in zwei Stunden intensiv') widersprueche.push(`${min} min: ${r.titel}`);
+  if (r.titel !== 'Bewegung kurz nach dem Essen') widersprueche.push(`${min} min: ${r.titel}`);
   else if (/ist ([2-9]|\d{2,})(,\d)? Stunden her/.test(r.warum)) widersprueche.push(`${min} min: ${r.warum}`);
 }
 check(widersprueche.length === 0, `0 bis 119 Minuten: die Karte steht, und ihr Grund nennt nie „2 Stunden"${widersprueche.length ? ` – ${widersprueche.slice(0, 3).join(' | ')}` : ''}`);
@@ -335,7 +420,7 @@ const sport90 = await mahlzeitUm('10:30');
 check(sport90.includes('Die letzte Mahlzeit ist 1,5 Stunden her.'),
   `in der App: „Die letzte Mahlzeit ist 1,5 Stunden her." (${(sport90.match(/Die letzte Mahlzeit[^.]*\.(\d[^.]*\.)?/) || [''])[0]})`);
 const sport118 = await mahlzeitUm('10:02');
-check(sport118.includes('Erst in zwei Stunden intensiv') && sport118.includes('Die letzte Mahlzeit ist knapp 2 Stunden her.'),
+check(sport118.includes('Bewegung kurz nach dem Essen') && sport118.includes('Die letzte Mahlzeit ist knapp 2 Stunden her.'),
   `in der App, 118 Minuten: „knapp 2 Stunden" (${(sport118.match(/Die letzte Mahlzeit[^.]*\./) || [''])[0]})`);
 await uhrSeite.close();
 

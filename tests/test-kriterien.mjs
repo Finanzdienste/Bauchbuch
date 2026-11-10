@@ -8,8 +8,15 @@
  *
  * Geprüft wird deshalb in beide Richtungen. Ein Datensatz, der die Kriterien
  * klar erfüllt, und einer, der sie klar verfehlt – und in beiden Fällen, dass
- * die Vorbehalte dabeistehen. Ein „erfüllt" ohne den Satz, dass Organisches
- * ausgeschlossen sein muss, wäre schlimmer als gar keine Anzeige.
+ * die Vorbehalte dabeistehen. Ein „erfüllt" ohne den Satz, dass andere
+ * Ursachen ärztlich abgeklärt sein müssen, wäre schlimmer als gar keine
+ * Anzeige.
+ *
+ * Seit der Fassung 30 beschreibt die Karte die Regelwerke nur so, wie es die
+ * Abstracts der Originalarbeiten hergeben (Quellen im Kommentar über
+ * kriterienTeil in js/app.js): Die Magenbeschwerden werden gezählt, ohne
+ * „Kriterien erfüllt" für die funktionelle Dyspepsie, und beim GerdQ steht
+ * die Punktzahl ohne die Schwelle „ab 8 wahrscheinlich" – wie im Arztbericht.
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, SHOT, pruefer, vorTagen } from './umgebung.mjs';
@@ -106,21 +113,31 @@ check(
   'die erfüllten Punkte sind als Haken erkennbar, nicht nur als Text',
 );
 
-/* ---------- Funktionelle Dyspepsie: hier gerade nicht erfüllt ---------- */
+/* ---------- Magenbeschwerden: gezählt, nicht eingeordnet ---------- */
 
-const dys = page.locator('.krit', { hasText: 'Funktionelle Dyspepsie' });
+const dys = page.locator('.krit', { hasText: 'Magenbeschwerden ab Stärke 4' });
+check(await dys.count() === 1, 'die Magenbeschwerden stehen als eigener Kasten da');
 const dText = await text(dys);
 check(
-  dText.includes('Kriterien nicht erfüllt'),
-  'Bauchschmerz allein erfüllt die Dyspepsie-Kriterien nicht – sie fragen nach dem Oberbauch',
+  dText.includes('gezählt, keine Einordnung') && !/Kriterien (nicht )?erfüllt/.test(dText)
+    && !dText.includes('Distress-Syndrom') && !dText.includes('Schmerzsyndrom'),
+  'ohne „Kriterien erfüllt“ und ohne Unterformen – die Schwellen dafür gibt das Abstract von Rom IV nicht her',
 );
 check(
-  dText.includes('Postprandiales Distress-Syndrom') && dText.includes('Epigastrisches Schmerzsyndrom'),
-  'beide Formen stehen einzeln da: sie werden verschieden behandelt',
+  /Druck, Völlegefühl oder früh satt\. An \d+ Tag/.test(dText) && /Brennen oder Schmerz im Oberbauch\. An \d+ Tag/.test(dText),
+  'beide Gruppen von Beschwerden stehen einzeln da, mit ihrer Zahl',
 );
 check(
-  dText.includes('ab Stärke 4'),
-  'die Schwelle „belastend" steht dabei – sonst erfüllte sie fast jeder',
+  dText.includes('ab Stärke 4') && dText.includes('Diese Grenze hat Body Check festgelegt') && !dText.includes('belastend'),
+  'die Grenze ab Stärke 4 steht als Festlegung der App da, nicht als Wortlaut der Kriterien',
+);
+check(
+  dText.includes('wenn eine übliche ärztliche Untersuchung sie nicht erklärt'),
+  'und was Rom IV laut Abstract zur funktionellen Dyspepsie sagt',
+);
+check(
+  await dys.locator('.haken.ja').count() === 0,
+  'und keine Haken, die eine Schwelle erfüllt nennen',
 );
 
 /* ---------- GerdQ ---------- */
@@ -137,8 +154,13 @@ check(
   'die Nachtfrage aus den Tagesangaben ist einer der sechs Posten',
 );
 check(
-  gText.includes('Ab 8 Punkten'),
-  'und die veröffentlichte Schwelle steht dabei, nicht nur ein Urteil',
+  !gText.includes('Ab 8') && !gText.includes('wahrscheinlich') && !gText.includes('Trick')
+    && gText.includes('kein ausgefüllter Fragebogen') && gText.includes('Zwei Posten zählt Body Check umgekehrt'),
+  'ohne die Schwelle „ab 8 wahrscheinlich“ – gezählt, nicht erfragt, und was „umgekehrt“ hier heißt',
+);
+check(
+  !(await gerd.getAttribute('class')).includes('erfuellt'),
+  'der GerdQ-Kasten wird nie als „erfüllt“ markiert',
 );
 
 /* ---------- Die Vorbehalte ---------- */
@@ -147,12 +169,22 @@ const karte = page.locator('.karte', { hasText: 'Erfüllte Kriterien sind keine 
 check(await karte.count() === 1, 'über allem steht: erfüllte Kriterien sind keine Diagnose');
 const kText = await text(karte);
 check(
-  kText.includes('nichts Organisches'),
-  'mit der Begründung – beide Regelwerke setzen den Ausschluss voraus',
+  kText.includes('wenn andere Ursachen für die Beschwerden abgeklärt und ausgeschlossen sind')
+    && !kText.includes('Beide Regelwerke') && !kText.includes('Spiegelung und Blutbild'),
+  'mit der Begründung für Reizdarm und Reizmagen – nicht „beide Regelwerke“ samt GerdQ',
 );
 check(
-  kText.includes('eher zu niedrig als zu hoch'),
-  'und mit dem Hinweis, dass ein Tagebuch untererfasst',
+  !kText.includes('untererfasst') && !kText.includes('eher zu niedrig als zu hoch')
+    && kText.includes('beziehen sich auf die notierten Tage'),
+  'und worauf sich die Zahlen beziehen, statt „ein Tagebuch untererfasst“',
+);
+check(
+  kText.includes('Rom V') && !kText.includes('mit denen in der Sprechstunde eingeordnet'),
+  'mit dem Hinweis, dass es inzwischen eine Nachfolgefassung gibt',
+);
+check(
+  kText.includes('Die Bedingung, mit der Body Check beim Reizdarm rechnet') && !kText.includes('Rom IV verlangt'),
+  'den Beginn vor sechs Monaten nennt die Karte als Bedingung der App',
 );
 check(
   kText.includes('seit 2023-01') && /seit \d+ Monaten/.test(kText),
@@ -170,6 +202,11 @@ check(
   (await text(page.locator('.karte', { hasText: 'Erfüllte Kriterien' })))
     .includes('nicht eingetragen'),
   'fehlt die Angabe „seit wann", steht das als offene Bedingung da statt still zu fehlen',
+);
+check(
+  (await text(page.locator('.karte', { hasText: 'Erfüllte Kriterien' })))
+    .includes('fehlt dem Reizdarm-Kasten darunter eine Bedingung'),
+  'und zwar dem Kasten darunter – früher hieß es „beiden Kästen oben“',
 );
 
 /* ---------- Zu kurzes Tagebuch: gar keine Behauptung ---------- */

@@ -1450,10 +1450,22 @@ function adhsTeil(s, iso) {
 }
 
 /**
- * Hinweise zu zwei Mitteln, die die Fachinformation nicht zusammen vorsieht
- * (Stufe A, siehe js/zusammen.js), als Karte auf „Tag" – nur heute, bis sie
- * gelesen sind. Ohne Schalter: Was hier steht, betrifft jeden mit diesen
- * beiden Mitteln, ob er ADHS mitdenken will oder nicht.
+ * Hinweise der Stufe A (siehe js/zusammen.js) als Karte auf „Tag" – nur
+ * heute, bis sie gelesen sind. Stufe A heißt: Methylphenidat als Kapsel mit
+ * zweierlei Kügelchen (Medikinet retard, Medikinet adult) zusammen mit einem
+ * Mittel gegen Magensäure, wie Body Check es zählt (W1) – die Fachinformation
+ * dieser Kapseln führt die Behandlung mit H2-Rezeptorenblockern,
+ * Protonenpumpen-Inhibitoren oder Antazida unter den Gegenanzeigen (Medikinet
+ * retard, www.fachinfo.de/fi/pdf/009621, Stand Dezember 2025, 4.3 und 4.5:
+ * „darf nicht zusammen mit H2-Rezeptorenblockern, Protonenpumpen-Inhibitoren
+ * oder Antazida eingenommen werden"; ebenso Medikinet adult, 013066, Stand
+ * September 2025). Oder Methylphenidat ohne bekannte Form zusammen mit einem
+ * solchen Mittel (W1u): Dann könnte es so sein, belegt ist es für dieses
+ * Paar nicht. Alginate und Natron zählt Body Check dabei mit, die
+ * Fachinformation nennt sie nicht ausdrücklich.
+ *
+ * Ohne Schalter: Was hier steht, betrifft jeden mit diesen beiden Mitteln, ob
+ * er ADHS mitdenken will oder nicht.
  */
 function wechselOffen(s) {
   const gelesen = new Set(Array.isArray(s.wechselGelesen) ? s.wechselGelesen : []);
@@ -1896,9 +1908,20 @@ function rueckfrageKarte(f, s) {
         <div class="reihe">${zurueck}</div>`;
   } else if (schritt === 'pruefen') {
     // Nicht „Diesen Namen kennt Body Check nicht": Viele Namen kennt die
-    // Erkennung (Heilerde, Sucralfat, Schmerzmittel …), nur nicht als Mittel
-    // gegen Magensäure – Bogen und „Mehr" beschreiben sie. Gesagt wird nur,
-    // was stimmt.
+    // Erkennung (Sucralfat, Heilerde, Schmerzmittel …), zählt sie aber nicht
+    // zu den Mitteln, nach denen die Paar-Hinweise fragen (Protonenpumpen-
+    // hemmer, H2-Blocker, Antazida, Alginate, dazu Natron; js/zusammen.js) –
+    // Bogen und „Mehr" beschreiben sie. Gesagt wird nur, was die App tut.
+    // Sucralfat überzieht laut Gebrauchsinformation erkrankte
+    // Schleimhautbereiche „mit einer Schutzschicht" und wird von den Antazida
+    // abgegrenzt („Die gleichzeitige Gabe Säure bindender Arzneimittel
+    // (Antacida) beeinträchtigt die Wirksamkeit", Sucrabest 1 g Tabletten,
+    // Abschnitte 1 und 2, überarbeitet Februar 2026). Heilerde dagegen
+    // wird laut Gebrauchsinformation „zur Bindung überschüssiger Magensäure
+    // angewendet" (Santerra Heilerde supra); ob sie unter die Gegenanzeige
+    // „Antazidatherapie" der Medikinet-Fachinformation fällt, sagt keine
+    // geprüfte Quelle – ihr Fehlen in der Liste ist eine Festlegung der App,
+    // kein Befund.
     frage = 'Nicht als Mittel gegen Magensäure erkannt';
     teil = `<p class="klein">„${esc(u.eigen)}“ erkennt Body Check nicht als Mittel gegen Magensäure. Dann kann
       ein Hinweis zu deinen Mitteln fehlen. Steht einer der Namen aus der Liste auf der Packung, wähl lieber
@@ -1996,6 +2019,16 @@ function v29Offen(s, g) {
  * Stufen sagen, was die Fachinformation zu einem Paar schreibt, nicht, wie
  * wichtig es ist – „die wichtigen stehen oben" erklärte die übrigen still
  * für unwichtig, und oft steht über dieser Karte gar keiner.
+ *
+ * Belegt ist das Paar nur für bestimmte Formen: Medikinet retard und
+ * Medikinet adult führen H2-Rezeptorenblocker, Protonenpumpen-Inhibitoren und
+ * Antazida unter den Gegenanzeigen (www.fachinfo.de/fi/pdf/009621, Stand
+ * Dezember 2025, und 013066, Stand September 2025, je 4.3 und 4.5); Ritalin
+ * LA (010445) und Equasym Retard (012100) nennen nichts dazu. Deshalb sagt
+ * die Karte, dass es von Präparat zu Präparat verschieden ist – wie der
+ * Arztbericht (js/bericht.js, W3/W4) –, ohne Präparatnamen und ohne
+ * „Gegenanzeigen": Diese Karte ist eine allgemeine Neuigkeit, die Namen und
+ * die Gegenanzeige stehen in den Hinweisen selbst.
  */
 function v29Karte(s) {
   // Ist „Meine Mittel" voll, führt der Knopf zur Liste (siehe 'v29-meine-mittel')
@@ -2005,7 +2038,8 @@ function v29Karte(s) {
   return `<div class="karte hinweis neu-karte" role="region" aria-labelledby="neuTitel">
     <h3 id="neuTitel">Neu: Hinweise zu zwei Mitteln zusammen</h3>
     <p class="klein">Zu einigen wenigen Paaren von Mitteln zeigt Body Check jetzt einen Hinweis, vor allem
-      zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Alle stehen unter „Mehr“ › „Meine
+      zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Was in der Fachinformation dazu steht,
+      ist bei Methylphenidat von Präparat zu Präparat verschieden. Alle stehen unter „Mehr“ › „Meine
       Mittel“, einige auch hier oben.</p>
     <p class="klein">Steht kein Hinweis da, heißt das nicht, dass deine Mittel zusammenpassen. Body Check
       prüft nicht alle Mittel – das kann die Apotheke.</p>
@@ -2059,7 +2093,12 @@ function nurMittelKarte(liste) {
  * Wochen, fragt „Tag" einmal, ob Body Check dazu mitzählen soll. Ebenso für
  * Kiefer, Nacken und Schiene, wenn eine Massage oder Wärme eingetragen ist
  * oder eine Notiz davon spricht – Nackenschmerz beim Kopfschmerz allein reicht
- * nicht, den haben die meisten Menschen mit Migräne. Höchstens eine Karte,
+ * nicht: Nackenschmerz ist bei Migräne häufig. In Klinikstudien hatten ihn
+ * gepoolt 77,0 % der Menschen mit Migräne (Übersichtsarbeit und
+ * Metaanalyse, Cephalalgia 2022;42(7):663-673, PMID 35166137, Abstract), und
+ * die Kopfschmerzklassifikation nennt Nackensteife oder -schmerz unter den
+ * Vor- und Nachzeichen (ICHD-3, ichd-3.org, Kapitel 1, Einleitung: „neck
+ * stiffness and/or pain"). Höchstens eine Karte,
  * ADHS zuerst, nur heute. „Nein danke" ist endgültig (der Schalter steht dann
  * auf false); umstellen lässt es sich nur noch unter „Mehr".
  *
@@ -2419,9 +2458,10 @@ function sicherungKarte(iso) {
 /**
  * Die Vorschläge für heute.
  *
- * Jeder trägt sein „warum" sichtbar mit sich, und woher es kommt: aus ihrem
- * eigenen Verlauf oder aus dem, was allgemein empfohlen wird. Ohne diese
- * Unterscheidung wäre beides gleich viel wert, und das ist es nicht.
+ * Jeder trägt sein „warum" sichtbar mit sich, und woher es kommt: aus dem
+ * eigenen Verlauf oder aus allgemeinen Hinweisen (siehe 'allgemein' im Kopf
+ * von js/rat.js). Ohne diese Unterscheidung wäre beides gleich viel wert, und
+ * das ist es nicht.
  */
 /*
  * Vorsicht beim Essen (siehe ESSEN_VORSICHT in js/rat.js): nur mit dem
@@ -2485,8 +2525,8 @@ function ratKarte(s) {
       <p class="klein">${esc(r.warum)}</p>
     </li>`).join('')}</ul>
     <p class="klein">„Aus deinem Verlauf" heißt: aus deinen eigenen Eintragungen
-    gerechnet, mit den Zahlen daneben. „Allgemein" heißt: gilt für einen
-    Durchschnitt, den es nicht gibt – dein eigener Verlauf sticht das.</p>
+    gerechnet, mit den Zahlen daneben. „Allgemein" heißt: allgemeine Hinweise,
+    oft nicht gut untersucht – dein eigener Verlauf sticht das.</p>
   </div>`;
 }
 
@@ -2614,9 +2654,32 @@ function trendKarte(s, bis) {
  * Zudringlichkeit, und er kann sagen, warum er kommt.
  *
  * Der Grund gehört dazu. „Schalt mal diese Fragen ein" ist übergriffig;
- * „dein Bauch ist an Blutungstagen um 1,8 Stufen schlechter, und es gibt
- * einen Zusammenhang, der oft jahrelang übersehen wird" ist eine Auskunft,
- * über die jemand selbst entscheiden kann.
+ * „dein Bauch ist an Blutungstagen um 1,8 Stufen schlechter, und das kommt
+ * auch bei einer Endometriose vor" ist eine Auskunft, über die jemand selbst
+ * entscheiden kann.
+ *
+ * Was die Karte sagt, und woher:
+ *
+ *   * gesund.bund.de, Regelschmerzen (mit IQWiG, Stand 27.08.2024):
+ *     „Regelschmerzen sind weit verbreitet." – „Einige Frauen leiden
+ *     zusätzlich zu Krämpfen an Übelkeit, Erbrechen oder Durchfall." – „Bei
+ *     sehr starken oder sich verschlimmernden Schmerzen ist eine ärztliche
+ *     Untersuchung sinnvoll." Dort auch: „Bei starken Schmerzen kann auch
+ *     eine Endometriose der Grund sein."
+ *   * gesund.bund.de, Endometriose (mit IQWiG, Stand 21.08.2025): „Das
+ *     Hauptsymptom einer Endometriose sind Unterleibsschmerzen. Sie treten
+ *     oft während der Monatsblutung auf. Aber auch Schmerzen beim oder nach
+ *     dem Geschlechtsverkehr können auf Endometriose hinweisen." – „Auch kann
+ *     es zu Übelkeit, Erbrechen und Durchfall kommen." – „Oft dauert es Jahre
+ *     bis zur Diagnose".
+ *
+ * Bis zur Fassung 29 stand hier, das Muster sei „für sich genommen harmlos",
+ * Endometriose werde „im Mittel sieben bis zehn Jahre lang für einen
+ * Reizdarm gehalten", und Schmerz beim Sex und die Stärke des Regelschmerzes
+ * unterschieden sie vom Reizdarm, „nach denen in der Magensprechstunde
+ * niemand fragt". Die Entwarnung widerspricht dem Rat zur Abklärung starker
+ * Schmerzen; die Zahl, die Verwechslung mit dem Reizdarm, die Abgrenzung und
+ * der Satz über die Sprechstunde stehen in keiner erreichbaren Quelle.
  */
 function unterleibVorschlag(s) {
   if (s.unterleibGefragt) return '';
@@ -2627,13 +2690,16 @@ function unterleibVorschlag(s) {
     <p class="klein">An deinen Blutungstagen ist der Bauch im Mittel um
     <b>${v.differenz.toFixed(1).replace('.', ',')} Stufen</b> schlechter als
     sonst (${mehrzahl(v.blutungsTage, 'Blutungstag', 'Blutungstage')} verglichen).
-    Das ist häufig und für sich genommen harmlos.</p>
-    <p class="klein">Es gibt aber eine Ursache, bei der genau dieses Muster
-    auftritt und die im Mittel <b>sieben bis zehn Jahre</b> lang für einen
-    Reizdarm gehalten wird: Endometriose. Was sie von einem Reizdarm
-    unterscheidet, sind zwei Dinge, nach denen in der Magensprechstunde
-    niemand fragt – <b>Schmerz beim Sex</b> (und ob er tief innen sitzt oder
-    außen) und <b>wie stark der Regelschmerz</b> ist.</p>
+    Beschwerden während der Regel sind weit verbreitet, bei manchen auch mit
+    Übelkeit, Erbrechen oder Durchfall. Bei sehr starken oder sich
+    verschlimmernden Schmerzen ist eine ärztliche Untersuchung sinnvoll.</p>
+    <p class="klein">Beschwerden rund um die Regel kommen auch bei einer
+    <b>Endometriose</b> vor: Typisch sind Unterleibsschmerzen, oft während der
+    Monatsblutung; auch <b>Schmerzen beim oder nach dem Sex</b> können darauf
+    hinweisen. Bis zu dieser Diagnose dauert es oft Jahre. Ob das bei dir eine
+    Rolle spielt, kann nur eine ärztliche Untersuchung klären, etwa in der
+    frauenärztlichen Praxis. Die zwei Fragen dazu: Schmerz beim Sex (und ob er
+    tief innen sitzt oder außen) und <b>wie stark der Regelschmerz</b> ist.</p>
     <p class="klein">Die Fragen sind ausgeschaltet, und das bleiben sie, wenn
     du willst. Eingeschaltet erscheinen sie als zwei Regler beim Tageseintrag,
     und die App kann sagen, ob sich daraus ein Muster ergibt.</p>
@@ -2975,10 +3041,17 @@ function wechselTeil(s, d) {
 /*
  * Was das eingestellte Fenster nicht sehen kann.
  *
- * Die Bilanz zählt Beschwerden in den vier Stunden nach dem Essen. Was sich
- * erst nach sechs meldet – und im Dickdarm vergärt nichts früher –, kommt dort
- * nicht als „unauffällig" vor, sondern gar nicht. Diese Karte stellt die
- * Frage nach, statt sie am Fenster scheitern zu lassen.
+ * Die Bilanz zählt Beschwerden in den Stunden des eingestellten Fensters nach
+ * dem Essen. Was sich erst danach meldet, kommt dort nicht als „unauffällig"
+ * vor, sondern gar nicht. Diese Karte stellt die Frage nach, statt sie am
+ * Fenster scheitern zu lassen.
+ *
+ * Einen Ort nennt sie nicht. Früher stand hier „So spät entsteht Beschwerde
+ * im Dickdarm" und im Kommentar „im Dickdarm vergärt nichts früher"; beides
+ * widerspricht der Quelle: Bei einer Laktoseintoleranz wird im Dickdarm
+ * vergoren, und die Beschwerden sind „nach etwa eineinhalb bis zwei Stunden"
+ * am stärksten (gesund.bund.de, Laktoseintoleranz, Stand 23.02.2026). Belege
+ * im Kopf von js/zeitprofil.js; der Satz unten ist KEIN_ORT von dort.
  */
 function spaetTeil(s, d) {
   if (!d.uebersehen.length) return '';
@@ -3115,8 +3188,8 @@ function klassenTeil(s, d) {
     <p class="klein">Zusammengefasst, was im Körper denselben Weg nimmt. Das gibt
     mehr Fälle je Vergleich als eine einzelne Zutat – und die brauchbarere
     Antwort, weil sie auch für das gilt, was noch nicht im Tagebuch steht. Die
-    Zuordnung ist grob: Ein Apfel ist FODMAP-reich, eine Banane kaum, und beide
-    wären hier Obst.</p>
+    Zuordnung ist grob: Alles in einer Gruppe wird hier gleich behandelt, auch
+    wenn sich einzelne Lebensmittel darin unterscheiden können.</p>
     <ul class="funde funde-klassen">${fertig.map(zeile).join('')}</ul>
   </div>`;
 }
@@ -3125,18 +3198,66 @@ function klassenTeil(s, d) {
  * Die Kriterien – der Teil, der am nächsten an eine Diagnose herankommt.
  *
  * Und deshalb der Teil mit den meisten Vorbehalten. Sie stehen nicht im
- * Kleingedruckten, sondern im ersten Absatz: Erfüllte Kriterien heißen, dass
- * der Name passt, *wenn* nichts Organisches dahintersteckt – und das
- * entscheidet eine Untersuchung, nicht diese App.
+ * Kleingedruckten, sondern im ersten Absatz: Erfüllte Kriterien sind keine
+ * Diagnose, und von Reizdarm oder Reizmagen wird erst gesprochen, wenn andere
+ * Ursachen ärztlich abgeklärt sind – das entscheidet eine Untersuchung, nicht
+ * diese App.
+ *
+ * Beschrieben wird nur, was die Originalarbeiten im Abstract hergeben (PubMed,
+ * im Volltext des Abstracts gelesen):
+ *
+ *   * Rom IV, Darm: Mearin et al., Bowel Disorders, Gastroenterology 2016
+ *     (PMID 27144627) – überarbeitet die Rom-III-Kriterien von 2006, „to
+ *     assist both clinicians and researchers". Die Schwellen des Kastens
+ *     (Schmerz 1× je Woche, zwei von drei Merkmalen) stehen dort nicht; sie
+ *     sind die Rechnung in js/kriterien.js.
+ *   * Rom IV, Magen: Stanghellini et al., Gastroduodenal Disorders,
+ *     Gastroenterology 2016;150(6):1380-92 (PMID 27147122) – funktionelle
+ *     Dyspepsie: „1 or more of the following: postprandial fullness, early
+ *     satiation, epigastric pain, and epigastric burning, which are
+ *     unexplained after a routine clinical evaluation", mit zwei Unterformen,
+ *     die sich überschneiden können. Wie oft die Beschwerden dafür auftreten
+ *     müssen und dass sie „belastend" sein müssen, steht im Abstract nicht –
+ *     deshalb zählt der Kasten die Magenbeschwerden nur und nennt kein
+ *     „Kriterien erfüllt" mehr, wie der Arztbericht (js/bericht.js).
+ *   * GerdQ: Jones et al., Aliment Pharmacol Ther 2009;30(10):1030-8 (PMID
+ *     19737151) – „a patient-centred, self-assessment questionnaire to assist
+ *     health care professionals in the diagnosis and effective management of
+ *     patients with GERD", „six-item". Die Punkte je Frage, die Spanne bis 18,
+ *     die Schwelle 8 und die umgekehrt gewerteten Fragen stehen im Abstract
+ *     nicht. Deshalb steht keine Schwelle mehr da, der Kasten wird nie als
+ *     „erfüllt" markiert, und „zählt umgekehrt" beschreibt nur, wie Body
+ *     Check rechnet.
+ *   * Den Beginn vor mindestens sechs Monaten nennen die beiden Abstracts
+ *     nicht. Für die Vorgängerfassung Rom III beim Reizdarm gibt ihn die
+ *     EMA-Leitlinie wieder: „onset at least 6 months prior to diagnosis"
+ *     (CPMP/EWP/785/97 Rev. 1, 25.09.2014, Kapitel 4). Die Karte beschreibt
+ *     ihn deshalb als Bedingung, mit der Body Check rechnet.
+ *   * Rom IV ist nicht mehr die neueste Fassung: „The Rome V criteria for
+ *     irritable bowel syndrome (IBS) were proposed in May, 2026" (Lancet
+ *     Gastroenterol Hepatol 2026, Diagnosestudie aus Leeds, PMID 42392123,
+ *     Abstract). Body Check rechnet weiter nach Rom IV und sagt das.
+ *
+ * Bis zur Fassung 29 hieß es, die Regelwerke seien die, „mit denen in der
+ * Sprechstunde eingeordnet wird", beide setzten „ausdrücklich voraus, dass
+ * nichts Organisches dahintersteckt", „erfüllt" heiße „Wenn Spiegelung und
+ * Blutbild unauffällig sind, passt dieser Name", ab 8 Punkten gelte eine
+ * Refluxkrankheit als wahrscheinlich, und ein Tagebuch untererfasse, die
+ * Zahlen seien eher zu niedrig. Für den GerdQ gilt der Ausschluss gerade
+ * nicht, die übrigen Sätze trägt keine erreichbare Quelle, und der letzte
+ * stimmte nach der Rechnung nicht: Die Werte je Woche beziehen sich auf
+ * notierte Tage, und zwei GerdQ-Posten zählen umgekehrt.
  */
 function kriterienTeil(s, d) {
   const k = d.kriterien;
   if (!genugFuerKriterien(k)) {
     return `<div class="karte">
       <h3>Kriterien</h3>
-      <p class="klein">Ab etwa zwei Wochen Tagebuch stehen hier die Regelwerke,
-      mit denen in der Sprechstunde eingeordnet wird – Rom IV für Reizdarm und
-      funktionelle Dyspepsie, GerdQ für Reflux. Bisher sind
+      <p class="klein">Ab etwa zwei Wochen Tagebuch stehen hier Zählungen, die
+      sich an veröffentlichten Kriterien orientieren – Rom IV von 2016 für das
+      Reizdarmsyndrom, dazu die Magenbeschwerden und ein Punktwert angelehnt
+      an den GerdQ-Fragebogen für Reflux. Sie ersetzen keine Untersuchung; die
+      Einordnung trifft die Praxis. Bisher sind
       ${mehrzahl(k.zeitraum.notierteTage, 'Tag', 'Tage')} notiert.</p>
     </div>`;
   }
@@ -3173,24 +3294,35 @@ function kriterienTeil(s, d) {
     : `Für den Typ fehlen noch ${mehrzahl(r.typ.fehlt, 'Stuhlgang', 'Stuhlgänge')}.`}</p>
   </li>`;
 
-  const dyspepsieKasten = `<li class="krit ${dy.erfuellt ? 'erfuellt' : ''}">
+  /*
+   * Die Magenbeschwerden gezählt, ohne Rom-IV-Urteil – wie im Arztbericht.
+   * Was Rom IV laut Abstract dazu sagt, steht im Satz darunter; Häufigkeiten
+   * und „belastend" nennt das Abstract nicht (siehe oben). Die Rechnung in
+   * js/kriterien.js ist unverändert, nur ihre Haken und ihr „erfüllt" stehen
+   * nicht mehr da. Die beiden Zeilen heißen wie im Arztbericht nach den
+   * Beschwerden, die dafür gezählt werden ('druck', 'saettigung' und
+   * 'oberbauch', 'brennen').
+   */
+  const dyspepsieKasten = `<li class="krit">
     <div class="krit-kopf">
-      <b>Funktionelle Dyspepsie (Rom IV)</b>
-      <span class="fund-urteil">${dy.pruefbar
-    ? (dy.erfuellt ? 'Kriterien erfüllt' : 'Kriterien nicht erfüllt') : 'noch nicht prüfbar'}</span>
+      <b>Magenbeschwerden ab Stärke 4</b>
+      <span class="fund-urteil">${dy.pruefbar ? 'gezählt, keine Einordnung' : 'noch nicht gezählt'}</span>
     </div>
     <ul class="kritliste">
-      ${[dy.pds, dy.eps].map((f) => `<li>${haken(f.erfuellt, dy.pruefbar)}
-        <span><b>${esc(f.name)}.</b> ${esc(f.satz)}
-        An ${mehrzahl(f.tage, 'Tag', 'Tagen')}, ${zahl(f.proWoche)} je Woche der
+      ${[['Druck, Völlegefühl oder früh satt', dy.pds], ['Brennen oder Schmerz im Oberbauch', dy.eps]]
+    .map(([name, f]) => `<li><span class="haken offen">·</span>
+        <span><b>${name}.</b> An ${mehrzahl(f.tage, 'Tag', 'Tagen')}, ${zahl(f.proWoche)} je Woche der
         notierten Tage.</span></li>`).join('')}
     </ul>
-    <p class="klein">Gezählt werden nur Eintragungen ab Stärke 4 („merklich") –
-    die Kriterien sagen „belastend", und eine 2 mitzuzählen würde sie bei fast
-    jedem erfüllen.</p>
+    <p class="klein">Rom IV beschreibt die funktionelle Dyspepsie mit solchen
+    Beschwerden – Völlegefühl nach dem Essen, frühes Sattsein, Schmerz oder
+    Brennen im Oberbauch –, wenn eine übliche ärztliche Untersuchung sie nicht
+    erklärt. Wie oft sie dafür auftreten müssen, gibt dieser Kasten nicht
+    wieder; die Einordnung trifft die Praxis. Gezählt werden nur Eintragungen
+    ab Stärke 4 („merklich"). Diese Grenze hat Body Check festgelegt.</p>
   </li>`;
 
-  const gerdqKasten = `<li class="krit ${g.wahrscheinlich && g.belastbar ? 'erfuellt' : ''}">
+  const gerdqKasten = `<li class="krit">
     <div class="krit-kopf">
       <b>GerdQ – Reflux</b>
       <span class="fund-urteil">${g.belastbar
@@ -3203,23 +3335,26 @@ function kriterienTeil(s, d) {
     ? ' <i>(zählt umgekehrt)</i>' : ''}</span></li>`).join('')}
     </ul>
     <p class="klein">${g.belastbar
-    ? `Ab 8 Punkten gilt eine Refluxkrankheit als wahrscheinlich – du liegst bei
-       <b>${g.punkte}</b>. Zwei der sechs Fragen zählen umgekehrt: Oberbauchschmerz
-       und Übelkeit sprechen eher gegen Reflux und für etwas anderes im Magen.
-       Das ist kein Fehler, das ist der Trick des Fragebogens.`
+    ? `Gezählt aus deinen Eintragungen der letzten sieben Tage, kein ausgefüllter
+       Fragebogen. Der GerdQ ist ein Fragebogen mit sechs Fragen zur
+       Selbsteinschätzung, der Praxen bei der Einordnung von Reflux helfen soll.
+       Zwei Posten zählt Body Check umgekehrt: Je öfter sie eingetragen sind,
+       desto weniger Punkte. Was die Punktzahl hier bedeutet, kann die Praxis
+       einordnen.`
     : `Von den letzten sieben Tagen sind nur ${g.erfasst} notiert. Was nicht
-       eingetragen ist, zählt hier als „nicht gehabt" – die Punktzahl wäre zu
-       niedrig statt falsch, und damit nicht zu gebrauchen.`}</p>
+       eingetragen ist, zählt hier als „nicht gehabt" – die Punktzahl wäre damit
+       nicht zu gebrauchen.`}</p>
   </li>`;
 
   const dauer = k.dauer.erfuellt === null
     ? `<p class="klein warnend">Seit wann die Beschwerden bestehen, ist nicht
-       eingetragen – unter „Mehr". Rom IV verlangt einen Beginn vor mindestens
-       einem halben Jahr; ohne diese Angabe fehlt beiden Kästen oben eine
-       Bedingung.</p>`
+       eingetragen – unter „Mehr". Body Check rechnet beim Reizdarm mit einem
+       Beginn vor mindestens sechs Monaten; ohne diese Angabe fehlt dem
+       Reizdarm-Kasten darunter eine Bedingung.</p>`
     : `<p class="klein">Beschwerden seit ${esc(k.dauer.seit)}, also seit
-       ${mehrzahl(k.dauer.monate, 'Monat', 'Monaten')}. Die Rom-Bedingung „Beginn
-       vor mindestens sechs Monaten" ist damit
+       ${mehrzahl(k.dauer.monate, 'Monat', 'Monaten')} (in Kalendermonaten
+       gerechnet). Die Bedingung, mit der Body Check beim Reizdarm rechnet –
+       Beginn vor mindestens sechs Monaten –, ist damit
        ${k.dauer.erfuellt ? 'erfüllt' : '<b>noch nicht</b> erfüllt'}.</p>`;
 
   /*
@@ -3233,24 +3368,35 @@ function kriterienTeil(s, d) {
    *
    * Die Rechnung darunter ändert sich nicht – dieselben Punkte, dieselben
    * Haken. Nur ihre Lesart: aus einer Einordnung wird eine Verlaufsbeobachtung.
+   *
+   * Der Satz ohne Befund, belegt für Reizdarm und Reizmagen: gesund.bund.de,
+   * Reizmagensyndrom (Stand 05.02.2026, „Wie wird ein Reizmagen
+   * diagnostiziert?"): „Von einem Reizmagen wird deshalb erst gesprochen,
+   * wenn andere Ursachen für die Beschwerden abgeklärt und ausgeschlossen
+   * wurden"; Reizdarmsyndrom (Stand 28.08.2024, „Wie wird ein Reizdarmsyndrom
+   * festgestellt?"): „keine Hinweise auf eine andere Erkrankung vorliegen".
+   * Für den GerdQ gilt das nicht – deshalb dort nur „keine Diagnose".
+   * Welche Untersuchungen nötig sind, legt die Praxis fest; „Spiegelung und
+   * Blutbild" als Maßstab nennt keine dieser Seiten.
    */
   const vorbehalt = kriterienVorbehalt(s.befunde || []);
   return `<div class="karte">
     <h3>Kriterien</h3>
     ${vorbehalt
     ? `<p class="klein"><b>Das hier ordnet nichts mehr ein.</b> ${esc(vorbehalt)}</p>`
-    : `<p class="klein"><b>Erfüllte Kriterien sind keine Diagnose.</b> Beide
-    Regelwerke setzen ausdrücklich voraus, dass nichts Organisches
-    dahintersteckt – und das weiß nur eine Untersuchung. „Erfüllt" heißt hier:
-    Wenn Spiegelung und Blutbild unauffällig sind, passt dieser Name. Das ist
-    weniger als eine Diagnose und mehr als ein Gefühl, und es ist genau der
-    Satz, mit dem sich ein Termin anfangen lässt.</p>`}
+    : `<p class="klein"><b>Erfüllte Kriterien sind keine Diagnose.</b> Von einem
+    Reizdarm oder Reizmagen sprechen Ärztinnen und Ärzte erst, wenn andere
+    Ursachen für die Beschwerden abgeklärt und ausgeschlossen sind. Ob das so
+    ist und welche Untersuchungen dafür nötig sind, klärt die Praxis. Auch der
+    Punktwert zu Reflux ist keine Diagnose.</p>`}
     ${dauer}
     <ul class="krit-liste">${reizdarmKasten}${dyspepsieKasten}${gerdqKasten}</ul>
     <p class="klein">Grundlage: ${mehrzahl(k.zeitraum.notierteTage, 'notierter Tag', 'notierte Tage')}
-    in den letzten 90. Ein Tagebuch untererfasst – wer einen Tag nicht einträgt,
-    hat an diesem Tag laut Tagebuch nichts gehabt. Jede Zahl hier ist eher zu
-    niedrig als zu hoch.</p>
+    in den letzten 90. Body Check zählt nur, was eingetragen ist; die Angaben je
+    Woche beziehen sich auf die notierten Tage. Ob die Zahlen dadurch eher zu
+    hoch oder zu niedrig ausfallen, lässt sich nicht sagen. Gezählt wird nach
+    Rom IV von 2016; 2026 wurde eine Nachfolgefassung (Rom V) vorgestellt, nach
+    der hier nicht gezählt wird.</p>
   </div>`;
 }
 
@@ -3309,13 +3455,36 @@ function versuchTeil(s, d) {
   const kandidaten = vorschlaege(d.klassen, d.bilanz);
   if (!kandidaten.length) return alte;
   const name = (x) => (x.art === 'klasse' ? klasseName(x.ziel) : ausloeserName(x.ziel, s.eigeneAusloeser));
+  /*
+   * Das Prinzip ist belegt, das „genau so" nicht. gesund.bund.de,
+   * Laktoseintoleranz (Stand 23.02.2026, „Wie wird eine Laktoseintoleranz
+   * diagnostiziert?"): „Diät- oder Auslasstest: Dabei verzichtet man für eine
+   * Zeit auf Milch und Milchprodukte. Anschließend nimmt man eine bestimmte
+   * Menge an Milchzucker zu sich – die Ärztin oder der Arzt überwacht dann die
+   * körperliche Reaktion." Nahrungsmittelallergie (Stand 27.05.2024):
+   * Provokationstest „unter ärztlicher Beobachtung". Zur Zöliakie siehe
+   * planAngebot. Bis zur Fassung 29 stand hier „Genau so wird in der
+   * Ernährungsmedizin gearbeitet" – in den Quellen geschieht das Wiederessen
+   * ärztlich überwacht, die zwei Wochen nennen sie nicht. Die Tage zur Wahl
+   * sind die der App (DAUER_VORSCHLAEGE).
+   *
+   * Der Satz unten zu den Klassen beschreibt nur, warum die App sie zuerst
+   * nennt: Eine Klasse kommt in mehr Mahlzeiten vor (js/daten.js). „Hinter
+   * „Zwiebel" steckt fast immer die ganze Klasse … und lernt nichts" stand
+   * dort bis zur Fassung 29; diese Häufigkeit nennt keine erreichbare
+   * Quelle, und js/stufenplan.js prüft Fruktane aus Getreide und aus Zwiebel
+   * selbst getrennt.
+   */
   return `<div class="karte karte-merk">
     <h3>Einen Auslassversuch machen</h3>
     <p class="klein">Alles andere hier zählt, was ohnehin passiert – daraus wird
     nie ein Beleg: Wer an schlechten Tagen anders isst, findet sein Essen
-    auffällig, ohne dass es damit zu tun hat. Ein Versuch dreht das um. Zwei
-    Wochen weglassen und dann <b>bewusst wieder essen</b>; erst diese zweite
-    Hälfte entscheidet. Genau so wird in der Ernährungsmedizin gearbeitet.</p>
+    auffällig, ohne dass es damit zu tun hat. Ein Versuch dreht das um: eine
+    Zeit lang weglassen und dann <b>bewusst wieder essen</b>; erst diese zweite
+    Hälfte zeigt etwas. In der Praxis wird ein Verdacht auf eine
+    Unverträglichkeit ähnlich geprüft, dort ärztlich begleitet, bei Verdacht
+    auf eine Allergie unter ärztlicher Beobachtung. Ob ein solcher Versuch für
+    dich sinnvoll ist, lässt sich dort besprechen.</p>
     <ul class="versuch-wahl">${kandidaten.map((x) => `<li>
       <div><b>${esc(name(x))}</b>
         <span class="klein">${x.art === 'klasse' ? 'Klasse' : 'einzelne Zutat'} ·
@@ -3325,9 +3494,10 @@ function versuchTeil(s, d) {
         <button type="button" class="wahl-btn" data-act="versuch-start"
                 data-art="${x.art}" data-id="${esc(x.ziel)}" data-n="${n}">${n} Tage</button>`).join('')}</div>
     </li>`).join('')}</ul>
-    <p class="klein">Klassen stehen vor einzelnen Zutaten: Hinter „Zwiebel"
-    steckt fast immer die ganze Klasse, und wer nur die Zwiebel weglässt, isst
-    die übrigen Fruktane weiter und lernt nichts.</p>
+    <p class="klein">Klassen stehen vor einzelnen Zutaten, weil eine Klasse in
+    mehr Mahlzeiten vorkommt und der Vergleich so auf mehr Fällen beruht. Ob
+    eine einzelne Zutat oder eine ganze Gruppe dahintersteckt, kann das
+    Tagebuch nicht entscheiden.</p>
   </div>${alte}`;
 }
 
@@ -3338,6 +3508,25 @@ function versuchTeil(s, d) {
  * einziges Stück dieser App am Ende einen Speiseplan hinterlässt statt einer
  * Auskunft. Und weil die Weiche in der Mitte – hilft die Karenz überhaupt? –
  * die folgenreichste Frage ist, die hier gestellt wird.
+ *
+ * Was die Texte über die Fachliteratur sagen, steht in den Abstracts:
+ *
+ *   * Whelan et al., J Hum Nutr Diet 2018 (PMID 29336079): „the low FODMAP
+ *     diet consists of three stages: FODMAP restriction; FODMAP
+ *     reintroduction; and FODMAP personalisation" – „These stages can be
+ *     covered in at least two dietetic appointments", und wiedereingeführt
+ *     wird, „if restriction has successfully reduced IBS symptoms" (das ist
+ *     die Weiche).
+ *   * Tuck & Barrett, J Gastroenterol Hepatol 2017 (PMID 28244664):
+ *     „patients are encouraged not to remain on a strict low FODMAP diet
+ *     long-term" und „allowing the reintroduction of some moderate to high
+ *     FODMAP foods back into the diet without symptom induction"; „Dietitians
+ *     should tailor the challenge process to the individual patient".
+ *
+ * „bleibt für immer auf der strengsten Stufe – und das meiste, was jetzt
+ * draußen ist, wäre wahrscheinlich verträglich", wie es bis zur Fassung 29
+ * hieß, trägt keine davon: beschrieben sind „some" Lebensmittel, nicht „das
+ * meiste".
  */
 function planTeil(s, d) {
   const p = s.stufenplan;
@@ -3389,10 +3578,12 @@ function planTeil(s, d) {
     : (abbruch ? '' : knopf('plan-beenden', 'Abbrechen', 'btn-ghost'))}
     </div>
 
-    <p class="klein">Die Karenz ist nicht das Ziel, sondern der Aufbau. Wer nach
-    der Karenz aufhört, weil es besser geht, bleibt für immer auf der strengsten
-    Stufe — und das meiste, was jetzt draußen ist, wäre wahrscheinlich
-    verträglich. Der Ertrag dieses Plans ist alles, was zurückdarf.</p>
+    <p class="klein">Die Karenz ist nicht das Ziel, sondern der Aufbau: In der
+    Fachliteratur ist die strenge Karenz die erste von drei Stufen, nicht ein
+    Dauerzustand. Welche der weggelassenen Lebensmittel wieder vertragen
+    werden, zeigt erst die Wiedereinführung; beschrieben ist, dass manche davon
+    zurückkehren können, ohne Beschwerden auszulösen. Eine Ernährungsfachkraft
+    oder die Praxis kann dabei begleiten.</p>
     ${b.stufen.length ? `<p class="klein">Werte je Tag, weil die Menge steigt:
     ${zahl(b.karenz.karenz.schnitt)} war der Karenz-Schnitt, gegen den verglichen
     wird.</p>` : ''}
@@ -3425,23 +3616,50 @@ function planAngebot(s, d) {
    *
    * Die Zöliakie-Warnung geht dabei nicht verloren: Sie steht *im* Angebot,
    * und ohne das Angebot aufzuklappen kommt niemand an den Startknopf.
+   *
+   * Der Ablauf ist der dieser App, nicht ein Schema der Fachliteratur: Die
+   * Karenz dauert, was man wählt (KARENZ_VORSCHLAEGE, 14 bis 28 Tage), jede
+   * Gruppe drei Tage mit steigender Menge (STUFE_TAGE in js/stufenplan.js).
+   * Belegt ist nur die Gliederung in Karenz, Wiedereinführung und den
+   * eigenen Speiseplan danach, begleitet von einer Ernährungsfachkraft
+   * (Whelan et al. 2018, siehe planTeil). Dauer, drei Tage und „dazwischen
+   * zurück auf die Karenz" nennen die erreichbaren Abstracts nicht; „Das
+   * Größte, was diese App vorschlägt" steht deshalb nicht mehr da.
+   *
+   * Zur Zöliakie: EMA, Wheat starch (containing gluten) used as an excipient,
+   * EMA/CHMP/639441/2013 corr. 2, 9. Oktober 2017, S. 4: „Diagnosis is by
+   * blood tests to check for relevant antibodies, followed by
+   * endoscopy/gastroscopy and biopsy. … However all tests lose their
+   * usefulness if the person has already been eating a gluten-free diet for
+   * 6–12 months. Intestinal damage begins to heal within weeks of gluten
+   * being removed from the diet, and antibody levels decline over months."
+   * Bis zur Fassung 29 hieß es, wer vorher weglasse, bekomme „ein falsch
+   * unauffälliges Ergebnis" – so zwingend sagt es die Quelle nicht.
    */
   return `<div class="karte karte-merk">
     <details class="angebotbogen">
     <summary><h3>Der Stufenplan</h3>
     <span class="klein">Vier bis sechs Wochen — am Ende ein Speiseplan statt
     einer Auskunft. Zum Lesen antippen.</span></summary>
-    <p class="klein">Das Größte, was diese App vorschlägt, und das einzige, was
-    am Ende einen Speiseplan hinterlässt statt einer Auskunft. Erst zwei bis vier
-    Wochen konsequent ohne die vergärbaren Kohlenhydrate — die Frage dieser
-    Phase ist nicht <i>was davon</i>, sondern <i>überhaupt</i>. Dann Gruppe für
-    Gruppe zurück, jede über drei Tage mit steigender Menge, dazwischen jedes
-    Mal zurück auf die Karenz.</p>
+    <p class="klein">Das einzige Stück dieser App, das am Ende einen Speiseplan
+    hinterlässt statt einer Auskunft. In der Fachliteratur hat die Ernährung
+    ohne die vergärbaren Kohlenhydrate (FODMAP) drei Stufen: weglassen, Gruppe
+    für Gruppe wieder einführen, danach ein eigener, weniger strenger
+    Speiseplan – begleitet von einer Ernährungsfachkraft. Der Plan hier folgt
+    dieser Gliederung mit eigenen Zahlen: erst eine Karenz, deren Länge du
+    wählst – die Frage dieser Phase ist nicht <i>was davon</i>, sondern
+    <i>überhaupt</i>. Dann Gruppe für Gruppe zurück, jede über drei Tage mit
+    steigender Menge, dazwischen jedes Mal zurück auf die Karenz. Ob und wie
+    so ein Plan für dich passt, lässt sich mit der Praxis oder einer
+    Ernährungsfachkraft besprechen.</p>
 
-    <p class="klein"><b>Vorher zu klären:</b> Eine Karenz nimmt Weizen mit heraus.
-    Der Bluttest auf Zöliakie funktioniert aber nur, solange noch Gluten gegessen
-    wird — wer vorher wegläßt, bekommt ein falsch unauffälliges Ergebnis. Ist das
-    schon einmal abgeklärt worden? Wenn nicht, gehört das <b>vor</b> den Plan.</p>
+    <p class="klein"><b>Vorher zu klären:</b> Die Karenz lässt auch Weizen weg.
+    Auf Zöliakie wird mit einem Bluttest auf Antikörper und einer Gewebeprobe
+    untersucht. Laut EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon
+    6 bis 12 Monate glutenfrei gegessen wurde: Die Antikörper sinken über
+    Monate, die Darmschleimhaut beginnt schon nach Wochen zu heilen. Ob eine Zöliakie
+    schon abgeklärt ist, lässt sich <b>vor</b> dem Plan in der Praxis
+    besprechen.</p>
 
     <p class="feld-name">Welche Gruppen, in welcher Reihenfolge</p>
     <ul class="plan-wahl">${FODMAP_GRUPPEN.map((g) => `<li>
@@ -3467,7 +3685,20 @@ function planAngebot(s, d) {
   </div>${hist}`;
 }
 
-/** Abgeschlossene Pläne – damit eine Gruppe nicht zweimal durchgeprüft wird. */
+/**
+ * Abgeschlossene Pläne – damit eine Gruppe nicht zweimal durchgeprüft wird.
+ *
+ * Der Satz darunter: gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026,
+ * Behandlung): „Ist die Milchzucker-Unverträglichkeit nicht genetisch
+ * bedingt, sondern wird von einer anderen Erkrankung verursacht, spricht man
+ * von einer sekundären Laktoseintoleranz. … Erholt sich die Darmschleimhaut
+ * durch die Therapie, verschwinden auch die Beschwerden wieder." Und
+ * Reizdarmsyndrom (Stand 28.08.2024): „Häufig zeigt sich die Erkrankung
+ * schubweise". Bis zur Fassung 29 stand hier, eine Gruppe, die vor einem
+ * Jahr durchfiel, „lohnt einen zweiten Versuch – besonders, wenn sich der
+ * Darm zwischendurch beruhigt hat"; das ist ein Rat und nennt eine Besserung,
+ * die keine erreichbare Quelle für diesen Fall beschreibt.
+ */
 function planHistorie(s, d) {
   const alte = s.stufenplaene || [];
   if (!alte.length) return '';
@@ -3485,9 +3716,12 @@ function planHistorie(s, d) {
       </li>`).join('')}</ul>
     </div>`;
   }).join('')}
-    <p class="klein">Verträglichkeiten ändern sich. Eine Gruppe, die vor einem
-    Jahr durchfiel, lohnt einen zweiten Versuch – besonders, wenn sich der Darm
-    zwischendurch beruhigt hat.</p>
+    <p class="klein">Verträglichkeiten können sich im Lauf der Zeit ändern: Ist
+    eine Laktoseintoleranz durch eine andere Darmerkrankung entstanden, können
+    die Beschwerden zurückgehen, wenn sich die Darmschleimhaut durch die
+    Behandlung erholt. Ein Reizdarm verläuft oft in Schüben, ein früheres
+    Ergebnis ist deshalb eine Momentaufnahme. Ob und wann ein erneuter Test
+    sinnvoll ist, klären Praxis oder Ernährungsberatung.</p>
   </div>`;
 }
 
@@ -3548,7 +3782,37 @@ function provokationTeil(s, d) {
    */
   if (d.bilanz.filter((b) => b.genug).length < 3) return provokationHistorie(s, d);
 
-  // Wie beim Stufenplan: ein Angebot, kein Befund – siehe planAngebot().
+  /*
+   * Wie beim Stufenplan: ein Angebot, kein Befund – siehe planAngebot().
+   *
+   * Der Ablauf (nüchtern, vier Stunden, dreimal) ist der dieser App
+   * (js/provokation.js). Mit dem Test in einer Praxis setzt der Text ihn
+   * nicht mehr gleich; „Genau so wird auf Laktose und Fruktose geprüft; in
+   * der Klinik misst dabei zusätzlich ein Atemtest mit" stand hier bis zur
+   * Fassung 29, und der Atemtest ist dort kein Zusatz, sondern das Verfahren.
+   * Belegt:
+   *
+   *   * gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026, „Wie wird eine
+   *     Laktoseintoleranz diagnostiziert?"): „Atemtest: Nach dem Trinken einer
+   *     Milchzuckerlösung wird der Gehalt von Wasserstoff in der Atemluft
+   *     mehrmals gemessen." – „Das Standardverfahren in Deutschland ist der
+   *     Atemtest." – „Nur wenn während eines Tests typische Beschwerden
+   *     auftreten, lässt sich sicher feststellen, ob eine Laktoseintoleranz
+   *     die Ursache ist."
+   *   * Für Fruktose die feste Menge: „Consensus doses for lactulose,
+   *     glucose, fructose and lactose BT were 10, 75, 25 and 25 g" (North
+   *     American Consensus, Am J Gastroenterol 2017;112(5):775-784, PMID
+   *     28323273, Abstract); und dass die Beschwerden dazugehören: „breath
+   *     tests for carbohydrate malabsorption require additional validated
+   *     concurrent symptom evaluation to establish carbohydrate intolerance"
+   *     (European guideline, UEG J 2022;10(1):15-40, PMID 34431620, Abstract).
+   *
+   * Ebenso der Satz zu den Mengen weiter unten: Früher hieß es, in der Klinik
+   * gehe es nur um die Malabsorption und die Klinikmenge auf eigene Faust
+   * mache „vor allem einen scheußlichen Tag" – nach der europäischen
+   * Leitlinie gehören die Beschwerden dort gerade dazu. Jetzt steht nur, was
+   * die App nimmt: Portionen, wie sie im Alltag vorkommen (PRUEFBAR).
+   */
   return `<div class="karte karte-merk">
     <details class="angebotbogen">
     <summary><h3>Eine Sache gezielt prüfen</h3>
@@ -3557,8 +3821,10 @@ function provokationTeil(s, d) {
     <p class="klein">Der Auslassversuch dauert zwei Wochen, und in zwei Wochen
     ändert sich auch anderes. Ein Provokationstest fragt kürzer und schärfer:
     eine festgelegte Menge, <b>nüchtern</b>, dann vier Stunden nichts essen und
-    aufschreiben, wie es geht – und das dreimal. Genau so wird auf Laktose und
-    Fruktose geprüft; in der Klinik misst dabei zusätzlich ein Atemtest mit.</p>
+    aufschreiben, wie es geht – und das dreimal. Der Test in einer Praxis ist
+    ähnlich gedacht, aber nicht gleich: Dort wird nach einer festgelegten Menge
+    Milch- oder Fruchtzucker mehrmals die Atemluft gemessen, und für die
+    Diagnose zählen auch die Beschwerden während des Tests.</p>
     <ul class="prov-wahl">${PRUEFBAR.map((x) => `<li>
       <div><b>${esc(x.name)}</b>
         <span class="klein">${esc(x.was)} · ${esc(x.warum)}</span></div>
@@ -3566,11 +3832,9 @@ function provokationTeil(s, d) {
         <button type="button" class="wahl-btn" data-act="prov-start"
                 data-id="${esc(x.id)}">Diesen Test anfangen</button></div>
     </li>`).join('')}</ul>
-    <p class="klein">Die Mengen sind kleiner als beim Test in der Klinik, und
-    zwar mit Absicht: Dort geht es um die Frage, ob eine Malabsorption vorliegt,
-    hier um die, ob dir das Beschwerden macht, was du tatsächlich isst. Nur die
-    zweite Antwort ändert etwas – und die Klinikmenge auf eigene Faust zu nehmen
-    macht vor allem einen scheußlichen Tag.</p>
+    <p class="klein">Die Mengen hier sind Portionen, wie sie im Alltag
+    vorkommen. Ob eine Unverträglichkeit vorliegt, klären Ärztin oder Arzt –
+    für Laktose ist in Deutschland der Atemtest das Standardverfahren.</p>
     <p class="klein">${esc(NICHT_BEI_ALLERGIE)}</p>
     </details>
   </div>${provokationHistorie(s, d)}`;
@@ -3619,10 +3883,24 @@ function ansprechenTeil(s, d) {
       <p>${esc(befund(m))}</p>
     </li>`).join('')}</ul>
     <p class="klein">Der Balken vergleicht die Zeit davor mit der Zeit darunter,
-    gleich lang. Diese App schlägt weiterhin kein Medikament vor und rät zu
-    keinem Absetzen – ein Säureblocker wird nach längerer Einnahme nicht von
-    einem Tag auf den anderen weggelassen.</p>
+    gleich lang. Diese App schlägt weiterhin kein Medikament vor und rät weder
+    zum Absetzen noch zum Ändern. Ob und wie ein Mittel beendet wird, gehört in
+    die Praxis oder Apotheke – manche Packungsbeilagen sagen dazu ausdrücklich
+    etwas.</p>
   </div>`;
+  /*
+   * Bis zur Fassung 29 stand im letzten Satz „ein Säureblocker wird nach
+   * längerer Einnahme nicht von einem Tag auf den anderen weggelassen" – eine
+   * Anweisung, wie abgesetzt wird. Belegt ist das nur eng: für den H2-Blocker
+   * Famotidin bei „bereits länger bestehender Ulkus-Krankheit" („nicht abrupt
+   * abgesetzt werden", Famotidin-ratiopharm, www.fachinfo.de/fi/pdf/007352,
+   * Stand März 2024, 4.4). Bei den Protonenpumpenhemmern sagen die
+   * Fachinformationen dazu nichts; PANTOZOL Control sieht sogar vor, die
+   * Einnahme bei Beschwerdefreiheit zu beenden (EMA-Produktinformation,
+   * Gebrauchsinformation Abschnitt 3: „Beenden Sie die Einnahme von PANTOZOL
+   * Control, wenn Sie vollständig beschwerdefrei sind"). Deshalb verweist der
+   * Satz nur noch auf Praxis und Apotheke.
+   */
 }
 
 /**
@@ -3760,11 +4038,27 @@ function artAnteilVon(s, arten) {
  * ADHS-Mittel ist eine Lücke, Koffein als Tablette kein Schmerzmittel, jedes
  * erkannte Schmerzmittel mit Koffein ein Kombinationsmittel, ein Name mit
  * Koffein ohne erkannten Wirkstoff gar nichts mehr, und mehr Namen werden als
- * Säureblocker erkannt. Wer das nicht gesagt bekommt, merkt es nur daran, dass
- * sich eine Zahl still verschoben hat – und traut danach keiner mehr. Jeder
- * Punkt steht nur, wenn er dieses Tagebuch betrifft, und mit seiner Zahl.
+ * Mittel gegen Magensäure erkannt. Wer das nicht gesagt bekommt, merkt es nur
+ * daran, dass sich eine Zahl still verschoben hat – und traut danach keiner
+ * mehr. Jeder Punkt steht nur, wenn er dieses Tagebuch betrifft, und mit
+ * seiner Zahl.
  */
-// „Omep" nicht, wo „Omeprazol" steht – das war schon immer ein Säureblocker.
+/*
+ * Die Namen, die seit der Fassung 28 erkannt werden. Pantozol und Rifun
+ * (Pantoprazol), Nexium (Esomeprazol), Antra und Omep (Omeprazol) und Agopton
+ * (Lansoprazol) sind Protonenpumpenhemmer, sie verringern die Bildung von
+ * Magensäure (Fachinformationen Pantozol 20 mg, www.fachinfo.de/fi/pdf/003730,
+ * Stand April 2023; Nexium mups, 004417, Stand Juli 2025; Antra MUPS, 004171,
+ * Stand Mai 2024; Gebrauchsinformationen Rifun 20 mg, OMEP HEXAL 20 mg und
+ * Agopton, je Abschnitt 1). Maaloxan ist „ein Mittel zur Bindung
+ * überschüssiger Magensäure" (Gebrauchsinformation Maaloxan 25 mVal
+ * Suspension, überarbeitet Oktober 2023, Abschnitt 1), also ein Antazidum
+ * und kein Säureblocker – deshalb sagt die Karte „Mittel gegen Magensäure",
+ * wie die App an anderen Stellen auch.
+ *
+ * „Omep" nicht, wo „Omeprazol" steht: Den Wirkstoffnamen erkannte die App
+ * schon vorher.
+ */
 const NEUE_SAEURE_NAMEN = /pantozol|nexium|antra|agopton|maaloxan|rifun|omep(?!razol)/;
 
 function v28Punkte(s) {
@@ -3788,14 +4082,35 @@ function v28Punkte(s) {
   }
   // Schmerzmittel mit Koffein: ASS mit Koffein war bisher NSAR (Grenze 15),
   // Paracetamol mit „Koffein" für den Magen ein NSAR.
+  /*
+   * Die Schwelle so, wie die Kopfschmerzklassifikation sie nennt: ICHD-3,
+   * 8.2.5 Combination-analgesic-overuse headache, Kriterium B: „Regular
+   * intake of one or more combination-analgesic medications on ≥10
+   * days/month for >3 months"; Note 1 zählt Koffein als „adjuvant" dazu
+   * (ichd-3.org; deutsche Übersetzung 2018 gleichlautend). Für einfache
+   * Schmerzmittel gelten ≥15 Tage (8.2.3). „Grenze von etwa zehn Tagen"
+   * ließ die drei Monate weg und las sich wie eine erlaubte Menge.
+   *
+   * Paracetamol mit Koffein ist kein NSAR: „Paracetamol ist ein
+   * Anilinderivat … ATC-Code: N02BE51, Paracetamol, Kombinationen …
+   * Paracetamol hat eine analgetische, antipyretische und sehr schwache
+   * antiphlogistische Wirkung" (Fachinformation vivimed mit Coffein,
+   * www.fachinfo.de/fi/pdf/000807, Stand Januar 2025, 5.1). Magenbeschwerden
+   * nennt dieselbe Fachinformation in 4.8 trotzdem; „zählt für den Magen
+   * nicht mehr als NSAR" konnte man als magenneutral lesen.
+   */
   const kombiNamen = [...new Set(mittel.filter((e) => {
     const g = gruppe(e.mittel);
     return g === 'kombipara' || (g === 'kombi' && /koffein|coffein/.test(klein(e.mittel)));
   }).map((e) => String(e.mittel).trim()))];
   if (kombiNamen.length) {
     const para = mittel.some((e) => gruppe(e.mittel) === 'kombipara' && klein(e.mittel).includes('koffein'));
-    punkte.push('Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel, mit der '
-      + `Grenze von etwa zehn Tagen im Monat${para ? '; Paracetamol mit Koffein zählt für den Magen nicht mehr als NSAR' : ''} `
+    punkte.push('Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel. Für '
+      + 'sie nennt die internationale Kopfschmerzklassifikation eine niedrigere Schwelle für Übergebrauch als für '
+      + 'einzelne Schmerzmittel: an zehn oder mehr Tagen im Monat über mehr als drei Monate'
+      + `${para ? '. Paracetamol mit Koffein zählt in der Magenauswertung nicht mehr als NSAR, weil Paracetamol '
+        + 'nicht zu dieser Wirkstoffgruppe gehört – Magenbeschwerden nennt seine Fachinformation trotzdem als '
+        + 'mögliche Nebenwirkung' : ''} `
       + `(${kombiNamen.join(', ')}).`);
   }
   /*
@@ -3813,14 +4128,14 @@ function v28Punkte(s) {
   if (fremd.length) {
     const eins = fremd.length === 1;
     punkte.push(`${undListe(fremd)} ${eins ? 'zählte' : 'zählten'} bisher als Kombinationsmittel – für den Kopf mit `
-      + 'der Grenze von etwa zehn Tagen im Monat, für den Magen wie ein NSAR. '
+      + 'der Schwelle für Kombinationsmittel (zehn Tage im Monat), für den Magen wie ein NSAR. '
       + `${eins ? 'Es zählt' : 'Sie zählen'} jetzt nicht mehr mit: Die App erkennt den Wirkstoff darin nicht. `
       + `Mit dem Wirkstoff im Namen ordnet sie ${eins ? 'es' : 'sie'} wieder zu.`);
   }
   const saeure = [...new Set([...mittel.map((e) => e.mittel), ...s.standardMittel.map((m) => m.mittel)]
     .filter((n) => ['ppi', 'antazida'].includes(gruppe(n)) && NEUE_SAEURE_NAMEN.test(klein(n)))
     .map((n) => String(n).trim()))];
-  if (saeure.length) punkte.push(`${undListe(saeure)} ${saeure.length === 1 ? 'wird' : 'werden'} jetzt als Säureblocker erkannt.`);
+  if (saeure.length) punkte.push(`${undListe(saeure)} ${saeure.length === 1 ? 'wird' : 'werden'} jetzt als Mittel gegen Magensäure erkannt.`);
   if (s.eintraege.some((e) => e.art === 'kopf')) {
     punkte.push('Im Kopfbogen sind „Licht“ und „Lärm“ jetzt getrennt; frühere Einträge behalten „Licht oder Lärm“.');
   }
@@ -4108,6 +4423,11 @@ function aktivTeil(s, nurFertig = false) {
       ${kopf ? `<p class="klein">${kopf}</p>` : ''}
     </li>`;
   };
+  // Zur Bewegung am selben Tag sagt die Karte nur, was der Vergleich nicht
+  // kann. „An schlechten Tagen bewegt man sich oft weniger", wie es bis zur
+  // Fassung 29 hieß, ist für Migräne belegt (ICHD-3 1.1 C4: „causing
+  // avoidance of routine physical activity"), für Bauchtage allgemein nicht –
+  // und der Satz hängt am Bauchwert.
   return `<div class="karte karte-aktiv" id="wasDuGemachtHast">
     <h3>Was du gemacht hast</h3>
     <p class="klein">Wie oft in den ${fenster} Stunden nach einer Aktivität Beschwerden
@@ -4121,7 +4441,7 @@ function aktivTeil(s, nurFertig = false) {
         <span class="klein">${z.gegenmittel ? aktivNoch(z.kopf, true) : aktivNoch(z.bauch).replace(/ Mal$/, '')}</span>
       </li>`).join('')}</ul>` : ''}
     ${bewegung ? `<p class="klein aktiv-bewegung">${esc(bewegung)} Gezählt am selben Tag –
-      an schlechten Tagen bewegt man sich oft weniger.</p>` : ''}
+      was zuerst kam, die Bewegung oder die Beschwerden, lässt sich daraus nicht ablesen.</p>` : ''}
     ${verschoben ? `<p class="klein">${esc(GEGENMITTEL_VERSCHOBEN)}</p>` : ''}
     <p class="klein">Das ist eine Häufigkeit, keine Ursache. Wer an schlechten Tagen
     anders lebt, findet sich hier wieder, ohne dass die Aktivität schuld wäre.</p>
@@ -4567,9 +4887,21 @@ function kopfTeil(s, d) {
     <p class="klein">Phasen geschätzt aus den eingetragenen Blutungstagen.</p>` : ''}
     <p class="klein">Der Kopf wird getrennt vom Bauch gezählt: Kein Kopfschmerz
     fließt in eine Bauchauswertung ein. Die Bauchwerte hier stehen nur zum
-    Vergleich daneben. Was beide verbindet, ist das Schmerzmittel – deshalb
-    steht es dabei.</p>
+    Vergleich daneben. Verbinden können beide die Schmerzmittel: Bei
+    entzündungshemmenden wie Ibuprofen nennt die Fachinformation
+    Magen-Darm-Beschwerden als häufige Nebenwirkung – deshalb stehen sie dabei.
+    Auch eine Migräne selbst kann mit Übelkeit oder Erbrechen einhergehen.</p>
   </div>`;
+  /*
+   * Quellen zum letzten Absatz: IBU-ratiopharm 400 mg akut,
+   * www.fachinfo.de/fi/pdf/014937, Stand Juni 2026, 4.8: „Die am häufigsten
+   * beobachteten Nebenwirkungen betreffen den Verdauungstrakt" und „Häufig:
+   * Gastrointestinale Beschwerden wie Sodbrennen, Bauchschmerzen, Übelkeit,
+   * Erbrechen …". ICHD-3 1.1 (ichd-3.org), Kriterium D: „During headache at
+   * least one of the following: nausea and/or vomiting; photophobia and
+   * phonophobia". Bis zur Fassung 29 hieß es „Was beide verbindet, ist das
+   * Schmerzmittel" – als einzige Verbindung, und für jedes Akutmittel.
+   */
 }
 
 /* ==================== Reiter: Ruhe ==================== */
@@ -5161,15 +5493,29 @@ function zyklusTeil(s) {
  * Die Waage – die einzige Zahl hier, die nicht aus dem Gefühl kommt.
  *
  * Alles andere in dieser App ist Selbstauskunft, und das ist bei
- * Bauchbeschwerden nicht anders möglich. Das Gewicht ist die Ausnahme, und
- * ausgerechnet es ist die klinisch wichtigste Zahl, die ein Tagebuch
- * beitragen kann: Ein ungewollter Verlust ist das stärkste einzelne Zeichen
- * dafür, dass mehr dahintersteckt als eine gereizte Verdauung.
+ * Bauchbeschwerden nicht anders möglich. Das Gewicht ist die Ausnahme. Ein
+ * ungewollter Gewichtsverlust gehört zu den Zeichen, bei denen ärztlicher Rat
+ * gesucht werden soll: Die Fachinformation von PANTOZOL Control nennt ihn
+ * neben Anämie, Blutungen, Schluckbeschwerden und Erbrechen von Blut – „In
+ * diesen Fällen sollte eine Malignität ausgeschlossen werden"
+ * (EMA-Produktinformation, 4.4) –, und gesund.bund.de, Reizdarmsyndrom (Stand
+ * 28.08.2024): „Kommt es zu deutlichem Gewichtsverlust, Blut im Stuhl, Fieber
+ * oder Blässe, kann es sich eher um andere Darmerkrankungen handeln."
+ * Bis zur Fassung 29 stand hier, das Gewicht sei „die klinisch wichtigste
+ * Zahl" und ein ungewollter Verlust „das stärkste einzelne Zeichen" – keine
+ * Quelle stellt eine solche Rangfolge auf; in einer Studie zu Warnzeichen
+ * beim Reizdarm hatten Blutarmut und verstecktes Blut im Stuhl einen höheren
+ * Vorhersagewert (PMID 35097082, Abstract).
  *
  * Die Frage nach der Absicht steht mit auf der Karte und nicht im
- * Kleingedruckten. Ohne sie wäre die ganze Rechnung ein Fehlalarm-Automat:
- * Fünf Prozent weniger sind ein Warnzeichen, wenn sie ungewollt kommen, und
- * ein Erfolg, wenn jemand dafür gearbeitet hat.
+ * Kleingedruckten. Ohne sie wäre die ganze Rechnung ein Fehlalarm-Automat.
+ * Body Check meldet sich ab fünf Prozent weniger in bis zu 180 Tagen
+ * (ALARM_ANTEIL, WAAGE_FENSTER in js/gewicht.js) – diese Grenze hat die App
+ * festgelegt. Belegt ist eine Fünf-Prozent-Schwelle in den erreichbaren
+ * Quellen nur als Kriterium der Kachexie bei Krebs („Weight loss ≥ 5% over
+ * past 6 months", EMA/647868/2017, Bewertungsbericht Adlumiz), nicht als
+ * allgemeine Grenze. Ungewollt gehört ein deutlicher Verlust in die Praxis,
+ * gewollt ist er ein anderer Fall.
  */
 /*
  * Die tägliche Erinnerung – über den Kalender, weil es anders nicht ginge.
@@ -5265,9 +5611,10 @@ function gewichtKarte(s) {
       <button type="button" class="wahl-btn${s.abnehmenGewollt ? ' an' : ''}"
               data-act="abnehmen" data-n="ja">Ja, gewollt</button>
     </div>
-    <p class="klein">Das ist keine Nebensache: Ein Verlust von fünf Prozent
-    gehört abgeklärt, wenn er ungewollt kommt – und ist ein Erfolg, wenn du
-    dafür gearbeitet hast. Den Unterschied sieht keine Rechnung, nur du.</p>
+    <p class="klein">Das ist keine Nebensache: Ein ungewollter Gewichtsverlust
+    gehört ärztlich abgeklärt. Body Check meldet sich ab fünf Prozent weniger
+    in bis zu einem halben Jahr – diese Grenze hat die App festgelegt. Ob ein
+    Verlust gewollt ist, sieht keine Rechnung, das weißt nur du.</p>
   </div>`;
 }
 
@@ -5787,9 +6134,9 @@ function mehrAnsicht(s) {
     <h3>Seit wann hast du das?</h3>
     <p class="klein">Die eine Angabe, die aus dem Tagebuch nicht hervorgeht – es
     beginnt an dem Tag, an dem du anfängst zu schreiben, und das ist fast nie
-    der Tag, an dem es angefangen hat. Die Rom-Kriterien unter „Muster"
-    verlangen einen Beginn vor mindestens einem halben Jahr; ohne diese Zeile
-    bleibt dort eine Bedingung offen. Ungefähr genügt.</p>
+    der Tag, an dem es angefangen hat. Für den Reizdarm-Kasten unter „Muster"
+    rechnet Body Check mit einem Beginn vor mindestens sechs Monaten; ohne
+    diese Zeile bleibt dort eine Bedingung offen. Ungefähr genügt.</p>
     <input type="month" class="feld" data-act="seit" max="${heuteISO().slice(0, 7)}"
            value="${esc(s.beschwerdenSeit || '')}" aria-label="Monat, seit dem die Beschwerden bestehen">
     ${s.beschwerdenSeit ? `<p class="klein">Notiert: seit ${esc(s.beschwerdenSeit)}.
@@ -5860,26 +6207,58 @@ function mehrAnsicht(s) {
  * Mit „Kiefer, Nacken, Schiene" stehen die vier Fragen hier als Marken – wer
  * keine Schiene trägt, wählt sie ab. Unter „Welche Fragen stellt der Tag?"
  * stehen sie nicht noch einmal.
+ *
+ * In der Fassung 30 geändert, mit Quelle hier:
+ *
+ *   * Magen-Darm und ADHS: „Reizdarm, Verstopfung und Reizmagen sind bei ADHS
+ *     in großen Studien häufiger beschrieben" ist gestrichen – keine
+ *     erreichbare Quelle, und das Repository nannte keine Studie. Es bleibt,
+ *     was ein Tagebuch nicht kann.
+ *   * Kopfschmerz und ADHS: ICHD-3, Kapitel 12, Einleitung (ichd-3.org): „In
+ *     children and adolescents, primary headache disorders (1. Migraine,
+ *     2.2 Frequent episodic tension-type headache and, especially, 2.3
+ *     Chronic tension-type headache) are often comorbid with psychiatric
+ *     disorder. Sleep disorders, …, attention-deficit/hyperactivity disorder
+ *     (ADHD), … should be carefully looked for". „Für Spannungskopfschmerz
+ *     fand eine Übersichtsarbeit keinen Zusammenhang" ließ sich nicht prüfen
+ *     (die Abstracts waren nicht abrufbar) und ist gestrichen.
+ *   * Knirschen im Schlaf: „merkt man selbst oft nicht" nennt keine
+ *     erreichbare Quelle; der Satz sagt jetzt nur, warum Body Check am
+ *     Morgen fragt.
+ *   * Aufbissschiene: Health Technol Assess 2020;24(7) (PMID 32065109,
+ *     Abstract): „did not demonstrate that splints reduced pain in
+ *     temporomandibular disorders" und „There is insufficient evidence to
+ *     determine whether or not splints reduce tooth wear in patients with
+ *     bruxism"; zu Kopfschmerz J Oral Rehabil 2025;52(6):937-948 (PMID
+ *     40312780, Abstract): „without certainty of their effects". Dass die
+ *     Schiene „vor allem zum Schutz der Zähne gedacht" sei, steht in keiner.
+ *   * Massagepistolen: J Funct Morphol Kinesiol 2023;8(3):138 (PMID
+ *     37754971, Abstract): „281 records were screened, but only 11 could be
+ *     included" – untersucht Beweglichkeit, Kraft und Erholung, nicht
+ *     Kopfschmerz. „Meist mit Sportlern" und „keine abgeschlossene" zu
+ *     Kopfschmerz trägt der Abstract nicht.
  */
-const WISSEN_ADHS = 'Reizdarm, Verstopfung und Reizmagen sind bei ADHS in großen Studien häufiger '
-  + 'beschrieben; ob das an ADHS selbst, an den Mitteln, an Stimmung oder am Essen liegt, ist offen. '
-  + 'Migräne ist bei ADHS häufiger beschrieben, für Spannungskopfschmerz fand eine Übersichtsarbeit '
-  + 'keinen Zusammenhang; Kopfschmerz steht bei den meisten ADHS-Mitteln unter den häufigen '
-  + 'Nebenwirkungen. Späteres Einschlafen gehört oft zu ADHS selbst; Stimulanzien können den Schlaf '
+const WISSEN_ADHS = 'Ob Magen-Darm-Beschwerden mit ADHS, den Mitteln, der Stimmung oder dem Essen '
+  + 'zusammenhängen, kann ein Tagebuch nicht klären – das lässt sich in der Praxis besprechen. '
+  + 'Bei Kindern und Jugendlichen kommen Migräne und Spannungskopfschmerz laut internationaler '
+  + 'Kopfschmerzklassifikation oft zusammen mit psychischen Störungen vor; ADHS steht dort unter '
+  + 'denen, nach denen gezielt geschaut werden soll. Kopfschmerz steht bei den meisten ADHS-Mitteln '
+  + 'unter den häufigen Nebenwirkungen. Späteres Einschlafen gehört oft zu ADHS selbst; Stimulanzien können den Schlaf '
   + 'zusätzlich stören – beides lässt sich in einem Tagebuch nicht trennen. Knirschen und Pressen sind '
   + 'bei Kindern und Jugendlichen mit ADHS häufiger beschrieben, für Erwachsene gibt es erst kleine '
   + 'Studien; bei Methylphenidat steht Zähneknirschen in den Fachinformationen als häufige '
   + 'Nebenwirkung. Body Check rechnet nichts davon für dich aus – es zählt, was du einträgst, und '
   + 'stellt es nebeneinander.';
 const WISSEN_SPANNUNG = 'Pressen und Knirschen gilt bei sonst Gesunden als Verhalten, nicht als '
-  + 'Krankheit. Ob nachts geknirscht wird, merkt man selbst oft nicht – deshalb fragt Body Check nach '
-  + 'dem Kiefer am Morgen. Eine Aufbissschiene ist vor allem zum Schutz der Zähne gedacht; ob sie '
-  + 'Kiefer- oder Kopfschmerz verringert, ist in Studien nicht sicher belegt. Das ist kein Grund, sie '
+  + 'Krankheit. Nach dem Kiefer fragt Body Check am Morgen, weil sich das, was nachts war, erst '
+  + 'danach eintragen lässt. Ob eine Aufbissschiene die Zähne vor Abrieb schützt oder Kiefer- oder '
+  + 'Kopfschmerz verringert, ist in Studien nicht sicher belegt. Das ist kein Grund, sie '
   + 'wegzulassen – ob und wie lange sie getragen wird, gehört in die Zahnarztpraxis. Bei Menschen mit '
   + 'bekannter Schlafapnoe stiegen in einer kleinen Studie die Atemaussetzer mit einer '
   + 'Oberkieferschiene teils an; ob das allgemein gilt, ist nicht geklärt. Schnarchen oder '
-  + 'Atemaussetzer gehören in der Zahnarzt- oder Hausarztpraxis erwähnt. Zu Massagepistolen gibt es '
-  + 'wenige Studien, meist mit Sportlern, zu Kopfschmerz keine abgeschlossene. Nackenschmerz haben '
+  + 'Atemaussetzer gehören in der Zahnarzt- oder Hausarztpraxis erwähnt. Zu Massagepistolen fand eine '
+  + 'Übersichtsarbeit von 2023 nur elf Studien, vor allem zu Beweglichkeit, Kraft und Erholung; '
+  + 'Kopfschmerz war darin kein Thema. Nackenschmerz haben '
   + 'auch etwa drei von vier Menschen mit Migräne (in Klinikstudien) – er sagt allein nichts über die '
   + 'Art des Kopfschmerzes. Body Check bestätigt oder widerlegt keine ärztliche Einschätzung – es '
   + 'zählt, ob Kopfschmerz mit diesen Dingen zusammen öfter oder seltener kommt.';
@@ -6011,8 +6390,16 @@ function meineMittelKarte(s) {
     </div>
   </div>`;
   /*
-   * Bei Methylphenidat die Form – sie steht auf der Packung und entscheidet,
-   * was für den Magen gilt. Ein zweiter Tipp nimmt die Wahl zurück.
+   * Bei Methylphenidat das Präparat mit seiner Form: Was zum Essen und zu
+   * Säureblockern gilt, steht je nach Präparat verschieden in der Fach- oder
+   * Gebrauchsinformation. Die Formbezeichnung allein unterscheidet das nicht
+   * immer – Medikinet retard und Ritalin LA sind beide „Hartkapsel mit
+   * veränderter Wirkstofffreisetzung" (je Abschnitt 3), aber nur bei Medikinet
+   * retard stehen Säureblocker unter den Gegenanzeigen (4.3) und die Einnahme
+   * mit oder nach einer Mahlzeit (4.2); Ritalin LA „können zusammen mit oder
+   * ohne Nahrung eingenommen werden" (www.fachinfo.de/fi/pdf/009621, Stand
+   * Dezember 2025; 010445, Stand September 2025). Deshalb nennt die Liste
+   * Präparatnamen. Ein zweiter Tipp nimmt die Wahl zurück.
    */
   const formWahl = (m) => {
     const g = wissenZu(m.mittel);
@@ -6811,8 +7198,12 @@ function mittelSchonDa(s, kopf, am) {
  * Ändert sich Tag oder Uhrzeit eines Kopfschmerzes, rücken seine Mittel mit.
  *
  * Sonst stünde nach „war doch gestern" der Kopfschmerz gestern und das
- * Ibuprofen heute – zwei falsche Tage in der Zählung der Akutmittel-Tage,
- * der wichtigsten Zahl für die Neurologie. Stand das Mittel zur selben Zeit
+ * Ibuprofen heute – zwei falsche Tage in der Zählung der Akutmittel-Tage, an
+ * denen die Kopfschmerzklassifikation zusammen mit den Kopfschmerztagen
+ * einen Kopfschmerz durch Medikamentenübergebrauch festmacht (ICHD-3, 8.2:
+ * „Headache occurring on 15 or more days/month … regular overuse of acute or
+ * symptomatic headache medication (on 10 or more or 15 or more days/month,
+ * depending on the medication)"). Stand das Mittel zur selben Zeit
  * wie der Kopfschmerz, übernimmt es dessen neue Zeit samt Tageszeit; hatte es
  * eine eigene, behält es sie und wechselt nur den Tag. Ein Mittel, das schon
  * an einem anderen Tag steht, hat jemand selbst dorthin gelegt – es bleibt.
@@ -6971,8 +7362,11 @@ function bogenHTML(s) {
      *
      * „Dazu genommen?" legt das Medikament mit an – ein Tipp statt eines
      * zweiten Bogens. Während einer Attacke ist der zweite Bogen genau der
-     * Schritt, der wegfällt, und die Akutmittel-Tage sind die wichtigste Zahl
-     * für die Neurologie. Angeboten werden nur Mittel, die schon einmal
+     * Schritt, der wegfällt, und an den Akutmittel-Tagen macht die
+     * Kopfschmerzklassifikation, zusammen mit den Kopfschmerztagen, einen
+     * Kopfschmerz durch Medikamentenübergebrauch fest (ICHD-3, 8.2). Bis zur
+     * Fassung 29 hieß es „die wichtigste Zahl für die Neurologie" – eine
+     * Rangfolge, die keine Quelle aufstellt. Angeboten werden nur Mittel, die schon einmal
      * eingetragen wurden: Die App schlägt kein Schmerzmittel vor.
      *
      * Auch beim Ändern – wer erst im Nachhinein weiß, dass er etwas genommen
@@ -7045,7 +7439,9 @@ function bogenHTML(s) {
       }).join('')}</div>`
     : akutNamen.length ? '' : `<p class="klein">Dein Schmerz- oder Migränemittel einmal als Medikament
       eintragen – danach steht es hier als Tipp. Daran hängt die Zählung der
-      Tage mit Akutmittel, die wichtigste Zahl für die Neurologie.</p>`}
+      Tage mit Akutmittel. Zusammen mit den Kopfschmerztagen gehört sie zu den
+      Zahlen, nach denen die internationale Kopfschmerzklassifikation
+      Kopfschmerzen einordnet.</p>`}
       <p class="feld-name">Wie lange – mit oder ohne Mittel?</p>
       ${wahlReihe(KOPF_DAUER, 'dauer', 'kopfdauer', ' wahl-vier')}
       <p class="klein">Hält er bis morgen an, trag ihn morgen noch einmal ein:
@@ -7075,6 +7471,28 @@ function bogenHTML(s) {
      * die peinlich *und* umständlich ist, wird gar nicht beantwortet. Die
      * Striche rechts sind grob, aber sie tun, was ein Bild tun soll: Man
      * erkennt in zwei Sekunden die Zeile, die passt.
+     *
+     * Der Satz darunter: gesund.bund.de, Verstopfung bei Erwachsenen (Stand
+     * 02.10.2023, Symptome): „Ein Stuhl vom Typ 6 und 7 spricht für
+     * Durchfall, Stuhl vom Typ 3 bis 5 für normalen Stuhlgang und Stuhl vom
+     * Typ 1 und 2 deutet auf Verstopfung", und die Skala „kann dabei eine
+     * gute Hilfe sein" beim Stuhltagebuch. Zur Passagezeit Lewis und Heaton,
+     * Scand J Gastroenterol 1997;32(9):920-4 (PMID 9299672, Abstract): die
+     * Passagezeit korrelierte „best with stool form (r = -0.54)", und „Such
+     * scales have utility in both clinical practice and research". Bis zur
+     * Fassung 29 stand „1 und 2 heißen zu lange gelegen, 6 und 7 zu kurz"
+     * (eindeutiger als die Quellen) und „seit dreißig Jahren das Maß, mit dem
+     * in der Sprechstunde darüber geredet wird – die Zahl allein sagt dort
+     * genug" – das trägt keine Quelle; 1997 hieß es noch „not widely used in
+     * clinical practice or research".
+     *
+     * Und zu den Warnzeichen unten: gesund.bund.de, Reizdarmsyndrom (Stand
+     * 28.08.2024): „Bei Blut im Stuhl ist in jedem Fall eine Untersuchung
+     * durch eine Ärztin oder einen Arzt erforderlich"; Magengeschwür (Stand
+     * 07.01.2022): „schwarz gefärbter Stuhl" unter den Zeichen, die
+     * „zeitnah ärztlich" abzuklären sind. „Die zwei wichtigsten Warnzeichen
+     * überhaupt" – eine Rangfolge, die keine Quelle aufstellt – stand hier
+     * bis zur Fassung 29.
      */
     mitte = `
       <p class="feld-name">Wie sah es aus?</p>
@@ -7085,10 +7503,11 @@ function bogenHTML(s) {
           <span class="bristol-bild" aria-hidden="true">${x.bild}</span>
           <span class="bristol-name">${esc(x.name)}</span>
         </button>`).join('')}</div>
-      <p class="klein">1 und 2 heißen zu lange gelegen, 6 und 7 zu kurz,
-      3 bis 5 sind unauffällig. Die Skala ist seit dreißig Jahren das Maß, mit
-      dem in der Sprechstunde darüber geredet wird – die Zahl allein sagt dort
-      genug.</p>
+      <p class="klein">Nach der Bristol-Skala deuten 1 und 2 auf Verstopfung,
+      3 bis 5 gelten als normaler Stuhlgang, 6 und 7 sprechen für Durchfall. Die
+      Form hängt auch damit zusammen, wie lange der Stuhl im Darm bleibt. Die
+      Skala wird in Praxis und Studien benutzt und kann beim Führen eines
+      Stuhltagebuchs helfen.</p>
       ${huelleDa(s) ? `<p class="klein huellen-satz">${esc(huellenSatz())}</p>` : ''}
       <p class="feld-name">War sonst etwas?</p>
       <div class="wahl">
@@ -7099,8 +7518,9 @@ function bogenHTML(s) {
       </div>
       <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
         <summary>War Blut dabei oder war es schwarz?</summary>
-        <p class="klein">Die zwei wichtigsten Warnzeichen überhaupt stehen hier
-        und nicht im Beschwerdebogen. Was hier angekreuzt wird, taucht in keiner
+        <p class="klein">Blut im Stuhl und schwarzer Stuhl gehören zu den
+        Warnzeichen, die ärztlich abgeklärt gehören – deshalb stehen sie hier und
+        nicht im Beschwerdebogen. Was hier angekreuzt wird, taucht in keiner
         Statistik auf, sondern ganz oben unter „Muster".</p>
         ${marken(WARNZEICHEN.filter((w) => ['teerstuhl', 'blutstuhl'].includes(w.id)),
     e.warnzeichen || [], 'warnzeichen')}

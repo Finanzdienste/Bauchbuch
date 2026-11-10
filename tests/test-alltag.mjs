@@ -229,7 +229,8 @@ const speicher = (page) => page.evaluate(async (k) => {
   check(karte.includes('2 Tage, an denen nur ein ADHS-Mittel steht, zählen jetzt als Lücke'), `mit der Zahl der Tage (${karte})`);
   check(karte.includes('Koffein als Tablette zählt nicht mehr als Schmerzmittel') && karte.includes('(1 Eintrag)'),
     'mit Koffein als Tablette – nur der eine Eintrag, der nichts außer Koffein trägt');
-  check(karte.includes('Kombinationsmittel') && karte.includes('Paracetamol mit Koffein zählt für den Magen nicht mehr als NSAR')
+  check(karte.includes('Kombinationsmittel') && karte.includes('Paracetamol mit Koffein zählt in der Magenauswertung nicht mehr als NSAR')
+    && karte.includes('an zehn oder mehr Tagen im Monat über mehr als drei Monate') && !karte.includes('Grenze von etwa zehn')
     && karte.includes('Paracetamol Koffein') && karte.includes('Spalt plus Koffein') && !karte.includes('Kopfweg'),
   'mit den Schmerzmitteln mit Koffein');
   const kombiSatz = (karte.match(/Schmerzmittel mit Koffein[^.]*\./) || [''])[0];
@@ -239,10 +240,12 @@ const speicher = (page) => page.evaluate(async (k) => {
   check(fremdSatz.startsWith('Kopfschmerztabletten mit Koffein zählte bisher als Kombinationsmittel')
     && fremdSatz.includes('zählt jetzt nicht mehr mit') && !karte.includes('Kopfweg mit Coffein zählte'),
   `ein Name mit Koffein ohne erkannten Wirkstoff: die Karte sagt, dass er nicht mehr mitzählt (${fremdSatz})`);
-  const saeureSatz = (karte.match(/[^.]*Säureblocker erkannt\./) || [''])[0].trim();
-  check(/^(Agopton und Omep 20|Omep 20 und Agopton) werden jetzt als Säureblocker erkannt\.$/.test(saeureSatz)
-    && !karte.includes('Omeprazol'),
-  `mit den neu erkannten Säureblockern – ohne den, den schon die Fassung 27 kannte (${saeureSatz})`);
+  // Seit der Fassung 30 „Mittel gegen Magensäure“ statt „Säureblocker“:
+  // Unter den neuen Namen ist auch Maaloxan, ein Antazidum, das Säure bindet.
+  const saeureSatz = (karte.match(/[^.]*als Mittel gegen Magensäure erkannt\./) || [''])[0].trim();
+  check(/^(Agopton und Omep 20|Omep 20 und Agopton) werden jetzt als Mittel gegen Magensäure erkannt\.$/.test(saeureSatz)
+    && !karte.includes('Omeprazol') && !karte.includes('Säureblocker erkannt'),
+  `mit den neu erkannten Mitteln gegen Magensäure – ohne das, das schon die Fassung 27 kannte (${saeureSatz})`);
   check(karte.includes('„Licht“ und „Lärm“ jetzt getrennt'), 'und mit Licht und Lärm');
   await tipp(page, '[data-act="v28-gelesen"]');
   check(await page.locator('.v28-karte').count() === 0, '„Gelesen" nimmt sie weg');
