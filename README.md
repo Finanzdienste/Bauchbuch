@@ -196,9 +196,10 @@ Einlesen nicht als leer.
 
 **Aktivitäten.** Was man gemacht hat oder wo man war – Gym/Krafttraining,
 Laufen, Radfahren, Schwimmen, Spazieren, Yoga/Dehnen, Arbeit, Unterwegs/Reise,
-Feier/Ausgehen, Sauna, Massagepistole, Massage/Physio, Wärme –, weil das Bauch
-und Kopf aus dem Gleichgewicht
-bringen kann und in keiner Mahlzeit steht. Der Knopf „Aktivität" (🏃) öffnet
+Feier/Ausgehen, Sauna, Massagepistole, Massage/Physio, Wärme –: Dinge, die in
+keiner Mahlzeit stehen und die man trotzdem neben den Beschwerden sehen möchte.
+Ob eines davon mit Bauch oder Kopf zusammenhängt, behauptet die App nicht; sie
+zählt nur, was danach kam. Der Knopf „Aktivität" (🏃) öffnet
 einen Bogen mit diesen Marken, nach Häufigkeit sortiert, mehrere zugleich
 wählbar („Unterwegs" und „Feier" am selben Abend sind ein Eintrag). Was fehlt,
 legt man im Bogen mit „Dazu" an oder unter „Mehr" › „Eigene Aktivitäten";
@@ -242,8 +243,15 @@ Bauch noch nichts im Tagebuch" statt „noch nichts".
 
 Unter „Muster" steht **„Was du gemacht hast"**: je Aktivität, wie oft in den
 Stunden danach Beschwerden kamen (dasselbe Fenster wie bei den Auslösern) und
-in den 24 Stunden danach Kopfschmerz – die Anstrengung macht ihren
-Kopfschmerz am selben Abend, die Feier ihren am nächsten Morgen. Verglichen
+in den 24 Stunden danach Kopfschmerz. Die 24 Stunden haben einen Grund:
+Kopfschmerz durch körperliche Anstrengung beginnt laut internationaler
+Kopfschmerzklassifikation während oder nach ihr, Kopfschmerz durch Alkohol
+dagegen innerhalb von 5 bis 12 Stunden, nach einem Abend also womöglich erst
+am nächsten Morgen. Eine Feier ist dabei nicht dasselbe wie Alkohol. <!--
+Quelle: ICHD-3 (ichd-3.org, 2018), 4.2 Primary exercise headache, Kriterium B:
+„Brought on by and occurring only during or after strenuous physical exercise";
+8.1.4.2 Delayed alcohol-induced headache, Kriterium C1: „headache has developed
+within 5-12 hours after ingestion of alcohol". Ebenso js/aktivitaet.js. --> Verglichen
 wird nicht mit anderen Aktivitäten, sondern mit **denselben Stunden an Tagen
 ohne sie**, ab der mittleren Uhrzeit der Aktivität: Wer abends trainiert, wird
 mit seinen Abenden ohne Training verglichen. Nicht gezählt werden Tage ohne
@@ -275,7 +283,8 @@ und nirgends gerechnet. Sie steht jetzt in der Umstände-Bilanz
 Tage mit intensiver gegen Tage mit wenig oder keiner Bewegung, ab vier Tagen
 je Seite, unter „Muster" und im Bericht als ein Satz, unter einer ganzen Stufe
 Unterschied als „kein deutlicher Unterschied" – und mit dem Vorbehalt, dass
-sich an schlechten Tagen auch weniger bewegt wird. In die Muster über
+sich daraus nicht ablesen lässt, was zuerst kam, die Bewegung oder die
+Beschwerden. In die Muster über
 Anspannung und Schlaf geht sie nicht ein: Intensive Bewegung ist keine
 Anspannung.
 
@@ -288,13 +297,21 @@ Aktivitäten stehen, gilt beim Einlesen nicht als leer. Ältere Stände und
 Sicherungen laden unverändert.
 
 **Massagepistole, Massage/Physio und Wärme** sind Aktivitäten mit einer
-Besonderheit: Sie zählen **nur für den Kopf**. Wärme legt man oft gerade
-wegen Bauchschmerzen auf – eine Bauch-Zeile danach sähe aus wie eine Wirkung
-und wäre doch nur der Anlass. Unter „Was du gemacht hast“ stehen sie deshalb
-nur mit der Kopfzeile, sie zählen in keinen Bauch-Vergleich der übrigen
-Aktivitäten (auch nicht als Tag „mit irgendeiner Aktivität“), und beim Kopf
-steht dabei, dass massiert oder gewärmt wird, wenn sich etwas anbahnt – ein
-Kopfschmerz danach kann schon unterwegs gewesen sein. Derselbe Satz steht im
+Besonderheit: Sie zählen **nur für den Kopf**. Massiert und gewärmt wird auch
+wegen Beschwerden, die schon da sind – Wärme gilt etwa bei Regelschmerzen im
+Unterleib als wohltuend –, und eine Bauch-Zeile danach sähe aus wie eine
+Wirkung, obwohl sie womöglich nur der Anlass war. Unter „Was du gemacht hast“
+stehen sie deshalb nur mit der Kopfzeile, sie zählen in keinen Bauch-Vergleich
+der übrigen Aktivitäten (auch nicht als Tag „mit irgendeiner Aktivität“), und
+beim Kopf steht dabei: Wird massiert oder gewärmt, wenn sich schon etwas
+anbahnt, kann ein Kopfschmerz danach schon unterwegs gewesen sein – bei einer
+Migräne kann ein steifer oder schmerzender Nacken Stunden bis Tage vorher ein
+Vorbote sein. <!--
+Quelle: gesund.bund.de/regelschmerzen (mit IQWiG, Stand 27.08.2024): „gelten
+warme Bäder, Wärmflaschen und Saunagänge als wohltuend". ICHD-3 (2018),
+Einleitung Kapitel 1: „a prodromal phase, occurring hours or days before the
+headache … neck stiffness and/or pain". Wortlaut wie GEGENMITTEL_VORBEHALT in
+js/aktivitaet.js. --> Derselbe Satz steht im
 Bericht unter „NACH AKTIVITÄTEN“, sobald dort eine von ihnen eine Kopfzeile
 hat – mit und ohne „Kiefer, Nacken, Schiene“. Wer eine eigene
 Aktivität gleichen Namens hat, behält sie mit allen Einträgen; zusammengelegt
@@ -302,10 +319,16 @@ wird nichts. Unter „Mehr“ › „Eigene Aktivitäten“ steht bei ihr: „�
 gibt es jetzt auch fest eingebaut. Deine eigene bleibt mit allen Einträgen.“
 Gerechnet wird weiter nur mit der eingebauten. Im Bogen steht, sobald eine
 Massagepistole gewählt ist (die eingebaute oder eine eigene gleichen Namens),
-was Hersteller dazu schreiben – nicht an Kopf, Gesicht, Kehle, Hals oder Nacken
-und nicht direkt auf Knochen –, und unter „Mehr dazu“, in welchen Lagen sie
-eine ärztliche Rückfrage vorab nennen und welche Zeichen danach ein Notfall
-sind. Das gilt für alle, ohne Schalter.
+dass in den Sicherheitshinweisen des Geräts steht, wo und bei wem es nicht
+angewendet werden soll, und dass Fragen dazu, auch wo am Körper, Praxis oder
+Physiotherapie beantworten. Unter „Mehr dazu“ stehen die Zeichen eines
+Schlaganfalls – plötzliche Lähmung oder Taubheit, Sprach- oder Sehstörung,
+Schwindel oder ein unsicherer Gang, egal, wobei sie auftreten – und dass man
+dann nicht auf einen Termin wartet, sondern 112 wählt. Das gilt für alle, ohne
+Schalter. <!--
+Quelle: gesund.bund.de/schlaganfall (Stand 16.12.2022): „Lähmungserscheinungen
+und Taubheitsgefühle", „Schwindel und ein unsicherer Gang", „schnell den Notruf
+112 zu wählen". Wortlaut wie MASSAGE_HINWEIS in js/aktivitaet.js. -->
 
 **Verlauf.** Ein Balken je Tag über 14, 30 oder 90 Tage, ein Monatskalender
 und vier Zahlen: notierte Tage, Anteil mit Beschwerden, mittlere Stärke,
@@ -337,8 +360,7 @@ liest, hat trotzdem das Wichtigste.
 **Ruhe.** Vier Atemübungen – 4–7–8, Quadrat, Gleichmaß, Bauchatmung – mit Ton,
 damit man die Augen zumachen kann. Der Ton entsteht im Browser aus einem
 Oszillator: keine Datei, kein Download, läuft offline. Bei jeder Übung ist das
-Ausatmen mindestens so lang wie das Einatmen; umgekehrt täte die Übung das
-Gegenteil.
+Ausatmen mindestens so lang wie das Einatmen (`js/atem.js`).
 
 **Noch mal wie letztes Mal.** Beim Eintragen einer Mahlzeit stehen frühere
 Mahlzeiten als antippbare Vorlage bereit – und zwar vollständig: Text, Zutaten
@@ -463,14 +485,19 @@ nicht mehr zum Tagebuch passt.
 ### Vorschläge für heute
 
 Auf dem Tagesreiter steht, was für heute naheliegt: worauf man heute eher
-verzichten würde, ob Bewegung gerade intensiv oder moderat sinnvoll ist, ob
-eine Atemrunde ansteht. Jeder Vorschlag trägt sein **warum** sichtbar mit sich
-und die Angabe, woher es kommt:
+verzichten würde, was über Bewegung an einem Tag wie diesem bekannt ist, dass
+unter „Ruhe“ Atemübungen liegen. Jeder Vorschlag trägt sein **warum** sichtbar
+mit sich und die Angabe, woher es kommt:
 
 * **aus deinem Verlauf** – aus den eigenen Eintragungen gerechnet, mit den
   Zahlen daneben („nach 12 Mahlzeiten mit Kaffee im Mittel 7,0 statt 0,0").
-* **allgemein** – gilt für einen Durchschnitt, den es nicht gibt. Sticht der
-  eigene Verlauf.
+* **allgemein** – nicht aus den eigenen Eintragungen gerechnet: Hinweise, die
+  allgemeine Gesundheitsinformationen nennen, oft ohne gute Untersuchung, ob
+  sie helfen. Der eigene Verlauf sticht das. <!--
+  Quelle: gesund.bund.de/gastritis (mit IQWiG, Stand 13.11.2025), Behandlung:
+  „Ob diese Maßnahmen helfen, ist aber nicht ausreichend erforscht.";
+  gesund.bund.de/reizmagen-funktionelle-dyspepsie (Stand 05.02.2026):
+  „Deshalb gibt es dazu keine verlässlichen Empfehlungen." Kopf von js/rat.js. -->
 
 Ein Rat ohne Begründung ist ein Befehl, und Befehle über das eigene Essen
 befolgt man blind oder gar nicht. Beides ist schlecht.
@@ -487,9 +514,13 @@ Diese App konnte lange nur eine Richtung: was Beschwerden macht, ab acht Fällen
 mit Zufallsschranke. Das ist richtig für einen Befund und nutzlos für die Frage,
 die abends um sieben ansteht: *Was kann ich jetzt essen, ohne nachzudenken?*
 
-Darauf antwortet keine Statistik rechtzeitig. Wer eine Gastritis hat und auf die
-meisten Sachen keinen Appetit, weiß nach drei Tagen, was geht — nur stand es
-nirgends, und beim nächsten Einkauf fing das Überlegen von vorn an.
+Darauf antwortet keine Statistik rechtzeitig. Wer gerade wenig Appetit hat –
+Appetitlosigkeit kann etwa zu den Beschwerden einer akuten Gastritis gehören –,
+merkt mit der Zeit selbst, was geht — nur stand es nirgends, und beim nächsten
+Einkauf fing das Überlegen von vorn an. <!--
+Quelle: gesund.bund.de/gastritis (mit IQWiG, Stand 13.11.2025), „Welche
+Symptome zeigen sich bei einer Gastritis?": „Eine akute Gastritis kann folgende
+Symptome mit sich bringen: … Appetitlosigkeit". -->
 
 Auf dem Tagesreiter stehen deshalb zwei Listen, die man selbst füllt: **Geht
 gut** und **Geht nicht**. Keine Fallzahl, keine Schwelle, kein Urteil. Ein
@@ -510,17 +541,24 @@ Aufgelöst wird der Widerspruch nicht. Die Liste bleibt, wie sie ist; die App
 streicht nichts durch. Was jemand über seinen eigenen Körper weiß, hat Vorrang
 vor achtzehn Mahlzeiten Datenlage — sie sagt nur, dass beides nicht zusammenpasst.
 
-Die andere Richtung gehört dazu und wird oft vergessen: Steht etwas auf „Geht
-nicht", das in den Zahlen gar nichts macht, sagt die App auch das. Wer sich
-etwas verbietet, das nichts bewirkt, isst ohne Grund enger.
+Die andere Richtung gehört dazu: Steht etwas auf „Geht nicht", das in den
+Zahlen gar nichts macht, sagt die App auch das – dass sich aus den Mahlzeiten
+damit in den eigenen Einträgen kein Unterschied erkennen lässt, dass das nicht
+heißt, dass es vertragen wird, und dass sich ärztlich abklären lässt, ob ein
+Verzicht nötig ist.
 
 ### Was schon feststeht
 
 Die App rechnete bisher so, als sei nichts bekannt. An mehreren Stellen steht
-derselbe Vorbehalt, und er ist richtig:
+ein Vorbehalt, und er hat seinen Grund:
 
-> „Die Regelwerke setzen ausdrücklich voraus, dass nichts Organisches
-> dahintersteckt — und das weiß nur eine Untersuchung."
+> „Von einem Reizdarm oder Reizmagen sprechen Ärztinnen und Ärzte erst, wenn
+> andere Ursachen für die Beschwerden abgeklärt und ausgeschlossen sind."
+<!-- Quelle: gesund.bund.de/reizmagen-funktionelle-dyspepsie (mit IQWiG, Stand
+05.02.2026), Diagnostik: „Von einem Reizmagen wird deshalb erst gesprochen,
+wenn andere Ursachen für die Beschwerden abgeklärt und ausgeschlossen wurden";
+gesund.bund.de/reizdarmsyndrom (Stand 28.08.2024): „keine Hinweise auf eine
+andere Erkrankung vorliegen". Wortlaut der Kriterienkarte in js/app.js. -->
 
 **Nur gilt er nicht für jeden.** Wer eine Spiegelung hinter sich hat und einen
 Befund bekommen hat, bei dem *steckt* etwas Organisches dahinter. Die App redete
@@ -548,12 +586,22 @@ Notiz, die nichts bewirkt. Was dann anders ist:
 * **Die Warnzeichen bleiben.** Keine Diagnose der Welt macht Blut im Stuhl zu
   etwas, das nicht angesehen gehört.
 
-Gestrichen wird nur, was mit dem Befund *definitionsgemäß* erledigt ist: Eine
-Gastritis Typ C ist eine chemisch verursachte, also keine bakterielle —
-Helicobacter ist damit keine offene Frage mehr. Dass ein Befund meist bei einer
-Spiegelung entsteht und dabei auch anderes aufgefallen wäre, reicht nicht.
-„Meist" ist keine Grundlage, einem Menschen eine Untersuchung aus der Liste zu
-nehmen.
+Gestrichen wird nur, was der Befund selbst beantworten soll. Dass ein Befund
+meist bei einer Spiegelung entsteht und dabei auch anderes aufgefallen wäre,
+reicht nicht. „Meist" ist keine Grundlage, einem Menschen eine Untersuchung aus
+der Liste zu nehmen. Bei „Gastritis Typ C" nimmt die App derzeit die Frage nach
+Helicobacter heraus. Typ C bezeichnet die Entzündung, die durch chemische Stoffe
+entstanden ist, etwa durch zurücklaufende Gallenflüssigkeit, Alkohol oder
+bestimmte Schmerzmittel. Ob dabei auch auf Helicobacter untersucht wurde, sagt
+die Bezeichnung allein nicht; in der Fachliteratur sind Mischformen mit einer
+Helicobacter-Gastritis beschrieben. Das steht im Befund. <!--
+Quelle: gesund.bund.de/glossar/typ-c-gastritis: „Ist die Entzündung durch die
+Einwirkung von chemischen Stoffen entstanden, spricht man auch von einer
+Typ-C-Gastritis. Neben zurücklaufender Gallenflüssigkeit, Alkohol oder bestimmten
+Schmerzmitteln …"; Borchard, Pathologe 2001 (PMID 11225445), Abstract: „Mixed
+forms of chemical/reactive gastritis and other forms of gastritis are also
+described, for example, that from Helicobacter." Die Zuordnung klaert: ['hpylori']
+in js/befunde.js ist unverändert. -->
 
 Die Richtung des Irrtums ist hier nicht gleichgültig: **Ein Verdacht, der zu
 viel dasteht, kostet eine Nachfrage in der Sprechstunde. Einer, der zu Unrecht
@@ -589,28 +637,48 @@ einseitig oder beidseitig, mit Übelkeit, erbrochen, Licht stört, Lärm stört,
 schlimmer bei Bewegung, Nackenschmerz dabei, schon beim Aufwachen da, Aura
 vorher), die
 **Dauer** in vier groben Stufen bis „länger als 3 Tage", **wie der Tag
-weiterging** (normal, eingeschränkt, ausgefallen – die drei Stufen, nach denen
-die Sprechstunde graduiert), und ob ein **Mittel nach zwei Stunden** geholfen
-hat. Steht von gestern ein Kopfschmerz ohne Dauer da, fragt die Tageskarte mit
-einem Tipp nach – die Dauer kennt man erst hinterher. „Weiß ich nicht mehr" ist
+weiterging** (normal, eingeschränkt, ausgefallen – drei Stufen, die die App
+festlegt; die Kopfschmerzklassifikation beschreibt die Schmerzstärke ähnlich
+auch nach ihren Folgen: stört die üblichen Tätigkeiten nicht, behindert sie,
+ohne sie ganz zu verhindern, oder verhindert alle), und ob ein **Mittel nach
+zwei Stunden** geholfen hat. <!--
+Quelle: ICHD-3 (2018), Definition of terms, „Intensity of pain": „1, mild pain,
+does not interfere with usual activities; 2, moderate pain, inhibits but does
+not wholly prevent usual activities; 3, severe pain, prevents all
+activities". --> Steht von gestern ein Kopfschmerz ohne Dauer da, fragt die
+Tageskarte mit einem Tipp nach – die Dauer kennt man erst hinterher. „Weiß ich nicht mehr" ist
 dabei eine zulässige Antwort: Sie schließt die Frage, ohne gezählt zu werden.
 
 Seit der Fassung 28 stehen **„Licht stört“ und „Lärm stört“ getrennt**: Die
-Kopfschmerzklassifikation fragt nach beiden zusammen, und wer nur eins davon
-hat, konnte das vorher nicht sagen. Frühere Einträge behalten „Licht oder
+Kopfschmerzklassifikation unterscheidet, ob beides zusammen auftritt oder
+höchstens eins davon. Bei der Migräne ohne Aura ist „beides zusammen“ eine von
+zwei Möglichkeiten, die andere ist Übelkeit oder Erbrechen; beim Kopfschmerz
+vom Spannungstyp gehört höchstens eins davon dazu. Wer nur eins davon hatte,
+konnte das vorher nicht sagen. <!--
+Quelle: ICHD-3 (2018), 1.1 Migraine without aura, Kriterium D: „During headache
+at least one of the following: nausea and/or vomiting; photophobia and
+phonophobia"; 2.1/2.2, Kriterium D: „no more than one of photophobia or
+phonophobia". --> Frühere Einträge behalten „Licht oder
 Lärm“ – es wird nie in eines der beiden umgedeutet, und der Bogen zeigt es nur
 bei einem Eintrag, der es trägt. „Einseitig“ und „Beidseitig“ schließen sich
-aus. Der Bericht zählt die Merkmale so, wie die Klassifikation fragt (eine
-Seite oder beide, pochend oder drückend, Licht und Lärm zusammen oder nur
-eins, Übelkeit oder Erbrechen, schon beim Aufwachen) – aber nur, wenn im
-Zeitraum eines der neuen Merkmale steht, damit ein älteres Tagebuch keine
-Zeilen bekommt, die es nicht füllen konnte. Eingeordnet wird nichts; das
-macht die Ärztin. Mit dem Schalter „Kiefer, Nacken, Schiene“ kommen drei
-Merkmale dazu (siehe unten).
+aus. Der Bericht zählt einige der Merkmale, nach denen die Klassifikation
+fragt, so verknüpft wie dort (eine Seite oder beide, pochend oder drückend,
+Licht und Lärm zusammen oder nur eins, Übelkeit oder Erbrechen, schon beim
+Aufwachen), nicht aber die Verstärkung durch Bewegung und die Stärke der
+Übelkeit. Diese Zeilen kommen nur, wenn im Zeitraum eines der neuen Merkmale
+steht, damit ein älteres Tagebuch keine Zeilen bekommt, die es nicht füllen
+konnte. Eingeordnet wird nichts; das macht die Praxis. Mit dem Schalter
+„Kiefer, Nacken, Schiene“ kommen drei Merkmale dazu (siehe unten).
 
 **„Dazu genommen?"** legt das Medikament mit an. Während einer Attacke ist ein
-zweiter Bogen genau der Schritt, der wegfällt, und die Tage mit Akutmittel sind
-die wichtigste Zahl für die Neurologie. Angeboten werden nur Mittel, die schon
+zweiter Bogen genau der Schritt, der wegfällt, und an den Tagen mit Akutmittel
+hängt viel: Zusammen mit den Kopfschmerztagen gehören sie zu den Zahlen, nach
+denen die internationale Kopfschmerzklassifikation einen Kopfschmerz durch zu
+häufige Einnahme von Schmerz- oder Migränemitteln einordnet. <!--
+Quelle: ICHD-3 (2018), 8.2 Medication-overuse headache, Beschreibung: „Headache
+occurring on 15 or more days/month … regular overuse of acute or symptomatic
+headache medication (on 10 or more or 15 or more days/month, depending on the
+medication) for more than 3 months." --> Angeboten werden nur Mittel, die schon
 einmal eingetragen wurden: Die App schlägt kein Schmerzmittel vor.
 
 Das gilt auch beim Ändern – wer erst hinterher weiß, dass er etwas genommen
@@ -641,40 +709,90 @@ Die **Warnzeichen des Kopfes** stehen in derselben Liste wie die des Bauches,
 damit Warnkarte und Bericht sie finden – aber der Bauchbogen bietet sie nicht
 an, und der Kopfbogen nur sie (plus Bluterbrechen). Formuliert für jemanden,
 der seine Migräne kennt: Der Ausfall ist nicht „zum ersten Mal", sondern
-„plötzlich, länger als eine Stunde, eine Seite gelähmt oder anders als deine
-gewohnte Aura" – weil genau diese Patientinnen einen Schlaganfall mit „kenne
-ich von meiner Aura" wegerklären. Dazu Fieber mit steifem Nacken, der
+„plötzlich, länger als eine Stunde oder anders als deine gewohnte Aura" – weil
+sich Aura und Schlaganfall in ihren Beschwerden überschneiden können. Laut
+Kopfschmerzklassifikation breitet sich eine typische Aura allmählich aus, und
+ihre einzelnen Beschwerden dauern meist 5 bis 60 Minuten; ist eine Aura ohne
+Kopfschmerz verlängert, soll vor allem eine vorübergehende Durchblutungsstörung
+des Gehirns (TIA) ausgeschlossen werden. Auseinanderhalten lässt sich das nur
+ärztlich. Es ist
+ein Warnzeichen der Stufe `sofort`: nicht auf einen Termin warten –
+Notaufnahme oder 112. <!--
+Quelle: ICHD-3 (2018), 1.2 Migraine with aura, Kriterium C: „at least one aura
+symptom spreads gradually over ≥5 minutes", „each individual aura symptom lasts
+5-60 minutes"; 1.2.1.2, Kommentar: „when aura is prolonged … other causes,
+particularly transient ischaemic attacks, should be ruled out". Wortlaut der
+Warnkarte (warnTeil in js/app.js), Name wie kopfausfall in js/bild.js. -->
+Dazu Fieber mit steifem Nacken, der
 Kopfschmerz nach Sturz, der erstmals bei Anstrengung, und der, der anders ist
 als die gewohnte Migräne.
 
-#### Die Zahlen der Neurologie – und ihre Schwellen als Frage
+#### Die Zahlen der Kopfschmerzklassifikation – und ihre Schwellen als Frage
 
-Ein Kopfschmerztagebuch für die Sprechstunde braucht wenige Zahlen, und die
-Karte „Kopfschmerzen" unter Muster stellt sie nach oben: **Kopfschmerztage und
-Tage mit Akutmittel je 30-Tage-Fenster**, drei Fenster nebeneinander, dazu
-Stärke, Dauer, Ausfalltage über 90 Tage, Merkmale – und ein Kalender nach
-Monaten. Die App kennt dafür die Mittel: Triptane, Kombinationsmittel – jedes
-Schmerzmittel mit Koffein, dessen Wirkstoff sie erkennt, mit ASS wie mit
-Paracetamol –, Schmerzmittel ohne
-Entzündungshemmung (Paracetamol, Metamizol), Opioide, die neuen Gepante – und
-was nie als Akutmittel zählt: die vorbeugenden Mittel, Koffein als Tablette
-und die Mittel bei ADHS (`js/mittel.js`). Ein Gel fürs Knie zählt nicht, ein
-Nasenspray schon. Was an einem Kopfschmerztag eingetragen ist und keiner
-Gruppe zuzuordnen, steht mit Namen auf der Karte, statt still in der Zählung
-zu fehlen.
+Laut internationaler Kopfschmerzklassifikation macht ein Kopfschmerztagebuch
+die Diagnose genauer und erlaubt, den Gebrauch von Medikamenten genauer zu
+beurteilen. Die Karte „Kopfschmerzen" unter Muster stellt deshalb nach oben:
+**Kopfschmerztage und Tage mit Akutmittel je 30-Tage-Fenster**, drei Fenster
+nebeneinander – an diesen beiden Größen hängen die Schwellen der
+Klassifikation –, dazu, als Auswahl der App, Stärke, Dauer, Ausfalltage über
+90 Tage, Merkmale und ein Kalender nach Monaten. Die Beurteilung selbst liegt
+bei der Praxis. <!--
+Quelle: ICHD-3 (2018), „How to use the classification": „such a headache diary
+improves diagnostic accuracy as well as allowing a more precise judgement of
+medication consumption". --> Die App kennt dafür die Mittel: Triptane,
+Kombinationsmittel – jedes Schmerzmittel mit Koffein, dessen Wirkstoff sie
+erkennt, mit ASS, Ibuprofen oder Paracetamol –, entzündungshemmende
+Schmerzmittel (ASS, Ibuprofen, Diclofenac), Schmerz- und Fiebermittel, die
+keine NSAR sind (Paracetamol, Metamizol), Opioide und die neueren Mittel bei
+Migräne, Gepante und Ditane; Rimegepant ist auch zur Vorbeugung zugelassen und
+zählt hier trotzdem als Akutmittel. Nie als Akutmittel zählt Body Check die
+vorbeugenden Mittel – auch Atogepant nicht, das zusätzlich zur Akutbehandlung
+zugelassen ist; am Namen ist nicht zu erkennen, wofür es eingetragen ist –,
+Koffein als Tablette und die Mittel bei ADHS (`js/mittel.js`). Ein Gel, eine
+Salbe, eine Creme oder ein Pflaster auf der Haut zählt Body Check nicht mit –
+eine Zählregel der App; die Klassifikation regelt Mittel auf der Haut nicht
+ausdrücklich. Ein Nasenspray mit einem erkannten Wirkstoff, etwa einem
+Triptan, zählt mit, denn die Klassifikation zählt Triptane in jeder
+Darreichungsform. <!--
+Quelle: ICHD-3 (2018), 8.2, Kriterium B: „drugs that can be taken for acute
+and/or symptomatic treatment of headache"; 8.2.2, Kriterium B: „Regular intake
+of one or more triptans, in any formulation, on ≥10 days/month for >3 months".
+EMA-Produktinformation VYDURA (Rimegepant), 4.1: „Akuttherapie der Migräne mit
+oder ohne Aura" und „präventiven Behandlung von episodischer Migräne";
+EMA-Produktinformation AQUIPTA (Atogepant), 4.1: „Akutbehandlung von Migräne
+mit oder ohne Aura bei Erwachsenen" und „Prophylaxe von Migräne". Regel
+aufDerHaut in js/mittel.js. --> Was an einem Kopfschmerztag eingetragen ist und
+keiner Gruppe zuzuordnen, steht mit Namen auf der Karte, statt still in der
+Zählung zu fehlen.
 
 Zwei Schwellen der Kopfschmerzklassifikation stehen dabei – und beide verlangen
-mehr als drei Monate, wo ein einzelnes Fenster ein Zufallswert ist (ein Zyklus,
-eine schlechte Woche). Deshalb rechnet die App **drei Fenster und wird erst ab
-zwei von dreien laut**: Ab zehn Tagen mit Triptan, Kombinationsmittel oder
-Opioid, fünfzehn mit einfachen Schmerzmitteln (auch mehreren zusammen) oder
-zehn, wenn verschiedene Sorten durcheinandergehen, kann das Mittel den
-Kopfschmerz selbst unterhalten; ab fünfzehn Kopfschmerztagen im Monat fragt die
-Neurologie nach einem chronischen Kopfschmerz. Den Namen aus der Klassifikation
+mehr als drei Monate; ein einzelnes Fenster ist eine Zahl, kein Verlauf.
+Deshalb rechnet die App **drei Fenster** zu 30 Tagen, zusammen etwa drei
+Monate, **und wird erst ab zwei von dreien laut**: Nach der Klassifikation kann
+ein Mittel den Kopfschmerz selbst unterhalten, wenn es über mehr als drei
+Monate an zehn oder mehr Tagen im Monat genommen wird (Triptan,
+Kombinationsmittel, Opioid), an fünfzehn oder mehr Tagen bei einfachen
+Schmerzmitteln (auch mehreren zusammen) oder an zehn oder mehr Tagen, wenn
+Mittel aus mehreren dieser Klassen zusammenkommen, ohne dass eine allein ihre
+Grenze erreicht. Kopfschmerz an fünfzehn oder mehr Tagen im Monat über mehr als
+drei Monate gehört etwa zur chronischen Migräne. <!--
+Quelle: ICHD-3 (2018), 1.3 Chronic migraine, Kriterium A: „on ≥15 days/month
+for >3 months"; 8.2, Kriterium B: „Regular overuse for >3 months"; 8.2.2,
+8.2.4, 8.2.5: „≥10 days/month for >3 months"; 8.2.3: „non-opioid analgesics on
+15 or more days/month for more than 3 months"; 8.2.6, Kriterium B: „any
+combination of ergotamine, triptans, non-opioid analgesics and/or opioids on a
+total of ≥10 days/month for >3 months without overuse of any single drug or
+drug class alone". --> Den Namen aus der Klassifikation
 gibt es aber erst, wenn **beides** zusammenkommt – Einnahme über der Schwelle
 *und* fünfzehn Kopfschmerztage im selben Fenster. Sonst stünde er bei jedem
 täglichen ASS zum Blutschutz und bei jedem Diclofenac fürs Knie; die Fenster
-zählen nämlich jeden Tag mit Akutmittel, egal wogegen. Viel Mittel ohne viele
+zählen nämlich jeden Tag mit Akutmittel, gleich, wogegen es eingetragen ist.
+Die Klassifikation nennt in den Unterformen nur Einnahmetage und keinen Anlass;
+ob ASS zum Blutschutz mitgemeint ist, sagt sie nicht ausdrücklich, und das
+klärt die Praxis. <!--
+Quelle: ICHD-3 (2018), 8.2.3.2.1 Acetylsalicylic acid-overuse headache,
+Kriterium B: „Regular intake of acetylsalicylic acid on ≥15 days/month for >3
+months." --> Viel Mittel ohne viele
 Kopfschmerztage bekommt die Zahlen und die Regel, ein einzelnes Fenster bekommt
 nur die Zahlen – wer nach einem Monat einen Diagnosenamen liest, lässt das
 Mittel womöglich von sich aus weg und liegt mit unbehandelten Anfällen da.
@@ -682,50 +800,104 @@ Deshalb endet der Satz, wenn er kommt, mit „keine Anweisung – auch nicht die
 es wegzulassen".
 
 Aus den Zahlen werden **Fragen für die Sprechstunde**, wie die Muster sie für
-den Bauch stellen: ab vier Kopfschmerztagen im Monat die nach einer
-vorbeugenden Behandlung, bei Erbrechen die nach einer anderen Darreichungsform,
-bei Aura die nach der Verhütung mit Östrogen, bei Gastritis Typ C die nach dem
-passenden Akutmittel. Ab vier Kopfschmerzen „schon beim Aufwachen“ in 30 Tagen
-kommt für alle die Frage, ob Schlaf (Schnarchen, Atemaussetzer), Koffein oder
-die eigenen Schmerzmittel mit auf die Liste gehören. Ist „Kiefer, Nacken,
+den Bauch stellen: ab vier Kopfschmerztagen in 30 Tagen die, ob eine
+vorbeugende Behandlung infrage kommt, bei Erbrechen die nach einer anderen
+Darreichungsform, bei Aura die nach der Verhütung mit Östrogen, bei Gastritis
+Typ C die nach dem passenden Akutmittel. Die vier lehnt sich an die Zulassung
+einiger vorbeugender Migränemittel an, die für Erwachsene mit mindestens vier
+Migränetagen im Monat zugelassen sind; Body Check zählt dabei jeden
+Kopfschmerztag – ob es Migränetage sind und ob eine Vorbeugung passt,
+beurteilt die Praxis. <!--
+Quelle: EMA-Produktinformation Aimovig (Erenumab), 4.1: „angezeigt zur
+Migräne-Prophylaxe bei Erwachsenen mit mindestens 4 Migränetagen pro Monat";
+ebenso AQUIPTA, 4.1. Die Schwelle 4 in js/kopf.js ist unverändert. --> Ab vier
+Kopfschmerzen „schon beim Aufwachen“ in 30 Tagen kommt für alle die Frage, ob
+das mit dem Schlaf (Schnarchen, Atemaussetzer) oder mit den eigenen
+Schmerzmitteln zu tun haben kann, und getrennt davon, ob Koffein bei den
+Kopfschmerzen eine Rolle spielt. Ist „Kiefer, Nacken,
 Schiene“ eingeschaltet und stehen in denselben 30 Tagen mindestens zehn
 Nächte mit Schiene im Tagebuch, nennt die Frage im ersten Satz die Schiene.
 Fragen, keine Empfehlungen.
 
 Wird die Periode eingetragen, zählt die Karte zusätzlich das **Fenster um die
 Periode** – zwei Tage davor bis zum dritten Blutungstag, in X von Y Zyklen.
-Das ist die Frage „menstruell?", und die vier geschätzten Phasen beantworten
-sie nicht: Die zwei Tage vor der Blutung verschwinden dort in der breiten
-zweiten Zyklushälfte.
+Dieses Fenster nutzt die Kopfschmerzklassifikation, bisher nur in ihrem
+Anhang: Liegen Migräneanfälle in mindestens zwei von drei Zyklen darin, spricht
+sie von einer Migräne, die an die Menstruation gebunden ist. Gezählt werden
+dort Migräneanfälle, hier jeder Kopfschmerz. Die vier geschätzten Phasen
+beantworten diese Frage nicht: Die zwei Tage vor der Blutung verschwinden dort
+in der breiten zweiten Zyklushälfte. <!--
+Quelle: ICHD-3 (2018), Anhang A1.1.1 Pure menstrual migraine without aura,
+Kriterium B: „Occurring exclusively on day 1 ± 2 (ie, days −2 to +3) of
+menstruation in at least two out of three menstrual cycles"; 1.1, Kommentar:
+die Kriterien stehen „in the Appendix because of uncertainty". -->
 
 #### Was Kopf und Bauch verbindet
 
-Das **Schmerzmittel**. Ibuprofen, Diclofenac und ASS gehören zu den häufigsten
-Ursachen einer gereizten Magenschleimhaut – bei einer Gastritis Typ C einer der
-Hauptverdächtigen, neben Gallenrückfluss und Alkohol –, und wer Kopfschmerzen
-hat, greift genau dazu. Die Karte vergleicht den Bauch am Tag mit
-entzündungshemmendem Mittel und am Tag danach – und zwar, wo es geht,
-**innerhalb der Kopfschmerztage**: gegen Kopfschmerztage ohne ein solches
-Mittel (Triptan, Paracetamol, nichts). Beide Seiten haben den Kopfschmerz, der
-Unterschied ist das Mittel – oder die Schwere des Anfalls, denn ein Mittel nimmt
-man eher an den schlimmeren Tagen; deshalb steht die mittlere Kopfstärke beider
-Seiten mit dabei. Gegen „alle übrigen Tage" misst man vor allem den Anfall
-selbst – Übelkeit, Nüchternbleiben, Liegen –, und wenn der Vergleich nur so
-geht, sagt der Satz das.
+Das **Schmerzmittel**. Die häufige Einnahme entzündungshemmender Schmerzmittel
+(NSAR) wie Ibuprofen, Diclofenac oder ASS zählt neben Helicobacter zu den
+häufigsten Gründen einer Magenschleimhautentzündung: Bei kurzer Einnahme sind
+Nebenwirkungen eher selten, über Wochen oder Monate kann die Schutzfunktion der
+Magenschleimhaut gestört werden. Eine Gastritis Typ C entsteht durch chemische
+Stoffe; als Ursache kommen unter anderem zurücklaufende Gallenflüssigkeit,
+Alkohol und bestimmte Schmerzmittel in Frage. Und bei starken Migräneschmerzen
+nehmen viele genau solche Mittel. <!--
+Quelle: gesund.bund.de/gastritis (mit IQWiG, Stand 13.11.2025), Ursachen: „Zu
+den häufigsten Gründen zählen eine Infektion mit Helicobacter-Pylori-Bakterien
+oder die häufige Einnahme von … NSAR", „eher selten mit Nebenwirkungen",
+„über einen längeren Zeitraum von Wochen oder Monaten"; gesund.bund.de/glossar/
+typ-c-gastritis; gesund.bund.de/migraene (Stand 21.12.2022), Behandlung:
+„nehmen viele bei starken Schmerzen auch Medikamente ein". --> Die Karte
+vergleicht den Bauch am Tag mit entzündungshemmendem Mittel und am Tag danach –
+und zwar, wo es geht, **innerhalb der Kopfschmerztage**: gegen Kopfschmerztage
+ohne ein solches Mittel (Triptan, Paracetamol, nichts). Beide Seiten haben den
+Kopfschmerz, der Unterschied ist das Mittel – oder die Schwere des Anfalls,
+denn viele nehmen ein Mittel eher bei starken Schmerzen; deshalb steht die
+mittlere Kopfstärke beider Seiten mit dabei. Gegen „alle übrigen Tage" misst
+man womöglich vor allem den Anfall: Bei einer Migräne können Übelkeit oder
+Erbrechen dazugehören, und alltägliche Bewegung verstärkt den Schmerz oder wird
+gemieden. Wenn der Vergleich nur so geht, sagt der Satz das. <!--
+Quelle: ICHD-3 (2018), 1.1, Kriterium C4: „aggravation by or causing avoidance
+of routine physical activity", Kriterium D1: „nausea and/or vomiting". -->
 
 Unter „Was noch fehlt" bekommt die Frage nach Magenschutz oder Alternative den
 Zusatz, wogegen das Mittel genommen wurde, und ist so formuliert, dass man sie
 vorlesen kann – „regelmäßig" stimmt bei anfallsweiser Einnahme nicht. Mit
-Gastritis Typ C im Befund steht dazu, was feststeht und was nicht: Diese Mittel
-gehören zu den häufigsten Gründen für eine chemisch gereizte Schleimhaut; ob
-sie es *im Einzelfall* sind, steht im Befund und nicht im Tagebuch. Sicher ist nur,
-dass sie eine Schleimhaut treffen, die schon gereizt ist. Mit Zwerchfellbruch
-im Befund wird aus Blutbild und Ferritin eine konkrete Frage: An der Engstelle
-des Bruchs bluten kleine Defekte unbemerkt, und ein NSAR macht sie
-wahrscheinlicher.
+Gastritis Typ C im Befund steht dazu, was feststeht und was nicht: Neben dem
+Rückfluss von Darminhalt sind entzündungshemmende Schmerzmittel die häufigsten
+Ursachen einer chemisch bedingten Schleimhautschädigung; ob sie es *im
+Einzelfall* sind, steht im Befund und nicht im Tagebuch. Bei
+Magen-Darm-Erkrankungen in der Vorgeschichte sehen Fachinformationen dieser
+Mittel eine besonders sorgfältige ärztliche Überwachung vor. Mit
+Zwerchfellbruch im Befund wird aus Blutbild und Ferritin eine konkrete Frage:
+An der Engstelle eines großen Bruchs können kleine Schleimhautdefekte entstehen
+(Cameron-Läsionen), die langsam und unbemerkt bluten und zu Eisenmangel führen
+können; in einer Studie fanden sie sich bei häufiger Einnahme entzündungshemmender
+Schmerzmittel öfter. Ob das im Einzelfall zutrifft, klärt die Praxis. <!--
+Quelle: Owen, Mod Pathol 2003 (PMID 12692198), Abstract: „Reactive gastropathy
+… in most instances it is associated with either reflux of duodenal contents or
+therapy with nonsteroidal anti-inflammatory drugs." Fachinformation
+IBU-ratiopharm 400 mg akut (fachinfo.de/fi/pdf/014937, Stand Juni 2026), 4.4:
+„Eine besonders sorgfältige ärztliche Überwachung ist erforderlich: bei
+Magen-Darm-Störungen … in der Vorgeschichte". Moskovitz 1992 (PMID 1595651):
+„small erosions at the waist of the hernia which bleed slowly"; Kimer 2010
+(PMID 22791730): „associated with occult bleeding and development of chronic
+iron deficiency anaemia"; Gray, Dis Esophagus 2015 (PMID 24758713): „Large HH
+size and NSAID use were identified as independent risk factors". -->
 
-Und die Übelkeit: Sie gehört zum Anfall, und wer sie zusätzlich als
-Bauchbeschwerde einträgt, macht aus der Migräne einen Magentag – in den
+Und die Übelkeit: Sie zählt zu den häufigsten Begleitsymptomen einer
+Migräneattacke, kommt aber nicht bei jeder vor; woher sie im Einzelfall kommt,
+kann das Tagebuch nicht entscheiden – laut Fachinformation von Imigran ist bei
+Übelkeit und Erbrechen nach der Einnahme sogar unklar, ob sie vom Mittel oder
+vom Anfall kommen. <!--
+Quelle: ICHD-3 (2018), Definition of terms, „Accompanying symptoms": „In
+migraine, for example, the most frequent accompanying symptoms are nausea,
+vomiting, photophobia and phonophobia"; 1.1, Kriterium D (eine von zwei
+Möglichkeiten). Fachinformation Imigran (fachinfo.de/fi/pdf/012361, Stand
+August 2025), 4.8: „Es ist jedoch unklar, ob diese mit der Anwendung von
+Sumatriptan oder mit der Migräneattacke selbst in Zusammenhang stehen." --> Wer
+sie zusätzlich als Bauchbeschwerde einträgt, macht aus der Migräne einen
+Magentag – in den
 Kriterien, in der Richtung, in der Auslöserbilanz. Der Kopfbogen sagt das,
 sobald „Mit Übelkeit" angekreuzt ist. Was trotzdem durchrutscht, fängt die
 Störfaktoren-Schichtung ab (siehe *Liegt es wirklich daran?*): Der Kopfschmerz
@@ -744,12 +916,16 @@ entscheidet, nimmt der Untersuchung ihre Frage weg.
 Was `js/bild.js` stattdessen liefert:
 
 1. **Warnzeichen.** Blut erbrochen, schwarzer Stuhl, Schluckstörung,
-   ungewollter Gewichtsverlust, nächtliches Aufwachen, Schmerz mit Ausstrahlung
-   in Arm oder Kiefer. Sie werden im Beschwerde- *und* im Stuhlbogen
-   angekreuzt – die zwei wichtigsten stehen dort, nicht hier –, tauchen in
-   keiner Statistik auf und stehen im Reiter „Muster" wie im Bericht ganz oben,
-   mit `sofort` oder `zeitnah`. Ohne Schwelle: Ein einziges Mal ist ein
-   einziges Mal zu viel.
+   ungewollter Gewichtsverlust, nächtliches Aufwachen, Schmerz, der in Arm,
+   Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß. Sie werden
+   im Beschwerde- *und* im Stuhlbogen angekreuzt – Blut im Stuhl und schwarzer
+   Stuhl stehen dort, nicht im Beschwerdebogen –, tauchen in keiner Statistik
+   auf und stehen im Reiter „Muster" wie im Bericht ganz oben, mit `sofort`
+   oder `zeitnah`. Bei `sofort` sagt die Warnkarte: nicht auf einen Termin
+   warten – Notaufnahme oder 112; dasselbe steht in „Was Sache ist". Ohne
+   Schwelle: Ein einziges Mal ist ein einziges Mal zu viel. <!--
+   Stufen und Namen aus js/bild.js; Wortlaut der Warnkarte (warnTeil in
+   js/app.js) und js/lage.js. -->
 2. **Muster mit Belegen.** Säuretypisch, Nüchternschmerz, Völlegefühl nach dem
    Essen, darmbetont, Zusammenhang mit Schmerzmitteln, zyklusgebunden,
    anspannungsgebunden. Jedes nennt seine Belege mit Zahlen – „14 von 14
@@ -762,35 +938,68 @@ Was `js/bild.js` stattdessen liefert:
 
 #### Die Kriterien: Rom IV und GerdQ
 
-`js/kriterien.js` geht einen Schritt weiter als eine Beschreibung und rechnet
-die Regelwerke nach, mit denen in der Sprechstunde tatsächlich eingeordnet
-wird. Sie bestehen aus nichts als Beschwerden und Zeiträumen – also genau aus
-dem, was in einem Tagebuch steht.
+`js/kriterien.js` geht einen Schritt weiter als eine Beschreibung: Es zählt
+nach veröffentlichten Kriterien – Rom IV von 2016 für das Reizdarmsyndrom,
+dazu die Magenbeschwerden und ein Punktwert angelehnt an den GerdQ-Fragebogen
+für Reflux. Sie bestehen aus Beschwerden und Zeiträumen – also aus dem, was in
+einem Tagebuch steht. Sie ersetzen keine Untersuchung; die Einordnung trifft
+die Praxis. 2026 wurde eine Nachfolgefassung, Rom V, vorgestellt. <!--
+Quelle: Mearin, Gastroenterology 2016 (PMID 27144627), Abstract: „created a
+need to revise the Rome III criteria" und „assist both clinicians and
+researchers"; Lancet
+Gastroenterol Hepatol 2026 (PMID 42392123), Abstract: „The Rome V criteria for
+irritable bowel syndrome (IBS) were proposed in May, 2026." -->
 
-* **Rom IV, Reizdarmsyndrom.** Bauchschmerz im Mittel mindestens einmal pro
-  Woche, verbunden mit mindestens zwei von drei Merkmalen: Zusammenhang mit dem
-  Stuhlgang, Änderung der Häufigkeit, Änderung der Form. Dazu der Typ –
-  Verstopfung, Durchfall, gemischt – aus der Verteilung der Bristol-Stufen.
-* **Rom IV, funktionelle Dyspepsie**, getrennt nach ihren beiden Formen: PDS
-  (Völlegefühl und frühes Sattsein, mindestens drei Tage die Woche) und EPS
-  (Schmerz oder Brennen im Oberbauch, mindestens einen Tag die Woche). Sie
-  werden verschieden behandelt.
-* **GerdQ.** Sechs Fragen zu den letzten sieben Tagen, 0 bis 18 Punkte, ab 8
-  gilt eine Refluxkrankheit als wahrscheinlich. Zwei der sechs zählen
-  *umgekehrt*: Oberbauchschmerz und Übelkeit sprechen eher gegen Reflux. Das
-  ist kein Fehler, das ist der Trick des Fragebogens – er misst nicht, wie
-  schlecht es jemandem geht, sondern wie typisch das Muster ist.
+* **Rom IV, Reizdarmsyndrom.** Wiederkehrender Bauchschmerz, im Mittel an
+  mindestens einem Tag pro Woche in den letzten drei Monaten, verbunden mit
+  mindestens zwei von drei Merkmalen: Zusammenhang mit dem Stuhlgang, Änderung
+  der Häufigkeit, Änderung der Form; der Beginn liegt mindestens sechs Monate
+  zurück (das fragt die App eigens, unten). Dazu der Typ – Verstopfung,
+  Durchfall, gemischt – aus der Verteilung der Bristol-Stufen. <!--
+  Quelle: FDA, NDA 211801 (Ibsrela), Multidisciplinary Review, Table 1 „Rome IV
+  Diagnostic Criteria for Irritable Bowel Syndrome": „Recurrent abdominal pain,
+  on average, at least 1 day per week in the last 3 months, associated with ≥ 2
+  of the following criteria … symptom onset at least 6 months before
+  diagnosis". -->
+* **Magenbeschwerden**, gezählt und ohne Einordnung: Druck, Völlegefühl oder
+  früh satt, und Brennen oder Schmerz im Oberbauch, jeweils ab Stärke 4 – diese
+  Grenze hat Body Check festgelegt. Rom IV beschreibt die funktionelle
+  Dyspepsie über solche Beschwerden, wenn sie nach einer üblichen ärztlichen
+  Untersuchung unerklärt bleiben. Ein „Kriterien erfüllt“ gibt es dafür nicht:
+  Die Schwellen ihrer beiden Unterformen ließen sich an keiner erreichbaren
+  Quelle im Wortlaut prüfen. <!--
+  Quelle: Stanghellini, Gastroenterology 2016 (PMID 27147122), Abstract:
+  „functional dyspepsia, characterized by 1 or more of the following:
+  postprandial fullness, early satiation, epigastric pain, and epigastric
+  burning, which are unexplained after a routine clinical evaluation". -->
+* **Ein Punktwert zu Reflux**, angelehnt an den GerdQ: einen Fragebogen mit
+  sechs Fragen zur Selbsteinschätzung, der Praxen bei der Einordnung von
+  Reflux helfen soll. Body Check füllt ihn nicht aus, sondern zählt aus den
+  Eintragungen der letzten sieben Tage einen Wert bis 18. Zwei Posten zählt es
+  umgekehrt: Je öfter sie eingetragen sind, desto weniger Punkte. Was die
+  Punktzahl bedeutet, kann die Praxis einordnen; eine Schwelle mit Deutung
+  steht nicht da. <!--
+  Quelle: Jones, Aliment Pharmacol Ther 2009 (PMID 19737151), Abstract:
+  „a patient-centred, self-assessment questionnaire to assist health care
+  professionals in the diagnosis … six-item diagnostic and management tool
+  (GerdQ)". Spanne, Schwelle und die umgekehrte Wertung stehen im Abstract
+  nicht; „bis 18" und „umgekehrt" beschreiben die Rechnung in js/kriterien.js. -->
 
 Drei Dinge stehen dabei, jedes Mal:
 
-1. **Erfüllte Kriterien sind keine Diagnose.** Beide Regelwerke setzen
-   ausdrücklich voraus, dass nichts Organisches dahintersteckt – und das weiß
-   nur eine Untersuchung. „Erfüllt" heißt: Wenn Spiegelung und Blutbild
-   unauffällig sind, passt dieser Name. Weniger als eine Diagnose, mehr als ein
-   Gefühl – und genau der Satz, mit dem sich ein Termin anfangen lässt.
-2. **Ein Tagebuch untererfasst.** Der GerdQ wird sonst gefragt, hier wird
-   gezählt; wer einen Tag nicht einträgt, hat laut Tagebuch nichts gehabt. Jede
-   Punktzahl ist eher zu niedrig als zu hoch – sie ist eine Untergrenze.
+1. **Erfüllte Kriterien sind keine Diagnose.** Von einem Reizdarm oder
+   Reizmagen sprechen Ärztinnen und Ärzte erst, wenn andere Ursachen für die
+   Beschwerden abgeklärt und ausgeschlossen sind; ob das so ist und welche
+   Untersuchungen dafür nötig sind, klärt die Praxis. Auch der Punktwert zu
+   Reflux ist keine Diagnose. <!--
+   Quelle: gesund.bund.de/reizmagen-funktionelle-dyspepsie (Stand 05.02.2026)
+   und gesund.bund.de/reizdarmsyndrom (Stand 28.08.2024), Zitate oben bei
+   „Was schon feststeht". -->
+2. **Body Check zählt nur, was eingetragen ist.** Ein Fragebogen wird sonst
+   beantwortet, hier wird gezählt, und die Angaben je Woche beziehen sich auf
+   die notierten Tage. Ob die Zahlen dadurch eher zu hoch oder zu niedrig
+   ausfallen, lässt sich nicht sagen – zwei Posten des Punktwerts zählen ja
+   umgekehrt.
 3. **Was nicht prüfbar ist, wird nicht behauptet.** Reicht der Zeitraum nicht
    oder fehlen die Vergleichstage, steht „noch nicht prüfbar" da und daneben,
    was fehlt. Auch im Bericht: Ein Regelwerk stillschweigend wegzulassen sieht
@@ -809,14 +1018,27 @@ dass es damit zu tun hätte. Aus Beobachtung wird kein Beweis, egal wie lange
 man beobachtet.
 
 `js/versuch.js` dreht das um. Man lässt etwas weg – und isst es danach
-**bewusst wieder**. Erst diese zweite Hälfte entscheidet: Nach zwei Wochen ohne
-irgendwas geht es fast jedem besser, weil der Sommer kommt oder der Stress
-nachlässt. Kommen die Beschwerden mit der Wiedereinführung zurück, ist das
-schwer anders zu erklären.
+**bewusst wieder**. Erst diese zweite Hälfte entscheidet: Beschwerden können in
+einer Auslasszeit auch dann nachlassen, wenn das Weggelassene nicht die Ursache
+war – beim Reizdarm etwa wechseln sich häufig Zeiten mit leichten oder gar
+keinen Beschwerden und Phasen mit stärkeren ab. Kommen die Beschwerden mit der
+Wiedereinführung zurück, ist das schwer anders zu erklären. <!--
+Quelle: gesund.bund.de/reizdarmsyndrom (mit IQWiG, Stand 28.08.2024): „Häufig
+zeigt sich die Erkrankung schubweise: Das heißt, die Betroffenen haben dann
+eine Zeit lang nur leichte oder gar keine Darmbeschwerden und dann wieder
+Phasen mit stärkeren Symptomen." -->
 
 Vorgeschlagen wird, was in der Bilanz auffällt, **Klassen vor einzelnen
-Zutaten**: Hinter „Zwiebel" steckt fast immer die ganze Klasse, und wer nur die
-Zwiebel weglässt, isst die übrigen Fruktane weiter und lernt nichts. Der Stand
+Zutaten**: Eine Klasse kommt in mehr Mahlzeiten vor, der Vergleich beruht so
+auf mehr Fällen. Zwiebel gehört zu den Lebensmitteln mit besonders viel
+Fruktanen; Fruktane stecken aber auch in Weizen, Knoblauch und Artischocke, und
+wer nur die Zwiebel weglässt, isst die übrigen weiter. Ob eine einzelne Zutat
+oder eine ganze Gruppe dahintersteckt, kann das Tagebuch nicht entscheiden. <!--
+Quelle: Goebel-Stengel, Mönnikes, Dtsch Med Wochenschr 2014 (PMID 24892470),
+Abstract: „fructans (wheat, onions, garlic, artichoke)"; Ferjančič, Front Nutr
+2024 (PMID 39155934), Abstract: „The highest fructan content was found in onion
+(1.97 g/100 g), followed by wheat flour". Wortlaut wie die Karte
+„Einen Auslassversuch machen" in js/app.js. --> Der Stand
 steht täglich auf dem Tagesreiter, samt dem Knopf für die Wiedereinführung –
 hier versandet so ein Versuch sonst.
 
@@ -835,21 +1057,38 @@ Nachweis.
 
 #### Ob die Mittel etwas bewirken
 
-Sie trägt ein, was sie nimmt, und niemand rechnet nach. `js/ansprechen.js`
+Was eingetragen wird, rechnet sonst niemand nach. `js/ansprechen.js`
 vergleicht die Beschwerdestärke unter einem Mittel gegen einen gleich langen
 Zeitraum davor.
 
-Der interessante Fall ist nicht die Besserung, sondern ihr Ausbleiben: Ein
-Säureblocker, der nach vier bis acht Wochen nichts geändert hat, spricht gegen
-die Säure als Ursache – und damit für eine funktionelle Störung oder für etwas,
-das noch nicht gefunden wurde. Das ist eine der wenigen Stellen, an denen ein
-Tagebuch eine Untersuchung ersetzt.
+Der interessante Fall ist nicht die Besserung, sondern ihr Ausbleiben: Hat sich
+unter einem Säureblocker über Wochen nichts geändert, ist das eine Beobachtung,
+die in die Praxis gehört. Was sie bedeutet, lässt sich aus dem Tagebuch nicht
+ablesen: Für diesen Fall sehen Fachinformationen weitere Untersuchungen vor,
+und auch bei gesicherter Refluxkrankheit war in Studien nach vier Wochen nicht
+jeder beschwerdefrei. Das Tagebuch liefert die Zahlen dazu; eine Untersuchung
+ersetzt es nicht. <!--
+Quelle: Fachinformation Antra MUPS (fachinfo.de/fi/pdf/004171, Stand Mai 2024),
+4.2: „Wenn die Kontrolle der Symptome nach einer vierwöchigen Behandlung …
+nicht erreicht wurde, werden weitere Untersuchungen empfohlen."; Fachinformation
+Nexium mups (fachinfo.de/fi/pdf/004417, Stand Juli 2025), 4.2: „Reicht eine
+4-wöchige Behandlungsperiode nicht aus, sollte der Patient weitergehend
+untersucht werden."; EMA-Produktinformation PANTOZOL Control, 5.1: vollständige
+Linderung des Sodbrennens nach 28 Tagen bei „68,1 % bis 92,3 %", Diagnose meist
+„auf endoskopischer Beurteilung". -->
 
 Was hier trotzdem nicht passiert: kein „nimm mehr", kein „setz es ab", kein
-„wechsle das Präparat". Ein Säureblocker wird nach längerer Einnahme nicht von
-einem Tag auf den anderen weggelassen – der Magen antwortet dann mit mehr Säure
-als vorher. Und eine Besserung wird nicht als Beweis verkauft: Man fängt ein
-Mittel meistens an, *weil* es gerade besonders schlecht ist.
+„wechsle das Präparat". Ob und wie ein Mittel beendet wird, gehört in die
+Praxis oder Apotheke; manche Packungsbeilagen sagen dazu ausdrücklich etwas,
+etwa die eines Pantoprazol-Präparats: „Setzen Sie die Tabletten nicht ab, ohne
+zuerst mit Ihrem Arzt oder Apotheker zu sprechen.“ Und eine Besserung wird
+nicht als Beweis verkauft: Beschwerden schwanken auch von selbst, und wird ein
+Mittel begonnen, während es gerade besonders schlecht ist, kann eine Besserung
+danach auch ohne das Mittel kommen. <!--
+Quelle: Gebrauchsinformation Pantoprazol +pharma 40 mg (BASG 1-31214,
+überarbeitet Jänner 2026), Abschnitt 3; ebenso Pantoprazol ratiopharm GmbH
+(BASG 1-31637, Oktober 2024). Schwankung: gesund.bund.de/reizdarmsyndrom
+(Stand 28.08.2024), „schubweise". -->
 
 #### Was noch fehlt
 
@@ -874,18 +1113,20 @@ Verwischung Leute in die falsche Sprechstunde schickt.
 Der Zyklus wird aus den eingetragenen Blutungstagen gerechnet, nicht
 vorhergesagt. Ohne abgeschlossenen Zyklus gibt es keine mittlere Länge und
 damit keine Phasen; 28 Tage still anzunehmen wäre bequem und bei jedem, dessen
-Zyklus 24 oder 34 Tage dauert, durchgehend falsch. **Nicht zur Verhütung
+Zyklus etwa 26 oder 34 Tage dauert, durchgehend falsch. **Nicht zur Verhütung
 geeignet** – der Eisprung wird hier nicht gemessen, sondern geschätzt.
 
 ### Was die Mittel bewirken
 
 Wer Magenbeschwerden hat, hat bald mehrere Schachteln im Schrank, und die
 Beipackzettel beantworten selten die Frage, die man wirklich hat: Was macht das
-eigentlich, und warum ausgerechnet vor dem Frühstück? `js/mittel.js` beschreibt
+eigentlich, und warum zu dieser Zeit? `js/mittel.js` beschreibt
 fünfundzwanzig Wirkstoffgruppen – von Protonenpumpenhemmern über Antazida bis zur
 Helicobacter-Behandlung, die Schmerz- und Migränemittel, die Mittel bei ADHS
-und Koffein als Tablette – in ganzen Sätzen: wie sie arbeiten, wann man sie
-üblicherweise nimmt, worauf zu achten ist. Unter „Mehr" stehen zuerst die
+und Koffein als Tablette – in ganzen Sätzen: wie sie arbeiten, was
+Fachinformationen und Packungsbeilagen zur Einnahme sagen (oft je nach
+Wirkstoff oder Präparat verschieden; maßgeblich ist die eigene
+Packungsbeilage), worauf zu achten ist. Unter „Mehr" stehen zuerst die
 Mittel, die tatsächlich eingetragen wurden, mit Häufigkeit und Erklärung; beim
 Eintragen erscheint die Erklärung gleich im Bogen.
 
@@ -906,8 +1147,21 @@ benannt, wenn der Beleg nur für dieses gilt („laut US-Fachinformation“).
 Unter Methylphenidat steht **„Je nach Form“**: sieben Formen (nicht
 retardierte Tablette, Kapsel mit zweierlei Kügelchen, Ritalin LA / Ritalin
 Adult, Retardtablette mit Hülle, andere Retardtablette, Equasym Retard, „Weiß
-ich nicht“), denn wie Methylphenidat freigesetzt wird, hängt an der Form – und
-damit, wie es sich zum Essen und zu einem Säureblocker verhält. Jeder dieser
+ich nicht“), denn wie lange Methylphenidat wirkt, ist laut Fachinformationen
+je nach Form verschieden, bei manchen Formen verschiebt auch Essen den
+Verlauf, und was die Fachinformation zu Säureblockern sagt, ist von Präparat zu
+Präparat verschieden: Bei Medikinet retard und Medikinet adult steht die
+Behandlung damit unter den Gegenanzeigen, bei den übrigen geprüften Präparaten
+kommen Säureblocker nicht vor. <!--
+Quelle: Fachinformation Equasym Retard (fachinfo.de/fi/pdf/012100, Stand Juni
+2026), 5.2: „Die Einnahme zusammen mit Nahrungsmitteln mit hohem Fettanteil
+verzögert die Resorption (Tmax) um annähernd eine Stunde"; Fachinformation
+Medikinet retard (fachinfo.de/fi/pdf/009621, Stand Dezember 2025), 4.3: „bei
+H2-Rezeptorenblockern, Protonenpumpen-Inhibitoren oder Antazidatherapie";
+ebenso Medikinet adult (013066, September 2025). Im Volltext ohne Antazida,
+Protonenpumpenhemmer oder H2-Blocker: Ritalin LA (010445), Ritalin (002958),
+Medikinet Tabletten (002039), Equasym Retard (012100); weitere im Kopf von
+js/zusammen.js (Stufe B). --> Jeder dieser
 Texte sagt selbst, wen man fragt (Ärztin, Praxis oder Apotheke): Im Bogen steht
 er allein, ohne den Hinweis zum Wirkstoff. Die Form fragt der Medikamenten-Bogen
 (vorgewählt nach dem Namen, wo der Name sie eindeutig nennt, auch mit
@@ -954,8 +1208,15 @@ in den letzten 30 Tagen eingetragen ist – genannt wird die Gruppe
 („Methylphenidat gehört zu den Mitteln bei ADHS …“), nie der eingetippte Name;
 für Kiefer, Nacken, Schiene nach einer Massagepistole, Massage oder Wärme oder
 einer Notiz, in der Kiefer, Schiene oder Knirschen vorkommt. „Nackenschmerz
-dabei“ beim Kopfschmerz löst es nicht aus – den haben die meisten Menschen mit
-Migräne. „Nein danke“ ist endgültig und nur unter „Mehr“ wieder umzustellen.
+dabei“ beim Kopfschmerz löst es nicht aus: Nackenschmerz ist bei Migräne
+häufig – in Klinikstudien hatten ihn gepoolt 77 % der Menschen mit Migräne –,
+und die Kopfschmerzklassifikation nennt einen steifen oder schmerzenden Nacken
+als mögliches Zeichen vor oder nach einer Attacke. <!--
+Quelle: Al-Khazali, Cephalalgia 2022 (PMID 35166137), Abstract: „pooled relative
+frequency of neck pain was 77.0% … in the migraine group" (Klinikstudien);
+ICHD-3 (2018), Einleitung Kapitel 1: „Prodromal and postdromal symptoms include
+… neck stiffness and/or pain". --> „Nein danke“ ist endgültig und nur unter
+„Mehr“ wieder umzustellen.
 
 **Was ohne Schalter für alle gilt**, weil es Wissen, Sicherheit oder ehrliche
 Zählung ist: die Texte zu den Mitteln bei ADHS und die Formwahl, die Hinweise
@@ -974,28 +1235,62 @@ kennt nur die wenigen Paare, bei denen ein ADHS-Mittel auf etwas trifft, das in
 diesem Tagebuch ohnehin oft steht: Säureblocker, Natron, Vitamin C, Triptane,
 Metamizol, einige Mittel gegen Depression, Blutverdünner der Cumarin-Art. Als
 eingetragen gilt, was unter „Meine Mittel“ steht oder in den letzten 30 Tagen
-genommen wurde. Drei Stufen:
+genommen wurde. Drei Stufen; sie bestimmen nur die Reihenfolge und ob eine
+Karte auf „Tag“ steht, nicht, wie wichtig ein Paar für jemanden ist:
 
-* **A** – die Fachinformation führt die Einnahme zusammen unter den
-  Gegenanzeigen: Methylphenidat als Kapsel mit zweierlei Kügelchen und ein
-  Mittel gegen Magensäure (in einem weniger sauren Magen kann der Wirkstoff
-  früher frei werden), und dasselbe mit unbekannter Form, solange keine
-  angegeben ist. Gesagt wird es so streng, wie es dort steht – und immer mit
-  dem Satz, nichts eigenmächtig wegzulassen. Stufe A steht als Karte
+* **A** – ein Paar, das die Fachinformation unter den Gegenanzeigen führt:
+  Methylphenidat als Kapsel mit zweierlei Kügelchen (Medikinet retard,
+  Medikinet adult) und ein Mittel bei Säurebeschwerden. In der Fachinformation
+  dieser Kapseln steht die Behandlung mit H2-Blockern, Protonenpumpenhemmern
+  oder Antazida unter den Gegenanzeigen; zusammen damit kann laut
+  Fachinformation die gesamte Wirkstoffmenge rascher frei werden. Alginate
+  nennt sie nicht eigens, und bei einem Alginat-Präparat steht das dabei.
+  Dasselbe gilt vorsorglich bei unbekannter Form, solange keine angegeben ist.
+  Gesagt wird es so streng, wie es dort steht – und immer mit dem Satz, nichts
+  eigenmächtig wegzulassen. <!--
+  Quelle: Fachinformation Medikinet retard (fachinfo.de/fi/pdf/009621, Stand
+  Dezember 2025), 4.3: „bei H2-Rezeptorenblockern, Protonenpumpen-Inhibitoren
+  oder Antazidatherapie"; 4.5: „da es dabei zu einer rascheren Freisetzung der
+  gesamten Wirkstoffmenge kommen kann". Wortlaut W1/W1u in js/zusammen.js. -->
+  Stufe A steht als Karte
   auf „Tag“, bis sie gelesen ist, in der Meldung beim Speichern, im Bogen,
   unter „Meine Mittel“, im Bericht und dort oben in IN KÜRZE, gleich nach den
   Warnzeichen.
 * **B** – eine Frage, die sich in Apotheke oder Praxis klären lässt: die
-  anderen Formen von Methylphenidat mit einem Säureblocker (ob es passt, hängt
-  an der Form), Dexamfetamin mit Natron, Lisdexamfetamin mit Natron oder
-  Vitamin C (die Fachinformation beschreibt dort eine Veränderung).
-* **C** – selten oder nur in der US-Fassung belegt (Triptane bei
-  Lisdexamfetamin, Metamizol bei Bupropion, bestimmte Mittel gegen Depression
-  bei Atomoxetin oder Methylphenidat, Cumarine bei Methylphenidat).
+  anderen Formen von Methylphenidat mit einem Säureblocker – deren
+  Fachinformationen nennen Säureblocker nicht, und der Hinweis behauptet keine
+  Veränderung; was dazu steht, ist von Präparat zu Präparat verschieden –,
+  dazu Dexamfetamin mit Natron und Lisdexamfetamin mit Natron oder Vitamin C,
+  bei denen die Fachinformation eine Veränderung beschreibt (bei
+  Lisdexamfetamin nennt den Spiegel die US-Fassung).
+* **C** – die übrigen Paare, die die Fachinformation bei den Wechselwirkungen
+  nennt, ohne Häufigkeit und nicht unter den Gegenanzeigen: Metamizol bei
+  Bupropion (der Bupropion-Spiegel kann sinken), Fluoxetin, Paroxetin und
+  andere Mittel, die dasselbe Abbau-Enzym hemmen, bei Atomoxetin (dessen
+  Spiegel steigt), und nach „Berichten mit Hinweisen“ bestimmte Mittel gegen
+  Depression und Cumarine bei Methylphenidat; dazu ein Paar, das nur die US-Fassung
+  ausdrücklich nennt: Triptane bei Lisdexamfetamin. <!--
+  Quelle: Fachinformation Novalgin (fachinfo.de/fi/pdf/014708, Stand November
+  2024), 4.5: „Metamizol mit Bupropion … kann eine Reduktion der
+  Plasmakonzentration dieser Arzneimittel … bewirken"; Fachinformation
+  Atomoxetin-ratiopharm (022556, September 2024), 4.5: „CYP2D6-Inhibitoren
+  (SSRIs (z. B. Fluoxetin, Paroxetin) …) … ist die AUC von Atomoxetin ca. 6- bis
+  8-fach … höher"; Fachinformation Medikinet retard (009621), 4.5: „Es liegen
+  jedoch Berichte mit Hinweisen vor, dass Methylphenidat den Metabolismus von
+  Antikoagulanzien vom Cumarin-Typ … und einigen Antidepressiva … hemmen
+  kann"; Fachinformation Elvanse (020737, Oktober 2026), 4.5: Serotonin-Syndrom
+  „Selten" mit SSRI und SNRI, Triptane nicht genannt; US-Fachinformation
+  Vyvanse (Revised 09/2025), 5.7: „… SNRIs, triptans …". Stufen W_STUFE in
+  js/zusammen.js. -->
 
 Jeder Text endet bei Praxis oder Apotheke, und keiner sagt, etwas wegzulassen –
-auch den Säureblocker nicht: Wer ihn von sich aus absetzt, hat womöglich ein
-anderes Problem als vorher. Für die Retardtablette mit Hülle und Equasym mit
+auch den Säureblocker nicht: In den Gebrauchsinformationen mancher
+Protonenpumpenhemmer steht, sie nicht abzusetzen, ohne vorher mit Ärztin, Arzt
+oder Apotheke zu sprechen. <!--
+Quelle: Gebrauchsinformation Pantoprazol +pharma 40 mg (BASG 1-31214,
+überarbeitet Jänner 2026), Abschnitt 3: „Setzen Sie die Tabletten nicht ab,
+ohne zuerst mit Ihrem Arzt oder Apotheker zu sprechen." --> Für die
+Retardtablette mit Hülle und Equasym mit
 einem Säureblocker steht nichts da: Belegt war dazu nichts, und ein
 beruhigender Satz wäre genauso unbelegt. Im Bericht stehen die Paare unter
 EINGENOMMENE MITTEL mit einem Satz aus der Fachinformation und einer Frage für
@@ -1127,10 +1422,16 @@ Alles bleibt auf diesem Gerät.
 * Auf der **Rat-Karte** hält sich die App beim Essen zurück, wenn in den
   letzten 14 Tagen ein ADHS-Mittel eingetragen ist und das Gewicht ungewollt
   sinkt oder an drei der letzten sieben Bauch-Tage „Kein Appetit“ steht: Dann
-  entfallen „Heute eher ohne …“ und „Die letzte Mahlzeit früher legen“. Sonst
-  bekommt der zweite Vorschlag einen Satz dazu – wenn der Appetit tagsüber
-  fehlt und erst abends kommt, ist die späte Mahlzeit vielleicht nötig, und
-  das wägt die Praxis ab, nicht die Karte.
+  entfallen „Heute eher ohne …“ und „Spätes Essen und Liegen“. Sonst bekommt
+  der zweite Vorschlag einen Satz dazu: Weniger Appetit steht etwa bei
+  Methylphenidat und Lisdexamfetamin unter den sehr häufigen Nebenwirkungen,
+  und das Gewicht wird dabei ärztlich beobachtet; wann gegessen wird, wägt
+  deshalb die Praxis ab, nicht die Karte. <!--
+  Quelle: Fachinformation Elvanse (fachinfo.de/fi/pdf/020737, Stand Oktober
+  2026), 4.8: „Verminderter Appetit Sehr häufig"; 4.4: „Das Körpergewicht ist
+  unter der Behandlung mit Stimulanzien zu überwachen"; Fachinformation Ritalin
+  LA (010445, September 2025), 4.8: „Sehr häufig Appetitverlust". Wortlaut
+  SPAET_ZUSATZ in js/rat.js. -->
 
 Gerechnet wird in `js/adhs.js`, alles nur Zählung in festen Fenstern, keine
 Wirkdauer:
@@ -1208,11 +1509,21 @@ Gerechnet wird in `js/spannung.js`:
   ungefähr, bleibt offen, was davor lag, und der Tag zählt nicht. Der Kopf am
   Morgen zählt erst ab der Nacht von gestern – heute kann ein Kopfschmerz
   „Schon beim Aufwachen da“ noch eingetragen werden. Nächte nach
-  einer Feier, einer Reise oder Alkohol zählen auf keiner
-  Seite – danach wird die Schiene eher vergessen, und der Kopf ist ohnehin
-  schwerer. Immer dabei: Die Schiene ist vor allem zum Schutz der Zähne
-  gedacht, und wer sie regelmäßig trägt, hat keinen Vergleich – das ist so in
-  Ordnung.
+  einer Feier, einer Reise oder Alkohol zählen auf keiner Seite: Danach wird
+  die Schiene womöglich eher vergessen (eine Annahme der App), und der Kopf
+  kann am nächsten Morgen aus anderen Gründen schwerer sein – Alkohol kann laut
+  Kopfschmerzklassifikation nach 5 bis 12 Stunden einen Kopfschmerz auslösen,
+  und ein unregelmäßiger Schlafrhythmus zählt zu den möglichen Auslösern einer
+  Migräne. Immer dabei: Wozu die Schiene im Einzelfall gedacht ist und ob sie
+  nützt, kann ein Tagebuch nicht zeigen – das beurteilt die Zahnarztpraxis; der
+  Vergleich zeigt nur, ob sich Kopf oder Kiefer am Morgen nach Nächten mit und
+  ohne Schiene unterscheiden. Wer sie regelmäßig trägt, hat keinen Vergleich –
+  das ist so in Ordnung. <!--
+  Quelle: ICHD-3 (2018), 8.1.4.2, Kriterium C1: „headache has developed within
+  5-12 hours after ingestion of alcohol"; gesund.bund.de/migraene (mit IQWiG,
+  Stand 21.12.2022): „Zu den Faktoren, die einen Migräne-Anfall auslösen
+  können, gehören ein unregelmäßiger Schlafrhythmus …". Wortlaut SCHIENE_IMMER
+  in js/spannung.js. -->
 * **V2** nach einem stark gegen nach einem locker verspannten Tag: ein neuer
   Kopfschmerz am nächsten Tag? Ein Tag, an dem schon Kopfschmerz war – auch
   einer vom Vorabend, der hineinreicht –, zählt nicht. Mit dem Satz, dass
@@ -1250,11 +1561,18 @@ Sicherung ältere Einträge dazu, deren Karte dort noch nicht gelesen war.
   damit nicht mehr als beschwerdefrei. Ebenso wenig die neuen Tagesangaben (Tag ohne Mittel,
   Nacken, Kiefer, Pressen, Schiene). Bupropion zählt wie bisher: Es ist für
   ADHS nicht zugelassen und wird hier nicht als ADHS-Mittel geführt.
-* **K2 und K2b – Koffein.** Nach der Kopfschmerzklassifikation ist jedes
-  Schmerzmittel mit Koffein ein Kombinationsmittel, mit der Grenze von etwa
-  zehn Tagen im Monat. „ASS Koffein“ und „ASS + Coffein“ zählen deshalb als
-  Kombinationsmittel (bisher als einfaches entzündungshemmendes Mittel mit der
-  Grenze fünfzehn). „Paracetamol Koffein“ und „Paracetamol + Coffein“ zählen
+* **K2 und K2b – Koffein.** Nach der Kopfschmerzklassifikation gilt ein
+  Präparat aus einem Schmerzmittel und Koffein als Zusatz als
+  Kombinationsmittel; als Übergebrauch nennt sie dort die Einnahme an zehn
+  oder mehr Tagen im Monat über mehr als drei Monate. „ASS Koffein“ und „ASS +
+  Coffein“ zählen deshalb als Kombinationsmittel (bisher als einfaches
+  entzündungshemmendes Mittel, für das die Klassifikation fünfzehn oder mehr
+  Tage nennt). <!--
+  Quelle: ICHD-3 (2018), 8.2.5, Kriterium B: „on ≥10 days/month for >3 months";
+  Note 1: „formulations combining drugs of two or more classes, each with
+  analgesic effect … or acting as adjuvants (for example, caffeine)"; 8.2.3:
+  „non-opioid analgesics on 15 or more days/month for more than 3 months". -->
+  „Paracetamol Koffein“ und „Paracetamol + Coffein“ zählen
   als Kombinationsmittel mit Paracetamol: für den Kopf mit der Grenze zehn, für
   den Magen nicht mehr als entzündungshemmend (bisher je nach Schreibweise als
   Kombinationsmittel, das für den Magen wie ein entzündungshemmendes zählte,
@@ -1273,8 +1591,18 @@ Sicherung ältere Einträge dazu, deren Karte dort noch nicht gelesen war.
   geändert hat“ – mit dem Hinweis, dass die App ihn mit dem Wirkstoff im
   Namen wieder zuordnet. Zwei Marken mit belegter Zusammensetzung
   kennt die App: „Spalt plus Coffein N“ (ASS, Paracetamol und Coffein) und
-  „Vivimed mit Coffein“ (Paracetamol und Coffein). Thomapyrin und Neuralgin
-  bleiben Kombinationsmittel. Am Kopfschmerztag stehen Kombinationsmittel in der
+  „Vivimed mit Coffein“ (Paracetamol und Coffein). Die Namen Thomapyrin und
+  Neuralgin zählt sie weiter als Kombinationsmittel; unter beiden Marken gibt
+  es laut Gebrauchsinformation aber auch Präparate ohne Koffein, etwa
+  Thomapyrin Tension und Neuralgin extra Ibu-Lysinat, beide nur mit Ibuprofen.
+  Welche Wirkstoffe drin sind, steht auf der Packung. <!--
+  Quelle: Gebrauchsinformationen (Wiedergabe medikamio), „Was … enthält":
+  Spalt plus Coffein N: „250 mg Acetylsalicylsäure (Ph.Eur.), 200 mg
+  Paracetamol und 50 mg Coffein"; vivimed mit Coffein: „Die Wirkstoffe sind:
+  Paracetamol und Coffein"; Thomapyrin TENSION (August 2025): „Der Wirkstoff
+  ist: Ibuprofen"; Neuralgin extra Ibu-Lysinat (August 2024): „Der Wirkstoff
+  ist: 400 mg Ibuprofen"; Neuralgin Schmerztabletten (Januar 2025): ASS,
+  Paracetamol und Coffein. --> Am Kopfschmerztag stehen Kombinationsmittel in der
   Aufschlüsselung „Akutmittel am selben Tag“ für sich, wie in den Fenstern.
 * **Säureblocker-Namen.** Pantozol, Nexium, Antra, Agopton, Rifun und Omep
   (damit auch Esomep) werden jetzt als Protonenpumpenhemmer erkannt, Maaloxan
@@ -1299,7 +1627,8 @@ Säureblocker, ein Schmerzmittel ohne Kopfschmerz oder eine Notiz steht – und
 vergleicht sie Zeichen für Zeichen mit dem, was der Code der Fassung 27 dazu
 gerechnet hat (mit `tests/gold/erzeugen.mjs` aus einem Stand von 27cf388
 erzeugt und eingecheckt) – im Bericht mit der einen Ausnahme der umbrochenen
-langen Zeilen. `tests/test-notiert.mjs` gibt demselben Tagebuch an jedem Tag ein
+langen Zeilen; dazu kommt der Wortlaut, den die Fassung 30 berichtigt hat
+(siehe dort). `tests/test-notiert.mjs` gibt demselben Tagebuch an jedem Tag ein
 ADHS-Mittel und alle neuen Tagesangaben und verlangt dieselben Zahlen bis auf
 die Zählung der Mittel selbst, `tests/test-gleich-v27.mjs` dasselbe für den
 Text der Reiter.
@@ -1356,12 +1685,61 @@ Rechnung dahinter bleibt. Wie lange die letzte Mahlzeit her ist, steht unter
 einer Stunde in Minuten („25 Minuten“, darunter „gerade eben“) und ab einer
 Stunde mit derselben Zehntelstunde wie bisher, aber mit Komma („1,5 Stunden“,
 „1 Stunde“) – statt „0.4 Stunden“. Nur 117 bis 119 Minuten nach dem Essen,
-wo die Zehntelstunde schon „2“ ergäbe, steht „knapp 2 Stunden“: Unter „Erst
-in zwei Stunden intensiv“ widerspräche „2 Stunden her“ der Karte selbst. Und nach dem Datum der letzten Einnahme
+wo die Zehntelstunde schon „2“ ergäbe, steht „knapp 2 Stunden“: Die Karte zur
+Bewegung kurz nach dem Essen steht nur bis zwei Stunden danach, und „2 Stunden
+her“ widerspräche ihr. Und nach dem Datum der letzten Einnahme
 unter „Was du nimmst“ steht ein Punkt statt zwei. Das Gold der Fassung 27
 bleibt, wie es erzeugt wurde: `tests/test-gleich-v27.mjs` gibt dieser einen
 Zeile vor dem Vergleich ihren zweiten Punkt zurück und prüft für sich, dass
 nur noch einer dasteht.
+
+### Neu in der Fassung 30
+
+Die medizinischen Texte sind Satz für Satz gegen Fachinformationen,
+Gebrauchsinformationen und weitere Quellen geprüft – gesund.bund.de, die
+Produktinformationen der EMA, die Kopfschmerzklassifikation ICHD-3 und
+Studienzusammenfassungen auf PubMed –, und zwar im Volltext: die Wissenstexte
+zu den Mitteln, die Vorschläge für heute, die Kriterien, der Kopfschmerz, die
+Zeitabstände nach dem Essen, die Warnzeichen, der Bericht und diese README.
+Was eine Quelle nicht trägt, ist gestrichen oder vorsichtiger gefasst („laut
+Fachinformation von …“, „bei manchen Präparaten“); im Code steht neben jedem
+Satz seine Quelle mit Dokument, Stand und Abschnitt. Keine Zahl, keine
+Schwelle und keine Rechnung hat sich dabei geändert.
+
+Weggefallen ist die Ortszuordnung aus dem Zeitabstand. Bisher stand an den
+drei Zeitspannen nach dem Essen ein Ort im Verdauungstrakt („4–8 Stunden –
+Dickdarm“) und ein Satz, was dort geschieht. Die Quellen tragen eine solche
+feste Zuordnung nicht: Bei einer Laktoseintoleranz etwa wird der Milchzucker
+im Dickdarm vergoren, die Beschwerden sind laut gesund.bund.de aber schon nach
+etwa eineinhalb bis zwei Stunden am stärksten. <!-- Quelle: gesund.bund.de,
+Laktoseintoleranz (mit IQWiG), Stand 23.02.2026, Abschnitte „Woran bemerkt man
+eine Laktoseintoleranz?“: „Am stärksten sind sie nach etwa eineinhalb bis zwei
+Stunden.“ und „Was sind die Ursachen für eine Laktoseintoleranz?“: „Der
+Milchzucker wird im Dickdarm von Darmbakterien zersetzt.“; weitere Belege im
+Kopf von js/zeitprofil.js. --> Auf „Muster“, in „Was Sache ist“ und im Bericht
+stehen deshalb nur noch die Stunden, dazu der Satz „Woher eine Beschwerde
+kommt, lässt sich am Zeitpunkt allein nicht ablesen.“ Gezählt wird wie bisher.
+In der Kriterienkarte unter „Muster“ und im Bericht werden außerdem die
+Magenbeschwerden nur noch gezählt – ohne Urteil nach Rom IV und ohne Haken –,
+und beim Punktwert zu Reflux steht dort keine Schwelle mehr.
+
+Bei den Warnzeichen der Stufe „sofort“ (`js/bild.js`) steht jetzt überall
+derselbe Satz wie auf der Warnkarte: nicht auf einen Termin warten –
+Notaufnahme oder 112. Die Warnkarte nennt genau diese Zeichen; neu dabei ist
+der Kopfschmerz mit Fieber und steifem Nacken, und frisches Blut im Stuhl, in
+`js/bild.js` „zeitnah“, steht nicht mehr in diesem Satz. „Was Sache ist“ trennt
+beides: die Zeichen der Stufe „sofort“ mit der 112, die übrigen als zeitnah
+abzuklären – bisher hieß es dort für die einen, einen Termin zu machen, für
+die anderen, sie beim nächsten Termin anzusprechen. Dieselbe Formulierung
+steht in den Wissenstexten zum Bismut und zu den Triptanen. Welches Zeichen
+welche Stufe hat, ist unverändert.
+
+Das Gold der Fassung 27 bleibt, wie es erzeugt wurde. `tests/test-gold.mjs`
+und `tests/test-gleich-v27.mjs` geben jeder berichtigten Stelle vor dem
+Vergleich ihren alten Wortlaut zurück – jeder einzeln, mit neuem und altem
+Text, und Zahlen darin werden übernommen, nicht ersetzt. Jede dieser Regeln
+muss greifen, und das Feld `ort` fehlt in der Ausgabe von heute. Alles andere
+vergleichen beide weiter Zeichen für Zeichen.
 
 ### Quellen der Wissenstexte
 
@@ -1374,22 +1752,37 @@ steht seine Quelle mit Abschnitt und Stand. Benutzt wurden:
   Ritalin, Ritalin LA, Ritalin Adult, Concerta, Equasym Retard, Kinecteen,
   Methylphenidat-Generika, Elvanse und Elvanse Adult, Attentin, Intuniv,
   Elontril, Zyban, dazu die US-Fachinformationen von Vyvanse, Strattera,
-  Intuniv und Ritalin LA; für die Erkennung der Namen die
+  Intuniv und Ritalin LA; für die Magen-, Schmerz- und Migränemittel die
+  Fach- und Gebrauchsinformationen der Präparate, die `js/mittel.js` bei jeder
+  Gruppe nennt (etwa Pantozol, Nexium, Antra MUPS, Famotidin, IBU-ratiopharm,
+  ben-u-ron, Novalgin, Imigran); für die Erkennung der Namen die
   Gebrauchsinformationen von Spalt plus Coffein N, Vivimed mit Coffein,
-  Thomapyrin Tension Duo, Rifun, Omep und Esomep;
-* EMA: die Schlussfolgerungen der CMDh zu Methylphenidat (Zähneknirschen in den
-  Produktinformationen) und zu Metamizol (Bupropion-Spiegel), die
-  Zusammenfassung zu Intuniv;
-* die Arzneimittelkommission der deutschen Ärzteschaft zum Absetzen von
-  Guanfacin;
-* die internationale Kopfschmerzklassifikation ICHD-3: 8.2.5
-  (Kombinationsmittel mit Koffein), 8.3.1 (Koffeinentzug) und die Merkmale der
-  Migräne;
-* Herstellerangaben zu Massagepistolen und Fallberichte zu Schäden danach;
+  Thomapyrin, Neuralgin, Rifun, Omep und Esomep;
+* EMA: Produktinformationen (etwa PANTOZOL Control, Intuniv, Vydura, Aquipta,
+  Aimovig), die Schlussfolgerungen der CMDh zu Methylphenidat (Zähneknirschen in
+  den Produktinformationen) und zu Metamizol (Bupropion-Spiegel), die
+  Zusammenfassung zu Intuniv, der Bericht zu Weizenstärke (Untersuchung auf
+  Zöliakie);
+* die internationale Kopfschmerzklassifikation ICHD-3: die Merkmale der
+  Migräne und des Kopfschmerzes vom Spannungstyp, 4.2 (Anstrengung), 8.1.4.2
+  (Alkohol), 8.2 mit seinen Unterformen (zu häufige Einnahme), 8.3.1
+  (Koffeinentzug), der Anhang zur Migräne um die Menstruation und die
+  Begriffserklärungen;
+* gesund.bund.de, meist in Zusammenarbeit mit dem IQWiG: Laktoseintoleranz,
+  Gastritis, Reizdarm, Reizmagen, Sodbrennen und Reflux, Magen- und
+  Zwölffingerdarmgeschwür, Nahrungsmittelallergie, Migräne, prämenstruelles
+  Syndrom, Regelschmerzen, Schlaganfall und weitere;
+* Zusammenfassungen von Fachartikeln auf PubMed: Rom IV und Rom V, GerdQ, die
+  Ernährung ohne vergärbare Kohlenhydrate (FODMAP) und ihre Wiedereinführung,
+  Atemtests auf Milch- und Fruchtzucker, Fruktane, reaktive Gastropathie,
+  Cameron-Läsionen, Erwartungseffekte bei Gluten;
+* FDA: die Tabelle der Rom-IV-Kriterien für das Reizdarmsyndrom in einem
+  Zulassungsbericht;
 * für die Absätze „Was dazu bekannt ist“ Übersichtsarbeiten und Studien:
-  Magen-Darm-Beschwerden, Migräne, Schlaf und Bruxismus bei ADHS, der
-  internationale Konsens zum Bruxismus, Aufbissschienen und Kopfschmerz,
-  Schienen bei Schlafapnoe, Nackenschmerz bei Migräne, Massagepistolen.
+  Kopfschmerz bei Kindern und Jugendlichen mit ADHS (ICHD-3, Kapitel 12),
+  Schlaf und Bruxismus bei ADHS, der internationale Konsens zum Bruxismus,
+  Aufbissschienen und Kopfschmerz, Schienen bei Schlafapnoe, Nackenschmerz bei
+  Migräne, Massagepistolen.
 
 ## Wie die Auswertung rechnet – und was sie nicht behauptet
 
@@ -1542,39 +1935,45 @@ mit der Stimmung, mit der Erwartung und mit dem, was gestern war. Das ist kein
 Mangel — anders geht es bei Bauchbeschwerden nicht —, aber es hat eine Folge:
 Kein Wert in dieser App lässt sich von außen nachprüfen.
 
-Das Gewicht schon. Und ausgerechnet es ist die klinisch wichtigste Zahl, die
-ein Tagebuch beitragen kann: Bei Bauchbeschwerden verläuft die entscheidende
-Grenze zwischen *funktionell* — unangenehm, oft langwierig, aber ohne Schaden —
-und *da muss jemand nachsehen*. Ein **ungewollter Gewichtsverlust** ist das
-stärkste einzelne Zeichen, das auf die zweite Seite deutet, und steht in jeder
-Leitlinie unter den Alarmzeichen. Fünf Prozent des Körpergewichts in sechs
-Monaten gilt als die Grenze, ab der nachgesehen wird.
+Das Gewicht schon. Ein deutlicher, **ungewollter Gewichtsverlust** gehört –
+neben Zeichen wie Blut im Stuhl, Fieber oder Blässe – zu den Zeichen, bei
+denen hinter Bauchbeschwerden eher eine andere Erkrankung als ein Reizdarm
+stecken kann. Bei einem rezeptfreien Säureblocker nennt die Fachinformation
+ihn unter den Beschwerden, bei denen ärztlicher Rat gesucht und eine
+bösartige Erkrankung ausgeschlossen werden soll. Body Check meldet sich ab
+fünf Prozent weniger in bis zu einem halben Jahr – diese Grenze hat die App
+festgelegt. <!--
+Quelle: gesund.bund.de/reizdarmsyndrom (mit IQWiG, Stand 28.08.2024): „Kommt es
+zu deutlichem Gewichtsverlust, Blut im Stuhl, Fieber oder Blässe, kann es sich
+eher um andere Darmerkrankungen handeln."; EMA-Produktinformation PANTOZOL
+Control, Fachinformation 4.4: „unbeabsichtigtem Gewichtsverlust … In diesen
+Fällen sollte eine Malignität ausgeschlossen werden." Die 5 % in bis zu 180
+Tagen in js/gewicht.js sind unverändert. -->
 
 Bisher stand das hier nur zum Ankreuzen. Angekreuzt wird es aber von dem, der
 es schon bemerkt hat — und schleichende Verluste bemerkt niemand. Deshalb gibt
-es unter „Mehr" ein Feld für das Gewicht, alle ein bis zwei Wochen, und
-`js/gewicht.js` rechnet daraus eine Richtung.
+es unter „Mehr" ein Feld für das Gewicht, und `js/gewicht.js` rechnet daraus
+eine Richtung.
 
 Zwei Dinge muss diese Rechnung richtig machen, und beide werden geprüft:
 
-1. **Nicht auf Wasser hereinfallen.** Ein Mensch schwankt am Tag um ein bis
-   zwei Kilo, je nach Trinken, Salz, Stuhlgang und Zyklus. Verglichen werden
-   deshalb keine Einzelwerte, sondern Mittel aus bis zu drei Messungen je
-   Seite, und zwischen „früher" und „jetzt" müssen mindestens 30 Tage liegen.
+1. **Einzelne Wiegungen nicht für einen Verlauf halten.** Einzelne Messungen
+   schwanken. Verglichen werden deshalb keine Einzelwerte, sondern Mittel aus
+   bis zu drei Messungen je Seite, und zwischen „früher" und „jetzt" müssen
+   mindestens 30 Tage liegen – so ist die App eingestellt.
    Fehlt der Abstand, sagt die App „noch keine Richtung" statt eines Urteils.
    Was länger als ein halbes Jahr zurückliegt, zählt gar nicht mit — sonst
    hinge jemandem ein Studentengewicht bis ans Lebensende als „Verlust" nach.
-2. **Nicht bei jeder Diät Alarm schlagen.** Fünf Prozent weniger sind ein
-   Warnzeichen, wenn sie *ungewollt* kommen, und ein Erfolg, wenn jemand dafür
-   gearbeitet hat. Den Unterschied sieht keine Rechnung, deshalb steht die
+2. **Nicht bei jeder Diät Alarm schlagen.** Fünf Prozent weniger zählt Body
+   Check als Warnzeichen, wenn sie *ungewollt* kommen; ist der Verlust gewollt,
+   nicht. Den Unterschied sieht keine Rechnung, deshalb steht die
    Frage nach der Absicht auf der Karte und nicht im Kleingedruckten. Ist „Ja,
    gewollt" gesetzt, wird der Verlust benannt, aber nicht als Warnzeichen —
    sonst ist die Karte nach zwei Wochen abgeschaltet, samt Ernstfall.
 
 Ein ungewollter Verlust steht danach ganz oben in „Was Sache ist", direkt
 hinter den übrigen Warnzeichen, und im Bericht als eigener Abschnitt mit `!!`.
-Was dort steht, ist ausdrücklich keine Diagnose, sondern die Grenze, ab der
-nachgesehen wird.
+Was dort steht, ist ausdrücklich keine Diagnose, sondern die Grenze dieser App.
 
 Das Gewicht liegt **neben** dem Tagebuch, nicht darin, und das ist kein
 Schönheitsfehler: Ein Eintrag macht einen Tag zu einem *notierten* Tag, und ein
@@ -1584,44 +1983,90 @@ gebucht — und damit die Quote nach unten gerechnet, die den Verlauf beschreibt
 
 ### Der Stufenplan: erst weglassen, dann Gruppe für Gruppe zurückholen
 
-Das Größte, was diese App verlangt, und das einzige, was am Ende einen
-**Speiseplan** hinterlässt statt einer Auskunft. Der Ablauf ist der der
-FODMAP-Diät, wie sie in der Ernährungsberatung gemacht wird:
+Das Aufwendigste, was diese App vorschlägt, und das einzige, was am Ende einen
+**Speiseplan** hinterlässt statt einer Auskunft. In der Fachliteratur hat die
+Ernährung ohne die vergärbaren Kohlenhydrate (FODMAP) drei Stufen – weglassen,
+Gruppe für Gruppe wieder einführen, danach ein eigener, weniger strenger
+Speiseplan –, begleitet von einer Ernährungsfachkraft. Der Plan hier folgt
+dieser Gliederung mit eigenen Zahlen; ob und wie er passt, lässt sich mit der
+Praxis oder einer Ernährungsfachkraft besprechen: <!--
+Quelle: Whelan, J Hum Nutr Diet 2018 (PMID 29336079), Abstract: „the low FODMAP
+diet consists of three stages: FODMAP restriction; FODMAP reintroduction; and
+FODMAP personalisation. These stages can be covered in at least two dietetic
+appointments." Wortlaut wie die Karte „Der Stufenplan" in js/app.js. -->
 
-1. **Karenz.** Zwei bis vier Wochen konsequent ohne die vergärbaren
-   Kohlenhydrate. Die Frage dieser Phase ist nicht „was davon", sondern
-   „überhaupt".
-2. **Wiedereinführung.** Eine Gruppe nach der anderen — Laktose, Fruktose,
-   Fruktane aus Getreide, Fruktane aus Zwiebel, Galactane, Sorbit, Mannit —,
-   jede über drei Tage mit steigender Menge, dazwischen jedes Mal drei Tage
-   zurück auf die Karenz.
-3. **Was bleibt.** Der Alltag danach ist die Karenz *plus alles, was sich als
-   verträglich erwiesen hat* — und das ist bei den meisten Menschen das meiste.
+1. **Karenz.** Zwei, drei oder vier Wochen – so viele bietet die App an – ohne
+   die vergärbaren Kohlenhydrate. Fachempfehlungen sehen diese Phase zeitlich
+   begrenzt vor; die US-Fachgesellschaft AGA nennt höchstens vier bis sechs
+   Wochen. Die Frage dieser Phase ist nicht „was davon", sondern „überhaupt".
+   <!-- Quelle: AGA Clinical Practice Update, Gastroenterology 2022 (PMID
+   35337654), Abstract, Best Practice Advice 7: „restriction (lasting no more
+   than 4-6 weeks)"; KARENZ_VORSCHLAEGE = [14, 21, 28] in js/stufenplan.js. -->
+2. **Wiedereinführung.** Hat die Karenz geholfen, werden die Gruppen
+   nacheinander wieder eingeführt, um die eigenen Auslöser zu finden. Der Plan
+   hier nimmt eine Gruppe nach der anderen — Laktose, Fruktose, Fruktane aus
+   Getreide, Fruktane aus Zwiebel, Galactane, Sorbit, Mannit —, jede über drei
+   Tage mit steigender Menge, dazwischen jedes Mal drei Tage zurück auf die
+   Karenz; diese Zahlen hat die App festgelegt. <!-- Quelle: Whelan 2018
+   (PMID 29336079), Abstract: „if restriction has successfully reduced IBS
+   symptoms, education is provided on FODMAP reintroduction to identify foods
+   triggering symptoms". -->
+3. **Was bleibt.** Der Alltag danach ist eine weniger strenge Kost, die nur die
+   eigenen Auslöser weglässt. Welche Gruppen das sind, ist von Mensch zu Mensch
+   verschieden; in einer verblindeten Studie mit Reizdarm-Betroffenen fiel das
+   Muster der Auslöser je Person verschieden aus, am häufigsten waren es
+   Fruktane und Mannit. <!-- Quelle: Whelan 2018, Abstract: „a less restrictive
+   diet is consumed that excludes their personal FODMAP triggers"; Van den
+   Houte, Gastroenterology 2024 (PMID 38401741), Abstract: „A blinded
+   reintroduction revealed a personalized pattern of symptom recurrence, with
+   fructans and mannitol as the most prevalent". -->
 
 **Die wichtigste Ausgabe dieses Moduls ist ein Abbruch.** Wenn die Karenz nichts
 bringt, ist der Plan zu Ende: nicht „dann probieren wir die Wiedereinführung
-trotzdem", sondern aufhören, wieder normal essen, woanders suchen. Das ist die
-Stelle, an der Apps und Ratgeber reihenweise versagen — sie führen durch zehn
-Wochen Verzicht, ohne je zu fragen, ob die ersten drei etwas gebracht haben. Und
-es ist keine Formalie: Eine FODMAP-Karenz streicht Weizen, Zwiebeln,
-Hülsenfrüchte, viele Obstsorten und Milchprodukte auf einmal. Wer sie ohne
-Nutzen weiterführt, verliert Ballaststoffe, Kalzium und Vielfalt in der
-Darmflora und hat dafür nichts bekommen. **Eine Diät ohne Wirkung ist kein
-neutraler Zustand, sie ist ein Schaden mit Aufwand.**
+trotzdem", sondern der Plan hört auf; was dann folgt, lässt sich mit der Praxis
+besprechen. Ohne diese Weiche führte ein Plan durch zehn Wochen Verzicht, ohne
+je zu fragen, ob die ersten drei etwas gebracht haben. Und es ist keine
+Formalie: Eine FODMAP-Karenz schränkt die Auswahl stark ein – Weizenprodukte,
+laktosehaltige Milchprodukte, viele Gemüsesorten wie Zwiebeln, Hülsenfrüchte
+und mehrere Obstsorten fallen auf einmal weg. Laut einer Übersichtsarbeit
+droht dabei, dass weniger Ballaststoffe und Kalzium in der Ernährung landen,
+und wie sich die Darmflora dabei verändert, ist noch wenig verstanden. Wer sie
+ohne Nutzen weiterführt, trägt diese Nachteile und hat dafür nichts bekommen.
+**Eine Diät ohne Wirkung ist kein neutraler Zustand: Sie hat Nachteile und
+kostet Aufwand.** <!--
+Quelle: Catassi, Nutrients 2017 (PMID 28300773), Abstract: „elimination of some
+staple foods, such as wheat derivatives, lactose-containing dairy products, many
+vegetables and pulses, and several types of fruits … at risk of reduced intake
+of fiber, calcium"; „physiological consequences, e.g., on the intestinal
+microbiome … which are still poorly understood". Zwiebeln als Fruktanquelle:
+PMID 24892470 (siehe Auslassversuch). -->
 
 Die zweitwichtigste steht direkt daneben: **Die Karenz ist nicht das Ziel.** Sie
-ist der Aufbau. Wer nach der Karenz aufhört, weil es ihm besser geht, bleibt für
-immer auf der strengsten Stufe — und das ist der häufigste Ausgang im wirklichen
-Leben, weil sich niemand traut, das Erreichte wieder aufs Spiel zu setzen.
-Deshalb steht an jeder Stelle, dass die Wiedereinführung der Punkt ist.
+ist der Aufbau: In der Fachliteratur sollen Betroffene nicht dauerhaft auf der
+strengen Stufe bleiben; die Wiedereinführung soll zeigen, welche Gruppen
+vertragen werden, und die Kost wieder weniger streng machen. Deshalb steht an
+jeder Stelle, dass die Wiedereinführung der Punkt ist. <!--
+Quelle: Tuck, Barrett, J Gastroenterol Hepatol 2017 (PMID 28244664), Abstract:
+„patients are encouraged not to remain on a strict low FODMAP diet long-term";
+„The re-challenge phase is crucial to assist patients in identifying specific
+dietary triggers, reduce the level of dietary restriction required". -->
 
 Drei Dinge halten die Rechnung ehrlich:
 
-* **Der Tag nach einer Stufe gehört noch zur Stufe.** Was am dritten Tag in der
-  größten Menge gegessen wurde, meldet sich oft erst am nächsten Morgen —
-  FODMAPs wirken im Dickdarm, und dorthin braucht Essen seine Zeit. Zählte
-  dieser Tag zur Pause, ginge die Reaktion doppelt daneben: Sie fehlte beim
-  Befund *und* machte den Vergleichswert schlechter.
+* **Der Tag nach einer Stufe gehört noch zur Stufe** – eine Festlegung der
+  App, damit eine späte Reaktion auf die größte Menge am dritten Tag nicht in
+  die Pause rutscht. FODMAPs werden im Dünndarm schlecht aufgenommen und im
+  Dickdarm vergoren, und in einer verblindeten Studie zur Wiedereinführung
+  stieg der Bauchschmerz je nach Gruppe erst am ersten, zweiten oder dritten
+  Tag deutlich an. Zählte der Folgetag zur Pause, ginge eine späte Reaktion
+  doppelt daneben: Sie fehlte beim Befund *und* machte den Vergleichswert
+  schlechter. <!-- Quelle: Murray, Am J Clin Nutr 2016 (PMID 27099247),
+  Abstract: „Poorly absorbed fermentable carbohydrates can provoke irritable
+  bowel syndrome (IBS) symptoms by escaping absorption in the small bowel and
+  being rapidly fermented in the colon in some susceptible subjects"; Van den
+  Houte 2024 (PMID 38401741), Abstract: „a significant increase in abdominal
+  pain at day 1 for sorbitol/mannitol, day 2 for fructans/galacto-
+  oligosaccharides, and day 3 for lactose". -->
 * **Die Pausen zählen als Karenz.** Verglichen wird gegen alle
   FODMAP-freien Tage des Plans, nicht nur gegen die erste Karenzwoche — bei
   einem Plan über zehn Wochen ändert sich sonst der Maßstab unter der Hand.
@@ -1637,11 +2082,18 @@ durchgeschlagen" heraus. Das ist eine Aussage über etwas, das nie beobachtet
 wurde, und sie streicht eine ganze Gruppe. Jetzt heißt es dort „reagiert, kleine
 Menge ungeprüft", mit dem Vorschlag, die Stufe zu wiederholen.
 
-**Vor dem Start: Zöliakie.** Eine Karenz nimmt Weizen mit heraus. Der Bluttest
-auf Zöliakie funktioniert aber nur, solange noch Gluten gegessen wird — wer
-vorher wegläßt, bekommt ein falsch unauffälliges Ergebnis und einen Verdacht,
-der jahrelang unentdeckt bleibt. Die Frage steht deshalb vor dem Start und nicht
-im Kleingedruckten.
+**Vor dem Start: Zöliakie.** Eine Karenz nimmt Weizen mit heraus. Auf Zöliakie
+wird mit einem Bluttest auf Antikörper und einer Gewebeprobe untersucht; laut
+EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon 6 bis 12 Monate
+glutenfrei gegessen wurde – die Antikörper sinken über Monate, die
+Darmschleimhaut beginnt schon nach Wochen zu heilen. Die Frage, ob eine
+Zöliakie schon abgeklärt ist, steht deshalb vor dem Start und nicht im
+Kleingedruckten; besprechen lässt sie sich in der Praxis. <!--
+Quelle: EMA/CHMP/639441/2013 corr. 2 (09.10.2017), „Wheat starch (containing
+gluten) used as an excipient": „all tests lose their usefulness if the person
+has already been eating a gluten-free diet for 6–12 months. Intestinal damage
+begins to heal within weeks …, and antibody levels decline over months."
+Wortlaut wie die Karte „Der Stufenplan" in js/app.js. -->
 
 Und eine Stufe lässt sich **verwerfen**. Das ist kein Schönmachen, sondern
 Notwehr gegen das wirkliche Leben: Kommt mitten in der Weizenstufe ein
@@ -1655,9 +2107,20 @@ Fast alles in dieser App wertet aus, was ohnehin geschieht. Der Auslassversuch
 greift zur Hälfte ein — aber er greift über zwei Wochen ein, und in zwei Wochen
 ändert sich auch Stress, Jahreszeit, Zyklus und Aufmerksamkeit. Ein
 Provokationstest fragt kürzer und schärfer: eine festgelegte Menge, **nüchtern**,
-ein festes Beobachtungsfenster — und das mehrmals. Genau so wird auf Laktose-
-und Fruktoseunverträglichkeit geprüft; in der Klinik misst dabei zusätzlich ein
-Atemtest den Wasserstoff mit, zu Hause bleibt die Beschwerdestärke.
+ein festes Beobachtungsfenster — und das mehrmals. Der Test in einer Praxis ist
+ähnlich gedacht, aber nicht gleich: Dort wird nach einer festgelegten Menge
+Milch- oder Fruchtzucker mehrmals der Wasserstoff in der Atemluft gemessen, und
+für die Diagnose zählen auch die Beschwerden während des Tests. Zu Hause bleibt
+die Beschwerdestärke; Wiederholung und Leerdurchgang gehören zum Verfahren der
+App. <!--
+Quelle: gesund.bund.de/laktoseintoleranz (mit IQWiG, Stand 23.02.2026),
+Diagnose: „Atemtest: Nach dem Trinken einer Milchzuckerlösung wird der Gehalt
+von Wasserstoff in der Atemluft mehrmals gemessen." und „Nur wenn während eines
+Tests typische Beschwerden auftreten, lässt sich sicher feststellen, ob eine
+Laktoseintoleranz die Ursache ist."; Rezaie, Am J Gastroenterol 2017 (PMID
+28323273), Abstract: „Consensus doses for … fructose and lactose BT were … 25
+and 25 g"; europäische Leitlinie 2022 (PMID 34431620), Abstract: „require
+additional validated concurrent symptom evaluation". -->
 
 Drei Dinge unterscheiden das von „ich trink mal ein Glas Milch":
 
@@ -1671,17 +2134,27 @@ Drei Dinge unterscheiden das von „ich trink mal ein Glas Milch":
 3. **Der Leerdurchgang.** Derselbe Ablauf ohne die Sache — nüchtern, gleiche
    Uhrzeit, gleiches Fenster. Er kostet einen Morgen und ist das Wertvollste am
    ganzen Verfahren: **Ohne ihn wird das Nüchternsein selbst zum Verdächtigen.**
-   Nüchternschmerz ist bei Magenbeschwerden ein eigenes Muster, das diese App an
-   anderer Stelle sogar auflistet. Wer ohne Leerdurchgang testet, kann einen
-   Magen, der leer wehtut, nicht von einer Unverträglichkeit unterscheiden — und
-   streicht dann Milch, weil er morgens Hunger hat.
+   Beschwerden bei leerem Magen sind ein eigenes Muster, das diese App an
+   anderer Stelle sogar auflistet: Beim Zwölffingerdarmgeschwür etwa treten sie
+   eher nüchtern auf und bessern sich nach dem Essen oft, anders als beim
+   Magengeschwür. Ohne Leerdurchgang lässt sich nicht trennen, ob die
+   Beschwerden von der Sache kommen oder damit zusammenhängen, nüchtern zu
+   sein. <!-- Quelle: gesund.bund.de/zwoelffingerdarmgeschwuer (mit IQWiG,
+   Stand 27.01.2022): „Bei einem Zwölffingerdarmgeschwür kommt es – anders als
+   beim Magengeschwür – eher bei leerem Magen zu Beschwerden. Nach dem Essen
+   bessern sie sich oft." -->
 
 Ausgegeben werden zwei Zahlen, weil sie Verschiedenes sagen: wie *stark* im
 Mittel reagiert wurde und in wie *vielen* Durchgängen überhaupt. Dreimal
 mittelmäßig ist ein anderer Befund als einmal heftig und zweimal gar nichts,
-auch wenn der Mittelwert derselbe ist — und der zweite Fall ist der häufigere.
-Er heißt hier „mal so, mal so", und die Folgerung daraus ist nicht Weglassen,
-sondern ein zweiter Satz Durchgänge mit einer kleineren Menge. Reagiert dagegen
+auch wenn der Mittelwert derselbe ist. Der zweite Fall heißt hier „mal so, mal
+so“: Die Beschwerden kamen nicht jedes Mal, und woran das liegt, lässt sich
+daraus nicht sicher ablesen – bei einer Laktoseintoleranz etwa hängt es von der
+Menge ab und davon, ob zugleich anderes gegessen wird. Was daraus für das Essen
+folgt, lässt sich in der Praxis besprechen. <!--
+Quelle: gesund.bund.de/laktoseintoleranz (Stand 23.02.2026), Behandlung: „wenn
+man Laktose nur in begrenzter Menge und Milch nur gleichzeitig mit anderen
+Lebensmitteln zu sich nimmt". Sinngemäß wie js/provokation.js. --> Reagiert dagegen
 mehr als die Hälfte der Durchgänge, ohne dass der Unterschied schon über den
 Zufallsspielraum hinausgeht, heißt es „deutet sich an": kein „bestätigt sich",
 und erst recht kein „kein Unterschied". Dann bleibt der Test offen, und die
@@ -1698,38 +2171,70 @@ wurde. Niemand musste suchen, also gibt es auch nichts abzuziehen.
 
 Zwei Ehrlichkeiten stehen in jeder Ausgabe:
 
-* **Nicht verblindet.** Wer das Glas trinkt, weiß, was drin ist, und Erwartung
-  erzeugt bei Bauchbeschwerden echte Beschwerden — das ist keine Einbildung
-  zweiter Klasse, das ist Physiologie. Daraus folgt eine Schieflage: **Ein Test,
-  der nichts findet, ist verlässlicher als einer, der etwas findet.** Die
-  Erwartung schiebt nur in eine Richtung. Deshalb steht bei einem negativen
-  Ergebnis, dass es das belastbarste ist, das dieses Verfahren hergibt — sonst
-  liest es sich wie ein Misserfolg, und jemand macht aus Enttäuschung weiter.
-* **Nicht bei Verdacht auf eine Allergie.** Eine Unverträglichkeit ist
-  mengenabhängig und unangenehm; eine Allergie kann in Minuten gefährlich
-  werden. Wer bei einer Sache schon einmal Ausschlag, Schwellung im Mund oder
-  Hals, Atemnot oder Kreislaufprobleme hatte, darf sie nicht auf eigene Faust
-  noch einmal nehmen. Der Satz steht überall dort, wo die App jemanden
-  auffordert, etwas absichtlich zu sich zu nehmen.
+* **Nicht verblindet.** Wer das Glas trinkt, weiß, was drin ist, und schon die
+  Erwartung kann echte Beschwerden auslösen – das heißt nicht, dass sich
+  jemand Beschwerden einbildet. Sie kann sie verstärken: In einer Studie zu
+  Gluten hatten bei gleicher Glutenmenge die, die Gluten erwarteten, deutlich
+  mehr Magen-Darm-Beschwerden als die, die es nicht erwarteten. Deshalb steht
+  in jeder Ausgabe: **Ohne Verblindung ist keines der Ergebnisse ein
+  Nachweis** – weder das mit noch das ohne Reaktion. <!--
+  Quelle: gesund.bund.de/elektromagnetische-felder-emf (Stand 24.03.2022): „Das
+  heißt aber nicht, dass sich Betroffene diese Beschwerden nur einbilden. …
+  stellen sich manchmal tatsächlich Symptome wie Kopfschmerzen ein."; de Graaf,
+  Lancet Gastroenterol Hepatol 2024 (PMID 38040019), Abstract: Gesamtwert
+  „16·6 mm" bei erwartetem und erhaltenem Gluten gegen „6·9 mm" bei erhaltenem,
+  nicht erwartetem, „reflecting a nocebo effect". Sinngemäß wie js/provokation.js. -->
+* **Nicht bei Verdacht auf eine Allergie.** Bei einer Allergie reichen laut
+  gesund.bund.de bereits kleine Mengen eines Lebensmittels, und sie kann bis
+  zu einer anaphylaktischen Reaktion gehen; Menschen mit Laktoseintoleranz
+  vertragen dagegen bestimmte Mengen an Milchzucker ohne Beschwerden. Wer bei
+  einer Sache schon einmal Ausschlag, Schwellungen im Mund oder Rachen,
+  Atemnot oder Kreislaufprobleme hatte, für den ist dieser Test nicht gedacht:
+  Solche Beschwerden können auf eine Allergie hindeuten, ähnliche aber auch
+  andere Ursachen haben. Das wird ärztlich abgeklärt – ein Provokationstest
+  findet dann unter ärztlicher Beobachtung statt. Der Satz steht überall dort,
+  wo die App jemanden auffordert, etwas absichtlich zu sich zu nehmen. <!--
+  Quelle: gesund.bund.de/nahrungsmittelallergie (mit IQWiG, Stand 27.05.2024):
+  „Bereits kleine Mengen eines Lebensmittels reichen aus", „anaphylaktischen
+  Reaktion", „Die Verwechslungsgefahr ist hoch.", „unter ärztlicher
+  Beobachtung"; gesund.bund.de/laktoseintoleranz: „vertragen dagegen bestimmte
+  Mengen an Milchzucker, ohne Beschwerden zu bekommen". -->
 
-Angeboten werden vier Sachen — Laktose, Fruktose, Sorbit, Koffein —, weil nur
-sie eine Menge haben, die man nüchtern zu sich nimmt. „Fettiges" hat keine. Und
-die Mengen sind **kleiner als beim Test in der Klinik**: Dort beantworten 25 g
-Laktose die Frage, ob eine Malabsorption vorliegt; hier beantworten 250 ml Milch
-die Frage, ob das, was jemand tatsächlich trinkt, Beschwerden macht. Nur die
-zweite Antwort ändert etwas am Alltag — und die Klinikdosis auf eigene Faust zu
-nehmen macht vor allem einen scheußlichen Tag.
+Angeboten werden vier Sachen – Laktose, Fruktose, Sorbit, Koffein. Das ist eine
+Auswahl der App: Für sie gibt sie eine feste Menge vor, die man nüchtern zu
+sich nehmen kann; für „Fettiges" legt sie keine fest, weil es eine Gruppe von
+Speisen ist und kein einzelner Stoff. Die Mengen sind Portionen, wie sie im
+Alltag vorkommen – bei Milch 250 ml –, und damit **kleiner als beim Atemtest
+in der Praxis**, für den ein nordamerikanischer Konsens 25 g Milch- oder
+Fruchtzucker nennt. Gefragt wird hier etwas anderes: nicht, ob der Körper etwa
+Milchzucker spalten und aufnehmen kann, sondern ob das, was jemand tatsächlich
+trinkt, Beschwerden macht. Ob eine Unverträglichkeit vorliegt, klären Ärztin oder
+Arzt; für Laktose ist in Deutschland der Atemtest das Standardverfahren. <!--
+Quelle: Rezaie, Am J Gastroenterol 2017 (PMID 28323273), Abstract: „Consensus
+doses for lactulose, glucose, fructose and lactose BT were 10, 75, 25 and 25 g";
+gesund.bund.de/laktoseintoleranz (Stand 23.02.2026): „bis zu 12 Gramm Laktose
+auf einmal: zum Beispiel 250 Milliliter Milch", zu den Tests „So lässt sich
+feststellen, ob der Körper Milchzucker spalten und aufnehmen kann." und „Das
+Standardverfahren in Deutschland ist der Atemtest." Die Mengen in
+js/provokation.js sind unverändert. -->
 
 ### Wie viel verträgst du – nicht ob
 
-„Zwiebeln sind auffällig" legt genau eine Handlung nahe: streichen. Und das ist
-fast immer zu viel. Die meisten Unverträglichkeiten sind **Mengenfragen** — wer
-eine Zwiebelsuppe nicht verträgt, verträgt oft drei Ringe auf dem Brot
-problemlos. Der Unterschied zwischen diesen beiden Auskünften ist der zwischen
-einem Leben mit einer Streichliste und einem mit einer Faustregel, und er
-entscheidet, ob nach vier Wochen überhaupt noch jemand mitmacht: Streichlisten
-werden aufgegeben, weil sie das Essen unmöglich machen und meistens mehr
-streichen als nötig.
+„Zwiebeln sind auffällig" legt genau eine Handlung nahe: streichen. Ob das nötig
+ist, sagt der Befund allein nicht. Bei manchen Unverträglichkeiten hängen die
+Beschwerden von der **Menge** ab: Menschen mit Laktoseintoleranz vertragen laut
+gesund.bund.de bestimmte Mengen an Milchzucker ohne Beschwerden, und welche
+Menge Beschwerden auslöst, ist sehr unterschiedlich; bei einer Allergie
+reagiert der Körper dagegen schon auf geringste Mengen. Ob jemand, der eine
+Zwiebelsuppe nicht verträgt, drei Ringe auf dem Brot verträgt, ist genau die
+Frage, die diese Rechnung stellt. Der Unterschied zwischen diesen beiden
+Auskünften ist der zwischen einer Streichliste und einer Faustregel, und eine
+Streichliste kann mehr streichen als nötig. <!--
+Quelle: gesund.bund.de/laktoseintoleranz (mit IQWiG, Stand 23.02.2026): „Bei
+einer Milchallergie reagiert der Körper selbst auf geringste Mengen von Milch
+oder Milchprodukten. Menschen mit Laktoseintoleranz vertragen dagegen bestimmte
+Mengen an Milchzucker, ohne Beschwerden zu bekommen." und „Welche Laktosemenge
+die Symptome auslöst, kann sehr unterschiedlich sein." -->
 
 Die Menge kommt dabei ohne Waage zustande. Jede Zutat trägt beim Eintragen
 ihre **Rolle** — Hauptzutat, Beilage, Topping, Würze —, und das ist für diese
@@ -1829,10 +2334,18 @@ bei dem kann sich die Wirkung im Gesamtschnitt fast aufheben und erst innerhalb
 der Schichten sichtbar werden. Beides ist derselbe Rechenfehler – das
 Simpson-Paradox – nur in verschiedene Richtungen.
 
-**Die vierte Schicht ist der Kopfschmerz.** Übelkeit und ein empfindlicher
-Magen gehören zu einer Migräneattacke; wer an Migränetagen Kaffee trinkt –
-oder gerade keinen, Koffeinentzug ist selbst ein Auslöser –, dessen Kaffee
-fällt mit schlechten Bauchtagen zusammen, ohne sie zu machen. Die Schicht
+**Die vierte Schicht ist der Kopfschmerz.** Übelkeit und Erbrechen zählen nach
+der internationalen Kopfschmerzklassifikation zu den häufigsten
+Begleitsymptomen einer Migräneattacke, sind aber nicht bei jeder Attacke da.
+Wer an Migränetagen Kaffee trinkt – oder gerade keinen: Wird ein regelmäßiger
+Koffeinkonsum unterbrochen, kann das laut Klassifikation selbst Kopfschmerz
+hervorrufen –, dessen Kaffee fällt womöglich mit schlechten Bauchtagen
+zusammen, ohne sie zu machen. <!--
+Quelle: ICHD-3 (2018), Definition of terms, „Accompanying symptoms": „the most
+frequent accompanying symptoms are nausea, vomiting, photophobia and
+phonophobia"; 8.3.1 Caffeine-withdrawal headache: „Headache developing within
+24 hours after regular consumption of caffeine in excess of 200 mg/day for more
+than 2 weeks, which has been interrupted." --> Die Schicht
 fragt: Hält der Unterschied auch an Tagen ohne Kopfschmerz?
 `test-stoerfaktor.mjs` baut genau diesen Fall: Kaffee an Migränetagen, Bauch
 schlecht wegen der Migräne – roh sieht der Kaffee schuldig aus, geschichtet
@@ -1854,19 +2367,36 @@ beweist weniger, als er behauptet.
 
 ### Wie lange nach dem Essen
 
-Das feste Fenster von vier Stunden ist eine Konvention, keine Physiologie – und
-es wirft die nützlichste Auskunft weg, die in einem Tagebuch steckt: *wann
-genau*. Der Bauch braucht Zeit, und je nach Ort verschieden lange.
+Das feste Fenster von vier Stunden ist eine Einstellung der App, keine
+Zeitangabe aus der Medizin – und es wirft eine Auskunft weg, die in einem
+Tagebuch steckt: *wann genau*. Wie lange es vom Essen bis zu Beschwerden
+dauert, ist je nach Ursache verschieden: Bei einer Nahrungsmittelallergie setzt
+die Reaktion meist innerhalb einer halben Stunde ein, spätestens einige Stunden
+nach dem Verzehr; bei einer Laktoseintoleranz beginnen die Beschwerden
+frühestens nach einer halben Stunde, sind nach etwa eineinhalb bis zwei
+Stunden am stärksten und können mehrere Stunden anhalten – obwohl der
+Milchzucker erst im Dickdarm von Bakterien zersetzt wird. <!--
+Quelle: gesund.bund.de/nahrungsmittelallergie (mit IQWiG, Stand 27.05.2024):
+„Die allergische Reaktion setzt meistens innerhalb einer halben Stunde,
+spätestens aber einige Stunden nach dem Verzehr des Nahrungsmittels ein.";
+gesund.bund.de/laktoseintoleranz (Stand 23.02.2026): „Die Beschwerden treten
+frühestens eine halbe Stunde nach Verzehr von laktosehaltigen Lebensmitteln
+auf. Am stärksten sind sie nach etwa eineinhalb bis zwei Stunden. Sie können
+über mehrere Stunden andauern." und „Der Milchzucker wird im Dickdarm von
+Darmbakterien zersetzt." -->
 
-| | |
-| --- | --- |
-| **0–2 Stunden** | Der Magen ist noch voll: Säure, Dehnung, Entleerung |
-| **2–4 Stunden** | Dünndarm, Fett, Galle |
-| **4–8 Stunden** | Erst jetzt ist der Rest im Dickdarm. Was dort vergärt – FODMAP, Laktose, Ballaststoffe – kann sich gar nicht früher melden |
-
-Für die Sprechstunde ist das ein Unterschied ums Ganze: „nach dem Essen tut es
-weh" führt zum Säureblocker, „sechs Stunden nach dem Essen tut es weh" zur
-Ernährungsberatung. Beides steht im selben Tagebuch.
+Body Check zählt deshalb in drei Fenstern nach dem Essen: **0–2**, **2–4** und
+**4–8 Stunden** danach. Einen Ort nennen die Fenster nicht: Woher eine
+Beschwerde kommt, lässt sich am Zeitpunkt allein nicht ablesen (`KEIN_ORT` in
+`js/zeitprofil.js`). Für die Sprechstunde ist der Abstand trotzdem eine Angabe –
+bei Reflux etwa ist es laut
+gesund.bund.de wichtig, beim Arztbesuch die Beschwerden genau zu beschreiben
+und zu sagen, wann und wie häufig sie auftreten. Was daraus folgt, klärt die
+Praxis. <!--
+Quelle: gesund.bund.de/sodbrennen-refluxkrankheit (mit IQWiG, Stand
+04.04.2025), Diagnose: „Es ist daher wichtig, beim Arztbesuch die Beschwerden
+detailliert zu beschreiben und Angaben zu machen, wann und wie häufig diese
+auftreten." -->
 
 Daraus folgt auch der wichtigste Zusatz: Ein Auslöser, der erst nach sechs
 Stunden wirkt, ist im Vier-Stunden-Fenster nicht etwa schwach auffällig –
@@ -1886,8 +2416,9 @@ es das nicht, zählt es als nicht erhoben und nicht als beschwerdefrei. Dasselbe
 gilt für eine Mahlzeit mit einer ungefähren Zeit – ihr eigenen oder der einer
 Beschwerde, die zu ihr gehört: „Nach dem Essen" sagt, zu welcher Mahlzeit etwas
 gehört, aber nicht, ob es nach zwanzig Minuten oder nach drei Stunden kam. Wer also
-wissen will, was der Dickdarm macht, braucht mehr Tage als jemand, der nach dem
-Magen fragt – und die App sagt das, statt die Lücke mit einer Null zu füllen.
+wissen will, was in den späten Stunden geschieht, braucht mehr Tage als jemand,
+der nach den ersten fragt – und die App sagt das, statt die Lücke mit einer Null
+zu füllen.
 Aus demselben Grund zählt das Bild „wann kommen die Beschwerden" nur, was auf
 die Stunde erhoben ist, und sagt dazu, wie viele mit ungefährer Zeit
 eingetragen sind.
@@ -1927,22 +2458,34 @@ fängt das der Leerdurchgang auf, der dieselbe Regel hat.
 
 ### Zyklus mal Auslöser
 
-Die Auslöserbilanz mittelt über alle vier Wochen. Nur schwankt die
-Empfindlichkeit des Bauchs mit dem Zyklus – vor und während der Periode
-reagiert der Darm auf dieselbe Dehnung stärker. Wer drei Wochen lang Zwiebeln
-verträgt und in der vierten nicht, bekommt von einem Mittelwert „ein bisschen
-auffällig" zu hören: eine Aussage, die für keinen einzigen Tag stimmt, und die
-dazu führt, dass jemand ein Lebensmittel für 28 Tage streicht, das an 21 davon
-nichts tut.
+Die Auslöserbilanz mittelt über alle vier Wochen. Nur können Bauchbeschwerden
+mit dem Zyklus schwanken: In den Tagen vor der Regelblutung kommen beim
+prämenstruellen Syndrom unter anderem Verdauungsprobleme vor, während der
+Regel haben manche zusätzlich Übelkeit, Erbrechen oder Durchfall. Wer drei
+Wochen lang Zwiebeln verträgt und in der vierten nicht, bekommt von einem
+Mittelwert „ein bisschen auffällig" zu hören: eine Aussage, die für keinen
+einzigen Tag stimmt, und die dazu führen kann, dass jemand ein Lebensmittel für
+28 Tage streicht, das an 21 davon nichts tut. <!--
+Quelle: gesund.bund.de/praemenstruelles-syndrom-pms (mit IQWiG, Stand
+21.10.2022): „Sie treten für gewöhnlich einige Tage bis zwei Wochen vor der
+Regelblutung auf. … Schlaf- oder Verdauungsprobleme … kommen vor.";
+gesund.bund.de/regelschmerzen (Stand 27.08.2024): „Einige Frauen leiden
+zusätzlich zu Krämpfen an Übelkeit, Erbrechen oder Durchfall." -->
 
 Deshalb wird jeder Auslöser mit genug Fällen zusätzlich nach Zyklusphase
 aufgeteilt – **jeder**, nicht nur die auffälligen: Gerade dort, wo die Wirkung
 nur eine Woche im Monat da ist, versteckt der Schnitt sie. Fällt der
 Unterschied in einer Phase um mindestens anderthalb Stufen deutlicher aus als
 in einer anderen, steht das unter „Kommt auf den Zeitpunkt im Zyklus an" – mit
-allen Fallzahlen und mit dem Satz, um den es eigentlich geht: **wechselnde
-Empfindlichkeit ist etwas anderes als eine Unverträglichkeit**, und sie wird
-anders behandelt.
+allen Fallzahlen. Was hinter einem solchen Unterschied steckt, lässt sich
+daraus nicht ablesen: Die Phasen sind geschätzt, die Mengen nicht verglichen,
+und laut gesund.bund.de können eine Nahrungsmittel-Unverträglichkeit und ein
+Reizdarm auch zugleich vorliegen. Für die Sprechstunde kann der Unterschied
+trotzdem wichtig sein; was dahintersteckt, klärt die Praxis. <!--
+Quelle: gesund.bund.de/reizdarmsyndrom (mit IQWiG, Stand 28.08.2024): „Es kann
+aber auch beides vorliegen – eine Nahrungsmittel-Unverträglichkeit und ein
+Reizdarmsyndrom." Wortlaut wie im Bericht und in „Was Sache ist"
+(js/bericht.js, js/lage.js). -->
 
 Die Schwelle ist mit Absicht höher als die der Bilanz selbst (anderthalb statt
 einer Stufe): Hier werden Unterschiede von Unterschieden verglichen, und die
@@ -1972,8 +2515,9 @@ Unterschied „möglicherweise" statt ab einem. Ein halber Punkt über achtzig
 Mahlzeiten ist ein stabileres Ergebnis als zwei Punkte über zwölf.
 
 Zwei Ehrlichkeiten gehören dazu, und sie stehen in der App: Die Zuordnung ist
-**grob** – ein Apfel ist FODMAP-reich, eine Banane kaum, und beide wären hier
-Obst. Und eine Klasse allein ist eine Sackgasse, denn weglassen kann man keine
+**grob** – alles in einer Gruppe wird gleich behandelt, auch wenn sich einzelne
+Lebensmittel darin unterscheiden können. Und eine Klasse allein ist eine
+Sackgasse, denn weglassen kann man keine
 Klasse, sondern nur Zutaten; deshalb steht unter jeder, welche eigenen Zutaten
 sie in *diesem* Tagebuch trägt, mit ihrer Häufigkeit. Eigene Auslöser bekommen
 keine Klasse: Was in „Fenchelknolle" steckt, weiß die App nicht, und es zu
@@ -1990,7 +2534,8 @@ ein `notiert`, und der Verlauf zeigt eine Lücke als Lücke.
 
 Die Rechnungen zu ADHS-Mitteln und zu Kiefer, Nacken, Schiene vergleichen
 Tage und Nächte, die sich niemand zufällig aussucht: Ein Mittel lässt man an
-einem freien Tag weg, eine Schiene vergisst man nach einer Feier. Ohne Regeln
+einem freien Tag weg, eine Schiene bleibt nach einer Feier womöglich eher
+liegen. Ohne Regeln
 fände jede dieser Rechnungen etwas. Die gemeinsamen Bausteine stehen in
 `js/vergleich.js`:
 
@@ -2389,12 +2934,11 @@ js/auswertung.js    die Rechenschicht: Merkmale, Fenster, Bilanz, Verlauf
 js/schichten.js     hält jeden Fund gegen die Umstände – Anspannung,
                     Schlaf, Zyklus –, damit nicht der Kaffee büßt, was
                     der Arbeitstag angerichtet hat
-js/zeitprofil.js    wie lange nach dem Essen – und was das über den Ort
-                    sagt: Magen, Dünndarm oder Dickdarm
+js/zeitprofil.js    wie lange nach dem Essen – in drei Fenstern, ohne
+                    daraus einen Ort abzuleiten
 js/wechselwirkung.js
-                    Zyklus mal Auslöser: dieselbe Menge, andere Wirkung
-                    – wechselnde Empfindlichkeit ist keine
-                    Unverträglichkeit
+                    Zyklus mal Auslöser: derselbe Auslöser, je nach
+                    Zyklusphase verschieden auffällig
 js/lage.js          „Was Sache ist": wählt aus den fertigen Befunden drei
                     bis fünf Sätze aus und rechnet selbst nichts
 js/zufall.js        wie groß ein Unterschied allein durch Zufall ausfällt
@@ -2402,7 +2946,7 @@ js/zufall.js        wie groß ein Unterschied allein durch Zufall ausfällt
 js/dosis.js         wie viel du verträgst, nicht ob – aus den Rollen der
                     Zutaten eine Mengenschwelle
 js/gewicht.js       das einzige harte Maß: ungewollter Verlust als
-                    Warnzeichen, Wasserschwankung als keines
+                    Warnzeichen, einzelne Wiegungen nicht als Verlauf
 js/provokation.js   der Provokationstest mit Protokoll – nüchtern,
                     wiederholt, gegen einen Leerdurchgang
 js/stufenplan.js    Karenz, die Weiche danach, und die Wiedereinführung
@@ -2444,7 +2988,8 @@ js/kopf.js          Kopfschmerzen – getrennt vom Bauch gezählt, verbunden
 js/stuhl.js         Bristol-Form, Anteile, Reizdarm-Typ
 js/kriterien.js     Rom IV und GerdQ, nachgerechnet
 js/versuch.js       der Auslassversuch mit Wiedereinführung
-js/ansprechen.js    ob ein Mittel etwas bewirkt – und was Ausbleiben heißt
+js/ansprechen.js    ob sich unter einem Mittel etwas ändert – auch das
+                    Ausbleiben ist eine Auskunft für die Praxis
 js/luecken.js       was noch fehlt und was keine App beantwortet
 js/bild.js          Warnzeichen, Muster, Differentialdiagnosen, Fragen
 js/rat.js           Vorschläge für heute, jeder mit seinem Grund
@@ -2466,7 +3011,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Fünfundsiebzig Dateien, über 4000 Prüfungen, alle in einem echten Chromium. Kein
+Fünfundsiebzig Dateien, über 4100 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 
@@ -2482,15 +3027,15 @@ den Rückgabewert.
 | `test-persist.mjs` | die Ein-Datei-Fassung übersteht Neuladen und Neustart |
 | `test-offline.mjs` | Service Worker, offline eintragen, offline auswerten – ohne Netz auch für den Service Worker, keine einzige Anfrage am Server |
 | `test-ideen.mjs` | eintragen, abhaken, kopieren, die Erinnerung ans Verschicken – und Ideen bleiben aus der Auswertung heraus |
-| `test-mittel.mjs` | die Zuordnung freier Namen zur Wirkstoffgruppe, und der Ton der Texte |
+| `test-mittel.mjs` | die Zuordnung freier Namen zur Wirkstoffgruppe, und der Ton der Texte; die gestrichenen, nicht belegten Wendungen kommen nicht wieder, und ein Warnzeichen der Stufe „sofort“ steht im Wortlaut der Warnkarte |
 | `test-zutaten.mjs` | Reihenfolge nach Häufigkeit, Rollen statt Gramm, Umrechnung alter Stände |
 | `test-zyklus.mjs` | Zyklen, Phasen – und das Schweigen ohne Grundlage |
 | `test-bild.mjs` | Warnzeichen kommen durch; Nüchternschmerz wird nicht mit Völlegefühl verwechselt |
 | `test-rat.mjs` | jeder Vorschlag mit Grund, und keine Medikamentenempfehlung; „25 Minuten“ und „1,5 Stunden“ statt Dezimalpunkt, knapp unter der Grenze „knapp 2 Stunden“ statt „2 Stunden“, nach einem Datum ein Punkt statt zwei |
 | `test-atem.mjs` | Phasenlängen, Ablauf, Abbruch beim Reiterwechsel, stummer Betrieb |
-| `test-app.mjs` | Installieren, Verknüpfungen des Symbols, Druckansicht |
+| `test-app.mjs` | Installieren, Verknüpfungen des Symbols, Druckansicht; die Warnkarte nennt genau die Zeichen der Stufe „sofort“ aus `js/bild.js` |
 | `test-stuhl.mjs` | Bristol eintragen, die Anteile, und das Warnzeichen aus dem Stuhlbogen |
-| `test-kriterien.mjs` | Rom IV und GerdQ in beide Richtungen – erfüllt *und* nicht erfüllt |
+| `test-kriterien.mjs` | Rom IV in beide Richtungen – erfüllt *und* nicht erfüllt; Magenbeschwerden und der Punktwert zu Reflux nur gezählt, nie „erfüllt“ |
 | `test-klassen.mjs` | die Klasse trägt, wo die Zutat noch zählt – und schweigt ohne Vergleichsgruppe |
 | `test-versuch.mjs` | vor allem, wann *nicht* „spricht dafür" herauskommt |
 | `test-ansprechen.mjs` | der ausgereizte Säureblocker, und kein Rat zum Absetzen |
@@ -2505,9 +3050,9 @@ den Rückgabewert.
 | `test-vorschlaege.mjs` | fremder Text bricht nicht aus seinem Block aus, und ein Bot-Zweig kommt nicht an die Wächter |
 | `test-dosis.mjs` | als Würze harmlos, als Hauptzutat nicht – und kein Urteil über Mengen, die nie vorkamen |
 | `test-zufall.mjs` | acht Tagebücher aus reinem Zufall – die App muss schweigen, und einen echten Fund trotzdem finden |
-| `test-lage.mjs` | die Zusammenfassung sagt nichts, was unten nicht mit Zahlen steht – und schweigt, wo nichts ist |
+| `test-lage.mjs` | die Zusammenfassung sagt nichts, was unten nicht mit Zahlen steht – und schweigt, wo nichts ist; Warnzeichen der Stufe „sofort“ mit der 112, die übrigen als zeitnah, und kein Ort aus dem Zeitabstand |
 | `test-wechsel.mjs` | ein Auslöser, der nur in einer Zyklusphase wirkt – und kein Wechsel, wo keiner ist |
-| `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien |
+| `test-zeitprofil.mjs` | wann nach dem Essen es kommt – und dass eine Beschwerde genau einer Mahlzeit gehört, nicht dreien; nirgends ein Ort aus dem Zeitabstand |
 | `test-stoerfaktor.mjs` | der Scheinbefund verschwindet unter gleichen Umständen, der echte bleibt – und zu wenig heißt „nicht prüfbar", nicht „unauffällig" |
 | `test-gewicht.mjs` | fünf Prozent ungewollt sind ein Warnzeichen, dieselben fünf Prozent gewollt keines – und ein Tag, an dem nur gewogen wurde, ist kein Tag ohne Beschwerden |
 | `test-nachschub.mjs` | kommt eine neue Fassung überhaupt an – über einen Server mit `max-age=600`, wie GitHub Pages ihn schickt, und ohne das Tagebuch mitzunehmen |
@@ -2530,17 +3075,17 @@ den Rückgabewert.
 | `test-umstand-muster.mjs` | als iPhone mit 320 Pixeln: große Portion, spät und auswärts als stärkster Fund – „Muster" zeichnet ohne Fehler, „Was Sache ist" nennt den Umstand ohne Mengensatz; bei einer Zutat steht die Menge weiter da |
 | `test-loeschen-schmal.mjs` | als iPhone mit 320 Pixeln und dem Finger: „Löschen?" verschiebt die Zeile nicht, der zweite Tipp an derselben Stelle löscht – auch im oberen Drittel des ×; danach steht der Fokus auf „Rückgängig" und nach dem Zurückholen auf der Zeile |
 | `test-provokation.mjs` | derselbe Schmerz an den Test- *und* an den Leermorgen darf nicht der Milch angelastet werden – und wer im Fenster frühstückt, hat keinen Durchgang gemacht |
-| `test-kopf.mjs` | Kopfschmerz zählt in keine Bauchrechnung; die Zahlen der Neurologie in drei Fenstern, Kombinationsmittel mit Koffein und ihre Grenze, Koffein als Tablette kein Akutmittel, zwölf Merkmale ohne und fünfzehn mit „Kiefer, Nacken, Schiene“ |
+| `test-kopf.mjs` | Kopfschmerz zählt in keine Bauchrechnung; die Zahlen der Kopfschmerzklassifikation in drei Fenstern, Kombinationsmittel mit Koffein und ihre Grenze, Koffein als Tablette kein Akutmittel, zwölf Merkmale ohne und fünfzehn mit „Kiefer, Nacken, Schiene“ |
 | `test-befunde.mjs` | was schon feststeht, ändert die Lesart der Kriterien, nicht ihre Zahlen – und die Warnzeichen bleiben |
 | `test-kueche.mjs` | „Geht gut“ und „Geht nicht“ werden nicht ausgewertet – und die Zahlen dürfen der Liste widersprechen |
 | `test-spaetphase.mjs` | nach Wochen Tagebuch steht nicht alles gleichzeitig da – der umgekehrte Fehler der ersten Wochen |
-| `test-gold.mjs` | 34 Rechnungen über feste Tagebücher ohne alles Neue ergeben Zeichen für Zeichen, was die Fassung 27 gerechnet hat (`tests/gold/`) – im Bericht nur die langen Zeilen umbrochen |
+| `test-gold.mjs` | 34 Rechnungen über feste Tagebücher ohne alles Neue ergeben Zeichen für Zeichen, was die Fassung 27 gerechnet hat (`tests/gold/`) – im Bericht nur die langen Zeilen umbrochen; der Wortlaut, den die Fassung 30 berichtigt hat, bekommt Stelle für Stelle seine alte Form zurück, jede Regel muss greifen, und kein Ort aus dem Zeitabstand steht mehr in der Ausgabe |
 | `test-notiert.mjs` | ein Tag nur mit einem ADHS-Mittel, einer Schiene oder einem Tag ohne Mittel ist eine Lücke, einer nur mit irgendeinem anderen bekannten Mittel nicht; dasselbe Tagebuch mit einem ADHS-Mittel an jedem Tag und allen neuen Angaben ergibt dieselben Zahlen |
 | `test-adhs-wissen.mjs` | Namen zur Gruppe, Formen aus dem Namen, Koffein-Regel, neue Säureblocker-Namen, jedes Paar an und aus, eine Form von vor einem halben Jahr sticht „Meine Mittel“ nicht – und kein Text mit Dosis oder Empfehlung; was der Rückfrage fehlt, je Form im Gleichlauf mit den Paaren |
 | `test-adhs-ui.mjs` | als iPhone: ohne Schalter nichts Neues außer dem, was für alle gilt; Angebot einmal, „jetzt genommen“ mit Häkchen auch zu anderer Tageszeit und bei zwei gleichen Mitteln, „Heute keins“ nur bei Stimulanzien, „Zum Essen?“ bis eine Stunde danach, nie ein „noch nicht“ |
 | `test-spannung-ui.mjs` | Einschalten fügt die vier Fragen ein, Ausschalten nimmt sie heraus, Daten bleiben; alte Kopfmerkmale lassen sich abwählen und wieder wählen; der Massagetext auch ohne Schalter und bei einer eigenen „Massagepistole“, die unter „Mehr“ als fest eingebaut vermerkt ist und ihre Einträge behält; kein Angebot durch Nackenschmerz |
 | `test-alltag.mjs` | über Mitternacht: zurück in die App heißt der neue Tag, ein von Hand gewählter Tag und ein offener Bogen bleiben; die Karte „Was sich geändert hat“ nur mit zutreffendem Punkt, auch für einen Namen mit Koffein, der nicht mehr mitzählt, nicht bei einem neuen Stand, wieder mit einer älteren Sicherung |
-| `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste – dazu einmal die Karte „Neu“ |
+| `test-gleich-v27.mjs` | Tag, Verlauf, Muster und Mehr zeigen ohne Schalter denselben Text wie die Fassung 27, bis auf eine kurze Liste und die Sätze, die die Fassung 30 berichtigt hat (jeder einzeln, jede Regel muss greifen) – dazu einmal die Karte „Neu“ |
 | `test-rueckfrage.mjs` | als iPhone: die Rückfrage fragt nur, was fehlt, die Antwort landet dort, wo die Paare sie lesen, und die passende Karte erscheint; höchstens zwei Tage je Name, auch über Nacht offen, bei vollem „Meine Mittel“ (auch mit mehr als zwölf nach dem Zusammenführen: der Satz nennt die Zahl und wie viele weg müssen) und bei gesperrtem oder vollem Speicher, „Später“ einmal und mit dem Namen, „Nicht mehr fragen“ mit „Rückgängig“ (auch per Tastatur); ein Doppeltipp beantwortet nicht den nächsten Schritt, auch nicht, wenn die Karte nach einem Tipp darüber unter den Finger rückt, und nimmt „Nicht mehr fragen“ nicht über „Rückgängig“ zurück; ein Tipp auf die Meldung schließt sie und beantwortet nie die verdeckte Frage darunter, auch kein Doppeltipp; über Mitternacht beantwortet zeigt „Tag“ danach den neuen Tag; fallen zwei Hinweise weg, nennt die Meldung beide Mittel gegen Magensäure; „Tagebuch löschen“ lässt keinen früheren Stand zurück; fällt eine Karte darüber weg, steht der nächste Schritt im Bild, ebenso das Namensfeld unter „Meine Mittel“ bei langer Liste; nach dem Umzug von Safari in die App zählen die Tage aus Safari mit, die Sicherung trägt sie nicht; nach einem Datum nie zwei Punkte; „Ja, merken“ nur mit der Form, die an der Einnahme steht und noch gilt, und nie auf den Platz, den der Säureblocker danach braucht, auch nicht bei einem zweiten Namen; zwei Namen nacheinander nie mit derselben Überschrift, die Meldung sagt „Jetzt zu …“; „Nein“ gilt für jeden Namen, der schon dasteht; „nicht als Mittel gegen Magensäure erkannt“ statt „unbekannt“; jede Beschriftung steht auch in der Ansage; nie mehr als die bestehenden Karten; die Karte „Neu“ einmal und nie bei einem neuen Tagebuch; gezählt wird nur, was sichtbar war; kein Rat, keine Dosis, nichts über den Rand, keine Anfrage nach draußen |
 | `test-adhs-rechnung.mjs` | A1 bis A5: eingebaute Unterschiede werden gefunden, und jede Regel von R2 bis R10 schließt aus, was sie ausschließen soll – auch die Mahlzeit im Fenster, die nur „mit Essen“ notiert machte, ein Fenster, das noch läuft, eine nachgetragene Form, Tage mit anderer Gabenzahl, R6 an seiner Grenze und Zielzahlen in jeder Reihenfolge; der Abschnitt liegt mittags wie abends, ein Wechsel des Stimulans setzt ihn auch bei durchlaufendem Zweitmittel, ein abgesetztes Stimulans und der Rückwechsel auf ein früheres Mittel beenden ihn; „zu wenige“ nur, wenn keine gezeigte Zeile genug Tage ohne Mittel hat; die Schwelle des Zeitprofil-Vorbehalts |
 | `test-spannung-rechnung.mjs` | V1 bis V5: eine fehlende Antwort zur Schiene ist keine Nacht ohne, Nächte nach Feier, Reise oder Alkohol fallen heraus, eine Einnahme am Abend oder nach Mitternacht macht keinen Kopfschmerz am Nachmittag oder Morgen zu einem „am Morgen“ bzw. „nicht am Morgen“, der laufende Morgen zählt noch nicht, ein Folgetag, der heute ist, auch nicht, ein Kopfschmerz vom Vorabend schließt den verspannten Tag aus, der Filter fragt den Vortag, ein Tag nur mit „Nacken/Schultern“ ist kein Tag ohne Kopfschmerz |
