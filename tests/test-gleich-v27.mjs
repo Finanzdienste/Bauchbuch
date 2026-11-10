@@ -136,12 +136,14 @@ const WORTLAUT_30 = [
   /* ----- „Tag": Vorschläge für heute (js/rat.js) und ihre Fußzeile (js/app.js) ----- */
   {
     tab: 'heute',
-    neu: 'Nicht für immer streichen – an Tagen wie diesem einmal weglassen und im Tagebuch schauen, ob es einen '
-      + 'Unterschied macht. Ob ein Lebensmittel wirklich der Auslöser ist, lässt sich so allein nicht sicher sagen; '
-      + 'das kann die Praxis abklären.',
+    neu: 'Danach lag dein Bauchwert im Mittel höher als ohne. Ob ein Lebensmittel wirklich der Auslöser ist, lässt '
+      + 'sich aus dem Tagebuch allein nicht sicher sagen; ob ein Auslassversuch für dich sinnvoll ist, lässt sich in '
+      + 'der Praxis besprechen.',
     alt: 'Nicht für immer streichen – nur an Tagen wie diesem einmal weglassen und schauen, ob es einen Unterschied '
       + 'macht. Ein Auslöser, der sich in zwei Wochen ohne ihn nicht bestätigt, war keiner.',
   },
+  // Der Titel derselben Karte: ohne Rat zum Weglassen; die Namen danach je Tagebuch.
+  { tab: 'heute', teil: true, neu: 'Auffällig in deinem Verlauf: ', alt: 'Heute eher ohne ' },
   { tab: 'heute', neu: 'Schonkost an Tagen mit starken Beschwerden', alt: 'Heute klein und mild' },
   {
     tab: 'heute',
@@ -199,7 +201,8 @@ const WORTLAUT_30 = [
   },
   {
     tab: 'muster',
-    neu: 'Erfüllte Kriterien sind keine Diagnose. Von einem Reizdarm oder Reizmagen sprechen Ärztinnen und Ärzte '
+    neu: 'Erfüllte Kriterien sind keine Diagnose. Von einem Reizdarm oder Reizmagen (funktionelle Dyspepsie) '
+      + 'sprechen Ärztinnen und Ärzte '
       + 'erst, wenn andere Ursachen für die Beschwerden abgeklärt und ausgeschlossen sind. Ob das so ist und welche '
       + 'Untersuchungen dafür nötig sind, klärt die Praxis. Auch der Punktwert zu Reflux ist keine Diagnose.',
     alt: 'Erfüllte Kriterien sind keine Diagnose. Beide Regelwerke setzen ausdrücklich voraus, dass nichts '
@@ -266,6 +269,21 @@ const WORTLAUT_30 = [
     alt: ([, notiert, von]) => `Grundlage: ${notiert} notierte Tage in den letzten ${von}. Ein Tagebuch untererfasst `
       + '– wer einen Tag nicht einträgt, hat an diesem Tag laut Tagebuch nichts gehabt. Jede Zahl hier ist eher zu '
       + 'niedrig als zu hoch.',
+  },
+
+  /* ----- „Muster": Einordnung (js/bild.js) ----- */
+  {
+    tab: 'muster',
+    neu: 'Im Tagebuch stehen entzündungshemmende Schmerzmittel. Häufig genommen, gehören sie laut gesund.bund.de '
+      + 'neben Helicobacter zu den häufigsten Gründen für eine entzündete Magenschleimhaut.',
+    alt: 'Im Tagebuch stehen entzündungshemmende Schmerzmittel – die häufigste vermeidbare Ursache einer gereizten '
+      + 'Magenschleimhaut.',
+  },
+  {
+    tab: 'muster',
+    neu: 'Ob eine Magenspiegelung zur Abklärung sinnvoll ist und ob ein anderes Mittel oder ein Magenschutz infrage '
+      + 'kommt, klärt die Praxis.',
+    alt: 'Auslassversuch unter ärztlicher Begleitung; bei anhaltenden Beschwerden Spiegelung.',
   },
 
   /* ----- „Muster": Auslassversuch, Klassen, Wirkweise (js/app.js) ----- */

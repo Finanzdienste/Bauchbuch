@@ -85,8 +85,8 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
  *
  *   'bremse'  Schalter ADHS an, eine Einnahme in den letzten 14 Tagen, und
  *             ungewollt abgenommen oder „Kein Appetit" an mindestens 3 der
- *             letzten 7 Bauch-Tage: „Heute eher ohne …" und „Spätes Essen
- *             und Liegen" entfallen.
+ *             letzten 7 Bauch-Tage: „Auffällig in deinem Verlauf: …" und
+ *             „Spätes Essen und Liegen" entfallen.
  *   'zusatz'  Schalter und Einnahme, sonst nichts: „Spätes Essen und Liegen"
  *             bekommt einen Satz dazu.
  *
@@ -172,8 +172,8 @@ export function raete(d) {
   /* ---------- Essen ---------- */
 
   // Was der eigene Verlauf hergibt, steht vor allem Allgemeinen. Ohne die
-  // Umstände: „Heute eher ohne Auswärts gegessen" ist kein Satz, und für
-  // Portion und Uhrzeit gibt es unten eigene Vorschläge.
+  // Umstände: „Auswärts gegessen" ist keine Zutat, und für Portion und
+  // Uhrzeit gibt es unten eigene Vorschläge.
   const auffaellig = (d.bilanz || [])
     .filter((b) => b.genug && ['auffaellig', 'moeglich'].includes(einstufung(b)))
     .filter((b) => !UMSTAND_IDS.includes(b.id))
@@ -194,13 +194,23 @@ export function raete(d) {
      * Fassung 29 stand hier „Ein Auslöser, der sich in zwei Wochen ohne ihn
      * nicht bestätigt, war keiner" – diese Frist und diesen Schluss nennt
      * keine Quelle.
+     *
+     * Die Karte rät auch nicht zum Weglassen. Bis zur Fassung 30 hieß sie
+     * „Heute eher ohne …", mit „an Tagen wie diesem einmal weglassen und im
+     * Tagebuch schauen"; die Quellen oben tragen das Tagebuch, keinen Rat zum
+     * Weglassen – zur Ernährung beim Reizmagen heißt es dort sogar: „Deshalb
+     * gibt es dazu keine verlässlichen Empfehlungen." Wie der Auslassversuch
+     * in js/luecken.js und versuchTeil in js/app.js verweist die Karte deshalb
+     * an die Praxis. Dass der Bauchwert danach höher lag, ist die Bedingung,
+     * unter der die Karte überhaupt steht (einstufung in js/auswertung.js:
+     * Unterschied mindestens eine Stufe).
      */
     raus.push(rat('essen-eigen', 'essen',
-      `Heute eher ohne ${namen}`,
-      'Nicht für immer streichen – an Tagen wie diesem einmal weglassen und im '
-      + 'Tagebuch schauen, ob es einen Unterschied macht. Ob ein Lebensmittel '
-      + 'wirklich der Auslöser ist, lässt sich so allein nicht sicher sagen; das '
-      + 'kann die Praxis abklären.',
+      `Auffällig in deinem Verlauf: ${namen}`,
+      'Danach lag dein Bauchwert im Mittel höher als ohne. Ob ein Lebensmittel '
+      + 'wirklich der Auslöser ist, lässt sich aus dem Tagebuch allein nicht sicher '
+      + 'sagen; ob ein Auslassversuch für dich sinnvoll ist, lässt sich in der Praxis '
+      + 'besprechen.',
       auffaellig.map((b) => `${ausloeserName(b.id, d.eigene)}: danach im Mittel `
         + `${b.schnittMit.toFixed(1).replace('.', ',')} statt `
         + `${b.schnittOhne.toFixed(1).replace('.', ',')} `

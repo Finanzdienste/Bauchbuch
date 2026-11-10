@@ -1105,6 +1105,15 @@ function a3Tagebuch({ spaetAm, schlafSpaet = 2, schlafFrueh = 1, vorNacht = [1, 
   check(A3_STUDIEN.startsWith('Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine längere '
     + 'Einschlafzeit als bei anderen') && !/gehört oft/.test(A3_STUDIEN),
   'A3: der Satz zum Einschlafen bei ADHS ohne „gehört oft zu ADHS selbst“');
+  /*
+   * Verglichen werden Tage derselben Person – ADHS steht auf beiden Seiten.
+   * Bis zur Fassung 30 hieß es, ein Unterschied liege an der Einnahmezeit
+   * „oder an ADHS selbst“; jetzt wie im Bericht.
+   */
+  check(!A3_STUDIEN.includes('ADHS selbst')
+    && A3_STUDIEN.includes('Ob ein Unterschied hier an der Einnahmezeit liegt oder an etwas, das mit ihr '
+      + 'zusammenfällt, trennt dieser Vergleich nicht.'),
+  'A3: die Grenze des Vergleichs wie im Bericht, ohne „oder an ADHS selbst“');
 }
 
 ende();

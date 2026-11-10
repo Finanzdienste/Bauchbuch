@@ -838,22 +838,26 @@ const A3_VORNACHT_LEER = 'Zur Nacht davor fehlen auf einer Seite die Angaben –
   + 'kann der Vergleich nicht prüfen.';
 
 /*
- * Derselbe Satz wie unter „Mehr" (WISSEN_ADHS in js/app.js) und im Bericht.
- * Belegt ist nur der Zusammenhang, keine Ursache: Biol Psychiatry
+ * Derselbe Wortlaut wie im Bericht (js/bericht.js, A3); unter „Mehr"
+ * (WISSEN_ADHS in js/app.js) steht nur der erste Satz zu den Studien, mit
+ * eigener Fortsetzung. Belegt ist nur der Zusammenhang, keine Ursache: Biol Psychiatry
  * 2010;67(11):1091-6 (PMID 20163790, Abstract), 40 Erwachsene mit ADHS:
  * „Compared with control subjects, both groups of ADHD adults had longer
  * sleep-onset latency"; Neurosci Biobehav Rev 2018;89:61-71 (PMID 29477617,
  * Abstract), Metaanalyse zu Erwachsenen: mit Bewegungsmessung „sleep onset
  * latency: 0.80 (0.46-1.14)", im Schlaflabor dagegen „No significant
  * differences were detected for polysomnographic parameters" – deshalb
- * „manche Studien". Ob die Teilnehmer dabei Mittel nahmen, sagen die
- * Abstracts nicht; deshalb „an ADHS selbst" nur als eine von zwei
- * Möglichkeiten. Bis zur Fassung 29: „Späteres Einschlafen gehört oft auch zu
- * ADHS selbst".
+ * „manche Studien". Diese Studien vergleichen Erwachsene mit und ohne ADHS;
+ * die Rechnung hier vergleicht Tage derselben Person nach der Einnahmezeit,
+ * und zwar die Schlafbewertung, nicht die Einschlafzeit. ADHS steht dabei auf
+ * beiden Seiten. Bis zur Fassung 30 hieß es deshalb fälschlich, ein
+ * Unterschied lasse sich nicht trennen „an der Einnahmezeit … oder an ADHS
+ * selbst"; bis zur Fassung 29: „Späteres Einschlafen gehört oft auch zu ADHS
+ * selbst".
  */
 export const A3_STUDIEN = 'Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine längere Einschlafzeit '
-  + 'als bei anderen – ob ein Unterschied hier an der Einnahmezeit liegt oder an ADHS selbst, lässt sich '
-  + 'nicht trennen.';
+  + 'als bei anderen. Ob ein Unterschied hier an der Einnahmezeit liegt oder an etwas, das mit ihr '
+  + 'zusammenfällt, trennt dieser Vergleich nicht.';
 
 function a3Saetze(a3, v) {
   if (a3.dicht) return ['Deine Einnahmezeiten liegen zu dicht beieinander für diesen Vergleich.'];

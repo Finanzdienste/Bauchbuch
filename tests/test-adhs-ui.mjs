@@ -558,6 +558,33 @@ const knopfSagt = (page, id) => page.locator(`[data-act="standard-eintragen"][da
   await ctx.close();
 }
 
+/*
+ * Fassung 30: Bei W3/W4 ist der Hinweis zum Paar derselbe Satz wie der
+ * Säure-Satz der Form (KLAER_SATZ in js/mittel.js). Im Bogen stand er bis
+ * dahin zweimal untereinander; jetzt einmal.
+ */
+{
+  const { ctx, page } = await iphone({
+    adhsAn: null,
+    eintraege: [],
+    standardMittel: [
+      { id: 's1', mittel: 'Medikinet retard', dosis: '20 mg', tageszeit: 'morgens', bezug: null, form: 'pellet' },
+      { id: 's2', mittel: 'Pantoprazol', dosis: '20 mg', tageszeit: 'morgens', bezug: null },
+    ],
+  });
+  await tipp(page, '[data-act="neu"][data-art="medikament"]');
+  await page.locator('#bogenMittel').fill('Medikinet');
+  await kurz(page);
+  for (const form of ['sofort', 'sodas', 'retardtab']) {
+    await tipp(page, `[data-act="bogen-form"][data-id="${form}"]`);
+    const w = await text(page, '#bogenWissen');
+    const mal = w.split('Ob ein Mittel bei Säurebeschwerden zu deinem Präparat passt').length - 1;
+    check(mal === 1, `Form „${form}“ mit Pantoprazol unter „Meine Mittel“: der Klär-Satz steht im Bogen genau einmal (${mal}×)`);
+  }
+  await tipp(page, 'button.bogen-zu');
+  await ctx.close();
+}
+
 /* ---------- 7. Zwei Mittel, die zusammen unter den Gegenanzeigen stehen ---------- */
 
 {

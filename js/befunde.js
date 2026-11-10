@@ -44,12 +44,23 @@
  * was aus „Was noch fehlt" verschwindet. Die Kennungen sind die der Verdachte
  * in js/luecken.js.
  *
- * Diese Liste ist mit Absicht knauserig. Gestrichen wird nur, was mit dem
- * Befund *definitionsgemäß* erledigt ist: Eine Gastritis Typ C ist eine
- * chemisch verursachte, also keine bakterielle – Helicobacter ist damit keine
- * offene Frage mehr. Dass ein Befund meist bei einer Spiegelung entsteht und
- * dabei auch anderes aufgefallen wäre, reicht nicht: „meist" ist keine
- * Grundlage, einem Menschen eine Untersuchung aus der Liste zu nehmen.
+ * Diese Liste ist mit Absicht knauserig. Gestrichen wird nur, was der Befund
+ * selbst beantwortet: Eine Gastritis Typ B ist die durch Helicobacter pylori
+ * verursachte (gesund.bund.de/glossar/typ-b-gastritis). Dass ein Befund meist
+ * bei einer Spiegelung entsteht und dabei auch anderes aufgefallen wäre,
+ * reicht nicht: „meist" ist keine Grundlage, einem Menschen eine Untersuchung
+ * aus der Liste zu nehmen.
+ *
+ * Bis zur Fassung 30 nahm auch eine Gastritis Typ C die Frage nach
+ * Helicobacter heraus, mit der Begründung, sie sei „chemisch verursacht, also
+ * keine bakterielle". Das trägt keine Quelle: Typ C heißt nur, dass die
+ * Entzündung durch die Einwirkung chemischer Stoffe entstanden ist
+ * (gesund.bund.de/glossar/typ-c-gastritis), und Mischformen mit einer
+ * Helicobacter-Gastritis sind beschrieben (Borchard, Pathologe 2001;22(1):
+ * 44-55, PMID 11225445, Abstract: „Mixed forms of chemical/reactive gastritis
+ * and other forms of gastritis are also described, for example, that from
+ * Helicobacter."). Ob auf Helicobacter untersucht wurde, steht im Befund,
+ * nicht in seiner Bezeichnung.
  *
  * Die Richtung des Irrtums ist hier nicht gleichgültig. Ein Verdacht, der zu
  * viel dasteht, kostet eine Nachfrage in der Sprechstunde. Einer, der zu
@@ -75,17 +86,28 @@ export const BEFUNDE = [
       + 'und Speiseröhre hält schlechter. Was die App an Sodbrennen und '
       + 'Aufstoßen zählt, hat damit eine Erklärung, die schon feststeht.',
   },
+  /*
+   * Quellen (Fassung 30): gesund.bund.de/glossar/typ-c-gastritis: „Ist die
+   * Entzündung durch die Einwirkung von chemischen Stoffen entstanden, spricht
+   * man auch von einer Typ-C-Gastritis. Neben zurücklaufender
+   * Gallenflüssigkeit, Alkohol oder bestimmten Schmerzmitteln kommen auch
+   * Zigarettenrauch, Säuren oder Laugen als Ursache … in Frage." Eine
+   * Rangfolge („die häufigsten Ursachen sind …", bis zur Fassung 30) nennt die
+   * Seite nicht; „nicht durch Bakterien" und das Streichen der Frage nach
+   * Helicobacter (klaert) sind entfallen, siehe oben.
+   */
   {
     id: 'gastritis-c',
     name: 'Gastritis Typ C',
-    was: 'Magenschleimhautentzündung durch Reizstoffe – nicht durch Bakterien.',
+    was: 'Magenschleimhautentzündung, die durch die Einwirkung chemischer Stoffe '
+      + 'entstanden ist.',
     organisch: true,
-    klaert: ['hpylori'],
-    bedeutet: 'Typ C heißt: chemisch gereizt. Die häufigsten Ursachen sind '
-      + 'Schmerzmittel vom NSAR-Typ (Ibuprofen, Diclofenac, ASS), Gallensaft, '
-      + 'der in den Magen zurückläuft, und Alkohol. Was davon bei dir zutrifft, '
-      + 'steht in deinem Befund – und die Medikamentenspalte dieser App ist '
-      + 'dann die interessanteste Spalte, die sie hat.',
+    klaert: [],
+    bedeutet: 'Als Ursachen nennt gesund.bund.de unter anderem zurücklaufende '
+      + 'Gallenflüssigkeit, Alkohol und bestimmte Schmerzmittel. Was davon bei dir '
+      + 'zutrifft und ob auch auf Helicobacter untersucht wurde, steht in deinem '
+      + 'Befund – und die Medikamentenspalte dieser App ist dann die '
+      + 'interessanteste Spalte, die sie hat.',
   },
   {
     id: 'gastritis-a',
@@ -97,14 +119,26 @@ export const BEFUNDE = [
     bedeutet: 'Hier gehört regelmäßig das Blutbild dazu – Vitamin B12 wird im '
       + 'Magen aufgenommen, und das geht dabei verloren.',
   },
+  /*
+   * Quellen (Fassung 30): gesund.bund.de/reizmagen-funktionelle-dyspepsie
+   * (Stand 05.02.2026, Behandlung): „Eine Infektion der Magenschleimhaut mit
+   * dem Helicobacter-Pylori-Bakterium kann gut mit Antibiotika behandelt
+   * werden."; gesund.bund.de/magengeschwuer (Stand 07.01.2022, Behandlung):
+   * „Nach Abschluss der Antibiotika-Behandlung wird frühestens nach 4 Wochen
+   * kontrolliert, ob die Therapie erfolgreich war. … Sind sie noch
+   * nachweisbar, kann die Behandlung … wiederholt werden." Bis zur Fassung 30:
+   * „Der eine Fall, in dem eine Behandlung die Ursache beseitigt" – ein
+   * sicherer Erfolg und eine Rangfolge, die keine dieser Seiten nennt.
+   */
   {
     id: 'gastritis-b',
     name: 'Gastritis Typ B (Helicobacter)',
     was: 'Magenschleimhautentzündung durch das Bakterium Helicobacter pylori.',
     organisch: true,
     klaert: ['hpylori'],
-    bedeutet: 'Der eine Fall, in dem eine Behandlung die Ursache beseitigt '
-      + 'statt die Beschwerden zu dämpfen.',
+    bedeutet: 'Hier richtet sich die Behandlung gegen die Ursache: Eine Infektion mit '
+      + 'Helicobacter kann laut gesund.bund.de gut mit Antibiotika behandelt werden. '
+      + 'Ob der Keim danach weg ist, wird hinterher nachgeprüft.',
   },
   {
     id: 'refluxkrankheit',
@@ -210,7 +244,7 @@ export function kriterienVorbehalt(befunde) {
   if (!organische.length) return '';
   const namen = organische.map((w) => w.name).join(', ');
   return `Bei dir steht schon etwas fest: ${namen}. Von einem Reizdarm oder `
-    + 'Reizmagen wird erst gesprochen, wenn andere Ursachen der Beschwerden '
+    + 'Reizmagen (funktionelle Dyspepsie) wird erst gesprochen, wenn andere Ursachen der Beschwerden '
     + 'abgeklärt sind; was dein Befund dafür heißt, klärt die Praxis. Was unten '
     + 'steht, ist deshalb keine Einordnung, sondern eine Verlaufsbeobachtung: wie '
     + 'stark, wie oft, und ob es besser wird.';

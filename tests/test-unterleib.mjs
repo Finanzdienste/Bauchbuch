@@ -109,9 +109,17 @@ check(
   muster.includes('Tiefer Schmerz beim Sex'),
   'mit dem tiefen Schmerz als Beleg',
 );
+/*
+ * Seit der Fassung 30 ohne „im Mittel sieben bis zehn Jahre lang für einen
+ * Reizdarm gehalten“ – das trägt keine erreichbare Quelle (Belege über
+ * MUSTER in js/bild.js). Dafür steht, wie sie abgeklärt wird und dass es bis
+ * zur Diagnose oft Jahre dauert.
+ */
 check(
-  /sieben bis zehn Jahre/.test(muster),
-  'samt dem Grund, warum das überhaupt dasteht',
+  !/sieben bis zehn Jahre|für einen Reizdarm gehalten/.test(muster)
+    && muster.includes('Bis zur Diagnose dauert es oft Jahre')
+    && muster.includes('Abgeklärt wird sie gynäkologisch'),
+  'samt dem Grund, warum das überhaupt dasteht – ohne die unbelegte Zahl',
 );
 
 /*

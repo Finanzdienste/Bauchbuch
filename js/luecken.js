@@ -60,10 +60,10 @@ export function tagebuchLuecken(d) {
 
   if (s.gesamt === 0) {
     nimm('stuhl', 10, 'Stuhlgang eintragen',
-      'Die größte Lücke. Ohne Häufigkeit und Form kann der Reizdarm-Kasten '
-      + 'unter „Muster“ nichts zählen und auch keinen Typ bestimmen – '
-      + 'Verstopfung, Durchfall, gemischt. Zwei Tipper am Tag, mit Bildchen '
-      + 'statt Text.');
+      'Die größte Lücke. Ohne eingetragenen Stuhlgang fehlen dem Reizdarm-Kasten '
+      + 'unter „Muster“ die Angaben zu Häufigkeit und Form, und er kann keinen Typ '
+      + 'bestimmen – Verstopfung, Durchfall, gemischt. Zwei Tipper am Tag, mit '
+      + 'Bildchen statt Text.');
   } else if (s.gesamt < 15) {
     nimm('stuhl', 8, 'Weiter Stuhlgang eintragen',
       `${s.gesamt} von 15 Eintragungen. Ab fünfzehn lässt sich der Typ `
@@ -96,17 +96,22 @@ export function tagebuchLuecken(d) {
       + 'sie im Kasten „Magenbeschwerden ab Stärke 4“ unter „Muster“ – ohne Einordnung.');
   }
 
+  // Die Grenzen wie in js/kriterien.js: Reizdarm und Magenbeschwerden ab 30
+  // notierten Tagen in den letzten 90, der GerdQ-Punktwert aus den letzten
+  // sieben Tagen (belastbar ab vier erfassten). Bis zur Fassung 30 hieß es
+  // hier für alle drei Kästen „ab dreißig" und „mit den letzten drei Monaten".
   if (k.zeitraum.notierteTage < 30) {
     nimm('tage', 8, 'Regelmäßiger eintragen',
       `In den letzten drei Monaten sind ${k.zeitraum.notierteTage} Tage notiert. `
-      + 'Ab dreißig rechnet Body Check die Kästen unter „Kriterien“. Wichtig ist nicht die '
-      + 'Menge je Tag, sondern dass kein Tag fehlt – eine Lücke ist kein guter '
-      + 'Tag, und Lücken häufen sich genau in den schlechten Wochen.');
+      + 'Ab dreißig rechnet Body Check den Reizdarm-Kasten und die Magenbeschwerden '
+      + 'unter „Kriterien“; der Punktwert zu Reflux braucht nur die letzte Woche. '
+      + 'Wichtig ist nicht die Menge je Tag, sondern dass kein Tag fehlt – eine Lücke '
+      + 'ist kein guter Tag, und Lücken häufen sich genau in den schlechten Wochen.');
   } else if (k.zeitraum.tagebuchTage < 90) {
     nimm('tage', 4, 'Weiterschreiben',
-      `Das Tagebuch läuft seit ${k.zeitraum.tagebuchTage} Tagen. Die `
-      + 'Kästen unter „Kriterien“ rechnen mit den letzten drei Monaten – bis '
-      + 'dahin ist jede Zahl dort vorläufig.');
+      `Das Tagebuch läuft seit ${k.zeitraum.tagebuchTage} Tagen. Der `
+      + 'Reizdarm-Kasten und die Magenbeschwerden unter „Kriterien“ rechnen mit den '
+      + 'letzten drei Monaten – bis dahin sind ihre Zahlen vorläufig.');
   }
 
   // Der Punktwert ohne „zu niedrig statt falsch": Zwei Posten zählen
@@ -158,12 +163,25 @@ export function tagebuchLuecken(d) {
  * es diese Liste gibt.
  */
 const VERDAECHTE = [
+  /*
+   * Quellen (Fassung 30): gesund.bund.de/glossar/typ-b-gastritis: die durch
+   * Helicobacter verursachte Form „ist am häufigsten"; gesund.bund.de/
+   * magengeschwuer (Stand 07.01.2022, „Was ist ein Magengeschwür?"): „meist
+   * durch eine Infektion mit Helicobacter-pylori-Bakterien" und
+   * („Behandlung") „frühestens nach 4 Wochen kontrolliert, ob die Therapie
+   * erfolgreich war … Sind sie noch nachweisbar, kann die Behandlung …
+   * wiederholt werden"; gesund.bund.de/reizmagen-funktionelle-dyspepsie
+   * (Stand 05.02.2026): „kann gut mit Antibiotika behandelt werden". Bis zur
+   * Fassung 30 hieß es, Helicobacter sei „die einzige Möglichkeit auf dieser
+   * Liste, die sich in zwei Wochen behandeln und danach abhaken lässt" – ein
+   * sicherer Erfolg und eine Rangfolge, die keine dieser Seiten nennt.
+   */
   {
     id: 'hpylori',
     name: 'Helicobacter pylori',
     was: 'Ein Bakterium in der Magenschleimhaut. Häufigste Ursache von Gastritis '
-      + 'und Magengeschwür – und die einzige Möglichkeit auf dieser Liste, die '
-      + 'sich in zwei Wochen behandeln und danach abhaken lässt.',
+      + 'und Magengeschwür. Laut gesund.bund.de gut mit Antibiotika behandelbar; ob '
+      + 'der Keim danach weg ist, wird nachgeprüft.',
     /*
      * Bis zur Fassung 29: „Säureblocker zwei Wochen vorher absetzen (nach
      * Absprache), sonst wird der Test falsch negativ" – eine Anweisung zum
@@ -174,7 +192,7 @@ const VERDAECHTE = [
      * Arzneimittels befragen."
      */
     untersuchung: 'Atemtest, Stuhltest oder Gewebeprobe bei der Spiegelung. '
-      + 'Laut Fachinformation von PANTOZOL Control ist eine geplante Spiegelung '
+      + 'Laut Fachinformation von Pantozol Control ist eine geplante Spiegelung '
       + 'oder ein Harnstoff-Atemtest ein Anlass, vor der Einnahme ärztlich '
       + 'nachzufragen; was ein Säureblocker für den Test bedeutet, klärt die Praxis.',
     frage: 'Wäre ein Test auf Helicobacter pylori sinnvoll?',
@@ -325,7 +343,7 @@ const VERDAECHTE = [
      * Spiegelung als Maßstab nennt die Quelle nicht, und die Sternchen
      * standen wörtlich auf dem Bildschirm.
      */
-    untersuchung: 'Von einem Reizmagen wird laut gesund.bund.de erst gesprochen, '
+    untersuchung: 'Von einem Reizmagen (so heißt die funktionelle Dyspepsie auch) wird laut gesund.bund.de erst gesprochen, '
       + 'wenn andere Ursachen der Beschwerden abgeklärt und ausgeschlossen sind – '
       + 'nach einem Gespräch etwa mit Blut- und Stuhltests, Ultraschall und '
       + 'manchmal einer Magenspiegelung. Welche Untersuchungen nötig sind, klärt '
@@ -363,17 +381,42 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quellen (Fassung 30): gesund.bund.de, Reizdarmsyndrom (Stand 28.08.2024,
+   * „Wie wird ein Reizdarmsyndrom festgestellt?"): Ärztinnen und Ärzte
+   * sprechen davon, wenn unter anderem „keine Hinweise auf eine andere
+   * Erkrankung vorliegen, die die Beschwerden verursachen könnte"; „Auch
+   * andere Gründe wie eine Unverträglichkeit gegen Milchzucker
+   * (Laktoseintoleranz) oder eine Zöliakie kommen in Frage"; „Durch Bluttests
+   * und weitere Untersuchungen können andere Ursachen ausgeschlossen werden."
+   * Calprotectin nennt die Seite nicht; die EMA-Leitlinie zu Studien bei
+   * Reizdarm (EMA/CHMP/60337/2013, CPMP/EWP/785/97 Rev. 1, 25. September 2014,
+   * Abschnitt zu den Einschlusskriterien) verlangt den Ausschluss einer
+   * Entzündung „(e.g. CRP and/or calprotectin)" – für Studienteilnehmer, nicht
+   * als Vorgabe für die Sprechstunde. Deshalb steht es nur in der Frage. Bis
+   * zur Fassung 30 hieß es, der Reizdarm sei „eine eigene Diagnose mit eigener
+   * Behandlung – und oft beides zusammen", beides „wird oft vergessen" und
+   * „den Ausschluss macht das Labor"; das trägt keine geprüfte Quelle.
+   *
+   * Die Frage zum Vorlesen hängt am Stand des Reizdarm-Kastens unter
+   * „Kriterien": „erfüllt" nur, wenn er dort auch so steht (r.erfuellt). Bis
+   * zur Fassung 30 stand es fest in jeder Frage, auch neben „Kriterien nicht
+   * erfüllt" oder „noch nicht prüfbar".
+   */
   {
     id: 'reizdarm',
     name: 'Reizdarmsyndrom',
-    was: 'Bauchschmerz, der mit dem Stuhlgang zusammenhängt. Wie die funktionelle '
-      + 'Dyspepsie eine eigene Diagnose mit eigener Behandlung – und oft beides '
-      + 'zusammen.',
-    untersuchung: 'Vor der Diagnose gehören Zöliakie (Bluttest) und eine '
-      + 'Entzündung im Darm (Calprotectin im Stuhl) ausgeschlossen. Beides ist '
-      + 'einfach und wird oft vergessen.',
-    frage: 'Die Rom-Kriterien für ein Reizdarmsyndrom sind erfüllt – sind Zöliakie '
-      + 'und Calprotectin schon geprüft worden?',
+    was: 'Bauchschmerz, der mit dem Stuhlgang zusammenhängt. Zu den typischen '
+      + 'Beschwerden zählen laut gesund.bund.de Krämpfe, anhaltende Bauchschmerzen '
+      + 'und ein veränderter Stuhl.',
+    untersuchung: 'Von einem Reizdarmsyndrom sprechen Ärztinnen und Ärzte laut '
+      + 'gesund.bund.de, wenn keine Hinweise auf eine andere Erkrankung vorliegen; '
+      + 'als andere Gründe nennt die Seite etwa eine Laktoseintoleranz oder eine '
+      + 'Zöliakie. Durch Bluttests und weitere Untersuchungen können andere Ursachen '
+      + 'ausgeschlossen werden. Welche davon nötig sind, klärt die Praxis.',
+    frage: 'Sind andere Ursachen wie eine Zöliakie oder eine Entzündung im Darm schon '
+      + 'abgeklärt worden, etwa mit einem Calprotectin-Test – und passt das Bild zu einem '
+      + 'Reizdarmsyndrom?',
     pruefe: (d) => {
       const r = d.kriterien.reizdarm;
       const dafuer = [];
@@ -393,12 +436,20 @@ const VERDAECHTE = [
       if (r.erfuellt) stand = 'gestuetzt';
       else if (r.pruefbar && dafuer.length) stand = 'moeglich';
       else if (r.pruefbar) stand = 'unwahrscheinlich';
+      // „Erfüllt" nur, wenn der Kasten unter „Kriterien" es auch sagt.
+      const frage = r.erfuellt
+        ? 'In meinem Tagebuch sind die Rom-IV-Kriterien für ein Reizdarmsyndrom '
+          + 'erfüllt – sind andere Ursachen wie eine Zöliakie oder eine Entzündung im '
+          + 'Darm schon abgeklärt worden, etwa mit einem Calprotectin-Test?'
+        : undefined;
       return {
         stand,
+        ...(frage ? { frage } : {}),
         dafuer,
         dagegen,
-        offen: r.typ.typ ? 'Ein Reizdarm ist eine Diagnose nach Ausschluss – das '
-          + 'Tagebuch liefert dafür das Material, den Ausschluss macht das Labor.'
+        offen: r.typ.typ ? 'Von einem Reizdarm wird erst gesprochen, wenn andere '
+          + 'Ursachen abgeklärt sind – das Tagebuch liefert Material für das Gespräch; '
+          + 'ob und welche Untersuchungen nötig sind, klärt die Praxis.'
           : `Für den Typ fehlen noch ${r.typ.fehlt} eingetragene Stuhlgänge.`,
       };
     },
@@ -509,12 +560,28 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quelle (Fassung 30): gesund.bund.de/gastritis (Stand 13.11.2025, „Welche
+   * Ursachen hat eine Gastritis?" und „Einnahme von NSAR-Schmerzmitteln"):
+   * „Zu den häufigsten Gründen zählen eine Infektion mit
+   * Helicobacter-Pylori-Bakterien oder die häufige Einnahme" von NSAR; „Wer
+   * solche Schmerzmittel nur kurz bei akuten Schmerzen einnimmt, hat eher
+   * selten mit Nebenwirkungen zu tun. Erfolgt die Einnahme jedoch über einen
+   * längeren Zeitraum von Wochen oder Monaten, kann das die Schutzfunktion der
+   * Magenschleimhaut stören." Wortlaut wie REIZSTOFFE in js/mittel.js. Bis zur
+   * Fassung 30: „greifen die Magenschleimhaut direkt an. Die häufigste
+   * vermeidbare Ursache" – ohne die Bedingung der Dauer und mit einer
+   * Rangfolge, die dort nicht steht.
+   */
   {
     id: 'nsar',
     name: 'Schaden durch Schmerzmittel',
-    was: 'Ibuprofen, Diclofenac und ASS greifen die Magenschleimhaut direkt an. '
-      + 'Die häufigste vermeidbare Ursache – und die einzige auf dieser Liste, '
-      + 'bei der das Tagebuch die Antwort schon hat.',
+    was: 'Ibuprofen, Diclofenac und ASS gehören zu den entzündungshemmenden '
+      + 'Schmerzmitteln (NSAR). Häufig genommen, zählen sie laut gesund.bund.de neben '
+      + 'Helicobacter zu den häufigsten Gründen für eine entzündete Magenschleimhaut: '
+      + 'Bei Einnahme über Wochen oder Monate kann das die Schutzfunktion der '
+      + 'Magenschleimhaut stören. Ob und wie oft so ein Mittel genommen wurde, steht '
+      + 'im Tagebuch.',
     untersuchung: 'Keine nötig, um die Frage zu stellen. Es geht um eine '
       + 'Alternative oder um einen Magenschutz – beides gehört besprochen, nicht '
       + 'selbst entschieden.',
@@ -535,18 +602,30 @@ const VERDAECHTE = [
         }
       }
       /*
-       * Mit einer Gastritis Typ C im Befund: Typ C heißt chemisch gereizt, und
-       * diese Mittel gehören zu den häufigsten Gründen dafür – neben
-       * Gallenrückfluss und Alkohol. Welcher davon zutrifft, steht im
-       * Befund und nicht hier; das Tagebuch sieht es nicht. Sicher ist nur,
-       * dass jede weitere Einnahme eine Schleimhaut trifft, die schon gereizt
-       * ist. Deshalb lohnt die Frage hier vom ersten Tag an.
+       * Mit einer Gastritis Typ C im Befund, Wortlaut wie im README
+       * („Was Kopf und Bauch verbindet"). Quellen: gesund.bund.de/glossar/
+       * typ-c-gastritis („durch die Einwirkung von chemischen Stoffen
+       * entstanden"); Owen, Mod Pathol 2003;16(4):325-41 (PMID 12692198,
+       * Abstract): „Reactive gastropathy … in most instances it is associated
+       * with either reflux of duodenal contents or therapy with nonsteroidal
+       * anti-inflammatory drugs."; FI IBU-ratiopharm akut Schmerztabletten
+       * (fachinfo.de/fi/pdf/014937, Stand Juni 2026), 4.4: „Eine besonders
+       * sorgfältige ärztliche Überwachung ist erforderlich: bei
+       * Magen-Darm-Störungen … in der Vorgeschichte"; FI Aspirin
+       * (fachinfo.de/fi/pdf/000174, Stand März 2026), 4.4: „verstärktem
+       * Monitoring" bei „Gastritis in der Anamnese". Bis zur Fassung 30 stand
+       * hier „Sicher ist nur: Sie treffen eine Schleimhaut, die schon gereizt
+       * ist" – stärker als jede dieser Quellen, und ein älterer Befund kann
+       * abgeheilt sein.
        */
       if (gastritisC && d.nsarTage >= 1) {
-        dafuer.push('Deine Gastritis ist als Typ C eingetragen – chemisch gereizt. '
-          + 'Entzündungshemmende Schmerzmittel gehören zu den häufigsten Gründen '
-          + 'dafür; ob sie es bei dir sind, steht in deinem Befund, nicht hier. '
-          + 'Sicher ist nur: Sie treffen eine Schleimhaut, die schon gereizt ist.');
+        dafuer.push('Deine Gastritis ist als Typ C eingetragen – durch chemische Stoffe '
+          + 'entstanden. Neben dem Rückfluss von Darminhalt gehören entzündungshemmende '
+          + 'Schmerzmittel zu den häufigsten Ursachen einer solchen Schleimhautschädigung; '
+          + 'ob sie es bei dir sind, steht in deinem Befund, nicht hier. Bei '
+          + 'Magen-Darm-Störungen in der Vorgeschichte sehen Fachinformationen mancher '
+          + 'dieser Mittel, etwa von Ibuprofen und ASS, eine besonders sorgfältige '
+          + 'ärztliche Überwachung vor. Was das für dich heißt, klären Praxis oder Apotheke.');
       }
       /*
        * Der Stand beschreibt den Verlauf, nicht die Dringlichkeit der Frage:

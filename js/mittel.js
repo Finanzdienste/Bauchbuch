@@ -1574,7 +1574,11 @@ export const KLAER_SATZ = 'Ob ein Mittel bei Säurebeschwerden zu deinem Präpar
  *             im Stuhl oder eine Verengung). Der Name nennt deshalb nur Kinecteen.
  *   equasym   Equasym Retard FI, www.fachinfo.de/fi/pdf/012100 (Apfelmus);
  *             GI-Wiedergabe Apotheken Umschau (morgens vor der Mahlzeit)
- *   unbekannt aus den obigen abgeleitet
+ *   unbekannt aus den obigen abgeleitet. Fassung 30: „Welche du hast, weiß die
+ *             Apotheke" wie überall sonst – auf der Packung steht der Markenname,
+ *             die Form im Sinne dieser App nicht immer (Belege vor wKarteW1u in
+ *             js/zusammen.js); bis dahin hieß es hier „steht auf der Packung
+ *             oder weiß die Apotheke".
  */
 export const MPH_FORMEN = [
   {
@@ -1639,8 +1643,8 @@ export const MPH_FORMEN = [
     name: 'Weiß ich nicht',
     kurzname: 'Form nicht angegeben',
     einnahme: 'Methylphenidat gibt es in Formen, die sich beim Essen und bei H2-Blockern, '
-      + 'Protonenpumpenhemmern oder Antazida verschieden verhalten. Welche du hast, steht auf '
-      + 'der Packung oder weiß die Apotheke.',
+      + 'Protonenpumpenhemmern oder Antazida verschieden verhalten. Welche du hast, weiß die '
+      + 'Apotheke.',
     saeure: KLAER_SATZ,
   },
 ];

@@ -273,7 +273,22 @@ export function befund(m) {
     return `Darunter schlechter als davor: ${zahlen} Woran das liegt, zeigt dieser `
       + 'Vergleich nicht. Wenn es dabei bleibt, gehört es angesprochen.';
   }
-  return `Kein Unterschied zur Zeit davor: ${zahlen} Ob das gegen das Mittel `
-    + `spricht, hängt daran, wie lange es schon läuft – ${Math.round(m.wochen)} `
-    + `${m.wochen < 2 ? 'Woche' : 'Wochen'} bisher.`;
+  /*
+   * Ohne Besserung, beim Säureblocker unter PPI_WOCHEN und bei allen anderen
+   * Magenmitteln: die Zahlen und wie lange die Einträge reichen, ohne Urteil
+   * über das Mittel (siehe PPI_WOCHEN und den Kopf dieser Datei). Bis zur
+   * Fassung 30 hieß es „Ob das gegen das Mittel spricht, hängt daran, wie
+   * lange es schon läuft" – ein Urteil, das keine Quelle trägt, bei Mitteln
+   * für den Bedarf ohne Sinn und bei Prokinetika schief: Deren
+   * Fachinformationen nennen eine Höchstdauer von fünf Tagen bis einer Woche
+   * (MCP-ratiopharm, fachinfo.de/fi/pdf/010786, Stand Juli 2026, 4.2;
+   * Domperidon-ratiopharm, 007740, Stand September 2025, 4.2), und
+   * verglichen wird erst ab acht Einnahmetagen. Die
+   * Einzahl richtet sich jetzt nach der gerundeten Zahl; vorher stand bei
+   * 11 bis 13 Tagen „2 Woche".
+   */
+  const wochenZahl = Math.max(1, Math.round(m.wochen));
+  return `Kein Unterschied zur Zeit davor: ${zahlen} Die Einträge reichen über `
+    + `${wochenZahl} ${wochenZahl === 1 ? 'Woche' : 'Wochen'}. Ob und was das über das `
+    + 'Mittel sagt, zeigt dieser Vergleich nicht; das kann die Praxis einordnen.';
 }

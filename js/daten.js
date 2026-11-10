@@ -166,8 +166,9 @@ export const UMSTAENDE = [
 
 /*
  * Die Kennungen der Umstände – für die Stellen, die mit einem Umstand etwas
- * anderes tun als mit einer Zutat: „Heute eher ohne große Portion" ist kein
- * Satz, und zwei Wochen „ohne spät gegessen" kein Auslassversuch, den die App
+ * anderes tun als mit einer Zutat: Eine große Portion steht auf der Karte
+ * „Für heute" nicht neben den Zutaten, und zwei Wochen „ohne spät gegessen"
+ * sind kein Auslassversuch, den die App
  * vorschlagen sollte. Eine Liste statt einer Abschrift an jeder Stelle, damit
  * ein neuer Umstand nicht an einer davon fehlt.
  */
@@ -352,16 +353,18 @@ export const TAGESFRAGEN = [
    * Sex erkundigt, wird zugeklappt und nicht wieder geöffnet – und dann ist
    * auch alles andere weg.
    *
-   * Warum es sie trotzdem gibt: Endometriose wird im Mittel sieben bis zehn
-   * Jahre lang für einen Reizdarm gehalten. Die Konstellation, an der es
-   * auffiele, ist zyklusabhängige Darmbeschwerde + tiefer Schmerz beim Sex +
-   * starker Regelschmerz – und danach wird in der Sprechstunde regelmäßig
-   * nicht gefragt. Ein Tagebuch kann genau das sehen.
+   * Warum es sie trotzdem gibt: Bis eine Endometriose erkannt wird, dauert es
+   * oft Jahre, und zu ihren Beschwerden können Schmerzen beim oder nach dem
+   * Sex und starke Regelschmerzen gehören (gesund.bund.de/endometriose, Stand
+   * 21.08.2025) – Angaben, nach denen ein Magentagebuch sonst nicht fragt.
+   * Bis zur Fassung 30 stand hier, Endometriose werde „im Mittel sieben bis
+   * zehn Jahre lang für einen Reizdarm gehalten" und danach werde in der
+   * Sprechstunde „regelmäßig nicht gefragt"; das trägt keine geprüfte Quelle.
    *
-   * Getrennt nach tief und außen, weil die Unterscheidung die eigentliche
-   * Auskunft ist: Tiefer Schmerz deutet in den Bauchraum (Endometriose,
-   * Verwachsungen, Beckenboden), Schmerz am Eingang auf etwas ganz anderes.
-   * Eine Frage, die beides zusammenwirft, hätte man sich sparen können.
+   * Getrennt nach tief und außen, weil js/unterleib.js nur den tiefen Schmerz
+   * als Merkmal zählt: Eine Übersichtsarbeit nennt starken tiefen Schmerz beim
+   * Sex als Beschwerde, die zu bestimmten Orten der Herde passt (Belege dort).
+   * Schmerz am Eingang zählt getrennt – eine Festlegung dieser App.
    */
   { id: 'sexschmerz', name: 'Schmerz beim Sex', worte: ['nein', 'leicht', 'mittel', 'stark', 'sehr stark'] },
   { id: 'sextief', name: 'davon tief innen', menge: true, worte: ['nein', 'ja'] },

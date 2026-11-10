@@ -140,16 +140,35 @@ check(
 /* ---------- 3. Geklärtes verschwindet – und nur das ---------- */
 
 /*
- * Gastritis Typ C ist definitionsgemäß chemisch verursacht, also nicht
- * bakteriell. Helicobacter ist damit keine offene Frage mehr.
+ * Gastritis Typ C heißt nur: durch chemische Stoffe entstanden. Ob auf
+ * Helicobacter untersucht wurde, sagt die Bezeichnung nicht, und Mischformen
+ * sind beschrieben (Quellen in js/befunde.js). Bis zur Fassung 30 strich die
+ * App die Frage trotzdem und schrieb, sie sei „bei dir schon geklärt“ – ein
+ * Verdacht, der zu Unrecht verschwindet.
  */
 check(
-  !mit.includes('Helicobacter pylori'),
-  'Helicobacter steht nicht mehr als offene Möglichkeit da',
+  mit.includes('Helicobacter pylori'),
+  'bei Gastritis Typ C bleibt Helicobacter als offene Frage stehen',
 );
 check(
-  /steh(t|en) nicht mehr hier, weil sie bei dir schon geklärt/.test(mit),
-  'und die App sagt, dass sie etwas weggelassen hat, statt es stillschweigend zu tun',
+  !/schon geklärt/.test(mit) && !mit.includes('nicht durch Bakterien'),
+  'und die App behauptet keine Klärung, die der Befund nicht hergibt',
+);
+
+/*
+ * Eine Gastritis Typ B ist die durch Helicobacter verursachte – dort ist die
+ * Frage beantwortet, und die App sagt, dass sie die Zeile weggelassen hat,
+ * statt es stillschweigend zu tun.
+ */
+const mitB = await laden([{ id: 'gastritis-b', am: vorTagen(30) }]);
+check(
+  !mitB.includes('Helicobacter pylori')
+    && /steh(t|en) nicht mehr hier, weil sie bei dir schon geklärt/.test(mitB),
+  'bei Gastritis Typ B steht Helicobacter nicht mehr als offene Frage da – mit dem Hinweis darauf',
+);
+check(
+  punkte(mitB) === punkteOhne,
+  `auch dann bleibt die Punktzahl dieselbe (${punkteOhne} → ${punkte(mitB)})`,
 );
 
 /*

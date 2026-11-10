@@ -18,7 +18,8 @@
  *      wertvollste Entlastung, die es hier gibt – aber nur so viel wert wie
  *      die größte geprüfte Menge.
  *   4. IMMER DIESELBE ROLLE. Der häufigste Fall im echten Leben. Dann gibt es
- *      keine Antwort, wohl aber etwas zu tun: es einmal kleiner essen.
+ *      keine Antwort, und der Satz sagt, was fehlt – ohne Rat, es kleiner zu
+ *      essen (seit der Fassung 30, Belege in js/dosis.js).
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, SHOT, pruefer, vorTagen } from './umgebung.mjs';
@@ -171,6 +172,22 @@ check(
 check(
   !/weglassen|kleinerer Rolle vorkommen|müsste es/i.test(einerlei.satz),
   'ohne Rat, es kleiner zu essen, und ohne Einschätzung zum Weglassen',
+);
+
+/*
+ * Und wenn gar keine Rolle oft genug vorkommt (Urteil 'unklar'): Der Satz
+ * sagt, was gezählt ist und was fehlt. Bis zur Fassung 30 hieß es „Um eine
+ * Menge zu finden, müsste es auch mal in kleinerer Rolle vorkommen“ – bei
+ * einem verdächtigen Lebensmittel ein verdeckter Vorschlag, es kleiner zu
+ * essen –, dazu „fast immer“, auch wenn die Zutat oft schon kleiner vorkam.
+ */
+const selten = await dosis(bauen({ rollen: ['haupt', 'beilage', 'topping'], wirkung: { haupt: 4 }, tage: 12 }));
+check(selten.urteil === 'unklar', `zu wenige Mahlzeiten je Rolle: Menge nicht prüfbar (${selten.urteil})`);
+check(
+  !/weglassen|kleinerer Rolle|müsste es|fast immer/i.test(selten.satz)
+    && /Bisher kam das (immer|am häufigsten) .+ vor \(\d+( von \d+)? Mal\)\./.test(selten.satz)
+    && selten.satz.includes('Für einen Vergleich nach Menge sind bisher zu wenige Mahlzeiten eingetragen'),
+  `ohne Rat, es kleiner zu essen – mit der Zahl statt „fast immer“ (${selten.satz})`,
 );
 
 /* ---------- Und in der Anzeige ---------- */

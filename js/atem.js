@@ -62,7 +62,7 @@ export const UEBUNGEN = [
     id: 'kohaerenz',
     name: 'Gleichmaß',
     zweck: 'Ohne Halten, gut sechs Atemzüge in der Minute',
-    beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus, ohne Halten. '
+    beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus. '
       + 'Unauffällig genug für den Bus.',
     runden: 10,
     phasen: [

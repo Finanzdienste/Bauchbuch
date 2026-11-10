@@ -2044,8 +2044,8 @@ function v29Karte(s) {
     <h3 id="neuTitel">Neu: Hinweise zu zwei Mitteln zusammen</h3>
     <p class="klein">Zu einigen wenigen Paaren von Mitteln zeigt Body Check jetzt einen Hinweis, vor allem
       zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Was in der Fachinformation dazu steht,
-      ist bei Methylphenidat von Präparat zu Präparat verschieden. Alle stehen unter „Mehr“ › „Meine
-      Mittel“, einige auch hier oben.</p>
+      ist bei Methylphenidat von Präparat zu Präparat verschieden. Alle Hinweise stehen unter „Mehr“ ›
+      „Meine Mittel“, einige auch hier oben.</p>
     <p class="klein">Steht kein Hinweis da, heißt das nicht, dass deine Mittel zusammenpassen. Body Check
       prüft nicht alle Mittel – das kann die Apotheke.</p>
     <p class="klein">Es klappt nur mit Mitteln, die hier stehen: unter „Meine Mittel“ oder in den letzten
@@ -3382,7 +3382,10 @@ function kriterienTeil(s, d) {
    * festgestellt?"): „keine Hinweise auf eine andere Erkrankung vorliegen".
    * Für den GerdQ gilt das nicht – deshalb dort nur „keine Diagnose".
    * Welche Untersuchungen nötig sind, legt die Praxis fest; „Spiegelung und
-   * Blutbild" als Maßstab nennt keine dieser Seiten.
+   * Blutbild" als Maßstab nennt keine dieser Seiten. „Reizmagen (funktionelle
+   * Dyspepsie)" wie im Titel der Seite („Reizmagensyndrom (funktionelle
+   * Dyspepsie)"): Der Kasten darunter spricht von funktioneller Dyspepsie, und
+   * ohne die Klammer stünden für Laien zwei Namen ohne Zusammenhang da.
    */
   const vorbehalt = kriterienVorbehalt(s.befunde || []);
   return `<div class="karte">
@@ -3390,7 +3393,7 @@ function kriterienTeil(s, d) {
     ${vorbehalt
     ? `<p class="klein"><b>Das hier ordnet nichts mehr ein.</b> ${esc(vorbehalt)}</p>`
     : `<p class="klein"><b>Erfüllte Kriterien sind keine Diagnose.</b> Von einem
-    Reizdarm oder Reizmagen sprechen Ärztinnen und Ärzte erst, wenn andere
+    Reizdarm oder Reizmagen (funktionelle Dyspepsie) sprechen Ärztinnen und Ärzte erst, wenn andere
     Ursachen für die Beschwerden abgeklärt und ausgeschlossen sind. Ob das so
     ist und welche Untersuchungen dafür nötig sind, klärt die Praxis. Auch der
     Punktwert zu Reflux ist keine Diagnose.</p>`}
@@ -3978,10 +3981,11 @@ function brauchtTeil(s, d) {
    * auftaucht, ist schlimmer als keine: Sie lässt jemanden nach etwas suchen,
    * das er schon gefunden hat, und verdeckt das, was wirklich noch offen ist.
    *
-   * Gestrichen wird dabei nur, was mit dem Befund definitionsgemäß erledigt
-   * ist – siehe die Begründung in js/befunde.js. Im Zweifel bleibt eine Zeile
-   * stehen: Ein Verdacht zu viel kostet eine Nachfrage, einer zu wenig die
-   * Untersuchung.
+   * Gestrichen wird dabei nur, was der Befund selbst beantwortet – siehe die
+   * Begründung in js/befunde.js (eine Gastritis Typ C streicht seit der
+   * Fassung 30 die Frage nach Helicobacter nicht mehr). Im Zweifel bleibt eine
+   * Zeile stehen: Ein Verdacht zu viel kostet eine Nachfrage, einer zu wenig
+   * die Untersuchung.
    */
   const erledigt = geklaert(s.befunde || []);
   const sichtbar = l.verdaechte.filter((v) => !erledigt.has(v.id));
@@ -4957,7 +4961,15 @@ function ruheAnsicht(s) {
    * Quellen im Kopf von js/atem.js es tragen. Bis zur Fassung 29: „Langes
    * Ausatmen schaltet auf den Teil des Nervensystems um, unter dem der Darm
    * arbeitet … ist das eine Behandlung und keine Beschäftigung" – eine
-   * Wirkaussage ohne Quelle, die rat.js schon als gestrichen führte.
+   * Wirkaussage ohne Quelle, die rat.js schon als gestrichen führte. Zuerst in
+   * der Fassung 30 hieß es dann, die Wirkung von Atemübungen sei laut
+   * gesund.bund.de „nicht hinreichend untersucht"; das sagt die Seite zu
+   * Schlafstörungen (Stand 04.04.2025, Behandlung: Methoden zur Behandlung von
+   * Schlafstörungen, „deren Wirksamkeit jedoch nicht hinreichend untersucht
+   * ist", darunter Atemübungen „insbesondere vor dem Schlafengehen"), nicht
+   * über Atemübungen überhaupt. Zu 4–7–8: „little empirical support"
+   * (Marchant et al. 2025, PMID 39864026, Abstract) – wie die Karte
+   * 'ruhe-schlaf' in js/rat.js.
    */
   const kreis = `<div class="atem${laeuft ? ' laeuft' : ''}">
     <div class="atem-kreis" id="atemKreis"><span id="atemZahl">${laeuft ? '' : '·'}</span></div>
@@ -4969,8 +4981,9 @@ function ruheAnsicht(s) {
   return `
   <h2>Ruhe</h2>
   <p class="klein">Atemübungen mit Ton. Tiefes Ein- und Ausatmen kann laut
-  gesund.bund.de die Entspannung fördern; wie gut Atemübungen wirken, ist dort
-  als nicht hinreichend untersucht beschrieben.</p>
+  gesund.bund.de die Entspannung fördern. Bei Schlafproblemen zählt die Seite
+  Atemübungen zu den Methoden, deren Wirksamkeit nicht hinreichend untersucht
+  ist; für 4–7–8 gibt es bisher wenig Belege.</p>
 
   ${kreis}
 
@@ -7100,9 +7113,13 @@ function wissenTeil(s, b) {
   if (!g) return '';
   const teile = [`<p class="klein mittel-hinweis">${esc(g.gruppe)}: ${esc(g.kurz)}
     <br>Ausführlich unter „Mehr".</p>`];
+  // Der Säure-Satz der gewählten Form. Bei W3/W4 ist der Hinweis zum Paar
+  // derselbe Text (KLAER_SATZ in js/mittel.js); er steht dann nur einmal.
+  let formSaeure = null;
   if (g.id === 'mph') {
     const f = formImBogen(s, b);
     const form = mphForm(f.form);
+    formSaeure = form && form.saeure ? form.saeure : null;
     teile.push(`<div class="bogen-form" role="group" aria-label="Form">
       <p class="feld-name">Welche Form? (weiß die Apotheke)</p>
       <div class="marken marken-eng">${MPH_FORMEN.map((x) => `
@@ -7121,7 +7138,7 @@ function wissenTeil(s, b) {
                 data-id="${w.id}" aria-pressed="${e.essen === w.id}">${w.name}</button>`).join('')}</div>
     </div>`);
   }
-  const paare = wechselImBogen(s, b);
+  const paare = wechselImBogen(s, b).filter((h) => h.text !== formSaeure);
   if (paare.length) {
     teile.push(`<div class="bogen-wechsel">${paare.map((h) => `<p class="klein">${esc(h.text)}</p>`).join('')}</div>`);
   }
@@ -7536,7 +7553,11 @@ function bogenHTML(s) {
      * 29; der Satz „gehören zu den Warnzeichen, die ärztlich abgeklärt
      * gehören", der zuerst in der Fassung 30 stand, nannte für das Zeichen
      * der Stufe „sofort" keine Eile und stützte sich auf eine Seite, die
-     * schwarzen Stuhl „zeitnah" nennt (gesund.bund.de, Magengeschwür).
+     * schwarzen Stuhl „zeitnah" nennt (gesund.bund.de, Magengeschwür). Ebenso
+     * bis zur Fassung 30: „Deshalb stehen beide hier und nicht im
+     * Beschwerdebogen" – der Beschwerdebogen bietet beide Zeichen ebenfalls an
+     * (WARNZEICHEN ohne den Kopf), und die Eile begründet nicht, in welchem
+     * Bogen sie stehen.
      */
     mitte = `
       <p class="feld-name">Wie sah es aus?</p>
@@ -7564,10 +7585,9 @@ function bogenHTML(s) {
         <summary>War Blut dabei oder war es schwarz?</summary>
         <p class="klein">Bei schwarzem, klebrigem Stuhl nicht auf einen Termin
         warten – Notaufnahme oder 112. Frisches Blut im Stuhl gehört zeitnah
-        ärztlich abgeklärt. Deshalb stehen beide hier und nicht im
-        Beschwerdebogen: Was hier angekreuzt wird, taucht in keiner Statistik
-        auf, sondern ganz oben unter „Muster“ – mit dem Hinweis, wie eilig es
-        ist.</p>
+        ärztlich abgeklärt. Was hier angekreuzt wird, taucht in keiner
+        Statistik auf, sondern ganz oben unter „Muster“ – mit dem Hinweis, wie
+        eilig es ist.</p>
         ${marken(WARNZEICHEN.filter((w) => ['teerstuhl', 'blutstuhl'].includes(w.id)),
     e.warnzeichen || [], 'warnzeichen')}
       </details>`;

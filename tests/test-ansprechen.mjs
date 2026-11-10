@@ -182,6 +182,25 @@ check(urteilAnzeige(ibero) === 'schlechter' && befund(ibero).startsWith('Darunte
   && befund(ibero).includes('Woran das liegt, zeigt dieser Vergleich nicht') && !befund(ibero).includes('schadet'),
 'ein Magenmittel behält sein Urteil – ohne Deutung, woran es liegt');
 
+/*
+ * Fassung 30: Ein Magenmittel ohne Unterschied bekommt kein Urteil über das
+ * Mittel mehr („Ob das gegen das Mittel spricht, hängt daran, wie lange es
+ * schon läuft") – und die Einzahl richtet sich nach der gerundeten Zahl. Bei
+ * elf bis dreizehn Tagen stand vorher „2 Woche".
+ */
+for (const spanne of [9, 11, 12, 13, 20]) {
+  const e = [];
+  for (let t = 40; t >= 1; t--) e.push(beschwerde(t, 3));
+  for (let t = spanne; t >= 1; t--) e.push(mittelEintrag(t, 'Maaloxan'));
+  const [m] = mittelBilanz(e, {}, { heute: vorTagen(0), gruppeVon });
+  const satz = befund(m);
+  const n = Math.round(spanne / 7);
+  check(m.urteil === 'unveraendert' && satz.startsWith('Kein Unterschied zur Zeit davor')
+    && satz.includes(`Die Einträge reichen über ${n} ${n === 1 ? 'Woche' : 'Wochen'}.`)
+    && !/gegen das Mittel spricht|wie lange es schon läuft|\b[02-9] Woche\b/.test(satz),
+  `Antazidum ohne Unterschied über ${spanne} Tage: kein Urteil über das Mittel, richtige Einzahl (${satz.slice(-110)})`);
+}
+
 await setze({ begruesst: true, tab: 'muster', eintraege: verlaufMit('Intuniv', 1, 6), tage: {}, fenster: 4, mindestFaelle: 5 });
 const adhsKarte = await text(page.locator('.karte', { hasText: 'Ob es etwas bewirkt' }));
 check(adhsKarte.includes('Intuniv') && adhsKarte.includes('ohne Urteil') && adhsKarte.includes('Seit dem ersten Eintrag')

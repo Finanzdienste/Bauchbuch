@@ -3036,7 +3036,11 @@ const KLAER_SATZ = 'Ob ein Mittel bei Säurebeschwerden zu deinem Präparat pass
  *             im Stuhl oder eine Verengung). Der Name nennt deshalb nur Kinecteen.
  *   equasym   Equasym Retard FI, www.fachinfo.de/fi/pdf/012100 (Apfelmus);
  *             GI-Wiedergabe Apotheken Umschau (morgens vor der Mahlzeit)
- *   unbekannt aus den obigen abgeleitet
+ *   unbekannt aus den obigen abgeleitet. Fassung 30: „Welche du hast, weiß die
+ *             Apotheke" wie überall sonst – auf der Packung steht der Markenname,
+ *             die Form im Sinne dieser App nicht immer (Belege vor wKarteW1u in
+ *             js/zusammen.js); bis dahin hieß es hier „steht auf der Packung
+ *             oder weiß die Apotheke".
  */
 const MPH_FORMEN = [
   {
@@ -3101,8 +3105,8 @@ const MPH_FORMEN = [
     name: 'Weiß ich nicht',
     kurzname: 'Form nicht angegeben',
     einnahme: 'Methylphenidat gibt es in Formen, die sich beim Essen und bei H2-Blockern, '
-      + 'Protonenpumpenhemmern oder Antazida verschieden verhalten. Welche du hast, steht auf '
-      + 'der Packung oder weiß die Apotheke.',
+      + 'Protonenpumpenhemmern oder Antazida verschieden verhalten. Welche du hast, weiß die '
+      + 'Apotheke.',
     saeure: KLAER_SATZ,
   },
 ];
@@ -3532,10 +3536,12 @@ const wTextW11 = 'Laut Fachinformation gibt es Hinweise, dass Methylphenidat den
 /*
  * Die Fragen für die Sprechstunde, in Ich-Form wie überall im Bericht. Das
  * zweite Mittel heißt wie in W_MITTEL_SATZ: Zur Gruppe gehören auch Antazida
- * und Alginate, und „Säureblocker" (bis zur Fassung 29) passt für sie nicht.
+ * und Alginate, und „Säureblocker" (bis zur Fassung 29) passt für sie nicht –
+ * ebenso wenig „säurebindend oder säurehemmend" (bis zur Fassung 30 in
+ * W_FRAGE_B): Ein Alginat bildet eine Schutzschicht (siehe W_SAEURE_GRUPPEN).
  */
 const W_FRAGE_A = 'Passt mein Mittel bei Säurebeschwerden zu meinem Methylphenidat?';
-const W_FRAGE_B = 'Ich nehme Methylphenidat und ein säurebindendes oder säurehemmendes Mittel. '
+const W_FRAGE_B = 'Ich nehme Methylphenidat und ein Mittel bei Säurebeschwerden. '
   + 'Passt das zu meiner Freisetzungsform?';
 const wFrageZwei = (a, b) => `Passen ${a} und ${b} zusammen?`;
 
@@ -4038,8 +4044,9 @@ const UMSTAENDE = [
 
 /*
  * Die Kennungen der Umstände – für die Stellen, die mit einem Umstand etwas
- * anderes tun als mit einer Zutat: „Heute eher ohne große Portion" ist kein
- * Satz, und zwei Wochen „ohne spät gegessen" kein Auslassversuch, den die App
+ * anderes tun als mit einer Zutat: Eine große Portion steht auf der Karte
+ * „Für heute" nicht neben den Zutaten, und zwei Wochen „ohne spät gegessen"
+ * sind kein Auslassversuch, den die App
  * vorschlagen sollte. Eine Liste statt einer Abschrift an jeder Stelle, damit
  * ein neuer Umstand nicht an einer davon fehlt.
  */
@@ -4224,16 +4231,18 @@ const TAGESFRAGEN = [
    * Sex erkundigt, wird zugeklappt und nicht wieder geöffnet – und dann ist
    * auch alles andere weg.
    *
-   * Warum es sie trotzdem gibt: Endometriose wird im Mittel sieben bis zehn
-   * Jahre lang für einen Reizdarm gehalten. Die Konstellation, an der es
-   * auffiele, ist zyklusabhängige Darmbeschwerde + tiefer Schmerz beim Sex +
-   * starker Regelschmerz – und danach wird in der Sprechstunde regelmäßig
-   * nicht gefragt. Ein Tagebuch kann genau das sehen.
+   * Warum es sie trotzdem gibt: Bis eine Endometriose erkannt wird, dauert es
+   * oft Jahre, und zu ihren Beschwerden können Schmerzen beim oder nach dem
+   * Sex und starke Regelschmerzen gehören (gesund.bund.de/endometriose, Stand
+   * 21.08.2025) – Angaben, nach denen ein Magentagebuch sonst nicht fragt.
+   * Bis zur Fassung 30 stand hier, Endometriose werde „im Mittel sieben bis
+   * zehn Jahre lang für einen Reizdarm gehalten" und danach werde in der
+   * Sprechstunde „regelmäßig nicht gefragt"; das trägt keine geprüfte Quelle.
    *
-   * Getrennt nach tief und außen, weil die Unterscheidung die eigentliche
-   * Auskunft ist: Tiefer Schmerz deutet in den Bauchraum (Endometriose,
-   * Verwachsungen, Beckenboden), Schmerz am Eingang auf etwas ganz anderes.
-   * Eine Frage, die beides zusammenwirft, hätte man sich sparen können.
+   * Getrennt nach tief und außen, weil js/unterleib.js nur den tiefen Schmerz
+   * als Merkmal zählt: Eine Übersichtsarbeit nennt starken tiefen Schmerz beim
+   * Sex als Beschwerde, die zu bestimmten Orten der Herde passt (Belege dort).
+   * Schmerz am Eingang zählt getrennt – eine Festlegung dieser App.
    */
   { id: 'sexschmerz', name: 'Schmerz beim Sex', worte: ['nein', 'leicht', 'mittel', 'stark', 'sehr stark'] },
   { id: 'sextief', name: 'davon tief innen', menge: true, worte: ['nein', 'ja'] },
@@ -4534,12 +4543,23 @@ function widerspruchsSatz(t) {
  * was aus „Was noch fehlt" verschwindet. Die Kennungen sind die der Verdachte
  * in js/luecken.js.
  *
- * Diese Liste ist mit Absicht knauserig. Gestrichen wird nur, was mit dem
- * Befund *definitionsgemäß* erledigt ist: Eine Gastritis Typ C ist eine
- * chemisch verursachte, also keine bakterielle – Helicobacter ist damit keine
- * offene Frage mehr. Dass ein Befund meist bei einer Spiegelung entsteht und
- * dabei auch anderes aufgefallen wäre, reicht nicht: „meist" ist keine
- * Grundlage, einem Menschen eine Untersuchung aus der Liste zu nehmen.
+ * Diese Liste ist mit Absicht knauserig. Gestrichen wird nur, was der Befund
+ * selbst beantwortet: Eine Gastritis Typ B ist die durch Helicobacter pylori
+ * verursachte (gesund.bund.de/glossar/typ-b-gastritis). Dass ein Befund meist
+ * bei einer Spiegelung entsteht und dabei auch anderes aufgefallen wäre,
+ * reicht nicht: „meist" ist keine Grundlage, einem Menschen eine Untersuchung
+ * aus der Liste zu nehmen.
+ *
+ * Bis zur Fassung 30 nahm auch eine Gastritis Typ C die Frage nach
+ * Helicobacter heraus, mit der Begründung, sie sei „chemisch verursacht, also
+ * keine bakterielle". Das trägt keine Quelle: Typ C heißt nur, dass die
+ * Entzündung durch die Einwirkung chemischer Stoffe entstanden ist
+ * (gesund.bund.de/glossar/typ-c-gastritis), und Mischformen mit einer
+ * Helicobacter-Gastritis sind beschrieben (Borchard, Pathologe 2001;22(1):
+ * 44-55, PMID 11225445, Abstract: „Mixed forms of chemical/reactive gastritis
+ * and other forms of gastritis are also described, for example, that from
+ * Helicobacter."). Ob auf Helicobacter untersucht wurde, steht im Befund,
+ * nicht in seiner Bezeichnung.
  *
  * Die Richtung des Irrtums ist hier nicht gleichgültig. Ein Verdacht, der zu
  * viel dasteht, kostet eine Nachfrage in der Sprechstunde. Einer, der zu
@@ -4565,17 +4585,28 @@ const BEFUNDE = [
       + 'und Speiseröhre hält schlechter. Was die App an Sodbrennen und '
       + 'Aufstoßen zählt, hat damit eine Erklärung, die schon feststeht.',
   },
+  /*
+   * Quellen (Fassung 30): gesund.bund.de/glossar/typ-c-gastritis: „Ist die
+   * Entzündung durch die Einwirkung von chemischen Stoffen entstanden, spricht
+   * man auch von einer Typ-C-Gastritis. Neben zurücklaufender
+   * Gallenflüssigkeit, Alkohol oder bestimmten Schmerzmitteln kommen auch
+   * Zigarettenrauch, Säuren oder Laugen als Ursache … in Frage." Eine
+   * Rangfolge („die häufigsten Ursachen sind …", bis zur Fassung 30) nennt die
+   * Seite nicht; „nicht durch Bakterien" und das Streichen der Frage nach
+   * Helicobacter (klaert) sind entfallen, siehe oben.
+   */
   {
     id: 'gastritis-c',
     name: 'Gastritis Typ C',
-    was: 'Magenschleimhautentzündung durch Reizstoffe – nicht durch Bakterien.',
+    was: 'Magenschleimhautentzündung, die durch die Einwirkung chemischer Stoffe '
+      + 'entstanden ist.',
     organisch: true,
-    klaert: ['hpylori'],
-    bedeutet: 'Typ C heißt: chemisch gereizt. Die häufigsten Ursachen sind '
-      + 'Schmerzmittel vom NSAR-Typ (Ibuprofen, Diclofenac, ASS), Gallensaft, '
-      + 'der in den Magen zurückläuft, und Alkohol. Was davon bei dir zutrifft, '
-      + 'steht in deinem Befund – und die Medikamentenspalte dieser App ist '
-      + 'dann die interessanteste Spalte, die sie hat.',
+    klaert: [],
+    bedeutet: 'Als Ursachen nennt gesund.bund.de unter anderem zurücklaufende '
+      + 'Gallenflüssigkeit, Alkohol und bestimmte Schmerzmittel. Was davon bei dir '
+      + 'zutrifft und ob auch auf Helicobacter untersucht wurde, steht in deinem '
+      + 'Befund – und die Medikamentenspalte dieser App ist dann die '
+      + 'interessanteste Spalte, die sie hat.',
   },
   {
     id: 'gastritis-a',
@@ -4587,14 +4618,26 @@ const BEFUNDE = [
     bedeutet: 'Hier gehört regelmäßig das Blutbild dazu – Vitamin B12 wird im '
       + 'Magen aufgenommen, und das geht dabei verloren.',
   },
+  /*
+   * Quellen (Fassung 30): gesund.bund.de/reizmagen-funktionelle-dyspepsie
+   * (Stand 05.02.2026, Behandlung): „Eine Infektion der Magenschleimhaut mit
+   * dem Helicobacter-Pylori-Bakterium kann gut mit Antibiotika behandelt
+   * werden."; gesund.bund.de/magengeschwuer (Stand 07.01.2022, Behandlung):
+   * „Nach Abschluss der Antibiotika-Behandlung wird frühestens nach 4 Wochen
+   * kontrolliert, ob die Therapie erfolgreich war. … Sind sie noch
+   * nachweisbar, kann die Behandlung … wiederholt werden." Bis zur Fassung 30:
+   * „Der eine Fall, in dem eine Behandlung die Ursache beseitigt" – ein
+   * sicherer Erfolg und eine Rangfolge, die keine dieser Seiten nennt.
+   */
   {
     id: 'gastritis-b',
     name: 'Gastritis Typ B (Helicobacter)',
     was: 'Magenschleimhautentzündung durch das Bakterium Helicobacter pylori.',
     organisch: true,
     klaert: ['hpylori'],
-    bedeutet: 'Der eine Fall, in dem eine Behandlung die Ursache beseitigt '
-      + 'statt die Beschwerden zu dämpfen.',
+    bedeutet: 'Hier richtet sich die Behandlung gegen die Ursache: Eine Infektion mit '
+      + 'Helicobacter kann laut gesund.bund.de gut mit Antibiotika behandelt werden. '
+      + 'Ob der Keim danach weg ist, wird hinterher nachgeprüft.',
   },
   {
     id: 'refluxkrankheit',
@@ -4700,7 +4743,7 @@ function kriterienVorbehalt(befunde) {
   if (!organische.length) return '';
   const namen = organische.map((w) => w.name).join(', ');
   return `Bei dir steht schon etwas fest: ${namen}. Von einem Reizdarm oder `
-    + 'Reizmagen wird erst gesprochen, wenn andere Ursachen der Beschwerden '
+    + 'Reizmagen (funktionelle Dyspepsie) wird erst gesprochen, wenn andere Ursachen der Beschwerden '
     + 'abgeklärt sind; was dein Befund dafür heißt, klärt die Praxis. Was unten '
     + 'steht, ist deshalb keine Einordnung, sondern eine Verlaufsbeobachtung: wie '
     + 'stark, wie oft, und ob es besser wird.';
@@ -4868,7 +4911,7 @@ const UEBUNGEN = [
     id: 'kohaerenz',
     name: 'Gleichmaß',
     zweck: 'Ohne Halten, gut sechs Atemzüge in der Minute',
-    beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus, ohne Halten. '
+    beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus. '
       + 'Unauffällig genug für den Bus.',
     runden: 10,
     phasen: [
@@ -12036,22 +12079,26 @@ const A3_VORNACHT_LEER = 'Zur Nacht davor fehlen auf einer Seite die Angaben –
   + 'kann der Vergleich nicht prüfen.';
 
 /*
- * Derselbe Satz wie unter „Mehr" (WISSEN_ADHS in js/app.js) und im Bericht.
- * Belegt ist nur der Zusammenhang, keine Ursache: Biol Psychiatry
+ * Derselbe Wortlaut wie im Bericht (js/bericht.js, A3); unter „Mehr"
+ * (WISSEN_ADHS in js/app.js) steht nur der erste Satz zu den Studien, mit
+ * eigener Fortsetzung. Belegt ist nur der Zusammenhang, keine Ursache: Biol Psychiatry
  * 2010;67(11):1091-6 (PMID 20163790, Abstract), 40 Erwachsene mit ADHS:
  * „Compared with control subjects, both groups of ADHD adults had longer
  * sleep-onset latency"; Neurosci Biobehav Rev 2018;89:61-71 (PMID 29477617,
  * Abstract), Metaanalyse zu Erwachsenen: mit Bewegungsmessung „sleep onset
  * latency: 0.80 (0.46-1.14)", im Schlaflabor dagegen „No significant
  * differences were detected for polysomnographic parameters" – deshalb
- * „manche Studien". Ob die Teilnehmer dabei Mittel nahmen, sagen die
- * Abstracts nicht; deshalb „an ADHS selbst" nur als eine von zwei
- * Möglichkeiten. Bis zur Fassung 29: „Späteres Einschlafen gehört oft auch zu
- * ADHS selbst".
+ * „manche Studien". Diese Studien vergleichen Erwachsene mit und ohne ADHS;
+ * die Rechnung hier vergleicht Tage derselben Person nach der Einnahmezeit,
+ * und zwar die Schlafbewertung, nicht die Einschlafzeit. ADHS steht dabei auf
+ * beiden Seiten. Bis zur Fassung 30 hieß es deshalb fälschlich, ein
+ * Unterschied lasse sich nicht trennen „an der Einnahmezeit … oder an ADHS
+ * selbst"; bis zur Fassung 29: „Späteres Einschlafen gehört oft auch zu ADHS
+ * selbst".
  */
 const A3_STUDIEN = 'Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine längere Einschlafzeit '
-  + 'als bei anderen – ob ein Unterschied hier an der Einnahmezeit liegt oder an ADHS selbst, lässt sich '
-  + 'nicht trennen.';
+  + 'als bei anderen. Ob ein Unterschied hier an der Einnahmezeit liegt oder an etwas, das mit ihr '
+  + 'zusammenfällt, trennt dieser Vergleich nicht.';
 
 function a3Saetze(a3, v) {
   if (a3.dicht) return ['Deine Einnahmezeiten liegen zu dicht beieinander für diesen Vergleich.'];
@@ -14014,9 +14061,24 @@ function befund(m) {
     return `Darunter schlechter als davor: ${zahlen} Woran das liegt, zeigt dieser `
       + 'Vergleich nicht. Wenn es dabei bleibt, gehört es angesprochen.';
   }
-  return `Kein Unterschied zur Zeit davor: ${zahlen} Ob das gegen das Mittel `
-    + `spricht, hängt daran, wie lange es schon läuft – ${Math.round(m.wochen)} `
-    + `${m.wochen < 2 ? 'Woche' : 'Wochen'} bisher.`;
+  /*
+   * Ohne Besserung, beim Säureblocker unter PPI_WOCHEN und bei allen anderen
+   * Magenmitteln: die Zahlen und wie lange die Einträge reichen, ohne Urteil
+   * über das Mittel (siehe PPI_WOCHEN und den Kopf dieser Datei). Bis zur
+   * Fassung 30 hieß es „Ob das gegen das Mittel spricht, hängt daran, wie
+   * lange es schon läuft" – ein Urteil, das keine Quelle trägt, bei Mitteln
+   * für den Bedarf ohne Sinn und bei Prokinetika schief: Deren
+   * Fachinformationen nennen eine Höchstdauer von fünf Tagen bis einer Woche
+   * (MCP-ratiopharm, fachinfo.de/fi/pdf/010786, Stand Juli 2026, 4.2;
+   * Domperidon-ratiopharm, 007740, Stand September 2025, 4.2), und
+   * verglichen wird erst ab acht Einnahmetagen. Die
+   * Einzahl richtet sich jetzt nach der gerundeten Zahl; vorher stand bei
+   * 11 bis 13 Tagen „2 Woche".
+   */
+  const wochenZahl = Math.max(1, Math.round(m.wochen));
+  return `Kein Unterschied zur Zeit davor: ${zahlen} Die Einträge reichen über `
+    + `${wochenZahl} ${wochenZahl === 1 ? 'Woche' : 'Wochen'}. Ob und was das über das `
+    + 'Mittel sagt, zeigt dieser Vergleich nicht; das kann die Praxis einordnen.';
 }
 
 /* ===== js/luecken.js ===== */
@@ -14082,10 +14144,10 @@ function tagebuchLuecken(d) {
 
   if (s.gesamt === 0) {
     nimm('stuhl', 10, 'Stuhlgang eintragen',
-      'Die größte Lücke. Ohne Häufigkeit und Form kann der Reizdarm-Kasten '
-      + 'unter „Muster“ nichts zählen und auch keinen Typ bestimmen – '
-      + 'Verstopfung, Durchfall, gemischt. Zwei Tipper am Tag, mit Bildchen '
-      + 'statt Text.');
+      'Die größte Lücke. Ohne eingetragenen Stuhlgang fehlen dem Reizdarm-Kasten '
+      + 'unter „Muster“ die Angaben zu Häufigkeit und Form, und er kann keinen Typ '
+      + 'bestimmen – Verstopfung, Durchfall, gemischt. Zwei Tipper am Tag, mit '
+      + 'Bildchen statt Text.');
   } else if (s.gesamt < 15) {
     nimm('stuhl', 8, 'Weiter Stuhlgang eintragen',
       `${s.gesamt} von 15 Eintragungen. Ab fünfzehn lässt sich der Typ `
@@ -14118,17 +14180,22 @@ function tagebuchLuecken(d) {
       + 'sie im Kasten „Magenbeschwerden ab Stärke 4“ unter „Muster“ – ohne Einordnung.');
   }
 
+  // Die Grenzen wie in js/kriterien.js: Reizdarm und Magenbeschwerden ab 30
+  // notierten Tagen in den letzten 90, der GerdQ-Punktwert aus den letzten
+  // sieben Tagen (belastbar ab vier erfassten). Bis zur Fassung 30 hieß es
+  // hier für alle drei Kästen „ab dreißig" und „mit den letzten drei Monaten".
   if (k.zeitraum.notierteTage < 30) {
     nimm('tage', 8, 'Regelmäßiger eintragen',
       `In den letzten drei Monaten sind ${k.zeitraum.notierteTage} Tage notiert. `
-      + 'Ab dreißig rechnet Body Check die Kästen unter „Kriterien“. Wichtig ist nicht die '
-      + 'Menge je Tag, sondern dass kein Tag fehlt – eine Lücke ist kein guter '
-      + 'Tag, und Lücken häufen sich genau in den schlechten Wochen.');
+      + 'Ab dreißig rechnet Body Check den Reizdarm-Kasten und die Magenbeschwerden '
+      + 'unter „Kriterien“; der Punktwert zu Reflux braucht nur die letzte Woche. '
+      + 'Wichtig ist nicht die Menge je Tag, sondern dass kein Tag fehlt – eine Lücke '
+      + 'ist kein guter Tag, und Lücken häufen sich genau in den schlechten Wochen.');
   } else if (k.zeitraum.tagebuchTage < 90) {
     nimm('tage', 4, 'Weiterschreiben',
-      `Das Tagebuch läuft seit ${k.zeitraum.tagebuchTage} Tagen. Die `
-      + 'Kästen unter „Kriterien“ rechnen mit den letzten drei Monaten – bis '
-      + 'dahin ist jede Zahl dort vorläufig.');
+      `Das Tagebuch läuft seit ${k.zeitraum.tagebuchTage} Tagen. Der `
+      + 'Reizdarm-Kasten und die Magenbeschwerden unter „Kriterien“ rechnen mit den '
+      + 'letzten drei Monaten – bis dahin sind ihre Zahlen vorläufig.');
   }
 
   // Der Punktwert ohne „zu niedrig statt falsch": Zwei Posten zählen
@@ -14180,12 +14247,25 @@ function tagebuchLuecken(d) {
  * es diese Liste gibt.
  */
 const VERDAECHTE = [
+  /*
+   * Quellen (Fassung 30): gesund.bund.de/glossar/typ-b-gastritis: die durch
+   * Helicobacter verursachte Form „ist am häufigsten"; gesund.bund.de/
+   * magengeschwuer (Stand 07.01.2022, „Was ist ein Magengeschwür?"): „meist
+   * durch eine Infektion mit Helicobacter-pylori-Bakterien" und
+   * („Behandlung") „frühestens nach 4 Wochen kontrolliert, ob die Therapie
+   * erfolgreich war … Sind sie noch nachweisbar, kann die Behandlung …
+   * wiederholt werden"; gesund.bund.de/reizmagen-funktionelle-dyspepsie
+   * (Stand 05.02.2026): „kann gut mit Antibiotika behandelt werden". Bis zur
+   * Fassung 30 hieß es, Helicobacter sei „die einzige Möglichkeit auf dieser
+   * Liste, die sich in zwei Wochen behandeln und danach abhaken lässt" – ein
+   * sicherer Erfolg und eine Rangfolge, die keine dieser Seiten nennt.
+   */
   {
     id: 'hpylori',
     name: 'Helicobacter pylori',
     was: 'Ein Bakterium in der Magenschleimhaut. Häufigste Ursache von Gastritis '
-      + 'und Magengeschwür – und die einzige Möglichkeit auf dieser Liste, die '
-      + 'sich in zwei Wochen behandeln und danach abhaken lässt.',
+      + 'und Magengeschwür. Laut gesund.bund.de gut mit Antibiotika behandelbar; ob '
+      + 'der Keim danach weg ist, wird nachgeprüft.',
     /*
      * Bis zur Fassung 29: „Säureblocker zwei Wochen vorher absetzen (nach
      * Absprache), sonst wird der Test falsch negativ" – eine Anweisung zum
@@ -14196,7 +14276,7 @@ const VERDAECHTE = [
      * Arzneimittels befragen."
      */
     untersuchung: 'Atemtest, Stuhltest oder Gewebeprobe bei der Spiegelung. '
-      + 'Laut Fachinformation von PANTOZOL Control ist eine geplante Spiegelung '
+      + 'Laut Fachinformation von Pantozol Control ist eine geplante Spiegelung '
       + 'oder ein Harnstoff-Atemtest ein Anlass, vor der Einnahme ärztlich '
       + 'nachzufragen; was ein Säureblocker für den Test bedeutet, klärt die Praxis.',
     frage: 'Wäre ein Test auf Helicobacter pylori sinnvoll?',
@@ -14347,7 +14427,7 @@ const VERDAECHTE = [
      * Spiegelung als Maßstab nennt die Quelle nicht, und die Sternchen
      * standen wörtlich auf dem Bildschirm.
      */
-    untersuchung: 'Von einem Reizmagen wird laut gesund.bund.de erst gesprochen, '
+    untersuchung: 'Von einem Reizmagen (so heißt die funktionelle Dyspepsie auch) wird laut gesund.bund.de erst gesprochen, '
       + 'wenn andere Ursachen der Beschwerden abgeklärt und ausgeschlossen sind – '
       + 'nach einem Gespräch etwa mit Blut- und Stuhltests, Ultraschall und '
       + 'manchmal einer Magenspiegelung. Welche Untersuchungen nötig sind, klärt '
@@ -14385,17 +14465,42 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quellen (Fassung 30): gesund.bund.de, Reizdarmsyndrom (Stand 28.08.2024,
+   * „Wie wird ein Reizdarmsyndrom festgestellt?"): Ärztinnen und Ärzte
+   * sprechen davon, wenn unter anderem „keine Hinweise auf eine andere
+   * Erkrankung vorliegen, die die Beschwerden verursachen könnte"; „Auch
+   * andere Gründe wie eine Unverträglichkeit gegen Milchzucker
+   * (Laktoseintoleranz) oder eine Zöliakie kommen in Frage"; „Durch Bluttests
+   * und weitere Untersuchungen können andere Ursachen ausgeschlossen werden."
+   * Calprotectin nennt die Seite nicht; die EMA-Leitlinie zu Studien bei
+   * Reizdarm (EMA/CHMP/60337/2013, CPMP/EWP/785/97 Rev. 1, 25. September 2014,
+   * Abschnitt zu den Einschlusskriterien) verlangt den Ausschluss einer
+   * Entzündung „(e.g. CRP and/or calprotectin)" – für Studienteilnehmer, nicht
+   * als Vorgabe für die Sprechstunde. Deshalb steht es nur in der Frage. Bis
+   * zur Fassung 30 hieß es, der Reizdarm sei „eine eigene Diagnose mit eigener
+   * Behandlung – und oft beides zusammen", beides „wird oft vergessen" und
+   * „den Ausschluss macht das Labor"; das trägt keine geprüfte Quelle.
+   *
+   * Die Frage zum Vorlesen hängt am Stand des Reizdarm-Kastens unter
+   * „Kriterien": „erfüllt" nur, wenn er dort auch so steht (r.erfuellt). Bis
+   * zur Fassung 30 stand es fest in jeder Frage, auch neben „Kriterien nicht
+   * erfüllt" oder „noch nicht prüfbar".
+   */
   {
     id: 'reizdarm',
     name: 'Reizdarmsyndrom',
-    was: 'Bauchschmerz, der mit dem Stuhlgang zusammenhängt. Wie die funktionelle '
-      + 'Dyspepsie eine eigene Diagnose mit eigener Behandlung – und oft beides '
-      + 'zusammen.',
-    untersuchung: 'Vor der Diagnose gehören Zöliakie (Bluttest) und eine '
-      + 'Entzündung im Darm (Calprotectin im Stuhl) ausgeschlossen. Beides ist '
-      + 'einfach und wird oft vergessen.',
-    frage: 'Die Rom-Kriterien für ein Reizdarmsyndrom sind erfüllt – sind Zöliakie '
-      + 'und Calprotectin schon geprüft worden?',
+    was: 'Bauchschmerz, der mit dem Stuhlgang zusammenhängt. Zu den typischen '
+      + 'Beschwerden zählen laut gesund.bund.de Krämpfe, anhaltende Bauchschmerzen '
+      + 'und ein veränderter Stuhl.',
+    untersuchung: 'Von einem Reizdarmsyndrom sprechen Ärztinnen und Ärzte laut '
+      + 'gesund.bund.de, wenn keine Hinweise auf eine andere Erkrankung vorliegen; '
+      + 'als andere Gründe nennt die Seite etwa eine Laktoseintoleranz oder eine '
+      + 'Zöliakie. Durch Bluttests und weitere Untersuchungen können andere Ursachen '
+      + 'ausgeschlossen werden. Welche davon nötig sind, klärt die Praxis.',
+    frage: 'Sind andere Ursachen wie eine Zöliakie oder eine Entzündung im Darm schon '
+      + 'abgeklärt worden, etwa mit einem Calprotectin-Test – und passt das Bild zu einem '
+      + 'Reizdarmsyndrom?',
     pruefe: (d) => {
       const r = d.kriterien.reizdarm;
       const dafuer = [];
@@ -14415,12 +14520,20 @@ const VERDAECHTE = [
       if (r.erfuellt) stand = 'gestuetzt';
       else if (r.pruefbar && dafuer.length) stand = 'moeglich';
       else if (r.pruefbar) stand = 'unwahrscheinlich';
+      // „Erfüllt" nur, wenn der Kasten unter „Kriterien" es auch sagt.
+      const frage = r.erfuellt
+        ? 'In meinem Tagebuch sind die Rom-IV-Kriterien für ein Reizdarmsyndrom '
+          + 'erfüllt – sind andere Ursachen wie eine Zöliakie oder eine Entzündung im '
+          + 'Darm schon abgeklärt worden, etwa mit einem Calprotectin-Test?'
+        : undefined;
       return {
         stand,
+        ...(frage ? { frage } : {}),
         dafuer,
         dagegen,
-        offen: r.typ.typ ? 'Ein Reizdarm ist eine Diagnose nach Ausschluss – das '
-          + 'Tagebuch liefert dafür das Material, den Ausschluss macht das Labor.'
+        offen: r.typ.typ ? 'Von einem Reizdarm wird erst gesprochen, wenn andere '
+          + 'Ursachen abgeklärt sind – das Tagebuch liefert Material für das Gespräch; '
+          + 'ob und welche Untersuchungen nötig sind, klärt die Praxis.'
           : `Für den Typ fehlen noch ${r.typ.fehlt} eingetragene Stuhlgänge.`,
       };
     },
@@ -14531,12 +14644,28 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quelle (Fassung 30): gesund.bund.de/gastritis (Stand 13.11.2025, „Welche
+   * Ursachen hat eine Gastritis?" und „Einnahme von NSAR-Schmerzmitteln"):
+   * „Zu den häufigsten Gründen zählen eine Infektion mit
+   * Helicobacter-Pylori-Bakterien oder die häufige Einnahme" von NSAR; „Wer
+   * solche Schmerzmittel nur kurz bei akuten Schmerzen einnimmt, hat eher
+   * selten mit Nebenwirkungen zu tun. Erfolgt die Einnahme jedoch über einen
+   * längeren Zeitraum von Wochen oder Monaten, kann das die Schutzfunktion der
+   * Magenschleimhaut stören." Wortlaut wie REIZSTOFFE in js/mittel.js. Bis zur
+   * Fassung 30: „greifen die Magenschleimhaut direkt an. Die häufigste
+   * vermeidbare Ursache" – ohne die Bedingung der Dauer und mit einer
+   * Rangfolge, die dort nicht steht.
+   */
   {
     id: 'nsar',
     name: 'Schaden durch Schmerzmittel',
-    was: 'Ibuprofen, Diclofenac und ASS greifen die Magenschleimhaut direkt an. '
-      + 'Die häufigste vermeidbare Ursache – und die einzige auf dieser Liste, '
-      + 'bei der das Tagebuch die Antwort schon hat.',
+    was: 'Ibuprofen, Diclofenac und ASS gehören zu den entzündungshemmenden '
+      + 'Schmerzmitteln (NSAR). Häufig genommen, zählen sie laut gesund.bund.de neben '
+      + 'Helicobacter zu den häufigsten Gründen für eine entzündete Magenschleimhaut: '
+      + 'Bei Einnahme über Wochen oder Monate kann das die Schutzfunktion der '
+      + 'Magenschleimhaut stören. Ob und wie oft so ein Mittel genommen wurde, steht '
+      + 'im Tagebuch.',
     untersuchung: 'Keine nötig, um die Frage zu stellen. Es geht um eine '
       + 'Alternative oder um einen Magenschutz – beides gehört besprochen, nicht '
       + 'selbst entschieden.',
@@ -14557,18 +14686,30 @@ const VERDAECHTE = [
         }
       }
       /*
-       * Mit einer Gastritis Typ C im Befund: Typ C heißt chemisch gereizt, und
-       * diese Mittel gehören zu den häufigsten Gründen dafür – neben
-       * Gallenrückfluss und Alkohol. Welcher davon zutrifft, steht im
-       * Befund und nicht hier; das Tagebuch sieht es nicht. Sicher ist nur,
-       * dass jede weitere Einnahme eine Schleimhaut trifft, die schon gereizt
-       * ist. Deshalb lohnt die Frage hier vom ersten Tag an.
+       * Mit einer Gastritis Typ C im Befund, Wortlaut wie im README
+       * („Was Kopf und Bauch verbindet"). Quellen: gesund.bund.de/glossar/
+       * typ-c-gastritis („durch die Einwirkung von chemischen Stoffen
+       * entstanden"); Owen, Mod Pathol 2003;16(4):325-41 (PMID 12692198,
+       * Abstract): „Reactive gastropathy … in most instances it is associated
+       * with either reflux of duodenal contents or therapy with nonsteroidal
+       * anti-inflammatory drugs."; FI IBU-ratiopharm akut Schmerztabletten
+       * (fachinfo.de/fi/pdf/014937, Stand Juni 2026), 4.4: „Eine besonders
+       * sorgfältige ärztliche Überwachung ist erforderlich: bei
+       * Magen-Darm-Störungen … in der Vorgeschichte"; FI Aspirin
+       * (fachinfo.de/fi/pdf/000174, Stand März 2026), 4.4: „verstärktem
+       * Monitoring" bei „Gastritis in der Anamnese". Bis zur Fassung 30 stand
+       * hier „Sicher ist nur: Sie treffen eine Schleimhaut, die schon gereizt
+       * ist" – stärker als jede dieser Quellen, und ein älterer Befund kann
+       * abgeheilt sein.
        */
       if (gastritisC && d.nsarTage >= 1) {
-        dafuer.push('Deine Gastritis ist als Typ C eingetragen – chemisch gereizt. '
-          + 'Entzündungshemmende Schmerzmittel gehören zu den häufigsten Gründen '
-          + 'dafür; ob sie es bei dir sind, steht in deinem Befund, nicht hier. '
-          + 'Sicher ist nur: Sie treffen eine Schleimhaut, die schon gereizt ist.');
+        dafuer.push('Deine Gastritis ist als Typ C eingetragen – durch chemische Stoffe '
+          + 'entstanden. Neben dem Rückfluss von Darminhalt gehören entzündungshemmende '
+          + 'Schmerzmittel zu den häufigsten Ursachen einer solchen Schleimhautschädigung; '
+          + 'ob sie es bei dir sind, steht in deinem Befund, nicht hier. Bei '
+          + 'Magen-Darm-Störungen in der Vorgeschichte sehen Fachinformationen mancher '
+          + 'dieser Mittel, etwa von Ibuprofen und ASS, eine besonders sorgfältige '
+          + 'ärztliche Überwachung vor. Was das für dich heißt, klären Praxis oder Apotheke.');
       }
       /*
        * Der Stand beschreibt den Verlauf, nicht die Dringlichkeit der Frage:
@@ -15744,22 +15885,35 @@ function dosisBild(eintraege, id, fenster = 4) {
 
   if (!pruefbare.length) {
     /*
-     * Der häufigste Fall, und er hat eine nützliche Antwort.
+     * Der häufigste Fall: Meistens kommt eine Zutat in derselben Rolle vor –
+     * wer Zwiebeln isst, isst sie oft mitgekocht. Dann gibt es keine
+     * Mengenfrage zu beantworten, und der Satz sagt nur, was gezählt ist und
+     * was fehlt – wie im Zweig 'ab-hier' unten.
      *
-     * Meistens kommt eine Zutat immer in derselben Rolle vor – wer Zwiebeln
-     * isst, isst sie fast immer mitgekocht. Dann gibt es keine Mengenfrage zu
-     * beantworten, aber sehr wohl etwas zu tun: Es einmal in kleinerer Menge
-     * essen und eintragen. Das ist eine Handlung, kein Achselzucken.
+     * Bis zur Fassung 30 stand hier „Um eine Menge zu finden, müsste es auch
+     * mal in kleinerer Rolle vorkommen", und der Kommentar nannte das
+     * ausdrücklich „etwas zu tun: Es einmal in kleinerer Menge essen". Dieser
+     * Block steht aber nur unter auffälligen oder möglichen Funden, und bei
+     * einer Nahrungsmittelallergie reichen laut gesund.bund.de „Bereits kleine
+     * Mengen eines Lebensmittels" (Nahrungsmittelallergie, Stand 27.05.2024;
+     * ein Provokationstest läuft dort „unter ärztlicher Beobachtung"). Dazu
+     * hieß es „fast immer", auch wenn die Zutat in der Hälfte der Fälle schon
+     * kleiner vorkam; jetzt steht die Zahl dabei. Das Urteil 'unklar' ist
+     * unverändert.
      */
     const haeufigste = [...stufen].sort((a, b) => b.faelle - a.faelle)[0];
+    const gesamt = stufen.reduce((s, st) => s + st.faelle, 0);
     return {
       urteil: 'unklar',
       stufen,
       gegenFaelle,
       satz: haeufigste && haeufigste.faelle
-        ? `Bisher kam das fast immer ${haeufigste.satz} vor `
-          + `(${haeufigste.faelle} Mal). Um eine Menge zu finden, müsste es auch `
-          + 'mal in kleinerer Rolle vorkommen – als Beilage, Topping oder Würze.'
+        ? `${haeufigste.faelle === gesamt
+          ? `Bisher kam das immer ${haeufigste.satz} vor (${gesamt} Mal).`
+          : `Bisher kam das am häufigsten ${haeufigste.satz} vor (${haeufigste.faelle} `
+            + `von ${gesamt} Mal).`} Ob die Menge eine Rolle spielt, lässt sich aus dem `
+          + 'Tagebuch noch nicht sagen: Für einen Vergleich nach Menge sind bisher zu '
+          + 'wenige Mahlzeiten eingetragen.'
         : 'Dafür ist es noch zu selten eingetragen.',
     };
   }
@@ -18852,14 +19006,15 @@ function musterZyklus(d) {
 /*
  * Das Muster, wegen dem dieses Modul überhaupt nach dem Unterleib fragt.
  *
- * Endometriose wird im Mittel sieben bis zehn Jahre lang nicht erkannt, und
- * die häufigste Fehldeutung auf diesem Weg heißt „Reizdarm" – dieselben
- * Blähungen, Krämpfe und Stuhlveränderungen, nur mit anderer Ursache. Was die
- * beiden trennt, steht in Daten, die eine Magensprechstunde nicht erhebt.
- *
- * Deshalb wiegt der tiefe Schmerz beim Sex hier doppelt: Er ist das Merkmal
- * mit der größten Aussagekraft und zugleich das, nach dem am seltensten
- * gefragt wird.
+ * Bis eine Endometriose erkannt wird, dauert es oft Jahre (gesund.bund.de/
+ * endometriose, Stand 21.08.2025), und sie kann zusammen mit einem Reizdarm
+ * vorkommen oder für einen gehalten werden (Ballard et al., BJOG 2008, PMID
+ * 18715240, Abstract) – weitere Belege im Kopf von js/unterleib.js. Die
+ * Gewichte der Merkmale (m.gewicht) kommen von dort; sie sind eine Festlegung
+ * dieser App. Bis zur Fassung 30 stand hier, Endometriose werde „im Mittel
+ * sieben bis zehn Jahre lang nicht erkannt", die häufigste Fehldeutung sei
+ * „Reizdarm", und der tiefe Schmerz beim Sex habe „die größte Aussagekraft" –
+ * das trägt keine geprüfte Quelle.
  */
 function musterUnterleib(d) {
   const belege = [];
@@ -18885,6 +19040,77 @@ function musterUnterleib(d) {
 /**
  * Die Muster mit dem, was dahinterstecken kann – und, das ist die eigentliche
  * Auskunft, womit sich das eine vom anderen unterscheiden lässt.
+ *
+ * Quellen für den Wortlaut der Fassung 30 (dieselben Sätze, die js/luecken.js,
+ * js/mittel.js, js/unterleib.js und unterleibVorschlag in js/app.js schon
+ * berichtigt hatten):
+ *
+ *   Refluxkrankheit  gesund.bund.de, Sodbrennen und Refluxkrankheit (Stand
+ *                    04.04.2025): „Eine Refluxerkrankung lässt sich an den
+ *                    typischen Symptomen erkennen. … Bei einem Verdacht auf
+ *                    Refluxkrankheit sind weitere Untersuchungen möglich. Dazu
+ *                    gehören eine Magenspiegelung und die Messung des pH-Werts
+ *                    in der unteren Speiseröhre." Bis zur Fassung 30: „oft wird
+ *                    zuerst probeweise ein Säureblocker gegeben" – die
+ *                    Reihenfolge nennt keine geprüfte Quelle.
+ *   Helicobacter     gesund.bund.de/gastritis (Stand 13.11.2025): Gewebeproben,
+ *                    Atemtest, „Blut- oder Stuhluntersuchung";
+ *                    gesund.bund.de/reizmagen-funktionelle-dyspepsie (Stand
+ *                    05.02.2026): „kann gut mit Antibiotika behandelt werden";
+ *                    gesund.bund.de/magengeschwuer (Stand 07.01.2022): „frühestens
+ *                    nach 4 Wochen kontrolliert, ob die Therapie erfolgreich war
+ *                    … Sind sie noch nachweisbar, kann die Behandlung …
+ *                    wiederholt werden". Bis zur Fassung 30: „Behandelbar, und
+ *                    dann ist es weg."
+ *   Funkt. Dyspepsie gesund.bund.de/reizmagen-funktionelle-dyspepsie: „Von einem
+ *                    Reizmagen wird deshalb erst gesprochen, wenn andere
+ *                    Ursachen für die Beschwerden abgeklärt und ausgeschlossen
+ *                    wurden"; „eine der häufigsten Erkrankungen des
+ *                    Magen-Darm-Trakts"; „verschiedene Behandlungsmöglichkeiten".
+ *                    Bis zur Fassung 30: „Die Diagnose, die bleibt, wenn die
+ *                    Spiegelung nichts zeigt" – die Spiegelung als Maßstab nennt
+ *                    die Seite nicht.
+ *   Zöliakie         EMA/CHMP/639441/2013 corr. 2 (9. Oktober 2017), S. 4:
+ *                    „Diagnosis is by blood tests to check for relevant
+ *                    antibodies, followed by endoscopy/gastroscopy and biopsy.
+ *                    … However all tests lose their usefulness if the person has
+ *                    already been eating a gluten-free diet for 6–12 months."
+ *                    Bis zur Fassung 30: „sonst ist er falsch negativ" – so
+ *                    zwingend sagt es die Quelle nicht.
+ *   NSAR             gesund.bund.de/gastritis: „Zu den häufigsten Gründen zählen
+ *                    eine Infektion mit Helicobacter-Pylori-Bakterien oder die
+ *                    häufige Einnahme" von NSAR; „Zur weiteren Abklärung kann
+ *                    danach eine Magenspiegelung sinnvoll sein"; bei erhöhtem
+ *                    Risiko für ein Geschwür „vorbeugend zusätzlich ein
+ *                    säurehemmendes Medikament … Die Ärztin oder der Arzt berät
+ *                    hierzu." Bis zur Fassung 30: „die häufigste vermeidbare
+ *                    Ursache" (eine Rangfolge, die dort nicht steht) und
+ *                    „Auslassversuch unter ärztlicher Begleitung".
+ *   Zyklus           gesund.bund.de/regelschmerzen (Stand 27.08.2024):
+ *                    „Regelschmerzen sind weit verbreitet." – „Einige Frauen
+ *                    leiden zusätzlich zu Krämpfen an Übelkeit, Erbrechen oder
+ *                    Durchfall." – „Bei sehr starken oder sich verschlimmernden
+ *                    Schmerzen ist eine ärztliche Untersuchung sinnvoll." Bis zur
+ *                    Fassung 30: „Häufig und für sich genommen harmlos – die
+ *                    Hormonschwankung wirkt auf den Darm"; die Entwarnung
+ *                    widerspricht dem Rat zur Abklärung starker Schmerzen.
+ *   Endometriose     gesund.bund.de/endometriose (Stand 21.08.2025): „Oft dauert
+ *                    es Jahre bis zur Diagnose"; nach dem Gespräch „eine
+ *                    allgemeine körperliche sowie gynäkologische Untersuchung.
+ *                    Weitere Untersuchungen können sich je nach Beschwerden
+ *                    anschließen, bis hin zu einer Spiegelung der Bauchhöhle
+ *                    (Laparoskopie)". Bis zur Fassung 30: „Wird im Mittel sieben
+ *                    bis zehn Jahre lang für einen Reizdarm gehalten" und
+ *                    „Tastuntersuchung, Ultraschall" – beides steht so in keiner
+ *                    geprüften Quelle.
+ *   Anspannung       gesund.bund.de/stress (Stand 14.01.2026): bei einer akuten
+ *                    Stressreaktion werden Vorgänge zurückgefahren, „unter
+ *                    anderem die Magen-, Darm- und Blasentätigkeit"; bei
+ *                    anhaltendem Stress können „Reizdarm- oder
+ *                    Reizmagen-Symptome" entstehen. Bis zur Fassung 30:
+ *                    „Entspannungsverfahren sind hier eine Behandlung, keine
+ *                    Beschäftigung" – eine Wirkaussage ohne Quelle, die der
+ *                    Reiter „Ruhe" schon gestrichen hatte.
  */
 const MUSTER = [
   {
@@ -18894,9 +19120,9 @@ const MUSTER = [
       + 'oder im Liegen.',
     pruefe: musterSaeure,
     ursachen: [
-      { name: 'Refluxkrankheit', klaerung: 'Spiegelung der Speiseröhre; oft wird zuerst probeweise ein Säureblocker gegeben und geschaut, ob es besser wird.' },
+      { name: 'Refluxkrankheit', klaerung: 'Laut gesund.bund.de an den typischen Beschwerden zu erkennen; bei Verdacht sind weitere Untersuchungen möglich, etwa eine Magenspiegelung und die Messung des Säurewerts in der unteren Speiseröhre.' },
       { name: 'Gastritis', klaerung: 'Magenspiegelung mit Gewebeprobe – nur die zeigt, ob und welche Entzündung da ist.' },
-      { name: 'Helicobacter pylori', klaerung: 'Atemtest, Stuhltest oder Probe bei der Spiegelung. Behandelbar, und dann ist es weg.' },
+      { name: 'Helicobacter pylori', klaerung: 'Atemtest, Stuhltest oder Probe bei der Spiegelung. Laut gesund.bund.de gut mit Antibiotika behandelbar; ob der Keim danach weg ist, wird nachgeprüft.' },
     ],
     fragen: [
       'Wäre ein Test auf Helicobacter pylori sinnvoll?',
@@ -18926,7 +19152,7 @@ const MUSTER = [
       + 'nach einer Mahlzeit.',
     pruefe: musterFuelle,
     ursachen: [
-      { name: 'Funktionelle Dyspepsie', klaerung: 'Die Diagnose, die bleibt, wenn die Spiegelung nichts zeigt – häufig und behandelbar, nur anders.' },
+      { name: 'Funktionelle Dyspepsie', klaerung: 'Auch Reizmagen genannt. Davon wird laut gesund.bund.de erst gesprochen, wenn andere Ursachen der Beschwerden abgeklärt und ausgeschlossen sind; dort zählt sie zu den häufigsten Erkrankungen des Magen-Darm-Trakts, mit verschiedenen Behandlungsmöglichkeiten.' },
       { name: 'Verzögerte Magenentleerung', klaerung: 'Szintigrafie oder Atemtest; kommt unter anderem bei langjährigem Diabetes vor.' },
       { name: 'Gastritis', klaerung: 'Magenspiegelung mit Gewebeprobe.' },
     ],
@@ -18944,7 +19170,7 @@ const MUSTER = [
     ursachen: [
       { name: 'Reizdarmsyndrom', klaerung: 'Diagnose nach Ausschluss; die Auslöserliste aus diesem Tagebuch ist dafür brauchbares Material.' },
       { name: 'Laktose- oder Fruktoseunverträglichkeit', klaerung: 'H2-Atemtest, dauert einen Vormittag.' },
-      { name: 'Zöliakie', klaerung: 'Bluttest auf Antikörper – wichtig: solange noch Gluten gegessen wird, sonst ist er falsch negativ.' },
+      { name: 'Zöliakie', klaerung: 'Bluttest auf Antikörper, danach Spiegelung mit Gewebeprobe. Laut EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon 6 bis 12 Monate glutenfrei gegessen wurde.' },
     ],
     fragen: [
       'Wäre ein Atemtest auf Laktose oder Fruktose sinnvoll?',
@@ -18954,11 +19180,12 @@ const MUSTER = [
   {
     id: 'nsar',
     name: 'Zusammenhang mit Schmerzmitteln',
-    satz: 'Im Tagebuch stehen entzündungshemmende Schmerzmittel – die häufigste '
-      + 'vermeidbare Ursache einer gereizten Magenschleimhaut.',
+    satz: 'Im Tagebuch stehen entzündungshemmende Schmerzmittel. Häufig genommen, gehören '
+      + 'sie laut gesund.bund.de neben Helicobacter zu den häufigsten Gründen für eine '
+      + 'entzündete Magenschleimhaut.',
     pruefe: musterNsar,
     ursachen: [
-      { name: 'NSAR-bedingte Magenschleimhautschädigung', klaerung: 'Auslassversuch unter ärztlicher Begleitung; bei anhaltenden Beschwerden Spiegelung.' },
+      { name: 'NSAR-bedingte Magenschleimhautschädigung', klaerung: 'Ob eine Magenspiegelung zur Abklärung sinnvoll ist und ob ein anderes Mittel oder ein Magenschutz infrage kommt, klärt die Praxis.' },
     ],
     fragen: [
       'Ich nehme regelmäßig ein entzündungshemmendes Schmerzmittel – gibt es dafür eine magenfreundlichere Alternative?',
@@ -18971,7 +19198,7 @@ const MUSTER = [
     satz: 'Die Beschwerden schwanken deutlich mit dem Zyklus.',
     pruefe: musterZyklus,
     ursachen: [
-      { name: 'Zyklusabhängige Verdauungsbeschwerden', klaerung: 'Häufig und für sich genommen harmlos – die Hormonschwankung wirkt auf den Darm.' },
+      { name: 'Zyklusabhängige Verdauungsbeschwerden', klaerung: 'Beschwerden während der Regel sind laut gesund.bund.de weit verbreitet, bei manchen auch mit Übelkeit, Erbrechen oder Durchfall. Bei sehr starken oder sich verschlimmernden Schmerzen ist eine ärztliche Untersuchung sinnvoll.' },
       { name: 'Endometriose', klaerung: 'Kommt in Frage, wenn dazu starke Regelschmerzen, Schmerzen beim Sex oder zyklische Darmbeschwerden gehören. Wird oft jahrelang übersehen; abgeklärt wird sie gynäkologisch.' },
     ],
     fragen: [
@@ -18986,7 +19213,7 @@ const MUSTER = [
       + 'das ist ein anderes Bild als ein reiner Reizdarm.',
     pruefe: musterUnterleib,
     ursachen: [
-      { name: 'Endometriose', klaerung: 'Gynäkologisch abzuklären: Tastuntersuchung, Ultraschall, bei Verdacht Bauchspiegelung. Wird im Mittel sieben bis zehn Jahre lang für einen Reizdarm gehalten – genau deshalb steht sie hier.' },
+      { name: 'Endometriose', klaerung: 'Abgeklärt wird sie gynäkologisch: laut gesund.bund.de mit Gespräch und Untersuchung, je nach Beschwerden auch mit weiteren Untersuchungen bis hin zu einer Bauchspiegelung. Bis zur Diagnose dauert es oft Jahre.' },
       { name: 'Adenomyose', klaerung: 'Endometriose in der Gebärmutterwand. Ultraschall, oft zusätzlich MRT.' },
       { name: 'Beckenbodenstörung', klaerung: 'Kommt eher bei Schmerz am Eingang und bei Verstopfung in Frage; wird über eine Untersuchung des Beckenbodens beurteilt und ist gut behandelbar.' },
       { name: 'Reizdarm und Regelschmerz nebeneinander', klaerung: 'Möglich und häufig – zwei Dinge gleichzeitig, ohne gemeinsame Ursache. Das lässt sich nur klären, indem man beides ansieht.' },
@@ -19003,7 +19230,7 @@ const MUSTER = [
       + 'schlechter.',
     pruefe: musterStress,
     ursachen: [
-      { name: 'Stressassoziierte Beschwerden', klaerung: 'Kein Ausschlussurteil und keine Einbildung: Darm und Nervensystem hängen zusammen. Entspannungsverfahren sind hier eine Behandlung, keine Beschäftigung.' },
+      { name: 'Stressassoziierte Beschwerden', klaerung: 'Bei akutem Stress fährt der Körper laut gesund.bund.de unter anderem die Magen- und Darmtätigkeit zurück, und bei anhaltendem Stress können Reizdarm- oder Reizmagen-Beschwerden entstehen. Was an Unterstützung infrage kommt, lässt sich in der Praxis besprechen.' },
     ],
     fragen: [
       'Meine Beschwerden hängen deutlich an Anspannung – was ist da an Unterstützung möglich?',
@@ -19171,8 +19398,8 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
  *
  *   'bremse'  Schalter ADHS an, eine Einnahme in den letzten 14 Tagen, und
  *             ungewollt abgenommen oder „Kein Appetit" an mindestens 3 der
- *             letzten 7 Bauch-Tage: „Heute eher ohne …" und „Spätes Essen
- *             und Liegen" entfallen.
+ *             letzten 7 Bauch-Tage: „Auffällig in deinem Verlauf: …" und
+ *             „Spätes Essen und Liegen" entfallen.
  *   'zusatz'  Schalter und Einnahme, sonst nichts: „Spätes Essen und Liegen"
  *             bekommt einen Satz dazu.
  *
@@ -19258,8 +19485,8 @@ function raete(d) {
   /* ---------- Essen ---------- */
 
   // Was der eigene Verlauf hergibt, steht vor allem Allgemeinen. Ohne die
-  // Umstände: „Heute eher ohne Auswärts gegessen" ist kein Satz, und für
-  // Portion und Uhrzeit gibt es unten eigene Vorschläge.
+  // Umstände: „Auswärts gegessen" ist keine Zutat, und für Portion und
+  // Uhrzeit gibt es unten eigene Vorschläge.
   const auffaellig = (d.bilanz || [])
     .filter((b) => b.genug && ['auffaellig', 'moeglich'].includes(einstufung(b)))
     .filter((b) => !UMSTAND_IDS.includes(b.id))
@@ -19280,13 +19507,23 @@ function raete(d) {
      * Fassung 29 stand hier „Ein Auslöser, der sich in zwei Wochen ohne ihn
      * nicht bestätigt, war keiner" – diese Frist und diesen Schluss nennt
      * keine Quelle.
+     *
+     * Die Karte rät auch nicht zum Weglassen. Bis zur Fassung 30 hieß sie
+     * „Heute eher ohne …", mit „an Tagen wie diesem einmal weglassen und im
+     * Tagebuch schauen"; die Quellen oben tragen das Tagebuch, keinen Rat zum
+     * Weglassen – zur Ernährung beim Reizmagen heißt es dort sogar: „Deshalb
+     * gibt es dazu keine verlässlichen Empfehlungen." Wie der Auslassversuch
+     * in js/luecken.js und versuchTeil in js/app.js verweist die Karte deshalb
+     * an die Praxis. Dass der Bauchwert danach höher lag, ist die Bedingung,
+     * unter der die Karte überhaupt steht (einstufung in js/auswertung.js:
+     * Unterschied mindestens eine Stufe).
      */
     raus.push(rat('essen-eigen', 'essen',
-      `Heute eher ohne ${namen}`,
-      'Nicht für immer streichen – an Tagen wie diesem einmal weglassen und im '
-      + 'Tagebuch schauen, ob es einen Unterschied macht. Ob ein Lebensmittel '
-      + 'wirklich der Auslöser ist, lässt sich so allein nicht sicher sagen; das '
-      + 'kann die Praxis abklären.',
+      `Auffällig in deinem Verlauf: ${namen}`,
+      'Danach lag dein Bauchwert im Mittel höher als ohne. Ob ein Lebensmittel '
+      + 'wirklich der Auslöser ist, lässt sich aus dem Tagebuch allein nicht sicher '
+      + 'sagen; ob ein Auslassversuch für dich sinnvoll ist, lässt sich in der Praxis '
+      + 'besprechen.',
       auffaellig.map((b) => `${ausloeserName(b.id, d.eigene)}: danach im Mittel `
         + `${b.schnittMit.toFixed(1).replace('.', ',')} statt `
         + `${b.schnittOhne.toFixed(1).replace('.', ',')} `
@@ -23484,8 +23721,8 @@ function v29Karte(s) {
     <h3 id="neuTitel">Neu: Hinweise zu zwei Mitteln zusammen</h3>
     <p class="klein">Zu einigen wenigen Paaren von Mitteln zeigt Body Check jetzt einen Hinweis, vor allem
       zu Methylphenidat zusammen mit einem Mittel gegen Magensäure. Was in der Fachinformation dazu steht,
-      ist bei Methylphenidat von Präparat zu Präparat verschieden. Alle stehen unter „Mehr“ › „Meine
-      Mittel“, einige auch hier oben.</p>
+      ist bei Methylphenidat von Präparat zu Präparat verschieden. Alle Hinweise stehen unter „Mehr“ ›
+      „Meine Mittel“, einige auch hier oben.</p>
     <p class="klein">Steht kein Hinweis da, heißt das nicht, dass deine Mittel zusammenpassen. Body Check
       prüft nicht alle Mittel – das kann die Apotheke.</p>
     <p class="klein">Es klappt nur mit Mitteln, die hier stehen: unter „Meine Mittel“ oder in den letzten
@@ -24822,7 +25059,10 @@ function kriterienTeil(s, d) {
    * festgestellt?"): „keine Hinweise auf eine andere Erkrankung vorliegen".
    * Für den GerdQ gilt das nicht – deshalb dort nur „keine Diagnose".
    * Welche Untersuchungen nötig sind, legt die Praxis fest; „Spiegelung und
-   * Blutbild" als Maßstab nennt keine dieser Seiten.
+   * Blutbild" als Maßstab nennt keine dieser Seiten. „Reizmagen (funktionelle
+   * Dyspepsie)" wie im Titel der Seite („Reizmagensyndrom (funktionelle
+   * Dyspepsie)"): Der Kasten darunter spricht von funktioneller Dyspepsie, und
+   * ohne die Klammer stünden für Laien zwei Namen ohne Zusammenhang da.
    */
   const vorbehalt = kriterienVorbehalt(s.befunde || []);
   return `<div class="karte">
@@ -24830,7 +25070,7 @@ function kriterienTeil(s, d) {
     ${vorbehalt
     ? `<p class="klein"><b>Das hier ordnet nichts mehr ein.</b> ${esc(vorbehalt)}</p>`
     : `<p class="klein"><b>Erfüllte Kriterien sind keine Diagnose.</b> Von einem
-    Reizdarm oder Reizmagen sprechen Ärztinnen und Ärzte erst, wenn andere
+    Reizdarm oder Reizmagen (funktionelle Dyspepsie) sprechen Ärztinnen und Ärzte erst, wenn andere
     Ursachen für die Beschwerden abgeklärt und ausgeschlossen sind. Ob das so
     ist und welche Untersuchungen dafür nötig sind, klärt die Praxis. Auch der
     Punktwert zu Reflux ist keine Diagnose.</p>`}
@@ -25418,10 +25658,11 @@ function brauchtTeil(s, d) {
    * auftaucht, ist schlimmer als keine: Sie lässt jemanden nach etwas suchen,
    * das er schon gefunden hat, und verdeckt das, was wirklich noch offen ist.
    *
-   * Gestrichen wird dabei nur, was mit dem Befund definitionsgemäß erledigt
-   * ist – siehe die Begründung in js/befunde.js. Im Zweifel bleibt eine Zeile
-   * stehen: Ein Verdacht zu viel kostet eine Nachfrage, einer zu wenig die
-   * Untersuchung.
+   * Gestrichen wird dabei nur, was der Befund selbst beantwortet – siehe die
+   * Begründung in js/befunde.js (eine Gastritis Typ C streicht seit der
+   * Fassung 30 die Frage nach Helicobacter nicht mehr). Im Zweifel bleibt eine
+   * Zeile stehen: Ein Verdacht zu viel kostet eine Nachfrage, einer zu wenig
+   * die Untersuchung.
    */
   const erledigt = geklaert(s.befunde || []);
   const sichtbar = l.verdaechte.filter((v) => !erledigt.has(v.id));
@@ -26397,7 +26638,15 @@ function ruheAnsicht(s) {
    * Quellen im Kopf von js/atem.js es tragen. Bis zur Fassung 29: „Langes
    * Ausatmen schaltet auf den Teil des Nervensystems um, unter dem der Darm
    * arbeitet … ist das eine Behandlung und keine Beschäftigung" – eine
-   * Wirkaussage ohne Quelle, die rat.js schon als gestrichen führte.
+   * Wirkaussage ohne Quelle, die rat.js schon als gestrichen führte. Zuerst in
+   * der Fassung 30 hieß es dann, die Wirkung von Atemübungen sei laut
+   * gesund.bund.de „nicht hinreichend untersucht"; das sagt die Seite zu
+   * Schlafstörungen (Stand 04.04.2025, Behandlung: Methoden zur Behandlung von
+   * Schlafstörungen, „deren Wirksamkeit jedoch nicht hinreichend untersucht
+   * ist", darunter Atemübungen „insbesondere vor dem Schlafengehen"), nicht
+   * über Atemübungen überhaupt. Zu 4–7–8: „little empirical support"
+   * (Marchant et al. 2025, PMID 39864026, Abstract) – wie die Karte
+   * 'ruhe-schlaf' in js/rat.js.
    */
   const kreis = `<div class="atem${laeuft ? ' laeuft' : ''}">
     <div class="atem-kreis" id="atemKreis"><span id="atemZahl">${laeuft ? '' : '·'}</span></div>
@@ -26409,8 +26658,9 @@ function ruheAnsicht(s) {
   return `
   <h2>Ruhe</h2>
   <p class="klein">Atemübungen mit Ton. Tiefes Ein- und Ausatmen kann laut
-  gesund.bund.de die Entspannung fördern; wie gut Atemübungen wirken, ist dort
-  als nicht hinreichend untersucht beschrieben.</p>
+  gesund.bund.de die Entspannung fördern. Bei Schlafproblemen zählt die Seite
+  Atemübungen zu den Methoden, deren Wirksamkeit nicht hinreichend untersucht
+  ist; für 4–7–8 gibt es bisher wenig Belege.</p>
 
   ${kreis}
 
@@ -28540,9 +28790,13 @@ function wissenTeil(s, b) {
   if (!g) return '';
   const teile = [`<p class="klein mittel-hinweis">${esc(g.gruppe)}: ${esc(g.kurz)}
     <br>Ausführlich unter „Mehr".</p>`];
+  // Der Säure-Satz der gewählten Form. Bei W3/W4 ist der Hinweis zum Paar
+  // derselbe Text (KLAER_SATZ in js/mittel.js); er steht dann nur einmal.
+  let formSaeure = null;
   if (g.id === 'mph') {
     const f = formImBogen(s, b);
     const form = mphForm(f.form);
+    formSaeure = form && form.saeure ? form.saeure : null;
     teile.push(`<div class="bogen-form" role="group" aria-label="Form">
       <p class="feld-name">Welche Form? (weiß die Apotheke)</p>
       <div class="marken marken-eng">${MPH_FORMEN.map((x) => `
@@ -28561,7 +28815,7 @@ function wissenTeil(s, b) {
                 data-id="${w.id}" aria-pressed="${e.essen === w.id}">${w.name}</button>`).join('')}</div>
     </div>`);
   }
-  const paare = wechselImBogen(s, b);
+  const paare = wechselImBogen(s, b).filter((h) => h.text !== formSaeure);
   if (paare.length) {
     teile.push(`<div class="bogen-wechsel">${paare.map((h) => `<p class="klein">${esc(h.text)}</p>`).join('')}</div>`);
   }
@@ -28976,7 +29230,11 @@ function bogenHTML(s) {
      * 29; der Satz „gehören zu den Warnzeichen, die ärztlich abgeklärt
      * gehören", der zuerst in der Fassung 30 stand, nannte für das Zeichen
      * der Stufe „sofort" keine Eile und stützte sich auf eine Seite, die
-     * schwarzen Stuhl „zeitnah" nennt (gesund.bund.de, Magengeschwür).
+     * schwarzen Stuhl „zeitnah" nennt (gesund.bund.de, Magengeschwür). Ebenso
+     * bis zur Fassung 30: „Deshalb stehen beide hier und nicht im
+     * Beschwerdebogen" – der Beschwerdebogen bietet beide Zeichen ebenfalls an
+     * (WARNZEICHEN ohne den Kopf), und die Eile begründet nicht, in welchem
+     * Bogen sie stehen.
      */
     mitte = `
       <p class="feld-name">Wie sah es aus?</p>
@@ -29004,10 +29262,9 @@ function bogenHTML(s) {
         <summary>War Blut dabei oder war es schwarz?</summary>
         <p class="klein">Bei schwarzem, klebrigem Stuhl nicht auf einen Termin
         warten – Notaufnahme oder 112. Frisches Blut im Stuhl gehört zeitnah
-        ärztlich abgeklärt. Deshalb stehen beide hier und nicht im
-        Beschwerdebogen: Was hier angekreuzt wird, taucht in keiner Statistik
-        auf, sondern ganz oben unter „Muster“ – mit dem Hinweis, wie eilig es
-        ist.</p>
+        ärztlich abgeklärt. Was hier angekreuzt wird, taucht in keiner
+        Statistik auf, sondern ganz oben unter „Muster“ – mit dem Hinweis, wie
+        eilig es ist.</p>
         ${marken(WARNZEICHEN.filter((w) => ['teerstuhl', 'blutstuhl'].includes(w.id)),
     e.warnzeichen || [], 'warnzeichen')}
       </details>`;

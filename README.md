@@ -226,8 +226,9 @@ Auslöserbilanz ein, mit dem Fenster nach dem Essen und gegen die Mahlzeiten zu
 Hause. Der Aktivitätsbogen hat dafür den Weg „Als Mahlzeit eintragen", der
 Tag und Zeit mitnimmt. Was dort schon gewählt oder getippt ist – „Feier" und
 auswärts essen fallen oft zusammen –, wird vorher eingetragen, und die Meldung
-sagt das („Feier/Ausgehen eingetragen – jetzt die Mahlzeit …"). Umstände werden nie als „Heute eher ohne …" geraten,
-nie als Auslassversuch vorgeschlagen und bekommen kein „Wie viel davon?".
+sagt das („Feier/Ausgehen eingetragen – jetzt die Mahlzeit …"). Umstände
+stehen nie als „Auffällig in deinem Verlauf: …" auf der Karte „Für heute",
+werden nie als Auslassversuch vorgeschlagen und bekommen kein „Wie viel davon?".
 
 Eine Aktivität ist ein Eintrag mit Uhrzeit, aber über den Körper sagt sie
 nichts. Ein Tag, an dem nur sie steht, gilt deshalb **nirgends als notiert** –
@@ -594,19 +595,22 @@ Notiz, die nichts bewirkt. Was dann anders ist:
 Gestrichen wird nur, was der Befund selbst beantworten soll. Dass ein Befund
 meist bei einer Spiegelung entsteht und dabei auch anderes aufgefallen wäre,
 reicht nicht. „Meist" ist keine Grundlage, einem Menschen eine Untersuchung aus
-der Liste zu nehmen. Bei „Gastritis Typ C" nimmt die App derzeit die Frage nach
-Helicobacter heraus. Typ C bezeichnet die Entzündung, die durch chemische Stoffe
-entstanden ist, etwa durch zurücklaufende Gallenflüssigkeit, Alkohol oder
+der Liste zu nehmen. Die Frage nach Helicobacter nimmt deshalb nur eine
+„Gastritis Typ B" heraus, die durch Helicobacter verursachte. Bei „Gastritis
+Typ C" bleibt sie stehen: Typ C bezeichnet die Entzündung, die durch chemische
+Stoffe entstanden ist, etwa durch zurücklaufende Gallenflüssigkeit, Alkohol oder
 bestimmte Schmerzmittel. Ob dabei auch auf Helicobacter untersucht wurde, sagt
 die Bezeichnung allein nicht; in der Fachliteratur sind Mischformen mit einer
 Helicobacter-Gastritis beschrieben. Das steht im Befund. <!--
 Quelle: gesund.bund.de/glossar/typ-c-gastritis: „Ist die Entzündung durch die
 Einwirkung von chemischen Stoffen entstanden, spricht man auch von einer
 Typ-C-Gastritis. Neben zurücklaufender Gallenflüssigkeit, Alkohol oder bestimmten
-Schmerzmitteln …"; Borchard, Pathologe 2001 (PMID 11225445), Abstract: „Mixed
-forms of chemical/reactive gastritis and other forms of gastritis are also
-described, for example, that from Helicobacter." Die Zuordnung klaert: ['hpylori']
-in js/befunde.js ist unverändert. -->
+Schmerzmitteln …"; gesund.bund.de/glossar/typ-b-gastritis: „Ist die Entzündung
+durch bestimmte Bakterien namens Helicobacter pylori verursacht, spricht man von
+einer Typ-B-Gastritis."; Borchard, Pathologe 2001 (PMID 11225445), Abstract:
+„Mixed forms of chemical/reactive gastritis and other forms of gastritis are also
+described, for example, that from Helicobacter." Bis zur Fassung 30 strich auch
+Typ C die Frage (klaert: ['hpylori'] in js/befunde.js). -->
 
 Die Richtung des Irrtums ist hier nicht gleichgültig: **Ein Verdacht, der zu
 viel dasteht, kostet eine Nachfrage in der Sprechstunde. Einer, der zu Unrecht
@@ -869,11 +873,12 @@ Unter „Was noch fehlt" bekommt die Frage nach Magenschutz oder Alternative den
 Zusatz, wogegen das Mittel genommen wurde, und ist so formuliert, dass man sie
 vorlesen kann – „regelmäßig" stimmt bei anfallsweiser Einnahme nicht. Mit
 Gastritis Typ C im Befund steht dazu, was feststeht und was nicht: Neben dem
-Rückfluss von Darminhalt sind entzündungshemmende Schmerzmittel die häufigsten
-Ursachen einer chemisch bedingten Schleimhautschädigung; ob sie es *im
-Einzelfall* sind, steht im Befund und nicht im Tagebuch. Bei
-Magen-Darm-Erkrankungen in der Vorgeschichte sehen Fachinformationen dieser
-Mittel eine besonders sorgfältige ärztliche Überwachung vor. Mit
+Rückfluss von Darminhalt gehören entzündungshemmende Schmerzmittel zu den
+häufigsten Ursachen einer chemisch bedingten Schleimhautschädigung; ob sie es
+*im Einzelfall* sind, steht im Befund und nicht im Tagebuch. Bei
+Magen-Darm-Störungen in der Vorgeschichte sehen Fachinformationen mancher dieser
+Mittel eine besonders sorgfältige ärztliche Überwachung vor; was das bedeutet,
+klären Praxis oder Apotheke. Mit
 Zwerchfellbruch im Befund wird aus Blutbild und Ferritin eine konkrete Frage:
 An der Engstelle eines großen Bruchs können kleine Schleimhautdefekte entstehen
 (Cameron-Läsionen), die langsam und unbemerkt bluten und zu Eisenmangel führen
@@ -884,7 +889,9 @@ Quelle: Owen, Mod Pathol 2003 (PMID 12692198), Abstract: „Reactive gastropathy
 therapy with nonsteroidal anti-inflammatory drugs." Fachinformation
 IBU-ratiopharm 400 mg akut (fachinfo.de/fi/pdf/014937, Stand Juni 2026), 4.4:
 „Eine besonders sorgfältige ärztliche Überwachung ist erforderlich: bei
-Magen-Darm-Störungen … in der Vorgeschichte". Moskovitz 1992 (PMID 1595651):
+Magen-Darm-Störungen … in der Vorgeschichte"; Fachinformation Aspirin
+(fachinfo.de/fi/pdf/000174, Stand März 2026), 4.4: „verstärktem Monitoring" bei
+„Gastritis in der Anamnese". Moskovitz 1992 (PMID 1595651):
 „small erosions at the waist of the hernia which bleed slowly"; Kimer 2010
 (PMID 22791730): „associated with occult bleeding and development of chronic
 iron deficiency anaemia"; Gray, Dis Esophagus 2015 (PMID 24758713): „Large HH
@@ -924,7 +931,7 @@ Was `js/bild.js` stattdessen liefert:
    ungewollter Gewichtsverlust, nächtliches Aufwachen, Schmerz, der in Arm,
    Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß. Sie werden
    im Beschwerde- *und* im Stuhlbogen angekreuzt – Blut im Stuhl und schwarzer
-   Stuhl stehen dort, nicht im Beschwerdebogen –, tauchen in keiner Statistik
+   Stuhl stehen in beiden –, tauchen in keiner Statistik
    auf und stehen im Reiter „Muster" wie im Bericht ganz oben, mit `sofort`
    oder `zeitnah`. Bei `sofort` sagt die Warnkarte: nicht auf einen Termin
    warten – Notaufnahme oder 112; dasselbe steht in „Was Sache ist". Ohne
@@ -1427,7 +1434,7 @@ Alles bleibt auf diesem Gerät.
 * Auf der **Rat-Karte** hält sich die App beim Essen zurück, wenn in den
   letzten 14 Tagen ein ADHS-Mittel eingetragen ist und das Gewicht ungewollt
   sinkt oder an drei der letzten sieben Bauch-Tage „Kein Appetit“ steht: Dann
-  entfallen „Heute eher ohne …“ und „Spätes Essen und Liegen“. Sonst bekommt
+  entfallen „Auffällig in deinem Verlauf: …“ und „Spätes Essen und Liegen“. Sonst bekommt
   der zweite Vorschlag einen Satz dazu: Weniger Appetit steht etwa in den
   Fachinformationen von Ritalin LA und Elvanse unter den sehr häufigen
   Nebenwirkungen, und das Gewicht wird dabei ärztlich beobachtet; wann
@@ -1759,6 +1766,25 @@ schwarzen, klebrigen Stuhl der Wortlaut der Warnkarte, für frisches Blut
 „zeitnah“. Die Rechnungen dahinter sind unverändert. <!-- Belege jeweils im
 Kopf von js/ansprechen.js, js/luecken.js, js/dosis.js und js/atem.js sowie
 bei warnTeil und dem Stuhlbogen in js/app.js. -->
+
+Auch die Einordnung unter „Muster“ (`js/bild.js`) sagt jetzt dasselbe wie
+diese Stellen: bei den Schmerzmitteln keine Rangfolge „häufigste vermeidbare
+Ursache“ und kein Auslassversuch als Klärung, bei der Endometriose kein „im
+Mittel sieben bis zehn Jahre lang für einen Reizdarm gehalten“, beim Zyklus
+keine Entwarnung „für sich genommen harmlos“, bei Helicobacter kein „und dann
+ist es weg“ und bei der Anspannung kein „Entspannungsverfahren sind hier eine
+Behandlung“. Eine „Gastritis Typ C“ nimmt die Frage nach Helicobacter nicht
+mehr aus „Was keine App beantwortet“ heraus. Die Karte zu einem auffälligen
+Lebensmittel auf „Für heute“ heißt „Auffällig in deinem Verlauf: …“ und rät
+nicht mehr, es an solchen Tagen wegzulassen; ob ein Auslassversuch sinnvoll
+ist, lässt sich in der Praxis besprechen. Beim Reizdarm sagt der Satz zum
+Vorlesen „Kriterien erfüllt“ nur noch, wenn der Kasten unter „Kriterien“ es
+auch sagt, und „Wie viel davon?“ schlägt auch dann nicht mehr vor, eine
+Zutat kleiner zu essen, wenn sich die Menge noch nicht prüfen lässt. Die
+Rechnungen dahinter sind unverändert. <!-- Belege jeweils am Code: über
+MUSTER in js/bild.js, an den Befunden in js/befunde.js, an den Verdachten in
+js/luecken.js, bei der Karte 'essen-eigen' in js/rat.js und im Zweig 'unklar'
+in js/dosis.js. -->
 
 Das Gold der Fassung 27 bleibt, wie es erzeugt wurde. `tests/test-gold.mjs`
 und `tests/test-gleich-v27.mjs` geben jeder berichtigten Stelle vor dem

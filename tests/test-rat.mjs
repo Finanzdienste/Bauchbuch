@@ -47,20 +47,30 @@ for (let t = 1; t <= 12; t++) {
 await setze({ eintraege: mitKaffee });
 
 const rat = await page.locator('.rat').textContent();
-check(rat.includes('Heute eher ohne Kaffee'), 'der auffällige Auslöser wird für heute vorgeschlagen');
+check(rat.includes('Auffällig in deinem Verlauf: Kaffee'), 'der auffällige Auslöser steht auf der Karte für heute');
 check(rat.includes('7,0 statt 0,0'), 'mit den Zahlen, aus denen das folgt');
 check(rat.includes('12 Mahlzeiten damit'), 'und der Fallzahl');
 check(
   (await page.locator('.rat-quelle.q-eigen').count()) > 0,
   'als „aus deinem Verlauf" ausgezeichnet',
 );
+/*
+ * Seit der Fassung 30 ohne Rat zum Weglassen: Bis dahin hieß die Karte
+ * „Heute eher ohne …“, mit „an Tagen wie diesem einmal weglassen“. Die
+ * Quellen tragen das Tagebuch, keinen Rat zum Essen (Belege in js/rat.js);
+ * ob ein Auslassversuch sinnvoll ist, lässt sich in der Praxis besprechen.
+ */
+const eigenKarte = (await page.locator('.raete li', { hasText: 'Auffällig in deinem Verlauf' }).first()
+  .textContent()) || '';
 check(
-  rat.includes('Nicht für immer streichen'),
-  'mit dem Hinweis, es nicht dauerhaft zu streichen – ein Verdacht ist kein Urteil',
+  !/Heute eher ohne|weglassen|streichen/.test(eigenKarte)
+    && rat.includes('Danach lag dein Bauchwert im Mittel höher als ohne')
+    && rat.includes('ob ein Auslassversuch für dich sinnvoll ist, lässt sich in der Praxis besprechen'),
+  'ohne Rat zum Weglassen – die Karte sagt, was auffällt, und verweist für den Versuch an die Praxis',
 );
 check(
   !rat.includes('war keiner') && !rat.includes('in zwei Wochen ohne ihn')
-    && rat.includes('lässt sich so allein nicht sicher sagen; das kann die Praxis abklären'),
+    && rat.includes('lässt sich aus dem Tagebuch allein nicht sicher sagen'),
   'und ohne den Schluss „Ein Auslöser, der sich in zwei Wochen ohne ihn nicht bestätigt, war keiner“ – das sagt ein Tagebuch nicht',
 );
 await page.screenshot({ path: `${SHOT}/92-rat.png` });
@@ -225,7 +235,7 @@ const ratText = async () => (await page.locator('.rat').textContent()) || '';
 
 await setze({ eintraege: [...essenRat, einnahme, ...appetit] });
 let r = await ratText();
-check(r.includes('Heute eher ohne Kaffee') && r.includes('Spätes Essen und Liegen'),
+check(r.includes('Auffällig in deinem Verlauf: Kaffee') && r.includes('Spätes Essen und Liegen'),
   'ohne den Schalter ADHS: die Vorschläge zum Essen wie bisher');
 // Fassung 30: die drei Stunden aus der Packungsbeilage als eigener Satz –
 // vorher „nennt die Packungsbeilage …, … nichts mehr zu essen".
@@ -235,11 +245,11 @@ check(r.replace(/\s+/g, ' ').includes('In der Packungsbeilage eines rezeptfreien
 '„Spätes Essen und Liegen“: die drei Stunden so, wie die Packungsbeilage sie nennt');
 await setze({ adhsAn: true, eintraege: [...essenRat, einnahme, ...appetit] });
 r = await ratText();
-check(!r.includes('Heute eher ohne') && !r.includes('Spätes Essen und Liegen'),
+check(!r.includes('Auffällig in deinem Verlauf') && !r.includes('Spätes Essen und Liegen'),
   'mit ADHS-Mittel und „Kein Appetit“ an 3 der letzten 7 Tage: kein Rat, weniger oder später zu essen');
 await setze({ adhsAn: true, eintraege: [...essenRat, einnahme, ...appetit.slice(0, 2)] });
 r = await ratText();
-check(r.includes('Heute eher ohne Kaffee') && r.includes('Spätes Essen und Liegen')
+check(r.includes('Auffällig in deinem Verlauf: Kaffee') && r.includes('Spätes Essen und Liegen')
   && r.includes('Wann gegessen wird, wägt deshalb die Praxis ab, nicht diese Karte.')
   && r.replace(/\s+/g, ' ').includes('in den Fachinformationen von Ritalin LA und Elvanse')
   && !r.includes('bei Methylphenidat und Lisdexamfetamin')
@@ -251,11 +261,11 @@ const waage = [
 ];
 await setze({ adhsAn: true, gewicht: waage, abnehmenGewollt: false, eintraege: [...essenRat, einnahme] });
 r = await ratText();
-check(!r.includes('Heute eher ohne') && !r.includes('Spätes Essen und Liegen'),
+check(!r.includes('Auffällig in deinem Verlauf') && !r.includes('Spätes Essen und Liegen'),
   'mit ADHS-Mittel und ungewolltem Abnehmen: ebenfalls kein Rat, weniger oder später zu essen');
 await setze({ adhsAn: true, gewicht: waage, abnehmenGewollt: false, eintraege: essenRat });
 r = await ratText();
-check(r.includes('Heute eher ohne Kaffee') && !r.includes('wägt deshalb die Praxis ab'),
+check(r.includes('Auffällig in deinem Verlauf: Kaffee') && !r.includes('wägt deshalb die Praxis ab'),
   'ohne Einnahme in den letzten 14 Tagen gilt das alles nicht');
 
 /* Und dieselbe Rechnung ohne Anzeige: raete() liest essenVorsicht, sonst nichts. */
@@ -272,7 +282,7 @@ const bremse = raete({ ...grundlage, essenVorsicht: 'bremse' });
 const zusatz = raete({ ...grundlage, essenVorsicht: 'zusatz' });
 check(ids(ohne).includes('essen-eigen') && ids(ohne).includes('essen-spaet')
   && !ids(bremse).includes('essen-eigen') && !ids(bremse).includes('essen-spaet'),
-'raete(): die Bremse nimmt „Heute eher ohne …“ und „Spätes Essen und Liegen“ heraus');
+'raete(): die Bremse nimmt „Auffällig in deinem Verlauf: …“ und „Spätes Essen und Liegen“ heraus');
 check(JSON.stringify(ohne.filter((x) => x.id !== 'essen-spaet')) === JSON.stringify(zusatz.filter((x) => x.id !== 'essen-spaet'))
   && zusatz.find((x) => x.id === 'essen-spaet').warum.endsWith('wägt deshalb die Praxis ab, nicht diese Karte.'),
 'raete(): der Zusatz ändert nur den Grund unter der späten Mahlzeit');

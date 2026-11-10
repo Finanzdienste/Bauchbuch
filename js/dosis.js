@@ -108,22 +108,35 @@ export function dosisBild(eintraege, id, fenster = 4) {
 
   if (!pruefbare.length) {
     /*
-     * Der häufigste Fall, und er hat eine nützliche Antwort.
+     * Der häufigste Fall: Meistens kommt eine Zutat in derselben Rolle vor –
+     * wer Zwiebeln isst, isst sie oft mitgekocht. Dann gibt es keine
+     * Mengenfrage zu beantworten, und der Satz sagt nur, was gezählt ist und
+     * was fehlt – wie im Zweig 'ab-hier' unten.
      *
-     * Meistens kommt eine Zutat immer in derselben Rolle vor – wer Zwiebeln
-     * isst, isst sie fast immer mitgekocht. Dann gibt es keine Mengenfrage zu
-     * beantworten, aber sehr wohl etwas zu tun: Es einmal in kleinerer Menge
-     * essen und eintragen. Das ist eine Handlung, kein Achselzucken.
+     * Bis zur Fassung 30 stand hier „Um eine Menge zu finden, müsste es auch
+     * mal in kleinerer Rolle vorkommen", und der Kommentar nannte das
+     * ausdrücklich „etwas zu tun: Es einmal in kleinerer Menge essen". Dieser
+     * Block steht aber nur unter auffälligen oder möglichen Funden, und bei
+     * einer Nahrungsmittelallergie reichen laut gesund.bund.de „Bereits kleine
+     * Mengen eines Lebensmittels" (Nahrungsmittelallergie, Stand 27.05.2024;
+     * ein Provokationstest läuft dort „unter ärztlicher Beobachtung"). Dazu
+     * hieß es „fast immer", auch wenn die Zutat in der Hälfte der Fälle schon
+     * kleiner vorkam; jetzt steht die Zahl dabei. Das Urteil 'unklar' ist
+     * unverändert.
      */
     const haeufigste = [...stufen].sort((a, b) => b.faelle - a.faelle)[0];
+    const gesamt = stufen.reduce((s, st) => s + st.faelle, 0);
     return {
       urteil: 'unklar',
       stufen,
       gegenFaelle,
       satz: haeufigste && haeufigste.faelle
-        ? `Bisher kam das fast immer ${haeufigste.satz} vor `
-          + `(${haeufigste.faelle} Mal). Um eine Menge zu finden, müsste es auch `
-          + 'mal in kleinerer Rolle vorkommen – als Beilage, Topping oder Würze.'
+        ? `${haeufigste.faelle === gesamt
+          ? `Bisher kam das immer ${haeufigste.satz} vor (${gesamt} Mal).`
+          : `Bisher kam das am häufigsten ${haeufigste.satz} vor (${haeufigste.faelle} `
+            + `von ${gesamt} Mal).`} Ob die Menge eine Rolle spielt, lässt sich aus dem `
+          + 'Tagebuch noch nicht sagen: Für einen Vergleich nach Menge sind bisher zu '
+          + 'wenige Mahlzeiten eingetragen.'
         : 'Dafür ist es noch zu selten eingetragen.',
     };
   }

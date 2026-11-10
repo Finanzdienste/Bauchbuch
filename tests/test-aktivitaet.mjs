@@ -141,7 +141,7 @@ check(!merkmale({ art: 'essen', um: '12:00', zutaten: [] }).includes('auswaerts'
     eintraege: e, tage: {}, heute, eigene: [], bilanz: b, faktoren: faktorenBilanz(e, {}),
     phasen: [], letzteMahlzeitStunden: null, mittel: [],
   });
-  check(!r.some((x) => x.id === 'essen-eigen' && /Auswärts/.test(x.titel)), 'und „Heute eher ohne Auswärts gegessen" gibt es nicht');
+  check(!r.some((x) => x.id === 'essen-eigen' && /Auswärts/.test(x.titel)), 'und „Auffällig in deinem Verlauf: Auswärts gegessen" gibt es nicht');
   const v = haeufigeMahlzeiten(e, 6).find((x) => x.text === 'Döner');
   check(!!v && v.auswaerts === true && haeufigeMahlzeiten(e, 6).find((x) => x.text === 'Brot').auswaerts === false,
     '„Noch mal wie immer" nimmt auswärts vom jüngsten Vorkommen mit');

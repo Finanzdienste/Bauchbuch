@@ -396,14 +396,15 @@ function musterZyklus(d) {
 /*
  * Das Muster, wegen dem dieses Modul überhaupt nach dem Unterleib fragt.
  *
- * Endometriose wird im Mittel sieben bis zehn Jahre lang nicht erkannt, und
- * die häufigste Fehldeutung auf diesem Weg heißt „Reizdarm" – dieselben
- * Blähungen, Krämpfe und Stuhlveränderungen, nur mit anderer Ursache. Was die
- * beiden trennt, steht in Daten, die eine Magensprechstunde nicht erhebt.
- *
- * Deshalb wiegt der tiefe Schmerz beim Sex hier doppelt: Er ist das Merkmal
- * mit der größten Aussagekraft und zugleich das, nach dem am seltensten
- * gefragt wird.
+ * Bis eine Endometriose erkannt wird, dauert es oft Jahre (gesund.bund.de/
+ * endometriose, Stand 21.08.2025), und sie kann zusammen mit einem Reizdarm
+ * vorkommen oder für einen gehalten werden (Ballard et al., BJOG 2008, PMID
+ * 18715240, Abstract) – weitere Belege im Kopf von js/unterleib.js. Die
+ * Gewichte der Merkmale (m.gewicht) kommen von dort; sie sind eine Festlegung
+ * dieser App. Bis zur Fassung 30 stand hier, Endometriose werde „im Mittel
+ * sieben bis zehn Jahre lang nicht erkannt", die häufigste Fehldeutung sei
+ * „Reizdarm", und der tiefe Schmerz beim Sex habe „die größte Aussagekraft" –
+ * das trägt keine geprüfte Quelle.
  */
 function musterUnterleib(d) {
   const belege = [];
@@ -429,6 +430,77 @@ function musterUnterleib(d) {
 /**
  * Die Muster mit dem, was dahinterstecken kann – und, das ist die eigentliche
  * Auskunft, womit sich das eine vom anderen unterscheiden lässt.
+ *
+ * Quellen für den Wortlaut der Fassung 30 (dieselben Sätze, die js/luecken.js,
+ * js/mittel.js, js/unterleib.js und unterleibVorschlag in js/app.js schon
+ * berichtigt hatten):
+ *
+ *   Refluxkrankheit  gesund.bund.de, Sodbrennen und Refluxkrankheit (Stand
+ *                    04.04.2025): „Eine Refluxerkrankung lässt sich an den
+ *                    typischen Symptomen erkennen. … Bei einem Verdacht auf
+ *                    Refluxkrankheit sind weitere Untersuchungen möglich. Dazu
+ *                    gehören eine Magenspiegelung und die Messung des pH-Werts
+ *                    in der unteren Speiseröhre." Bis zur Fassung 30: „oft wird
+ *                    zuerst probeweise ein Säureblocker gegeben" – die
+ *                    Reihenfolge nennt keine geprüfte Quelle.
+ *   Helicobacter     gesund.bund.de/gastritis (Stand 13.11.2025): Gewebeproben,
+ *                    Atemtest, „Blut- oder Stuhluntersuchung";
+ *                    gesund.bund.de/reizmagen-funktionelle-dyspepsie (Stand
+ *                    05.02.2026): „kann gut mit Antibiotika behandelt werden";
+ *                    gesund.bund.de/magengeschwuer (Stand 07.01.2022): „frühestens
+ *                    nach 4 Wochen kontrolliert, ob die Therapie erfolgreich war
+ *                    … Sind sie noch nachweisbar, kann die Behandlung …
+ *                    wiederholt werden". Bis zur Fassung 30: „Behandelbar, und
+ *                    dann ist es weg."
+ *   Funkt. Dyspepsie gesund.bund.de/reizmagen-funktionelle-dyspepsie: „Von einem
+ *                    Reizmagen wird deshalb erst gesprochen, wenn andere
+ *                    Ursachen für die Beschwerden abgeklärt und ausgeschlossen
+ *                    wurden"; „eine der häufigsten Erkrankungen des
+ *                    Magen-Darm-Trakts"; „verschiedene Behandlungsmöglichkeiten".
+ *                    Bis zur Fassung 30: „Die Diagnose, die bleibt, wenn die
+ *                    Spiegelung nichts zeigt" – die Spiegelung als Maßstab nennt
+ *                    die Seite nicht.
+ *   Zöliakie         EMA/CHMP/639441/2013 corr. 2 (9. Oktober 2017), S. 4:
+ *                    „Diagnosis is by blood tests to check for relevant
+ *                    antibodies, followed by endoscopy/gastroscopy and biopsy.
+ *                    … However all tests lose their usefulness if the person has
+ *                    already been eating a gluten-free diet for 6–12 months."
+ *                    Bis zur Fassung 30: „sonst ist er falsch negativ" – so
+ *                    zwingend sagt es die Quelle nicht.
+ *   NSAR             gesund.bund.de/gastritis: „Zu den häufigsten Gründen zählen
+ *                    eine Infektion mit Helicobacter-Pylori-Bakterien oder die
+ *                    häufige Einnahme" von NSAR; „Zur weiteren Abklärung kann
+ *                    danach eine Magenspiegelung sinnvoll sein"; bei erhöhtem
+ *                    Risiko für ein Geschwür „vorbeugend zusätzlich ein
+ *                    säurehemmendes Medikament … Die Ärztin oder der Arzt berät
+ *                    hierzu." Bis zur Fassung 30: „die häufigste vermeidbare
+ *                    Ursache" (eine Rangfolge, die dort nicht steht) und
+ *                    „Auslassversuch unter ärztlicher Begleitung".
+ *   Zyklus           gesund.bund.de/regelschmerzen (Stand 27.08.2024):
+ *                    „Regelschmerzen sind weit verbreitet." – „Einige Frauen
+ *                    leiden zusätzlich zu Krämpfen an Übelkeit, Erbrechen oder
+ *                    Durchfall." – „Bei sehr starken oder sich verschlimmernden
+ *                    Schmerzen ist eine ärztliche Untersuchung sinnvoll." Bis zur
+ *                    Fassung 30: „Häufig und für sich genommen harmlos – die
+ *                    Hormonschwankung wirkt auf den Darm"; die Entwarnung
+ *                    widerspricht dem Rat zur Abklärung starker Schmerzen.
+ *   Endometriose     gesund.bund.de/endometriose (Stand 21.08.2025): „Oft dauert
+ *                    es Jahre bis zur Diagnose"; nach dem Gespräch „eine
+ *                    allgemeine körperliche sowie gynäkologische Untersuchung.
+ *                    Weitere Untersuchungen können sich je nach Beschwerden
+ *                    anschließen, bis hin zu einer Spiegelung der Bauchhöhle
+ *                    (Laparoskopie)". Bis zur Fassung 30: „Wird im Mittel sieben
+ *                    bis zehn Jahre lang für einen Reizdarm gehalten" und
+ *                    „Tastuntersuchung, Ultraschall" – beides steht so in keiner
+ *                    geprüften Quelle.
+ *   Anspannung       gesund.bund.de/stress (Stand 14.01.2026): bei einer akuten
+ *                    Stressreaktion werden Vorgänge zurückgefahren, „unter
+ *                    anderem die Magen-, Darm- und Blasentätigkeit"; bei
+ *                    anhaltendem Stress können „Reizdarm- oder
+ *                    Reizmagen-Symptome" entstehen. Bis zur Fassung 30:
+ *                    „Entspannungsverfahren sind hier eine Behandlung, keine
+ *                    Beschäftigung" – eine Wirkaussage ohne Quelle, die der
+ *                    Reiter „Ruhe" schon gestrichen hatte.
  */
 const MUSTER = [
   {
@@ -438,9 +510,9 @@ const MUSTER = [
       + 'oder im Liegen.',
     pruefe: musterSaeure,
     ursachen: [
-      { name: 'Refluxkrankheit', klaerung: 'Spiegelung der Speiseröhre; oft wird zuerst probeweise ein Säureblocker gegeben und geschaut, ob es besser wird.' },
+      { name: 'Refluxkrankheit', klaerung: 'Laut gesund.bund.de an den typischen Beschwerden zu erkennen; bei Verdacht sind weitere Untersuchungen möglich, etwa eine Magenspiegelung und die Messung des Säurewerts in der unteren Speiseröhre.' },
       { name: 'Gastritis', klaerung: 'Magenspiegelung mit Gewebeprobe – nur die zeigt, ob und welche Entzündung da ist.' },
-      { name: 'Helicobacter pylori', klaerung: 'Atemtest, Stuhltest oder Probe bei der Spiegelung. Behandelbar, und dann ist es weg.' },
+      { name: 'Helicobacter pylori', klaerung: 'Atemtest, Stuhltest oder Probe bei der Spiegelung. Laut gesund.bund.de gut mit Antibiotika behandelbar; ob der Keim danach weg ist, wird nachgeprüft.' },
     ],
     fragen: [
       'Wäre ein Test auf Helicobacter pylori sinnvoll?',
@@ -470,7 +542,7 @@ const MUSTER = [
       + 'nach einer Mahlzeit.',
     pruefe: musterFuelle,
     ursachen: [
-      { name: 'Funktionelle Dyspepsie', klaerung: 'Die Diagnose, die bleibt, wenn die Spiegelung nichts zeigt – häufig und behandelbar, nur anders.' },
+      { name: 'Funktionelle Dyspepsie', klaerung: 'Auch Reizmagen genannt. Davon wird laut gesund.bund.de erst gesprochen, wenn andere Ursachen der Beschwerden abgeklärt und ausgeschlossen sind; dort zählt sie zu den häufigsten Erkrankungen des Magen-Darm-Trakts, mit verschiedenen Behandlungsmöglichkeiten.' },
       { name: 'Verzögerte Magenentleerung', klaerung: 'Szintigrafie oder Atemtest; kommt unter anderem bei langjährigem Diabetes vor.' },
       { name: 'Gastritis', klaerung: 'Magenspiegelung mit Gewebeprobe.' },
     ],
@@ -488,7 +560,7 @@ const MUSTER = [
     ursachen: [
       { name: 'Reizdarmsyndrom', klaerung: 'Diagnose nach Ausschluss; die Auslöserliste aus diesem Tagebuch ist dafür brauchbares Material.' },
       { name: 'Laktose- oder Fruktoseunverträglichkeit', klaerung: 'H2-Atemtest, dauert einen Vormittag.' },
-      { name: 'Zöliakie', klaerung: 'Bluttest auf Antikörper – wichtig: solange noch Gluten gegessen wird, sonst ist er falsch negativ.' },
+      { name: 'Zöliakie', klaerung: 'Bluttest auf Antikörper, danach Spiegelung mit Gewebeprobe. Laut EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon 6 bis 12 Monate glutenfrei gegessen wurde.' },
     ],
     fragen: [
       'Wäre ein Atemtest auf Laktose oder Fruktose sinnvoll?',
@@ -498,11 +570,12 @@ const MUSTER = [
   {
     id: 'nsar',
     name: 'Zusammenhang mit Schmerzmitteln',
-    satz: 'Im Tagebuch stehen entzündungshemmende Schmerzmittel – die häufigste '
-      + 'vermeidbare Ursache einer gereizten Magenschleimhaut.',
+    satz: 'Im Tagebuch stehen entzündungshemmende Schmerzmittel. Häufig genommen, gehören '
+      + 'sie laut gesund.bund.de neben Helicobacter zu den häufigsten Gründen für eine '
+      + 'entzündete Magenschleimhaut.',
     pruefe: musterNsar,
     ursachen: [
-      { name: 'NSAR-bedingte Magenschleimhautschädigung', klaerung: 'Auslassversuch unter ärztlicher Begleitung; bei anhaltenden Beschwerden Spiegelung.' },
+      { name: 'NSAR-bedingte Magenschleimhautschädigung', klaerung: 'Ob eine Magenspiegelung zur Abklärung sinnvoll ist und ob ein anderes Mittel oder ein Magenschutz infrage kommt, klärt die Praxis.' },
     ],
     fragen: [
       'Ich nehme regelmäßig ein entzündungshemmendes Schmerzmittel – gibt es dafür eine magenfreundlichere Alternative?',
@@ -515,7 +588,7 @@ const MUSTER = [
     satz: 'Die Beschwerden schwanken deutlich mit dem Zyklus.',
     pruefe: musterZyklus,
     ursachen: [
-      { name: 'Zyklusabhängige Verdauungsbeschwerden', klaerung: 'Häufig und für sich genommen harmlos – die Hormonschwankung wirkt auf den Darm.' },
+      { name: 'Zyklusabhängige Verdauungsbeschwerden', klaerung: 'Beschwerden während der Regel sind laut gesund.bund.de weit verbreitet, bei manchen auch mit Übelkeit, Erbrechen oder Durchfall. Bei sehr starken oder sich verschlimmernden Schmerzen ist eine ärztliche Untersuchung sinnvoll.' },
       { name: 'Endometriose', klaerung: 'Kommt in Frage, wenn dazu starke Regelschmerzen, Schmerzen beim Sex oder zyklische Darmbeschwerden gehören. Wird oft jahrelang übersehen; abgeklärt wird sie gynäkologisch.' },
     ],
     fragen: [
@@ -530,7 +603,7 @@ const MUSTER = [
       + 'das ist ein anderes Bild als ein reiner Reizdarm.',
     pruefe: musterUnterleib,
     ursachen: [
-      { name: 'Endometriose', klaerung: 'Gynäkologisch abzuklären: Tastuntersuchung, Ultraschall, bei Verdacht Bauchspiegelung. Wird im Mittel sieben bis zehn Jahre lang für einen Reizdarm gehalten – genau deshalb steht sie hier.' },
+      { name: 'Endometriose', klaerung: 'Abgeklärt wird sie gynäkologisch: laut gesund.bund.de mit Gespräch und Untersuchung, je nach Beschwerden auch mit weiteren Untersuchungen bis hin zu einer Bauchspiegelung. Bis zur Diagnose dauert es oft Jahre.' },
       { name: 'Adenomyose', klaerung: 'Endometriose in der Gebärmutterwand. Ultraschall, oft zusätzlich MRT.' },
       { name: 'Beckenbodenstörung', klaerung: 'Kommt eher bei Schmerz am Eingang und bei Verstopfung in Frage; wird über eine Untersuchung des Beckenbodens beurteilt und ist gut behandelbar.' },
       { name: 'Reizdarm und Regelschmerz nebeneinander', klaerung: 'Möglich und häufig – zwei Dinge gleichzeitig, ohne gemeinsame Ursache. Das lässt sich nur klären, indem man beides ansieht.' },
@@ -547,7 +620,7 @@ const MUSTER = [
       + 'schlechter.',
     pruefe: musterStress,
     ursachen: [
-      { name: 'Stressassoziierte Beschwerden', klaerung: 'Kein Ausschlussurteil und keine Einbildung: Darm und Nervensystem hängen zusammen. Entspannungsverfahren sind hier eine Behandlung, keine Beschäftigung.' },
+      { name: 'Stressassoziierte Beschwerden', klaerung: 'Bei akutem Stress fährt der Körper laut gesund.bund.de unter anderem die Magen- und Darmtätigkeit zurück, und bei anhaltendem Stress können Reizdarm- oder Reizmagen-Beschwerden entstehen. Was an Unterstützung infrage kommt, lässt sich in der Praxis besprechen.' },
     ],
     fragen: [
       'Meine Beschwerden hängen deutlich an Anspannung – was ist da an Unterstützung möglich?',

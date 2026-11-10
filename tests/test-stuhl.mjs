@@ -60,7 +60,10 @@ check(
   const warnbogen = ((await page.locator('details.warnbogen').textContent()) || '').replace(/\s+/g, ' ');
   check(warnbogen.includes('Bei schwarzem, klebrigem Stuhl nicht auf einen Termin warten – Notaufnahme oder 112.')
     && warnbogen.includes('Frisches Blut im Stuhl gehört zeitnah ärztlich abgeklärt.')
-    && warnbogen.includes('mit dem Hinweis, wie eilig es ist') && !warnbogen.includes('abgeklärt gehören'),
+    && warnbogen.includes('mit dem Hinweis, wie eilig es ist') && !warnbogen.includes('abgeklärt gehören')
+    // Seit der Fassung 30 ohne „Deshalb stehen beide hier und nicht im
+    // Beschwerdebogen“: Der Beschwerdebogen bietet beide ebenfalls an.
+    && !warnbogen.includes('nicht im Beschwerdebogen'),
   `im Stuhlbogen: schwarzer Stuhl mit „Notaufnahme oder 112“, frisches Blut „zeitnah“ (${warnbogen.slice(0, 80)})`);
 }
 

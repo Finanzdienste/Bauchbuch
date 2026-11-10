@@ -116,8 +116,9 @@ check(
   'mit den Möglichkeiten einzeln, nicht als Absatz',
 );
 check(
-  vText.includes('Helicobacter pylori') && vText.includes('Atemtest'),
-  'Helicobacter mit dem Test dazu – die einzige Möglichkeit hier, die sich behandeln und abhaken lässt',
+  vText.includes('Helicobacter pylori') && vText.includes('Atemtest')
+    && vText.includes('ob der Keim danach weg ist, wird nachgeprüft') && !vText.includes('abhaken'),
+  'Helicobacter mit dem Test dazu – behandelbar, aber ohne Erfolgsversprechen',
 );
 check(
   vText.includes('Zöliakie') && vText.includes('wenn schon 6 bis 12 Monate glutenfrei gegessen wurde')
@@ -229,13 +230,80 @@ check(
   const weg = ['gilt Reflux als wahrscheinlich', 'Schwelle von 8', 'Kriterien sind erfüllt', 'verlangt sind 3',
     'nichts Organisches', 'Wäre Säure die Ursache', 'vier bis acht Wochen', 'Das entscheidet die Spiegelung',
     'Rom-Kriterien verlangen', 'der einzige Weg', 'absetzen', 'falsch negativ', 'erst testen, dann weglassen',
-    'fast so viel wie'];
+    'fast so viel wie',
+    // Fassung 30, zweite Runde: die Reizdarm-Zeile, die Schmerzmittel und
+    // Helicobacter (Belege jeweils am Verdacht in js/luecken.js).
+    'Reizdarmsyndrom sind erfüllt', 'eigene Diagnose mit eigener Behandlung', 'wird oft vergessen',
+    'macht das Labor', 'häufigste vermeidbare', 'greifen die Magenschleimhaut direkt an',
+    'in zwei Wochen behandeln', 'abhaken', 'Ab dreißig rechnet Body Check die Kästen'];
   const noch = weg.filter((w) => alles.includes(w));
   check(noch.length === 0, `keine der gestrichenen Aussagen mehr (${noch.join(', ') || 'keine'})`);
   // Einfache Sternchen setzt die Anzeige nicht um – sie stünden wörtlich da.
   const sterne = l.verdaechte.flatMap((v) => [v.was, v.offen, v.frage, ...v.dafuer, ...v.dagegen,
     v.untersuchung.replace(/\*\*(.+?)\*\*/g, '$1')]).filter((x) => /\*/.test(x || ''));
   check(sterne.length === 0, `kein Sternchen, das wörtlich auf dem Bildschirm stünde (${sterne.length})`);
+
+  /*
+   * Die Frage zum Vorlesen sagt „erfüllt" nur, wenn der Reizdarm-Kasten unter
+   * „Kriterien" es auch sagt. Bis zur Fassung 30 stand es fest in der Frage,
+   * auch neben „spricht eher dagegen".
+   */
+  const rd = l.verdaechte.find((v) => v.id === 'reizdarm');
+  check(rd.stand === 'unwahrscheinlich' && !/erfüllt/.test(rd.frage) && rd.frage.includes('Zöliakie'),
+    `Reizdarm „spricht eher dagegen“: die Frage behauptet keine erfüllten Kriterien (${rd.frage})`);
+  const lErfuellt = luecken({
+    ...d,
+    kriterien: {
+      ...d.kriterien,
+      reizdarm: {
+        pruefbar: true, schmerzErfuellt: true, schmerzTage: 30, proWoche: 3.5,
+        merkmale: [], typ: { typ: null, fehlt: 5 }, erfuellt: true,
+      },
+    },
+  });
+  const rdJa = lErfuellt.verdaechte.find((v) => v.id === 'reizdarm');
+  check(rdJa.stand === 'gestuetzt' && rdJa.frage.includes('Rom-IV-Kriterien für ein Reizdarmsyndrom erfüllt'),
+    `Reizdarm erfüllt: dann und nur dann sagt die Frage es (${rdJa.frage})`);
+
+  /*
+   * Mit Gastritis Typ C und einem Schmerzmittel: was feststeht und was nicht –
+   * ohne „Sicher ist nur …", das stärker war als jede Quelle.
+   */
+  const lTypC = luecken({ ...d, befundIds: ['gastritis-c'], nsarTage: 2 });
+  const nsarC = lTypC.verdaechte.find((v) => v.id === 'nsar');
+  const satzC = nsarC.dafuer.find((x) => x.includes('Typ C')) || '';
+  check(satzC.includes('ob sie es bei dir sind, steht in deinem Befund')
+    && satzC.includes('besonders sorgfältige ärztliche Überwachung') && satzC.includes('Praxis oder Apotheke')
+    && !satzC.includes('Sicher ist nur'),
+  `Typ C mit Schmerzmittel: belegter Wortlaut statt „Sicher ist nur …“ (${satzC.slice(0, 80)}…)`);
+}
+
+/*
+ * „Was noch fehlt" beschreibt die Kästen so, wie sie rechnen: Reizdarm und
+ * Magenbeschwerden ab dreißig notierten Tagen, der Punktwert zu Reflux aus der
+ * letzten Woche (js/kriterien.js).
+ */
+{
+  const { tagebuchLuecken } = await import('../js/luecken.js');
+  const t = tagebuchLuecken({
+    kriterien: {
+      dauer: { seit: '2024-01' },
+      zeitraum: { notierteTage: 20, tagebuchTage: 20 },
+      gerdq: { belastbar: true, punkte: 9, erfasst: 7 },
+    },
+    stuhl: { gesamt: 0 },
+    bezug: { genug: true },
+    benutzt: { oberbauch: true, saettigung: true },
+    nachtwachAn: true,
+    mahlzeitenOhneZutaten: 0,
+  });
+  const tage = t.find((x) => x.id === 'tage');
+  const stuhl = t.find((x) => x.id === 'stuhl');
+  check(tage && tage.text.includes('Ab dreißig rechnet Body Check den Reizdarm-Kasten und die Magenbeschwerden')
+    && tage.text.includes('der Punktwert zu Reflux braucht nur die letzte Woche'),
+  `unter dreißig Tagen: welche Kästen auf die dreißig warten und welcher nicht (${tage && tage.text.slice(0, 60)}…)`);
+  check(stuhl && !stuhl.text.includes('nichts zählen') && stuhl.text.includes('die Angaben zu Häufigkeit und Form'),
+    'ohne Stuhlgang: dem Reizdarm-Kasten fehlen die Angaben, gezählt wird trotzdem');
 }
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);

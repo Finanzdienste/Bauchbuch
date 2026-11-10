@@ -29,6 +29,22 @@ await page.goto(URL, { waitUntil: 'networkidle' });
 await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'ruhe' })), KEY);
 await page.reload({ waitUntil: 'networkidle' });
 
+/*
+ * Fassung 30: Der Kopfsatz sagt „nicht hinreichend untersucht" nur dort, wo
+ * gesund.bund.de es sagt – bei Schlafproblemen –, nicht über Atemübungen
+ * überhaupt (Belege über dem Kopfsatz in js/app.js).
+ */
+{
+  await page.waitForSelector('#view .atem');
+  const kopf = (await page.locator('#view').innerText()).replace(/\s+/g, ' ');
+  check(kopf.includes('Bei Schlafproblemen zählt die Seite Atemübungen zu den Methoden, deren Wirksamkeit '
+    + 'nicht hinreichend untersucht ist') && !kopf.includes('wie gut Atemübungen wirken, ist dort'),
+  'der Kopfsatz zu „Ruhe“ beschränkt „nicht hinreichend untersucht“ auf Schlafprobleme, wie die Quelle');
+  const gleichmass = await page.evaluate(() => import('./js/atem.js').then((m) => m.uebungVon('kohaerenz')));
+  check(/ohne Halten/i.test(gleichmass.zweck) && !/ohne Halten/i.test(gleichmass.beschreibung),
+    'Gleichmaß: „Ohne Halten“ steht einmal, nicht im Zweck und gleich darunter noch einmal');
+}
+
 /* ---------- Der Ablauf, ohne ihn abzuwarten ---------- */
 
 const ablauf = (id, runden) => page.evaluate(

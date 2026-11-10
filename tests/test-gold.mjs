@@ -81,8 +81,9 @@ for (const saat of GOLD_SAATEN) {
  * Die Fassung 30 hat die medizinischen Sätze der App gegen
  * Fachinformationen, Gebrauchsinformationen und weitere Quellen im Volltext
  * geprüft und berichtigt. Einige dieser Sätze stecken in Rechnungen, die das
- * Gold festhält: in den Vorschlägen für heute (raete), bei den Zeitabständen
- * nach dem Essen (zeitProfil, zeitBild, spaeteFunde) und im Bericht. Keine
+ * Gold festhält: in den Vorschlägen für heute (raete), in der Einordnung
+ * (bildLesen), bei den Zeitabständen nach dem Essen (zeitProfil, zeitBild,
+ * spaeteFunde) und im Bericht. Keine
  * Zahl, keine Schwelle und kein Urteil hat sich dabei geändert – genau das
  * prüft dieser Test weiter.
  *
@@ -120,12 +121,14 @@ const TEXTE = [
   // beschreiben.
   {
     wo: ['raete'],
-    neu: 'Nicht für immer streichen – an Tagen wie diesem einmal weglassen und im Tagebuch schauen, ob es einen '
-      + 'Unterschied macht. Ob ein Lebensmittel wirklich der Auslöser ist, lässt sich so allein nicht sicher sagen; '
-      + 'das kann die Praxis abklären.',
+    neu: 'Danach lag dein Bauchwert im Mittel höher als ohne. Ob ein Lebensmittel wirklich der Auslöser ist, lässt '
+      + 'sich aus dem Tagebuch allein nicht sicher sagen; ob ein Auslassversuch für dich sinnvoll ist, lässt sich in '
+      + 'der Praxis besprechen.',
     alt: 'Nicht für immer streichen – nur an Tagen wie diesem einmal weglassen und schauen, ob es einen Unterschied '
       + 'macht. Ein Auslöser, der sich in zwei Wochen ohne ihn nicht bestätigt, war keiner.',
   },
+  // Der Titel derselben Karte: ohne Rat zum Weglassen; die Namen danach je Tagebuch.
+  { wo: ['raete'], teil: true, neu: 'Auffällig in deinem Verlauf: ', alt: 'Heute eher ohne ' },
   { wo: ['raete'], neu: 'Schonkost an Tagen mit starken Beschwerden', alt: 'Heute klein und mild' },
   {
     wo: ['raete'],
@@ -175,6 +178,30 @@ const TEXTE = [
       + 'vermehrt Beschwerden auftreten.',
     alt: 'Beschwerdefrei und ausgeruht: Wenn du intensiv trainieren willst, ist heute der Tag dafür. Danach '
       + 'mindestens eine Stunde, bevor du dich hinlegst.',
+  },
+  // Einordnung (js/bild.js): die Muster mit dem Wortlaut der Quellen – ohne
+  // Rangfolge „häufigste vermeidbare", ohne Auslassversuch als Klärung, ohne
+  // „Entspannungsverfahren sind hier eine Behandlung".
+  {
+    wo: ['bildLesen'],
+    neu: 'Im Tagebuch stehen entzündungshemmende Schmerzmittel. Häufig genommen, gehören sie laut gesund.bund.de '
+      + 'neben Helicobacter zu den häufigsten Gründen für eine entzündete Magenschleimhaut.',
+    alt: 'Im Tagebuch stehen entzündungshemmende Schmerzmittel – die häufigste vermeidbare Ursache einer gereizten '
+      + 'Magenschleimhaut.',
+  },
+  {
+    wo: ['bildLesen'],
+    neu: 'Ob eine Magenspiegelung zur Abklärung sinnvoll ist und ob ein anderes Mittel oder ein Magenschutz infrage '
+      + 'kommt, klärt die Praxis.',
+    alt: 'Auslassversuch unter ärztlicher Begleitung; bei anhaltenden Beschwerden Spiegelung.',
+  },
+  {
+    wo: ['bildLesen'],
+    neu: 'Bei akutem Stress fährt der Körper laut gesund.bund.de unter anderem die Magen- und Darmtätigkeit zurück, '
+      + 'und bei anhaltendem Stress können Reizdarm- oder Reizmagen-Beschwerden entstehen. Was an Unterstützung '
+      + 'infrage kommt, lässt sich in der Praxis besprechen.',
+    alt: 'Kein Ausschlussurteil und keine Einbildung: Darm und Nervensystem hängen zusammen. Entspannungsverfahren '
+      + 'sind hier eine Behandlung, keine Beschäftigung.',
   },
   // Zeitabstand (js/zeitprofil.js): nur noch die Stunden, ohne Ort und ohne
   // Deutung; der Fenstername behält dabei sein großes „Stunden".
@@ -444,7 +471,7 @@ function zurueck(jetzt) {
   // Über JSON, wie der Vergleich unten: NaN und undefined wie dort.
   const roh = JSON.parse(JSON.stringify(jetzt));
   const raus = { ...roh };
-  ['raete', ...MIT_ORT].forEach((k) => { raus[k] = texteZurueck(roh[k], k); });
+  ['raete', 'bildLesen', ...MIT_ORT].forEach((k) => { raus[k] = texteZurueck(roh[k], k); });
   raus.arztBericht = roh.arztBericht.map(berichtZurueck);
   return raus;
 }
