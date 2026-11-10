@@ -109,6 +109,19 @@ export const BEFUNDE = [
       + 'Befund – und die Medikamentenspalte dieser App ist dann die '
       + 'interessanteste Spalte, die sie hat.',
   },
+  /*
+   * Quelle (Fassung 30): medikamio.com, Krankheiten, „Chronische Gastritis"
+   * (veröffentlicht 18.07.2024), „Ursachen – Typ A": Belegzellen sind „für
+   * die Produktion von Salzsäure … und den Intrinsic-Faktor (Protein für die
+   * Aufnahme von Vitamin B12 im Dünndarm) verantwortlich"; „Symptome – Typ A":
+   * „Durch die geschädigten Belegzellen im Magen wird der Intrinsic-Faktor
+   * vermindert produziert. Dieser ist für die Aufnahme von Vitamin B12
+   * essenziell. Die Gastritis führt so zu einem Vitamin B12-Mangel der sich in
+   * einer perniziösen Anämie (Blutarmut) äußern kann." Bis zur Fassung 30:
+   * „Vitamin B12 wird im Magen aufgenommen" – aufgenommen wird es im
+   * Dünndarm – und „Hier gehört regelmäßig das Blutbild dazu", ein Rat zur
+   * Kontrolle, den keine geprüfte Quelle so gibt.
+   */
   {
     id: 'gastritis-a',
     name: 'Gastritis Typ A',
@@ -116,8 +129,10 @@ export const BEFUNDE = [
       + 'eigenen Magen richtet.',
     organisch: true,
     klaert: [],
-    bedeutet: 'Hier gehört regelmäßig das Blutbild dazu – Vitamin B12 wird im '
-      + 'Magen aufgenommen, und das geht dabei verloren.',
+    bedeutet: 'Bei dieser Form bildet der Magen weniger von einem Eiweiß, das der '
+      + 'Körper braucht, um Vitamin B12 im Dünndarm aufzunehmen (Intrinsic-Faktor). '
+      + 'Das kann zu einem Vitamin-B12-Mangel und zu Blutarmut führen. Ob und wie oft '
+      + 'Blutwerte kontrolliert werden, klärt die Praxis.',
   },
   /*
    * Quellen (Fassung 30): gesund.bund.de/reizmagen-funktionelle-dyspepsie
@@ -138,7 +153,7 @@ export const BEFUNDE = [
     klaert: ['hpylori'],
     bedeutet: 'Hier richtet sich die Behandlung gegen die Ursache: Eine Infektion mit '
       + 'Helicobacter kann laut gesund.bund.de gut mit Antibiotika behandelt werden. '
-      + 'Ob der Keim danach weg ist, wird hinterher nachgeprüft.',
+      + 'Ob der Keim danach weg ist, wird nachgeprüft.',
   },
   {
     id: 'refluxkrankheit',

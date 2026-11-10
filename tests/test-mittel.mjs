@@ -212,6 +212,13 @@ const ohneDauer = ['kombi', 'triptan', 'opioid']
   .filter((id) => !/mehr als drei Monate an zehn oder mehr Tagen im Monat/.test(gruppe(id).hinweis));
 check(ohneDauer.length === 0,
   `Kombinationsmittel, Triptan und Opioid nennen die Dauer von mehr als drei Monaten${ohneDauer.length ? ` – nicht: ${ohneDauer.join(', ')}` : ''}`);
+// Auch der Kurztext des Opioids, der im Eingabebogen allein steht: mit Dauer
+// und Vergleich, nicht „die niedrigere Grenze von zehn Tagen im Monat“.
+check(gruppe('opioid').kurz.includes('zehn oder mehr Tage im Monat über mehr als drei Monate')
+  && gruppe('opioid').kurz.includes('wie bei Triptanen') && !gruppe('opioid').kurz.includes('Grenze'),
+`Opioid-Kurztext mit der Dauer von mehr als drei Monaten (${gruppe('opioid').kurz})`);
+// NSAR überall „Häufig genommen“, wie die Quelle („die häufige Einnahme“).
+check(gruppe('nsar').kurz.startsWith('Häufig genommen,'), `NSAR-Kurztext: „Häufig genommen“ (${gruppe('nsar').kurz.slice(0, 30)}…)`);
 
 // Wo Präparate sich unterscheiden, steht das Präparat dabei.
 check(/Iberogast Classic/.test(gruppe('pflanzlich').hinweis) && /Advance enthält kein Schöllkraut/.test(gruppe('pflanzlich').hinweis),

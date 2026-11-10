@@ -161,6 +161,14 @@ export const PRUEFBAR = [
    * in der Leber ein giftiges Abbauprodukt an. Bis zur Fassung 29: „Der
    * häufigste und der am meisten übersehene“ und „Apfelsaft ist die
    * unbarmherzigste Form“ – das sagt keine erreichbare Quelle.
+   *
+   * Der Ausschluss so deutlich wie NICHT_BEI_ALLERGIE unten. Dieselbe Quelle,
+   * Tabelle zum Einnahmeweg „Oral“ (S. 5): „a rare genetic disorder in which a
+   * person cannot break down fructose“, und in der Spalte Comments: „Patients
+   * with hereditary fructose intolerance (HFI) should not take/be given this
+   * medicinal product.“ Bis zur Fassung 30: „Nicht gedacht bei …“ – schwächer
+   * als die Quelle, und „das ist eine andere Erkrankung“ ließ sich so lesen, als
+   * erkenne der Test sie bloß nicht.
    */
   {
     id: 'fruktose',
@@ -169,8 +177,8 @@ export const PRUEFBAR = [
     warum: 'Der Dünndarm nimmt Fruchtzucker nur bis zu einer gewissen Menge auf; wie '
       + 'viel, hängt davon ab, wie viel auf einmal kommt und ob gleichzeitig Traubenzucker '
       + 'dabei ist. Was nicht aufgenommen wird, kann Durchfall und andere '
-      + 'Magen-Darm-Beschwerden auslösen. Nicht gedacht bei der seltenen erblichen '
-      + 'Fruktoseintoleranz – das ist eine andere Erkrankung.',
+      + 'Magen-Darm-Beschwerden auslösen. Nicht anwenden bei der seltenen erblichen '
+      + 'Fruktoseintoleranz: Bei ihr kann der Körper Fruchtzucker nicht abbauen.',
   },
   /*
    * Quellen: EMA/CHMP/460886/2014 (siehe oben), 3.1: „Sorbitol is incompletely
@@ -193,7 +201,8 @@ export const PRUEFBAR = [
       + 'manchen Früchten vor, in Trockenpflaumen oft reichlich. Der Darm nimmt es nur '
       + 'begrenzt auf; größere Mengen können Bauchbeschwerden machen und leicht '
       + 'abführend wirken. Zusammen mit Fruchtzucker konkurriert es womöglich um die '
-      + 'Aufnahme. Nicht gedacht bei der seltenen erblichen Fruktoseintoleranz.',
+      + 'Aufnahme. Sorbit ist eine Quelle von Fruchtzucker – nicht anwenden bei der '
+      + 'seltenen erblichen Fruktoseintoleranz.',
   },
   /*
    * Quellen: Nehlig, Effects of Coffee on the Gastro-Intestinal Tract,

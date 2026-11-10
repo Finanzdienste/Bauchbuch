@@ -74,6 +74,18 @@ check(ersterA.includes('passt am ehesten'), 'das Erste ist als solches ausgezeic
 check(/\d+ von \d+/.test(ersterA), 'die Belege nennen Zahlen, nicht Eindrücke');
 check(ersterA.includes('Magenspiegelung'), 'die klärende Untersuchung steht dabei');
 check(ersterA.includes('Zwölffingerdarm'), 'und die Ursache, die dazu klassisch passt');
+/*
+ * Fassung 30, dritte Runde: keine „Übersäuerung ohne Geschwür“ als Restbefund
+ * nach unauffälliger Spiegelung, keine Rangfolge ohne Quelle, und die Frage
+ * sagt nur, was das Muster zählt – nicht „bessert sich nach dem Essen“.
+ * Belege über MUSTER in js/bild.js.
+ */
+const ganzA = (await page.locator('#view').textContent()).replace(/\s+/g, ' ');
+check(!ganzA.includes('Übersäuerung') && !ganzA.includes('Bleibt übrig, wenn die Spiegelung')
+  && !ganzA.includes('das klassische Muster') && !ganzA.includes('bessert sich nach dem Essen')
+  && ganzA.includes('eher bei leerem Magen und bessern sich nach dem Essen oft')
+  && ganzA.includes('kommt oft nüchtern, mit Abstand zum Essen'),
+'Nüchternschmerz: ohne Restbefund „Übersäuerung“, mit dem Wortlaut von gesund.bund.de');
 
 /** Dieselbe Menge, aber Beschwerden eine Stunde nach dem Essen. */
 const nachEssen = [];

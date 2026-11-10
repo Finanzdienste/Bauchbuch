@@ -127,7 +127,8 @@ export function tagebuchLuecken(d) {
   if (!d.nachtwachAn) {
     nimm('nachtwach', 4, 'Die Frage „Nachts davon wach" anschalten',
       'Sie steht unter „Mehr“ bei den Tagesfragen. Der Punktwert angelehnt an '
-      + 'den GerdQ zählt sie als eigenen Posten; ausgeschaltet zählt er dort immer null.');
+      + 'den GerdQ zählt sie als eigenen Posten. Ist die Frage ausgeschaltet, zählt '
+      + 'dieser Posten immer null.');
   }
 
   // Wortlaut wie versuchTeil in js/app.js (Belege dort): Bis zur Fassung 29
@@ -199,7 +200,15 @@ const VERDAECHTE = [
     pruefe: (d) => {
       const dafuer = [];
       const m = d.musterIds;
-      if (m.includes('nuechtern')) dafuer.push('Der Nüchternschmerz ist das klassische Muster dafür.');
+      // gesund.bund.de/zwoelffingerdarmgeschwuer (Stand 27.01.2022): Beschwerden
+      // „eher bei leerem Magen"; das Geschwür ist „meist die Folge einer
+      // Infektion mit dem Bakterium Helicobacter pylori". Bis zur Fassung 30:
+      // „Der Nüchternschmerz ist das klassische Muster dafür" – ohne Quelle.
+      if (m.includes('nuechtern')) {
+        dafuer.push('Beschwerden bei leerem Magen passen laut gesund.bund.de zu einem '
+          + 'Zwölffingerdarmgeschwür, und das ist meist die Folge einer Infektion mit '
+          + 'diesem Bakterium.');
+      }
       if (m.includes('saeure')) dafuer.push('Das säuretypische Bild passt dazu.');
       return {
         stand: 'offen',
@@ -211,18 +220,47 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quellen (Fassung 30): gesund.bund.de/magengeschwuer (mit IQWiG, Stand
+   * 07.01.2022): „eine tiefe Wunde in der Magenwand"; „Welche Symptome deuten
+   * auf ein Magengeschwür hin?": „Schmerzen im Oberbauch, oft unabhängig von
+   * Mahlzeiten oder eher nach als vor dem Essen"; „Zur Diagnose reicht meist
+   * eine Magenspiegelung mit Gewebeentnahme."; Komplikationen: schwarz
+   * gefärbten Stuhl, erbrochenes Blut und „Anzeichen einer Blutarmut"
+   * „zeitnah ärztlich abklären zu lassen". gesund.bund.de/
+   * zwoelffingerdarmgeschwuer (mit IQWiG, Stand 27.01.2022): „eine tiefe Wunde
+   * in der Innenwand des Zwölffingerdarms"; „Woran erkennt man …?": „Bei einem
+   * Zwölffingerdarmgeschwür kommt es – anders als beim Magengeschwür – eher
+   * bei leerem Magen zu Beschwerden. Nach dem Essen bessern sie sich oft."
+   *
+   * Bis zur Fassung 30 hieß es hier für beide Geschwüre „Tut typischerweise
+   * nüchtern weh und wird nach dem Essen kurz besser" – die Seiten sagen das
+   * nur für das Zwölffingerdarmgeschwür –, und Beschwerden überwiegend kurz
+   * nach dem Essen standen als „Dagegen spricht". Gerade dieses Muster nennt
+   * gesund.bund.de beim Magengeschwür; ein Schluss aus dem Zeitabstand auf
+   * eine Diagnose ist es ohnehin (siehe Kopf von js/zeitprofil.js). Die
+   * Rechnung (essensbezug in js/auswertung.js) ist unverändert, nur dieser
+   * Satz entfällt. Ebenso „Sie ist auch die einzige, die eine Blutung gleich
+   * mitbehandeln kann" – eine Rangfolge, die keine der Seiten aufstellt. Die
+   * Frage zum Vorlesen behauptet kein Nüchternmuster mehr, wenn das Tagebuch
+   * keines zeigt; mit Muster sagt sie nur, was es zählt (Beschwerden erst
+   * vier Stunden oder länger nach dem Essen), kein „bessert sich danach". Den
+   * schwarzen, klebrigen Stuhl stuft js/bild.js als „sofort" ein; dafür steht
+   * der Satz der Warnkarte.
+   */
   {
     id: 'ulkus',
     name: 'Magen- oder Zwölffingerdarmgeschwür',
-    was: 'Ein Defekt in der Schleimhaut. Tut typischerweise nüchtern weh und wird '
-      + 'nach dem Essen kurz besser.',
-    untersuchung: 'Magenspiegelung. Sie ist auch die einzige, die eine Blutung '
-      + 'gleich mitbehandeln kann.',
-    frage: 'Der Schmerz kommt nüchtern und bessert sich nach dem Essen – ist eine '
-      + 'Magenspiegelung angezeigt?',
+    was: 'Eine tiefe Wunde in der Wand von Magen oder Zwölffingerdarm. Beim '
+      + 'Zwölffingerdarmgeschwür kommen die Beschwerden laut gesund.bund.de eher bei '
+      + 'leerem Magen und bessern sich nach dem Essen oft; beim Magengeschwür sind '
+      + 'Schmerzen im Oberbauch oft unabhängig von den Mahlzeiten oder eher nach als '
+      + 'vor dem Essen.',
+    untersuchung: 'Magenspiegelung mit Gewebeprobe – laut gesund.bund.de reicht sie '
+      + 'zur Diagnose meist.',
+    frage: 'Ist eine Magenspiegelung angezeigt?',
     pruefe: (d) => {
       const dafuer = [];
-      const dagegen = [];
       if (d.musterIds.includes('nuechtern')) {
         dafuer.push(`${d.essen.nuechtern} von ${d.essen.bewertbar} zuordenbaren `
           + 'Beschwerden kamen erst vier Stunden oder länger nach dem Essen.');
@@ -238,23 +276,25 @@ const VERDAECHTE = [
           + '(bei großen Brüchen häufiger), und ein solches Mittel macht das '
           + 'wahrscheinlicher.');
       }
-      if (d.essen.bewertbar >= 8 && d.essen.anteilNachDemEssen >= 0.6) {
-        dagegen.push('Die Beschwerden kommen überwiegend kurz nach dem Essen, '
-          + 'nicht nüchtern.');
-      }
       // Die Frage so, wie sie sich vorlesen lässt: Ohne Nüchternmuster darf
-      // sie keines behaupten.
-      const frage = !d.musterIds.includes('nuechtern') && bruchMitNsar
-        ? 'Ich habe einen Zwerchfellbruch und nehme bei Kopfschmerzen ein '
-          + 'entzündungshemmendes Schmerzmittel – spricht das für eine Magenspiegelung?'
-        : undefined;
+      // sie keines behaupten, und mit ihm nur das, was gezählt ist.
+      let frage;
+      if (d.musterIds.includes('nuechtern')) {
+        frage = 'Der Schmerz kommt oft nüchtern, mit Abstand zum Essen – ist eine '
+          + 'Magenspiegelung angezeigt?';
+      } else if (bruchMitNsar) {
+        frage = 'Ich habe einen Zwerchfellbruch und nehme bei Kopfschmerzen ein '
+          + 'entzündungshemmendes Schmerzmittel – spricht das für eine Magenspiegelung?';
+      }
       return {
         stand: dafuer.length ? 'moeglich' : 'offen',
         ...(frage ? { frage } : {}),
         dafuer,
-        dagegen,
-        offen: 'Ein Geschwür sieht man, man errechnet es nicht. Warnzeichen wie '
-          + 'schwarzer Stuhl oder Blutarmut würden es dringend machen.',
+        dagegen: [],
+        offen: 'Ein Geschwür sieht man, man errechnet es nicht. Bei schwarzem, '
+          + 'klebrigem Stuhl nicht auf einen Termin warten – Notaufnahme oder 112. '
+          + 'Zeichen einer Blutarmut gehören laut gesund.bund.de zeitnah ärztlich '
+          + 'abgeklärt.',
       };
     },
   },
@@ -459,7 +499,18 @@ const VERDAECHTE = [
     name: 'Laktose- oder Fruktoseunverträglichkeit',
     was: 'Ein Zucker wird im Dünndarm nicht aufgenommen und im Dickdarm vergoren. '
       + 'Gas, Krämpfe, Durchfall – meist Stunden nach dem Essen.',
-    untersuchung: 'H2-Atemtest, dauert einen Vormittag. Je Zucker ein Termin.',
+    /*
+     * gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026, „Wie wird eine
+     * Laktoseintoleranz diagnostiziert?"): „Atemtest: Nach dem Trinken einer
+     * Milchzuckerlösung wird der Gehalt von Wasserstoff in der Atemluft
+     * mehrmals gemessen." Bis zur Fassung 30: „H2-Atemtest, dauert einen
+     * Vormittag. Je Zucker ein Termin." – die Dauer und die Termine nennt
+     * keine geprüfte Quelle, und zur Fruktose liegt keine vor.
+     */
+    untersuchung: 'Bei Laktose etwa ein Atemtest: Nach dem Trinken einer '
+      + 'Milchzuckerlösung wird laut gesund.bund.de mehrmals der Wasserstoff in der '
+      + 'Atemluft gemessen. Welcher Test bei welchem Zucker infrage kommt, klärt die '
+      + 'Praxis.',
     frage: 'Wäre ein Atemtest auf Laktose oder Fruktose sinnvoll?',
     pruefe: (d) => {
       const dafuer = [];
@@ -568,7 +619,9 @@ const VERDAECHTE = [
    * solche Schmerzmittel nur kurz bei akuten Schmerzen einnimmt, hat eher
    * selten mit Nebenwirkungen zu tun. Erfolgt die Einnahme jedoch über einen
    * längeren Zeitraum von Wochen oder Monaten, kann das die Schutzfunktion der
-   * Magenschleimhaut stören." Wortlaut wie REIZSTOFFE in js/mittel.js. Bis zur
+   * Magenschleimhaut stören." Wortlaut nah an REIZSTOFFE in js/mittel.js; dort
+   * bezieht sich „das" auf die gehemmten Botenstoffe, hier steht „sie" für die
+   * Mittel, weil dieser Satz davor fehlt. Bis zur
    * Fassung 30: „greifen die Magenschleimhaut direkt an. Die häufigste
    * vermeidbare Ursache" – ohne die Bedingung der Dauer und mit einer
    * Rangfolge, die dort nicht steht.
@@ -579,7 +632,7 @@ const VERDAECHTE = [
     was: 'Ibuprofen, Diclofenac und ASS gehören zu den entzündungshemmenden '
       + 'Schmerzmitteln (NSAR). Häufig genommen, zählen sie laut gesund.bund.de neben '
       + 'Helicobacter zu den häufigsten Gründen für eine entzündete Magenschleimhaut: '
-      + 'Bei Einnahme über Wochen oder Monate kann das die Schutzfunktion der '
+      + 'Bei Einnahme über Wochen oder Monate können sie die Schutzfunktion der '
       + 'Magenschleimhaut stören. Ob und wie oft so ein Mittel genommen wurde, steht '
       + 'im Tagebuch.',
     untersuchung: 'Keine nötig, um die Frage zu stellen. Es geht um eine '

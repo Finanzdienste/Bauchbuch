@@ -210,9 +210,12 @@ export function warnzeichenVon(id) {
  * abgeklärt wurde, ist keine alte Nachricht.
  *
  * Gesucht wird in *allen* Eintragungen, nicht nur in den Beschwerden. Seit es
- * den Stuhlgang als eigene Art gibt, stehen die zwei wichtigsten Warnzeichen
- * überhaupt – schwarzer Stuhl und frisches Blut – genau dort. Sie nur im
- * Beschwerdebogen zu suchen, hieße sie da zu suchen, wo sie nicht sind.
+ * den Stuhlgang als eigene Art gibt, lassen sich schwarzer Stuhl und frisches
+ * Blut im Beschwerde- und im Stuhlbogen ankreuzen (siehe den Stuhlbogen in
+ * js/app.js); wer nur in den Beschwerden sucht, übersieht die Einträge aus dem
+ * Stuhlbogen. Bis zur Fassung 30 hießen die beiden hier „die zwei wichtigsten
+ * Warnzeichen überhaupt" – eine Rangfolge, die keine Quelle aufstellt und die
+ * auch nicht zu den Stufen oben passt (frisches Blut ist „zeitnah").
  */
 export function warnungen(eintraege) {
   const zaehler = new Map();
@@ -459,7 +462,28 @@ function musterUnterleib(d) {
  *                    Magen-Darm-Trakts"; „verschiedene Behandlungsmöglichkeiten".
  *                    Bis zur Fassung 30: „Die Diagnose, die bleibt, wenn die
  *                    Spiegelung nichts zeigt" – die Spiegelung als Maßstab nennt
- *                    die Seite nicht.
+ *                    die Seite nicht. Aus demselben Grund ist beim
+ *                    Nüchternschmerz „Übersäuerung ohne Geschwür – Bleibt übrig,
+ *                    wenn die Spiegelung unauffällig ist" gestrichen: Eine
+ *                    „Übersäuerung" als Restbefund nennt keine geprüfte Quelle;
+ *                    was nach dem Ausschluss anderer Ursachen bleibt, heißt dort
+ *                    Reizmagen.
+ *   Nüchternschmerz  gesund.bund.de/zwoelffingerdarmgeschwuer (Stand 27.01.2022):
+ *                    „Zur Diagnose reicht meist eine Magenspiegelung mit
+ *                    Gewebeentnahme."; „Bei einem Zwölffingerdarmgeschwür kommt es
+ *                    – anders als beim Magengeschwür – eher bei leerem Magen zu
+ *                    Beschwerden. Nach dem Essen bessern sie sich oft."; „meist
+ *                    die Folge einer Infektion mit dem Bakterium Helicobacter
+ *                    pylori". Bis zur Fassung 30: „das klassische Muster" und
+ *                    „häufigste Ursache" ohne Quelle, und die Frage behauptete
+ *                    „bessert sich nach dem Essen" – das Muster zählt nur
+ *                    Beschwerden mit Abstand zur Mahlzeit.
+ *   Laktose          gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026, „Wie
+ *                    wird eine Laktoseintoleranz diagnostiziert?"): „Das
+ *                    Standardverfahren in Deutschland ist der Atemtest." Bis zur
+ *                    Fassung 30: „H2-Atemtest, dauert einen Vormittag" – die
+ *                    Dauer nennt keine geprüfte Quelle, und zur Fruktose liegt
+ *                    keine vor.
  *   Zöliakie         EMA/CHMP/639441/2013 corr. 2 (9. Oktober 2017), S. 4:
  *                    „Diagnosis is by blood tests to check for relevant
  *                    antibodies, followed by endoscopy/gastroscopy and biopsy.
@@ -484,6 +508,13 @@ function musterUnterleib(d) {
  *                    Fassung 30: „Häufig und für sich genommen harmlos – die
  *                    Hormonschwankung wirkt auf den Darm"; die Entwarnung
  *                    widerspricht dem Rat zur Abklärung starker Schmerzen.
+ *                    Das Muster kann in jeder Phase liegen (musterZyklus), nicht
+ *                    nur bei der Regel; deshalb dazu
+ *                    gesund.bund.de/praemenstruelles-syndrom-pms (Stand
+ *                    21.10.2022): Beschwerden „einige Tage bis zwei Wochen vor der
+ *                    Regelblutung", darunter „Schlaf- oder Verdauungsprobleme".
+ *                    (Angezeigt wird ein Muster erst ab zwei Belegen;
+ *                    musterZyklus liefert bisher höchstens einen.)
  *   Endometriose     gesund.bund.de/endometriose (Stand 21.08.2025): „Oft dauert
  *                    es Jahre bis zur Diagnose"; nach dem Gespräch „eine
  *                    allgemeine körperliche sowie gynäkologische Untersuchung.
@@ -493,6 +524,24 @@ function musterUnterleib(d) {
  *                    bis zehn Jahre lang für einen Reizdarm gehalten" und
  *                    „Tastuntersuchung, Ultraschall" – beides steht so in keiner
  *                    geprüften Quelle.
+ *   Adenomyose       gesund.bund.de/endometriose: „Bei einer Endometriose findet
+ *                    sich Gewebe, welches der Gebärmutterschleimhaut ähnelt, in
+ *                    der Gebärmutterwand oder außerhalb der Gebärmutter."; „Die
+ *                    erste Anlaufstelle bei Endometriose ist meist die
+ *                    Frauenarztpraxis." Bis zur Fassung 30: „Ultraschall, oft
+ *                    zusätzlich MRT" – ohne Quelle.
+ *   Beckenboden      EMA, Ryeqo, Bewertungsbericht EMA/528959/2023 (14.09.2023),
+ *                    S. 45, Ausschlusskriterium 1: „chronic pelvic pain that was
+ *                    not caused by endometriosis (eg, vaginismus, … or pelvic
+ *                    floor disorders)". Bis zur Fassung 30: „Kommt eher bei
+ *                    Schmerz am Eingang und bei Verstopfung in Frage; … ist gut
+ *                    behandelbar" – eine Zuordnung und ein Erfolgsversprechen
+ *                    ohne Quelle.
+ *   Nebeneinander    Bis zur Fassung 30: „Möglich und häufig – … ohne
+ *                    gemeinsame Ursache"; Häufigkeit und fehlende gemeinsame
+ *                    Ursache nennt keine geprüfte Quelle. Geblieben ist, dass
+ *                    beides zugleich da sein kann und sich nur klären lässt,
+ *                    wenn man beides ansieht.
  *   Anspannung       gesund.bund.de/stress (Stand 14.01.2026): bei einer akuten
  *                    Stressreaktion werden Vorgänge zurückgefahren, „unter
  *                    anderem die Magen-, Darm- und Blasentätigkeit"; bei
@@ -526,12 +575,11 @@ const MUSTER = [
       + 'nicht direkt nach dem Essen.',
     pruefe: musterNuechtern,
     ursachen: [
-      { name: 'Geschwür im Zwölffingerdarm', klaerung: 'Magenspiegelung. Der Nüchternschmerz ist dafür das klassische Muster.' },
-      { name: 'Helicobacter pylori', klaerung: 'Atem-, Stuhl- oder Gewebetest – häufigste Ursache eines solchen Geschwürs.' },
-      { name: 'Übersäuerung ohne Geschwür', klaerung: 'Bleibt übrig, wenn die Spiegelung unauffällig ist.' },
+      { name: 'Geschwür im Zwölffingerdarm', klaerung: 'Zur Diagnose reicht laut gesund.bund.de meist eine Magenspiegelung mit Gewebeprobe. Die Beschwerden kommen dabei eher bei leerem Magen und bessern sich nach dem Essen oft.' },
+      { name: 'Helicobacter pylori', klaerung: 'Atem-, Stuhl- oder Gewebetest. Ein Geschwür im Zwölffingerdarm ist laut gesund.bund.de meist die Folge einer Infektion mit diesem Bakterium.' },
     ],
     fragen: [
-      'Der Schmerz kommt nüchtern und bessert sich nach dem Essen – wie wird das eingeordnet?',
+      'Der Schmerz kommt oft nüchtern, mit Abstand zum Essen – wie wird das eingeordnet?',
       'Ist eine Magenspiegelung angezeigt?',
     ],
   },
@@ -559,7 +607,7 @@ const MUSTER = [
     pruefe: musterDarm,
     ursachen: [
       { name: 'Reizdarmsyndrom', klaerung: 'Diagnose nach Ausschluss; die Auslöserliste aus diesem Tagebuch ist dafür brauchbares Material.' },
-      { name: 'Laktose- oder Fruktoseunverträglichkeit', klaerung: 'H2-Atemtest, dauert einen Vormittag.' },
+      { name: 'Laktose- oder Fruktoseunverträglichkeit', klaerung: 'Bei Laktoseintoleranz ist laut gesund.bund.de der Atemtest das Standardverfahren in Deutschland. Welcher Test infrage kommt, klärt die Praxis.' },
       { name: 'Zöliakie', klaerung: 'Bluttest auf Antikörper, danach Spiegelung mit Gewebeprobe. Laut EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon 6 bis 12 Monate glutenfrei gegessen wurde.' },
     ],
     fragen: [
@@ -588,7 +636,7 @@ const MUSTER = [
     satz: 'Die Beschwerden schwanken deutlich mit dem Zyklus.',
     pruefe: musterZyklus,
     ursachen: [
-      { name: 'Zyklusabhängige Verdauungsbeschwerden', klaerung: 'Beschwerden während der Regel sind laut gesund.bund.de weit verbreitet, bei manchen auch mit Übelkeit, Erbrechen oder Durchfall. Bei sehr starken oder sich verschlimmernden Schmerzen ist eine ärztliche Untersuchung sinnvoll.' },
+      { name: 'Zyklusabhängige Verdauungsbeschwerden', klaerung: 'Regelschmerzen sind laut gesund.bund.de weit verbreitet, bei manchen mit Übelkeit, Erbrechen oder Durchfall; in den Tagen vor der Regelblutung können beim prämenstruellen Syndrom auch Verdauungsprobleme vorkommen. Bei sehr starken oder sich verschlimmernden Schmerzen ist eine ärztliche Untersuchung sinnvoll.' },
       { name: 'Endometriose', klaerung: 'Kommt in Frage, wenn dazu starke Regelschmerzen, Schmerzen beim Sex oder zyklische Darmbeschwerden gehören. Wird oft jahrelang übersehen; abgeklärt wird sie gynäkologisch.' },
     ],
     fragen: [
@@ -604,9 +652,9 @@ const MUSTER = [
     pruefe: musterUnterleib,
     ursachen: [
       { name: 'Endometriose', klaerung: 'Abgeklärt wird sie gynäkologisch: laut gesund.bund.de mit Gespräch und Untersuchung, je nach Beschwerden auch mit weiteren Untersuchungen bis hin zu einer Bauchspiegelung. Bis zur Diagnose dauert es oft Jahre.' },
-      { name: 'Adenomyose', klaerung: 'Endometriose in der Gebärmutterwand. Ultraschall, oft zusätzlich MRT.' },
-      { name: 'Beckenbodenstörung', klaerung: 'Kommt eher bei Schmerz am Eingang und bei Verstopfung in Frage; wird über eine Untersuchung des Beckenbodens beurteilt und ist gut behandelbar.' },
-      { name: 'Reizdarm und Regelschmerz nebeneinander', klaerung: 'Möglich und häufig – zwei Dinge gleichzeitig, ohne gemeinsame Ursache. Das lässt sich nur klären, indem man beides ansieht.' },
+      { name: 'Adenomyose', klaerung: 'Gewebe, das der Gebärmutterschleimhaut ähnelt, in der Gebärmutterwand. Laut gesund.bund.de zählt auch das zur Endometriose; abgeklärt wird es ebenfalls gynäkologisch.' },
+      { name: 'Beckenbodenstörung', klaerung: 'Kann laut einem Bewertungsbericht der EMA chronische Beckenschmerzen machen, die nicht von einer Endometriose kommen. Ob das hier eine Rolle spielt, klärt die Praxis.' },
+      { name: 'Reizdarm und Regelschmerz nebeneinander', klaerung: 'Zwei Dinge können auch gleichzeitig da sein. Das lässt sich nur klären, indem man beides ansieht.' },
     ],
     fragen: [
       'Meine Darmbeschwerden hängen am Zyklus, und ich habe Schmerzen beim Sex – kann eine Endometriose dahinterstecken?',

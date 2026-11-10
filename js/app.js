@@ -2529,10 +2529,18 @@ function ratKarte(s) {
       <p>${esc(r.text)}</p>
       <p class="klein">${esc(r.warum)}</p>
     </li>`).join('')}</ul>
-    <p class="klein">„Aus deinem Verlauf" heißt: aus deinen eigenen Eintragungen
+    <p class="klein">„Aus deinem Verlauf“ heißt: aus deinen eigenen Eintragungen
     gerechnet, mit den Zahlen daneben. „Allgemein“ heißt: allgemeine Hinweise,
-    oft nicht gut untersucht – dein eigener Verlauf sticht das.</p>
+    oft nicht gut untersucht.</p>
   </div>`;
+  /*
+   * Bis zur Fassung 30 endete die Zeile mit „– dein eigener Verlauf sticht
+   * das". Unter „allgemein" stehen aber auch Verweise an die Praxis (etwa
+   * „Halten die Beschwerden an, gehört das in die Praxis"), und eine
+   * Auffälligkeit im Tagebuch ist kein Beleg (Karte 'essen-eigen' in
+   * js/rat.js, versuchTeil). Einen Vorrang des eigenen Verlaufs nennt keine
+   * der Quellen im Kopf von js/rat.js, und raete() sortiert auch nicht danach.
+   */
 }
 
 /* ==================== Reiter: Verlauf ==================== */

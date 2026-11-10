@@ -190,6 +190,33 @@ check(
   `ohne Rat, es kleiner zu essen – mit der Zahl statt „fast immer“ (${selten.satz})`,
 );
 
+/*
+ * Gleichstand: Kommen zwei Rollen gleich oft vor, ist keine „am häufigsten“.
+ * Bis zur Fassung 30 gewann dann die Rolle, die in der Reihe zuerst steht.
+ */
+const gleich = await dosis(bauen({ rollen: ['wuerze', 'beilage'], wirkung: {}, tage: 6 }));
+check(gleich.urteil === 'unklar'
+  && gleich.satz.startsWith('Bisher kam das gleich oft als Würze und als Beilage vor (je 2 von 4 Mal).')
+  && !gleich.satz.includes('am häufigsten'),
+`zwei Rollen gleich oft: beide genannt, keine „am häufigsten“ (${gleich.satz.slice(0, 80)}…)`);
+
+/*
+ * „Ab dieser Menge“ nennt als kleinere Mengen nur die Rollen unter der
+ * auffälligen. Bis zur Fassung 30 stand fest „nur als Beilage, Topping oder
+ * Würze … zu wenige eingetragen“ – auch wenn die Beilage selbst die
+ * auffällige Stufe war und ihre Mahlzeiten im Satz davor standen. Dazu das
+ * Komma in der Zehntelzahl.
+ */
+const beilage = await dosis(bauen({ rollen: ['beilage'], wirkung: { beilage: 4 } }));
+check(beilage.urteil === 'ab-hier' && beilage.abStufe === 'beilage'
+  && beilage.satz.includes('in denen es nur als Topping oder Würze vorkommt')
+  && !beilage.satz.includes('nur als Beilage, Topping'),
+`auffällig als Beilage: kleiner sind nur Topping und Würze (${beilage.satz})`);
+check(einerlei.satz.includes('in denen es nur als Beilage, Topping oder Würze vorkommt'),
+  'auffällig als Hauptzutat: kleiner sind Beilage, Topping und Würze');
+check(/um \d+,\d Stufen schlechter/.test(einerlei.satz) && !/\d\.\d/.test(einerlei.satz),
+  `die Zehntelzahl mit Komma (${einerlei.satz.match(/um \S+ Stufen/)})`);
+
 /* ---------- Und in der Anzeige ---------- */
 
 const daten = bauen({ rollen: ['wuerze', 'haupt'], wirkung: { wuerze: 0, haupt: 4 } });

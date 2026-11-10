@@ -246,6 +246,22 @@ await page.waitForTimeout(200);
 check(await page.locator('.befund').count() === 0, 'und lässt sich wieder wegnehmen');
 
 await page.screenshot({ path: `${SHOT}/71-befunde.png` });
+
+/*
+ * Gastritis Typ A: Vitamin B12 wird im Dünndarm aufgenommen; der Magen bildet
+ * dafür den Intrinsic-Faktor. Bis zur Fassung 30 stand „wird im Magen
+ * aufgenommen“ und ein Rat zum regelmäßigen Blutbild ohne Quelle (Beleg an
+ * 'gastritis-a' in js/befunde.js). Dazu bei Typ B kein „danach … hinterher“.
+ */
+{
+  const { BEFUNDE } = await import('../js/befunde.js');
+  const typA = BEFUNDE.find((b) => b.id === 'gastritis-a');
+  const typB = BEFUNDE.find((b) => b.id === 'gastritis-b');
+  check(typA.bedeutet.includes('Vitamin B12 im Dünndarm aufzunehmen') && !typA.bedeutet.includes('im Magen aufgenommen')
+    && !typA.bedeutet.includes('gehört regelmäßig') && typA.bedeutet.includes('klärt die Praxis'),
+  'Gastritis Typ A: B12 wird im Dünndarm aufgenommen, kein Kontrollrat ohne Quelle');
+  check(!typB.bedeutet.includes('hinterher'), 'Gastritis Typ B: „danach“ steht nur einmal da');
+}
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);
 await browser.close();
 ende();

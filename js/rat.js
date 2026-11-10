@@ -22,7 +22,12 @@
  *                Empfehlungen" (Reizmagensyndrom, Stand 05.02.2026,
  *                Behandlung). Teils der Verweis auf die Atemübungen unter
  *                „Ruhe" und die Liste der eingenommenen Mittel, die kein Rat
- *                ist. Deshalb immer nachrangig hinter dem eigenen Verlauf.
+ *                ist. Bis zur Fassung 30 stand hier „Deshalb immer nachrangig
+ *                hinter dem eigenen Verlauf", und die Fußzeile der Karte sagte
+ *                „dein eigener Verlauf sticht das" – unter „allgemein" stehen
+ *                aber auch Verweise an die Praxis, und eine Auffälligkeit im
+ *                Tagebuch ist kein Beleg (siehe 'essen-eigen' unten). Sortiert
+ *                wird nicht nach der Quelle.
  *                Bis zur Fassung 29 hieß es hier „was bei Magenbeschwerden
  *                üblicherweise empfohlen wird" – das traf auf die Atem- und
  *                Sportkarten und auf die Mittelliste nicht zu.
@@ -85,8 +90,9 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
  *
  *   'bremse'  Schalter ADHS an, eine Einnahme in den letzten 14 Tagen, und
  *             ungewollt abgenommen oder „Kein Appetit" an mindestens 3 der
- *             letzten 7 Bauch-Tage: „Auffällig in deinem Verlauf: …" und
- *             „Spätes Essen und Liegen" entfallen.
+ *             letzten 7 Bauch-Tage: „Auffällig in deinem Verlauf: …" (auch
+ *             in der Form „Möglicherweise auffällig …") und „Spätes Essen und
+ *             Liegen" entfallen.
  *   'zusatz'  Schalter und Einnahme, sonst nichts: „Spätes Essen und Liegen"
  *             bekommt einen Satz dazu.
  *
@@ -182,7 +188,21 @@ export function raete(d) {
   const bremse = d.essenVorsicht === 'bremse';
 
   if (auffaellig.length && !bremse) {
-    const namen = auffaellig.map((b) => ausloeserName(b.id, d.eigene)).join(', ');
+    /*
+     * Der Titel mit demselben Wort wie die Auslöserliste unter „Muster"
+     * (EINSTUFUNG_WORT in js/auswertung.js): 'auffaellig' heißt dort
+     * „auffällig", 'moeglich' nur „möglicherweise". Bis zur Fassung 30 stand
+     * über beiden „Auffällig in deinem Verlauf" – derselbe Fund wäre auf
+     * „Für heute" höher eingestuft gewesen als unter „Muster". Welche Zeilen
+     * auf die Karte kommen, ist unverändert.
+     */
+    const namenVon = (liste) => liste.map((b) => ausloeserName(b.id, d.eigene)).join(', ');
+    const sicher = auffaellig.filter((b) => einstufung(b) === 'auffaellig');
+    const vielleicht = auffaellig.filter((b) => einstufung(b) === 'moeglich');
+    let titel;
+    if (!vielleicht.length) titel = `Auffällig in deinem Verlauf: ${namenVon(sicher)}`;
+    else if (!sicher.length) titel = `Möglicherweise auffällig in deinem Verlauf: ${namenVon(vielleicht)}`;
+    else titel = `Auffällig in deinem Verlauf: ${namenVon(sicher)}; möglicherweise auch ${namenVon(vielleicht)}`;
     /*
      * Was ein Tagebuch dabei kann und was nicht. gesund.bund.de,
      * Reizmagensyndrom (Stand 05.02.2026): „durch das Führen eines
@@ -206,7 +226,7 @@ export function raete(d) {
      * Unterschied mindestens eine Stufe).
      */
     raus.push(rat('essen-eigen', 'essen',
-      `Auffällig in deinem Verlauf: ${namen}`,
+      titel,
       'Danach lag dein Bauchwert im Mittel höher als ohne. Ob ein Lebensmittel '
       + 'wirklich der Auslöser ist, lässt sich aus dem Tagebuch allein nicht sicher '
       + 'sagen; ob ein Auslassversuch für dich sinnvoll ist, lässt sich in der Praxis '

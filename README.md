@@ -490,16 +490,16 @@ nicht mehr zum Tagebuch passt.
 
 ### Vorschläge für heute
 
-Auf dem Tagesreiter steht, was für heute naheliegt: worauf man heute eher
-verzichten würde, was über Bewegung an einem Tag wie diesem bekannt ist, dass
-unter „Ruhe“ Atemübungen liegen. Jeder Vorschlag trägt sein **warum** sichtbar
-mit sich und die Angabe, woher es kommt:
+Auf dem Tagesreiter steht, was für heute naheliegt: was im eigenen Verlauf
+auffällt, was über Bewegung an einem Tag wie diesem bekannt ist, dass unter
+„Ruhe“ Atemübungen liegen. Jeder Vorschlag trägt sein **warum** sichtbar mit
+sich und die Angabe, woher es kommt:
 
 * **aus deinem Verlauf** – aus den eigenen Eintragungen gerechnet, mit den
   Zahlen daneben („nach 12 Mahlzeiten mit Kaffee im Mittel 7,0 statt 0,0").
 * **allgemein** – nicht aus den eigenen Eintragungen gerechnet: Hinweise, die
   allgemeine Gesundheitsinformationen nennen, oft ohne gute Untersuchung, ob
-  sie helfen. Der eigene Verlauf sticht das. <!--
+  sie helfen. Dazu gehören auch Verweise an die Praxis. <!--
   Quelle: gesund.bund.de/gastritis (mit IQWiG, Stand 13.11.2025), Behandlung:
   „Ob diese Maßnahmen helfen, ist aber nicht ausreichend erforscht.";
   gesund.bund.de/reizmagen-funktionelle-dyspepsie (Stand 05.02.2026):
@@ -1717,8 +1717,10 @@ zu den Mitteln, die Vorschläge für heute, die Kriterien, der Kopfschmerz, die
 Zeitabstände nach dem Essen, die Warnzeichen, der Bericht und diese README.
 Was eine Quelle nicht trägt, ist gestrichen oder vorsichtiger gefasst („laut
 Fachinformation von …“, „bei manchen Präparaten“); im Code steht neben jedem
-Satz seine Quelle mit Dokument, Stand und Abschnitt. Keine Zahl, keine
-Schwelle und keine Rechnung hat sich dabei geändert.
+geprüften Satz seine Quelle mit Dokument, Stand und Abschnitt. Stellen, die
+der Abgleich zuerst nicht erfasst hatte, nennen die Absätze unten; wo an
+einem Satz keine Quelle steht, ist er noch nicht so geprüft. Keine Zahl,
+keine Schwelle und keine Rechnung hat sich dabei geändert.
 
 Weggefallen ist die Ortszuordnung aus dem Zeitabstand. Bisher stand an den
 drei Zeitspannen nach dem Essen ein Ort im Verdauungstrakt („4–8 Stunden –
@@ -1775,9 +1777,11 @@ keine Entwarnung „für sich genommen harmlos“, bei Helicobacter kein „und 
 ist es weg“ und bei der Anspannung kein „Entspannungsverfahren sind hier eine
 Behandlung“. Eine „Gastritis Typ C“ nimmt die Frage nach Helicobacter nicht
 mehr aus „Was keine App beantwortet“ heraus. Die Karte zu einem auffälligen
-Lebensmittel auf „Für heute“ heißt „Auffällig in deinem Verlauf: …“ und rät
-nicht mehr, es an solchen Tagen wegzulassen; ob ein Auslassversuch sinnvoll
-ist, lässt sich in der Praxis besprechen. Beim Reizdarm sagt der Satz zum
+Lebensmittel auf „Für heute“ heißt „Auffällig in deinem Verlauf: …“ – bei
+einem Fund, den die Auslöserliste unter „Muster“ nur „möglicherweise“ nennt,
+„Möglicherweise auffällig …“ – und rät nicht mehr, es an solchen Tagen
+wegzulassen; ob ein Auslassversuch sinnvoll ist, lässt sich in der Praxis
+besprechen. Beim Reizdarm sagt der Satz zum
 Vorlesen „Kriterien erfüllt“ nur noch, wenn der Kasten unter „Kriterien“ es
 auch sagt, und „Wie viel davon?“ schlägt auch dann nicht mehr vor, eine
 Zutat kleiner zu essen, wenn sich die Menge noch nicht prüfen lässt. Die
@@ -1785,6 +1789,31 @@ Rechnungen dahinter sind unverändert. <!-- Belege jeweils am Code: über
 MUSTER in js/bild.js, an den Befunden in js/befunde.js, an den Verdachten in
 js/luecken.js, bei der Karte 'essen-eigen' in js/rat.js und im Zweig 'unklar'
 in js/dosis.js. -->
+
+Beim Magen- oder Zwölffingerdarmgeschwür in „Was keine App beantwortet“
+gelten Beschwerden kurz nach dem Essen nicht mehr als Gegenzeichen: Laut
+gesund.bund.de kommen sie beim Zwölffingerdarmgeschwür eher bei leerem Magen,
+beim Magengeschwür oft unabhängig von den Mahlzeiten oder eher nach dem Essen.
+Die Frage zum Vorlesen nennt ein Nüchternmuster nur noch, wenn das Tagebuch
+eines zeigt. Unter „Muster“ sind beim Nüchternschmerz die „Übersäuerung ohne
+Geschwür“ als Restbefund und an weiteren Stellen Angaben ohne Quelle
+gestrichen (Dauer des Atemtests, „oft zusätzlich MRT“, „gut behandelbar“,
+„Möglich und häufig“). Bei der Gastritis Typ A steht, dass Vitamin B12 im
+Dünndarm aufgenommen wird und der Magen dafür den nötigen Stoff weniger
+bildet. Die Fußzeile von „Für heute“ sagt nicht mehr, der eigene Verlauf
+„steche“ die allgemeinen Hinweise. „Wie viel davon?“ nennt bei den kleineren
+Mengen nur noch die Rollen unter der auffälligen und bei Gleichstand keine
+Rolle „am häufigsten“. Die Rechnungen dahinter sind unverändert. <!-- Quellen:
+gesund.bund.de/magengeschwuer (mit IQWiG, Stand 07.01.2022, „Welche Symptome
+deuten auf ein Magengeschwür hin?“): „Schmerzen im Oberbauch, oft unabhängig
+von Mahlzeiten oder eher nach als vor dem Essen“; gesund.bund.de/
+zwoelffingerdarmgeschwuer (mit IQWiG, Stand 27.01.2022, „Woran erkennt man ein
+Zwölffingerdarmgeschwür?“): „anders als beim Magengeschwür – eher bei leerem
+Magen“; medikamio.com, Chronische Gastritis (veröffentlicht 18.07.2024,
+„Ursachen – Typ A“): Intrinsic-Faktor, „Protein für die Aufnahme von Vitamin
+B12 im Dünndarm“. Weitere Belege jeweils am Code: am Verdacht 'ulkus' in
+js/luecken.js, über MUSTER in js/bild.js, an 'gastritis-a' in js/befunde.js,
+bei ratKarte in js/app.js und in js/dosis.js. -->
 
 Das Gold der Fassung 27 bleibt, wie es erzeugt wurde. `tests/test-gold.mjs`
 und `tests/test-gleich-v27.mjs` geben jeder berichtigten Stelle vor dem

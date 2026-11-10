@@ -129,6 +129,10 @@ const TEXTE = [
   },
   // Der Titel derselben Karte: ohne Rat zum Weglassen; die Namen danach je Tagebuch.
   { wo: ['raete'], teil: true, neu: 'Auffällig in deinem Verlauf: ', alt: 'Heute eher ohne ' },
+  // Ein Fund der Stufe „möglich" heißt im Titel wie unter „Muster"
+  // „möglicherweise" (Kaffee in Tagebuch 29); welche Zeilen auf die Karte
+  // kommen und in welcher Reihenfolge, ist dasselbe.
+  { wo: ['raete'], teil: true, neu: '; möglicherweise auch ', alt: ', ' },
   { wo: ['raete'], neu: 'Schonkost an Tagen mit starken Beschwerden', alt: 'Heute klein und mild' },
   {
     wo: ['raete'],

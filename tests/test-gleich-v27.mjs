@@ -178,11 +178,14 @@ const WORTLAUT_30 = [
     alt: 'Bei einem Wert wie heute bringt intensives Training nichts und kann die Beschwerden verstärken. '
       + 'Zwanzig Minuten gehen hilft der Verdauung trotzdem.',
   },
+  // Die Fußzeile: ohne „dein eigener Verlauf sticht das", und „Aus deinem
+  // Verlauf“ mit deutschem Schlusszeichen.
   {
     tab: 'heute',
-    teil: true,
-    neu: '„Allgemein“ heißt: allgemeine Hinweise, oft nicht gut untersucht – dein eigener Verlauf sticht das.',
-    alt: '„Allgemein" heißt: gilt für einen Durchschnitt, den es nicht gibt – dein eigener Verlauf sticht das.',
+    neu: '„Aus deinem Verlauf“ heißt: aus deinen eigenen Eintragungen gerechnet, mit den Zahlen daneben. '
+      + '„Allgemein“ heißt: allgemeine Hinweise, oft nicht gut untersucht.',
+    alt: '„Aus deinem Verlauf" heißt: aus deinen eigenen Eintragungen gerechnet, mit den Zahlen daneben. '
+      + '„Allgemein" heißt: gilt für einen Durchschnitt, den es nicht gibt – dein eigener Verlauf sticht das.',
   },
 
   /* ----- „Muster": In Kürze, Säureblocker, Kriterien (js/lage.js, js/app.js) ----- */
@@ -411,7 +414,7 @@ const WORTLAUT_30 = [
   },
   {
     tab: 'mehr',
-    neu: 'Regelmäßig genommen, neben Helicobacter einer der häufigsten Gründe für eine entzündete Magenschleimhaut.',
+    neu: 'Häufig genommen, neben Helicobacter einer der häufigsten Gründe für eine entzündete Magenschleimhaut.',
     alt: 'Häufigster vermeidbarer Grund für eine gereizte Magenschleimhaut.',
   },
   {

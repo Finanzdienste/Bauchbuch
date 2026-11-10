@@ -1894,7 +1894,9 @@ const REIZSTOFFE = [
     // dieser Zählung.
     beispiele: ['Ibuprofen', 'Ibu', 'Dolormin', 'Nurofen', 'Diclofenac', 'Diclo',
       'Voltaren', 'Naproxen', 'ASS', 'Aspirin'],
-    kurz: 'Regelmäßig genommen, neben Helicobacter einer der häufigsten Gründe für eine entzündete Magenschleimhaut.',
+    // „Häufig genommen" wie in js/bild.js und js/luecken.js; die Quelle sagt
+    // „die häufige Einnahme". Bis zur Fassung 30 hier „Regelmäßig genommen".
+    kurz: 'Häufig genommen, neben Helicobacter einer der häufigsten Gründe für eine entzündete Magenschleimhaut.',
     wirkung: 'Sie hemmen Botenstoffe, die Schmerz und Entzündung machen – dieselben '
       + 'Botenstoffe sorgen aber auch dafür, dass der Magen Schleim und säureneutralisierende '
       + 'Stoffe bildet. Bei Einnahme über Wochen oder Monate kann das die Schutzfunktion der '
@@ -2137,7 +2139,14 @@ const WEITERE_MITTEL = [
     id: 'opioid',
     gruppe: 'Opioide',
     beispiele: ['Tramadol', 'Tramal', 'Tilidin', 'Valoron', 'Codein', 'Oxycodon', 'Tapentadol'],
-    kurz: 'Ein Opioid – für den Kopf gilt die niedrigere Grenze von zehn Tagen im Monat.',
+    // ICHD-3 8.2.4 (Opioide) und 8.2.2 (Triptane): „≥10 days/month for >3
+    // months", 8.2.3 (einfache Schmerzmittel): „15 or more days/month". Bis zur
+    // Fassung 30: „die niedrigere Grenze von zehn Tagen im Monat" – ohne die
+    // drei Monate und ohne Vergleich; so las es sich wie eine erlaubte Menge
+    // (siehe die Kombinationsmittel in js/app.js).
+    kurz: 'Ein Opioid – für den Kopf gilt wie bei Triptanen eine niedrigere Schwelle für '
+      + 'Übergebrauch als bei einfachen Schmerzmitteln: zehn oder mehr Tage im Monat über '
+      + 'mehr als drei Monate.',
     wirkung: 'Wirkt vor allem an bestimmten Nervenzellen in Rückenmark und Gehirn. Die '
       + 'Fachinformationen nennen als Anwendungsgebiet Schmerzen allgemein, je nach Wirkstoff '
       + 'mäßig starke bis sehr starke; Migräne steht dort nicht eigens. Bei wiederholter '
@@ -4608,6 +4617,19 @@ const BEFUNDE = [
       + 'Befund – und die Medikamentenspalte dieser App ist dann die '
       + 'interessanteste Spalte, die sie hat.',
   },
+  /*
+   * Quelle (Fassung 30): medikamio.com, Krankheiten, „Chronische Gastritis"
+   * (veröffentlicht 18.07.2024), „Ursachen – Typ A": Belegzellen sind „für
+   * die Produktion von Salzsäure … und den Intrinsic-Faktor (Protein für die
+   * Aufnahme von Vitamin B12 im Dünndarm) verantwortlich"; „Symptome – Typ A":
+   * „Durch die geschädigten Belegzellen im Magen wird der Intrinsic-Faktor
+   * vermindert produziert. Dieser ist für die Aufnahme von Vitamin B12
+   * essenziell. Die Gastritis führt so zu einem Vitamin B12-Mangel der sich in
+   * einer perniziösen Anämie (Blutarmut) äußern kann." Bis zur Fassung 30:
+   * „Vitamin B12 wird im Magen aufgenommen" – aufgenommen wird es im
+   * Dünndarm – und „Hier gehört regelmäßig das Blutbild dazu", ein Rat zur
+   * Kontrolle, den keine geprüfte Quelle so gibt.
+   */
   {
     id: 'gastritis-a',
     name: 'Gastritis Typ A',
@@ -4615,8 +4637,10 @@ const BEFUNDE = [
       + 'eigenen Magen richtet.',
     organisch: true,
     klaert: [],
-    bedeutet: 'Hier gehört regelmäßig das Blutbild dazu – Vitamin B12 wird im '
-      + 'Magen aufgenommen, und das geht dabei verloren.',
+    bedeutet: 'Bei dieser Form bildet der Magen weniger von einem Eiweiß, das der '
+      + 'Körper braucht, um Vitamin B12 im Dünndarm aufzunehmen (Intrinsic-Faktor). '
+      + 'Das kann zu einem Vitamin-B12-Mangel und zu Blutarmut führen. Ob und wie oft '
+      + 'Blutwerte kontrolliert werden, klärt die Praxis.',
   },
   /*
    * Quellen (Fassung 30): gesund.bund.de/reizmagen-funktionelle-dyspepsie
@@ -4637,7 +4661,7 @@ const BEFUNDE = [
     klaert: ['hpylori'],
     bedeutet: 'Hier richtet sich die Behandlung gegen die Ursache: Eine Infektion mit '
       + 'Helicobacter kann laut gesund.bund.de gut mit Antibiotika behandelt werden. '
-      + 'Ob der Keim danach weg ist, wird hinterher nachgeprüft.',
+      + 'Ob der Keim danach weg ist, wird nachgeprüft.',
   },
   {
     id: 'refluxkrankheit',
@@ -4910,7 +4934,9 @@ const UEBUNGEN = [
   {
     id: 'kohaerenz',
     name: 'Gleichmaß',
-    zweck: 'Ohne Halten, gut sechs Atemzüge in der Minute',
+    // 5,5 s ein und 5,5 s aus sind 11 s je Atemzug, also 60/11 ≈ 5,5 in der
+    // Minute; bis zur Fassung 30 stand hier „gut sechs".
+    zweck: 'Ohne Halten, etwa fünfeinhalb Atemzüge in der Minute',
     beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus. '
       + 'Unauffällig genug für den Bus.',
     runden: 10,
@@ -14211,7 +14237,8 @@ function tagebuchLuecken(d) {
   if (!d.nachtwachAn) {
     nimm('nachtwach', 4, 'Die Frage „Nachts davon wach" anschalten',
       'Sie steht unter „Mehr“ bei den Tagesfragen. Der Punktwert angelehnt an '
-      + 'den GerdQ zählt sie als eigenen Posten; ausgeschaltet zählt er dort immer null.');
+      + 'den GerdQ zählt sie als eigenen Posten. Ist die Frage ausgeschaltet, zählt '
+      + 'dieser Posten immer null.');
   }
 
   // Wortlaut wie versuchTeil in js/app.js (Belege dort): Bis zur Fassung 29
@@ -14283,7 +14310,15 @@ const VERDAECHTE = [
     pruefe: (d) => {
       const dafuer = [];
       const m = d.musterIds;
-      if (m.includes('nuechtern')) dafuer.push('Der Nüchternschmerz ist das klassische Muster dafür.');
+      // gesund.bund.de/zwoelffingerdarmgeschwuer (Stand 27.01.2022): Beschwerden
+      // „eher bei leerem Magen"; das Geschwür ist „meist die Folge einer
+      // Infektion mit dem Bakterium Helicobacter pylori". Bis zur Fassung 30:
+      // „Der Nüchternschmerz ist das klassische Muster dafür" – ohne Quelle.
+      if (m.includes('nuechtern')) {
+        dafuer.push('Beschwerden bei leerem Magen passen laut gesund.bund.de zu einem '
+          + 'Zwölffingerdarmgeschwür, und das ist meist die Folge einer Infektion mit '
+          + 'diesem Bakterium.');
+      }
       if (m.includes('saeure')) dafuer.push('Das säuretypische Bild passt dazu.');
       return {
         stand: 'offen',
@@ -14295,18 +14330,47 @@ const VERDAECHTE = [
       };
     },
   },
+  /*
+   * Quellen (Fassung 30): gesund.bund.de/magengeschwuer (mit IQWiG, Stand
+   * 07.01.2022): „eine tiefe Wunde in der Magenwand"; „Welche Symptome deuten
+   * auf ein Magengeschwür hin?": „Schmerzen im Oberbauch, oft unabhängig von
+   * Mahlzeiten oder eher nach als vor dem Essen"; „Zur Diagnose reicht meist
+   * eine Magenspiegelung mit Gewebeentnahme."; Komplikationen: schwarz
+   * gefärbten Stuhl, erbrochenes Blut und „Anzeichen einer Blutarmut"
+   * „zeitnah ärztlich abklären zu lassen". gesund.bund.de/
+   * zwoelffingerdarmgeschwuer (mit IQWiG, Stand 27.01.2022): „eine tiefe Wunde
+   * in der Innenwand des Zwölffingerdarms"; „Woran erkennt man …?": „Bei einem
+   * Zwölffingerdarmgeschwür kommt es – anders als beim Magengeschwür – eher
+   * bei leerem Magen zu Beschwerden. Nach dem Essen bessern sie sich oft."
+   *
+   * Bis zur Fassung 30 hieß es hier für beide Geschwüre „Tut typischerweise
+   * nüchtern weh und wird nach dem Essen kurz besser" – die Seiten sagen das
+   * nur für das Zwölffingerdarmgeschwür –, und Beschwerden überwiegend kurz
+   * nach dem Essen standen als „Dagegen spricht". Gerade dieses Muster nennt
+   * gesund.bund.de beim Magengeschwür; ein Schluss aus dem Zeitabstand auf
+   * eine Diagnose ist es ohnehin (siehe Kopf von js/zeitprofil.js). Die
+   * Rechnung (essensbezug in js/auswertung.js) ist unverändert, nur dieser
+   * Satz entfällt. Ebenso „Sie ist auch die einzige, die eine Blutung gleich
+   * mitbehandeln kann" – eine Rangfolge, die keine der Seiten aufstellt. Die
+   * Frage zum Vorlesen behauptet kein Nüchternmuster mehr, wenn das Tagebuch
+   * keines zeigt; mit Muster sagt sie nur, was es zählt (Beschwerden erst
+   * vier Stunden oder länger nach dem Essen), kein „bessert sich danach". Den
+   * schwarzen, klebrigen Stuhl stuft js/bild.js als „sofort" ein; dafür steht
+   * der Satz der Warnkarte.
+   */
   {
     id: 'ulkus',
     name: 'Magen- oder Zwölffingerdarmgeschwür',
-    was: 'Ein Defekt in der Schleimhaut. Tut typischerweise nüchtern weh und wird '
-      + 'nach dem Essen kurz besser.',
-    untersuchung: 'Magenspiegelung. Sie ist auch die einzige, die eine Blutung '
-      + 'gleich mitbehandeln kann.',
-    frage: 'Der Schmerz kommt nüchtern und bessert sich nach dem Essen – ist eine '
-      + 'Magenspiegelung angezeigt?',
+    was: 'Eine tiefe Wunde in der Wand von Magen oder Zwölffingerdarm. Beim '
+      + 'Zwölffingerdarmgeschwür kommen die Beschwerden laut gesund.bund.de eher bei '
+      + 'leerem Magen und bessern sich nach dem Essen oft; beim Magengeschwür sind '
+      + 'Schmerzen im Oberbauch oft unabhängig von den Mahlzeiten oder eher nach als '
+      + 'vor dem Essen.',
+    untersuchung: 'Magenspiegelung mit Gewebeprobe – laut gesund.bund.de reicht sie '
+      + 'zur Diagnose meist.',
+    frage: 'Ist eine Magenspiegelung angezeigt?',
     pruefe: (d) => {
       const dafuer = [];
-      const dagegen = [];
       if (d.musterIds.includes('nuechtern')) {
         dafuer.push(`${d.essen.nuechtern} von ${d.essen.bewertbar} zuordenbaren `
           + 'Beschwerden kamen erst vier Stunden oder länger nach dem Essen.');
@@ -14322,23 +14386,25 @@ const VERDAECHTE = [
           + '(bei großen Brüchen häufiger), und ein solches Mittel macht das '
           + 'wahrscheinlicher.');
       }
-      if (d.essen.bewertbar >= 8 && d.essen.anteilNachDemEssen >= 0.6) {
-        dagegen.push('Die Beschwerden kommen überwiegend kurz nach dem Essen, '
-          + 'nicht nüchtern.');
-      }
       // Die Frage so, wie sie sich vorlesen lässt: Ohne Nüchternmuster darf
-      // sie keines behaupten.
-      const frage = !d.musterIds.includes('nuechtern') && bruchMitNsar
-        ? 'Ich habe einen Zwerchfellbruch und nehme bei Kopfschmerzen ein '
-          + 'entzündungshemmendes Schmerzmittel – spricht das für eine Magenspiegelung?'
-        : undefined;
+      // sie keines behaupten, und mit ihm nur das, was gezählt ist.
+      let frage;
+      if (d.musterIds.includes('nuechtern')) {
+        frage = 'Der Schmerz kommt oft nüchtern, mit Abstand zum Essen – ist eine '
+          + 'Magenspiegelung angezeigt?';
+      } else if (bruchMitNsar) {
+        frage = 'Ich habe einen Zwerchfellbruch und nehme bei Kopfschmerzen ein '
+          + 'entzündungshemmendes Schmerzmittel – spricht das für eine Magenspiegelung?';
+      }
       return {
         stand: dafuer.length ? 'moeglich' : 'offen',
         ...(frage ? { frage } : {}),
         dafuer,
-        dagegen,
-        offen: 'Ein Geschwür sieht man, man errechnet es nicht. Warnzeichen wie '
-          + 'schwarzer Stuhl oder Blutarmut würden es dringend machen.',
+        dagegen: [],
+        offen: 'Ein Geschwür sieht man, man errechnet es nicht. Bei schwarzem, '
+          + 'klebrigem Stuhl nicht auf einen Termin warten – Notaufnahme oder 112. '
+          + 'Zeichen einer Blutarmut gehören laut gesund.bund.de zeitnah ärztlich '
+          + 'abgeklärt.',
       };
     },
   },
@@ -14543,7 +14609,18 @@ const VERDAECHTE = [
     name: 'Laktose- oder Fruktoseunverträglichkeit',
     was: 'Ein Zucker wird im Dünndarm nicht aufgenommen und im Dickdarm vergoren. '
       + 'Gas, Krämpfe, Durchfall – meist Stunden nach dem Essen.',
-    untersuchung: 'H2-Atemtest, dauert einen Vormittag. Je Zucker ein Termin.',
+    /*
+     * gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026, „Wie wird eine
+     * Laktoseintoleranz diagnostiziert?"): „Atemtest: Nach dem Trinken einer
+     * Milchzuckerlösung wird der Gehalt von Wasserstoff in der Atemluft
+     * mehrmals gemessen." Bis zur Fassung 30: „H2-Atemtest, dauert einen
+     * Vormittag. Je Zucker ein Termin." – die Dauer und die Termine nennt
+     * keine geprüfte Quelle, und zur Fruktose liegt keine vor.
+     */
+    untersuchung: 'Bei Laktose etwa ein Atemtest: Nach dem Trinken einer '
+      + 'Milchzuckerlösung wird laut gesund.bund.de mehrmals der Wasserstoff in der '
+      + 'Atemluft gemessen. Welcher Test bei welchem Zucker infrage kommt, klärt die '
+      + 'Praxis.',
     frage: 'Wäre ein Atemtest auf Laktose oder Fruktose sinnvoll?',
     pruefe: (d) => {
       const dafuer = [];
@@ -14652,7 +14729,9 @@ const VERDAECHTE = [
    * solche Schmerzmittel nur kurz bei akuten Schmerzen einnimmt, hat eher
    * selten mit Nebenwirkungen zu tun. Erfolgt die Einnahme jedoch über einen
    * längeren Zeitraum von Wochen oder Monaten, kann das die Schutzfunktion der
-   * Magenschleimhaut stören." Wortlaut wie REIZSTOFFE in js/mittel.js. Bis zur
+   * Magenschleimhaut stören." Wortlaut nah an REIZSTOFFE in js/mittel.js; dort
+   * bezieht sich „das" auf die gehemmten Botenstoffe, hier steht „sie" für die
+   * Mittel, weil dieser Satz davor fehlt. Bis zur
    * Fassung 30: „greifen die Magenschleimhaut direkt an. Die häufigste
    * vermeidbare Ursache" – ohne die Bedingung der Dauer und mit einer
    * Rangfolge, die dort nicht steht.
@@ -14663,7 +14742,7 @@ const VERDAECHTE = [
     was: 'Ibuprofen, Diclofenac und ASS gehören zu den entzündungshemmenden '
       + 'Schmerzmitteln (NSAR). Häufig genommen, zählen sie laut gesund.bund.de neben '
       + 'Helicobacter zu den häufigsten Gründen für eine entzündete Magenschleimhaut: '
-      + 'Bei Einnahme über Wochen oder Monate kann das die Schutzfunktion der '
+      + 'Bei Einnahme über Wochen oder Monate können sie die Schutzfunktion der '
       + 'Magenschleimhaut stören. Ob und wie oft so ein Mittel genommen wurde, steht '
       + 'im Tagebuch.',
     untersuchung: 'Keine nötig, um die Frage zu stellen. Es geht um eine '
@@ -15840,6 +15919,14 @@ const STUFEN_SCHWELLE = 1;
 
 const schnittVon = (l) => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0);
 
+/** Eine Zehntelzahl mit Komma, wie überall in der Anzeige („3,0"). */
+const zehntel = (x) => x.toFixed(1).replace('.', ',');
+
+/** „a, b und c" – oder mit „oder". */
+const undOder = (namen, wort) => (namen.length > 1
+  ? `${namen.slice(0, -1).join(', ')} ${wort} ${namen[namen.length - 1]}`
+  : namen.join(''));
+
 /**
  * Ab welcher Menge fällt dieser Auslöser auf?
  *
@@ -15900,18 +15987,30 @@ function dosisBild(eintraege, id, fenster = 4) {
      * hieß es „fast immer", auch wenn die Zutat in der Hälfte der Fälle schon
      * kleiner vorkam; jetzt steht die Zahl dabei. Das Urteil 'unklar' ist
      * unverändert.
+     *
+     * Kommen zwei Rollen gleich oft vor, ist keine „am häufigsten": Dann
+     * stehen alle gleich häufigen da. Bis zur Fassung 30 gewann bei
+     * Gleichstand die Rolle, die in STUFEN zuerst steht.
      */
     const haeufigste = [...stufen].sort((a, b) => b.faelle - a.faelle)[0];
     const gesamt = stufen.reduce((s, st) => s + st.faelle, 0);
+    const gleichOft = haeufigste ? stufen.filter((st) => st.faelle === haeufigste.faelle) : [];
+    let wieOft;
+    if (haeufigste && haeufigste.faelle === gesamt) {
+      wieOft = `Bisher kam das immer ${haeufigste.satz} vor (${gesamt} Mal).`;
+    } else if (gleichOft.length > 1) {
+      wieOft = `Bisher kam das gleich oft ${undOder(gleichOft.map((st) => st.name), 'und')} vor `
+        + `(je ${haeufigste.faelle} von ${gesamt} Mal).`;
+    } else if (haeufigste) {
+      wieOft = `Bisher kam das am häufigsten ${haeufigste.satz} vor (${haeufigste.faelle} `
+        + `von ${gesamt} Mal).`;
+    }
     return {
       urteil: 'unklar',
       stufen,
       gegenFaelle,
       satz: haeufigste && haeufigste.faelle
-        ? `${haeufigste.faelle === gesamt
-          ? `Bisher kam das immer ${haeufigste.satz} vor (${gesamt} Mal).`
-          : `Bisher kam das am häufigsten ${haeufigste.satz} vor (${haeufigste.faelle} `
-            + `von ${gesamt} Mal).`} Ob die Menge eine Rolle spielt, lässt sich aus dem `
+        ? `${wieOft} Ob die Menge eine Rolle spielt, lässt sich aus dem `
           + 'Tagebuch noch nicht sagen: Für einen Vergleich nach Menge sind bisher zu '
           + 'wenige Mahlzeiten eingetragen.'
         : 'Dafür ist es noch zu selten eingetragen.',
@@ -15968,7 +16067,7 @@ function dosisBild(eintraege, id, fenster = 4) {
       satz: `${hoechsteHarmlos.satz.replace(/^./, (c) => c.toUpperCase())} `
         + `war es unauffällig (${hoechsteHarmlos.faelle} Mahlzeiten), `
         + `${niedrigsteAuffaellig.satz} dagegen um `
-        + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter `
+        + `${zehntel(niedrigsteAuffaellig.differenz)} Stufen schlechter `
         + `(${niedrigsteAuffaellig.faelle} Mahlzeiten). Woran das liegt, zeigt das `
         + 'Tagebuch nicht: Ob eine kleinere Menge vertragen wird, hängt an der Ursache. '
         + 'Was das für dein Essen heißt, lässt sich in der Praxis besprechen.',
@@ -15993,11 +16092,20 @@ function dosisBild(eintraege, id, fenster = 4) {
       abStufe: niedrigsteAuffaellig,
       satz: `Schon ${niedrigsteAuffaellig.satz} fällt es auf `
         + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
-        + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter). Eine `
+        + `${zehntel(niedrigsteAuffaellig.differenz)} Stufen schlechter). Eine `
         + 'Menge, die durchgeht, ist bisher nicht dabei.',
     };
   }
 
+  /*
+   * Die kleineren Rollen, die hier zu selten sind: nur die unter der
+   * auffälligen Stufe. Wäre eine davon prüfbar, stünde sie oben als
+   * auffällig oder harmlos da. Bis zur Fassung 30 hieß es fest „nur als
+   * Beilage, Topping oder Würze" – auch wenn die Beilage selbst die
+   * auffällige Stufe war und ihre Mahlzeiten im Satz davor standen.
+   */
+  const kleiner = STUFEN.filter((st) => st.rang < niedrigsteAuffaellig.rang)
+    .reverse().map((st) => st.name.replace(/^als /, ''));
   return {
     urteil: 'ab-hier',
     stufen,
@@ -16005,9 +16113,9 @@ function dosisBild(eintraege, id, fenster = 4) {
     abStufe: niedrigsteAuffaellig,
     satz: `Auffällig wird es ${niedrigsteAuffaellig.satz} `
       + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
-      + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter). Ob `
+      + `${zehntel(niedrigsteAuffaellig.differenz)} Stufen schlechter). Ob `
       + 'kleinere Mengen anders wirken, lässt sich aus dem Tagebuch noch nicht sagen: '
-      + 'Mahlzeiten, in denen es nur als Beilage, Topping oder Würze vorkommt, sind '
+      + `Mahlzeiten, in denen es nur als ${undOder(kleiner, 'oder')} vorkommt, sind `
       + 'bisher zu wenige eingetragen.',
   };
 }
@@ -16394,6 +16502,14 @@ const PRUEFBAR = [
    * in der Leber ein giftiges Abbauprodukt an. Bis zur Fassung 29: „Der
    * häufigste und der am meisten übersehene“ und „Apfelsaft ist die
    * unbarmherzigste Form“ – das sagt keine erreichbare Quelle.
+   *
+   * Der Ausschluss so deutlich wie NICHT_BEI_ALLERGIE unten. Dieselbe Quelle,
+   * Tabelle zum Einnahmeweg „Oral“ (S. 5): „a rare genetic disorder in which a
+   * person cannot break down fructose“, und in der Spalte Comments: „Patients
+   * with hereditary fructose intolerance (HFI) should not take/be given this
+   * medicinal product.“ Bis zur Fassung 30: „Nicht gedacht bei …“ – schwächer
+   * als die Quelle, und „das ist eine andere Erkrankung“ ließ sich so lesen, als
+   * erkenne der Test sie bloß nicht.
    */
   {
     id: 'fruktose',
@@ -16402,8 +16518,8 @@ const PRUEFBAR = [
     warum: 'Der Dünndarm nimmt Fruchtzucker nur bis zu einer gewissen Menge auf; wie '
       + 'viel, hängt davon ab, wie viel auf einmal kommt und ob gleichzeitig Traubenzucker '
       + 'dabei ist. Was nicht aufgenommen wird, kann Durchfall und andere '
-      + 'Magen-Darm-Beschwerden auslösen. Nicht gedacht bei der seltenen erblichen '
-      + 'Fruktoseintoleranz – das ist eine andere Erkrankung.',
+      + 'Magen-Darm-Beschwerden auslösen. Nicht anwenden bei der seltenen erblichen '
+      + 'Fruktoseintoleranz: Bei ihr kann der Körper Fruchtzucker nicht abbauen.',
   },
   /*
    * Quellen: EMA/CHMP/460886/2014 (siehe oben), 3.1: „Sorbitol is incompletely
@@ -16426,7 +16542,8 @@ const PRUEFBAR = [
       + 'manchen Früchten vor, in Trockenpflaumen oft reichlich. Der Darm nimmt es nur '
       + 'begrenzt auf; größere Mengen können Bauchbeschwerden machen und leicht '
       + 'abführend wirken. Zusammen mit Fruchtzucker konkurriert es womöglich um die '
-      + 'Aufnahme. Nicht gedacht bei der seltenen erblichen Fruktoseintoleranz.',
+      + 'Aufnahme. Sorbit ist eine Quelle von Fruchtzucker – nicht anwenden bei der '
+      + 'seltenen erblichen Fruktoseintoleranz.',
   },
   /*
    * Quellen: Nehlig, Effects of Coffee on the Gastro-Intestinal Tract,
@@ -18820,9 +18937,12 @@ function warnzeichenVon(id) {
  * abgeklärt wurde, ist keine alte Nachricht.
  *
  * Gesucht wird in *allen* Eintragungen, nicht nur in den Beschwerden. Seit es
- * den Stuhlgang als eigene Art gibt, stehen die zwei wichtigsten Warnzeichen
- * überhaupt – schwarzer Stuhl und frisches Blut – genau dort. Sie nur im
- * Beschwerdebogen zu suchen, hieße sie da zu suchen, wo sie nicht sind.
+ * den Stuhlgang als eigene Art gibt, lassen sich schwarzer Stuhl und frisches
+ * Blut im Beschwerde- und im Stuhlbogen ankreuzen (siehe den Stuhlbogen in
+ * js/app.js); wer nur in den Beschwerden sucht, übersieht die Einträge aus dem
+ * Stuhlbogen. Bis zur Fassung 30 hießen die beiden hier „die zwei wichtigsten
+ * Warnzeichen überhaupt" – eine Rangfolge, die keine Quelle aufstellt und die
+ * auch nicht zu den Stufen oben passt (frisches Blut ist „zeitnah").
  */
 function warnungen(eintraege) {
   const zaehler = new Map();
@@ -19069,7 +19189,28 @@ function musterUnterleib(d) {
  *                    Magen-Darm-Trakts"; „verschiedene Behandlungsmöglichkeiten".
  *                    Bis zur Fassung 30: „Die Diagnose, die bleibt, wenn die
  *                    Spiegelung nichts zeigt" – die Spiegelung als Maßstab nennt
- *                    die Seite nicht.
+ *                    die Seite nicht. Aus demselben Grund ist beim
+ *                    Nüchternschmerz „Übersäuerung ohne Geschwür – Bleibt übrig,
+ *                    wenn die Spiegelung unauffällig ist" gestrichen: Eine
+ *                    „Übersäuerung" als Restbefund nennt keine geprüfte Quelle;
+ *                    was nach dem Ausschluss anderer Ursachen bleibt, heißt dort
+ *                    Reizmagen.
+ *   Nüchternschmerz  gesund.bund.de/zwoelffingerdarmgeschwuer (Stand 27.01.2022):
+ *                    „Zur Diagnose reicht meist eine Magenspiegelung mit
+ *                    Gewebeentnahme."; „Bei einem Zwölffingerdarmgeschwür kommt es
+ *                    – anders als beim Magengeschwür – eher bei leerem Magen zu
+ *                    Beschwerden. Nach dem Essen bessern sie sich oft."; „meist
+ *                    die Folge einer Infektion mit dem Bakterium Helicobacter
+ *                    pylori". Bis zur Fassung 30: „das klassische Muster" und
+ *                    „häufigste Ursache" ohne Quelle, und die Frage behauptete
+ *                    „bessert sich nach dem Essen" – das Muster zählt nur
+ *                    Beschwerden mit Abstand zur Mahlzeit.
+ *   Laktose          gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026, „Wie
+ *                    wird eine Laktoseintoleranz diagnostiziert?"): „Das
+ *                    Standardverfahren in Deutschland ist der Atemtest." Bis zur
+ *                    Fassung 30: „H2-Atemtest, dauert einen Vormittag" – die
+ *                    Dauer nennt keine geprüfte Quelle, und zur Fruktose liegt
+ *                    keine vor.
  *   Zöliakie         EMA/CHMP/639441/2013 corr. 2 (9. Oktober 2017), S. 4:
  *                    „Diagnosis is by blood tests to check for relevant
  *                    antibodies, followed by endoscopy/gastroscopy and biopsy.
@@ -19094,6 +19235,13 @@ function musterUnterleib(d) {
  *                    Fassung 30: „Häufig und für sich genommen harmlos – die
  *                    Hormonschwankung wirkt auf den Darm"; die Entwarnung
  *                    widerspricht dem Rat zur Abklärung starker Schmerzen.
+ *                    Das Muster kann in jeder Phase liegen (musterZyklus), nicht
+ *                    nur bei der Regel; deshalb dazu
+ *                    gesund.bund.de/praemenstruelles-syndrom-pms (Stand
+ *                    21.10.2022): Beschwerden „einige Tage bis zwei Wochen vor der
+ *                    Regelblutung", darunter „Schlaf- oder Verdauungsprobleme".
+ *                    (Angezeigt wird ein Muster erst ab zwei Belegen;
+ *                    musterZyklus liefert bisher höchstens einen.)
  *   Endometriose     gesund.bund.de/endometriose (Stand 21.08.2025): „Oft dauert
  *                    es Jahre bis zur Diagnose"; nach dem Gespräch „eine
  *                    allgemeine körperliche sowie gynäkologische Untersuchung.
@@ -19103,6 +19251,24 @@ function musterUnterleib(d) {
  *                    bis zehn Jahre lang für einen Reizdarm gehalten" und
  *                    „Tastuntersuchung, Ultraschall" – beides steht so in keiner
  *                    geprüften Quelle.
+ *   Adenomyose       gesund.bund.de/endometriose: „Bei einer Endometriose findet
+ *                    sich Gewebe, welches der Gebärmutterschleimhaut ähnelt, in
+ *                    der Gebärmutterwand oder außerhalb der Gebärmutter."; „Die
+ *                    erste Anlaufstelle bei Endometriose ist meist die
+ *                    Frauenarztpraxis." Bis zur Fassung 30: „Ultraschall, oft
+ *                    zusätzlich MRT" – ohne Quelle.
+ *   Beckenboden      EMA, Ryeqo, Bewertungsbericht EMA/528959/2023 (14.09.2023),
+ *                    S. 45, Ausschlusskriterium 1: „chronic pelvic pain that was
+ *                    not caused by endometriosis (eg, vaginismus, … or pelvic
+ *                    floor disorders)". Bis zur Fassung 30: „Kommt eher bei
+ *                    Schmerz am Eingang und bei Verstopfung in Frage; … ist gut
+ *                    behandelbar" – eine Zuordnung und ein Erfolgsversprechen
+ *                    ohne Quelle.
+ *   Nebeneinander    Bis zur Fassung 30: „Möglich und häufig – … ohne
+ *                    gemeinsame Ursache"; Häufigkeit und fehlende gemeinsame
+ *                    Ursache nennt keine geprüfte Quelle. Geblieben ist, dass
+ *                    beides zugleich da sein kann und sich nur klären lässt,
+ *                    wenn man beides ansieht.
  *   Anspannung       gesund.bund.de/stress (Stand 14.01.2026): bei einer akuten
  *                    Stressreaktion werden Vorgänge zurückgefahren, „unter
  *                    anderem die Magen-, Darm- und Blasentätigkeit"; bei
@@ -19136,12 +19302,11 @@ const MUSTER = [
       + 'nicht direkt nach dem Essen.',
     pruefe: musterNuechtern,
     ursachen: [
-      { name: 'Geschwür im Zwölffingerdarm', klaerung: 'Magenspiegelung. Der Nüchternschmerz ist dafür das klassische Muster.' },
-      { name: 'Helicobacter pylori', klaerung: 'Atem-, Stuhl- oder Gewebetest – häufigste Ursache eines solchen Geschwürs.' },
-      { name: 'Übersäuerung ohne Geschwür', klaerung: 'Bleibt übrig, wenn die Spiegelung unauffällig ist.' },
+      { name: 'Geschwür im Zwölffingerdarm', klaerung: 'Zur Diagnose reicht laut gesund.bund.de meist eine Magenspiegelung mit Gewebeprobe. Die Beschwerden kommen dabei eher bei leerem Magen und bessern sich nach dem Essen oft.' },
+      { name: 'Helicobacter pylori', klaerung: 'Atem-, Stuhl- oder Gewebetest. Ein Geschwür im Zwölffingerdarm ist laut gesund.bund.de meist die Folge einer Infektion mit diesem Bakterium.' },
     ],
     fragen: [
-      'Der Schmerz kommt nüchtern und bessert sich nach dem Essen – wie wird das eingeordnet?',
+      'Der Schmerz kommt oft nüchtern, mit Abstand zum Essen – wie wird das eingeordnet?',
       'Ist eine Magenspiegelung angezeigt?',
     ],
   },
@@ -19169,7 +19334,7 @@ const MUSTER = [
     pruefe: musterDarm,
     ursachen: [
       { name: 'Reizdarmsyndrom', klaerung: 'Diagnose nach Ausschluss; die Auslöserliste aus diesem Tagebuch ist dafür brauchbares Material.' },
-      { name: 'Laktose- oder Fruktoseunverträglichkeit', klaerung: 'H2-Atemtest, dauert einen Vormittag.' },
+      { name: 'Laktose- oder Fruktoseunverträglichkeit', klaerung: 'Bei Laktoseintoleranz ist laut gesund.bund.de der Atemtest das Standardverfahren in Deutschland. Welcher Test infrage kommt, klärt die Praxis.' },
       { name: 'Zöliakie', klaerung: 'Bluttest auf Antikörper, danach Spiegelung mit Gewebeprobe. Laut EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon 6 bis 12 Monate glutenfrei gegessen wurde.' },
     ],
     fragen: [
@@ -19198,7 +19363,7 @@ const MUSTER = [
     satz: 'Die Beschwerden schwanken deutlich mit dem Zyklus.',
     pruefe: musterZyklus,
     ursachen: [
-      { name: 'Zyklusabhängige Verdauungsbeschwerden', klaerung: 'Beschwerden während der Regel sind laut gesund.bund.de weit verbreitet, bei manchen auch mit Übelkeit, Erbrechen oder Durchfall. Bei sehr starken oder sich verschlimmernden Schmerzen ist eine ärztliche Untersuchung sinnvoll.' },
+      { name: 'Zyklusabhängige Verdauungsbeschwerden', klaerung: 'Regelschmerzen sind laut gesund.bund.de weit verbreitet, bei manchen mit Übelkeit, Erbrechen oder Durchfall; in den Tagen vor der Regelblutung können beim prämenstruellen Syndrom auch Verdauungsprobleme vorkommen. Bei sehr starken oder sich verschlimmernden Schmerzen ist eine ärztliche Untersuchung sinnvoll.' },
       { name: 'Endometriose', klaerung: 'Kommt in Frage, wenn dazu starke Regelschmerzen, Schmerzen beim Sex oder zyklische Darmbeschwerden gehören. Wird oft jahrelang übersehen; abgeklärt wird sie gynäkologisch.' },
     ],
     fragen: [
@@ -19214,9 +19379,9 @@ const MUSTER = [
     pruefe: musterUnterleib,
     ursachen: [
       { name: 'Endometriose', klaerung: 'Abgeklärt wird sie gynäkologisch: laut gesund.bund.de mit Gespräch und Untersuchung, je nach Beschwerden auch mit weiteren Untersuchungen bis hin zu einer Bauchspiegelung. Bis zur Diagnose dauert es oft Jahre.' },
-      { name: 'Adenomyose', klaerung: 'Endometriose in der Gebärmutterwand. Ultraschall, oft zusätzlich MRT.' },
-      { name: 'Beckenbodenstörung', klaerung: 'Kommt eher bei Schmerz am Eingang und bei Verstopfung in Frage; wird über eine Untersuchung des Beckenbodens beurteilt und ist gut behandelbar.' },
-      { name: 'Reizdarm und Regelschmerz nebeneinander', klaerung: 'Möglich und häufig – zwei Dinge gleichzeitig, ohne gemeinsame Ursache. Das lässt sich nur klären, indem man beides ansieht.' },
+      { name: 'Adenomyose', klaerung: 'Gewebe, das der Gebärmutterschleimhaut ähnelt, in der Gebärmutterwand. Laut gesund.bund.de zählt auch das zur Endometriose; abgeklärt wird es ebenfalls gynäkologisch.' },
+      { name: 'Beckenbodenstörung', klaerung: 'Kann laut einem Bewertungsbericht der EMA chronische Beckenschmerzen machen, die nicht von einer Endometriose kommen. Ob das hier eine Rolle spielt, klärt die Praxis.' },
+      { name: 'Reizdarm und Regelschmerz nebeneinander', klaerung: 'Zwei Dinge können auch gleichzeitig da sein. Das lässt sich nur klären, indem man beides ansieht.' },
     ],
     fragen: [
       'Meine Darmbeschwerden hängen am Zyklus, und ich habe Schmerzen beim Sex – kann eine Endometriose dahinterstecken?',
@@ -19336,7 +19501,12 @@ function genugFuerBild(basis) {
  *                Empfehlungen" (Reizmagensyndrom, Stand 05.02.2026,
  *                Behandlung). Teils der Verweis auf die Atemübungen unter
  *                „Ruhe" und die Liste der eingenommenen Mittel, die kein Rat
- *                ist. Deshalb immer nachrangig hinter dem eigenen Verlauf.
+ *                ist. Bis zur Fassung 30 stand hier „Deshalb immer nachrangig
+ *                hinter dem eigenen Verlauf", und die Fußzeile der Karte sagte
+ *                „dein eigener Verlauf sticht das" – unter „allgemein" stehen
+ *                aber auch Verweise an die Praxis, und eine Auffälligkeit im
+ *                Tagebuch ist kein Beleg (siehe 'essen-eigen' unten). Sortiert
+ *                wird nicht nach der Quelle.
  *                Bis zur Fassung 29 hieß es hier „was bei Magenbeschwerden
  *                üblicherweise empfohlen wird" – das traf auf die Atem- und
  *                Sportkarten und auf die Mittelliste nicht zu.
@@ -19398,8 +19568,9 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
  *
  *   'bremse'  Schalter ADHS an, eine Einnahme in den letzten 14 Tagen, und
  *             ungewollt abgenommen oder „Kein Appetit" an mindestens 3 der
- *             letzten 7 Bauch-Tage: „Auffällig in deinem Verlauf: …" und
- *             „Spätes Essen und Liegen" entfallen.
+ *             letzten 7 Bauch-Tage: „Auffällig in deinem Verlauf: …" (auch
+ *             in der Form „Möglicherweise auffällig …") und „Spätes Essen und
+ *             Liegen" entfallen.
  *   'zusatz'  Schalter und Einnahme, sonst nichts: „Spätes Essen und Liegen"
  *             bekommt einen Satz dazu.
  *
@@ -19495,7 +19666,21 @@ function raete(d) {
   const bremse = d.essenVorsicht === 'bremse';
 
   if (auffaellig.length && !bremse) {
-    const namen = auffaellig.map((b) => ausloeserName(b.id, d.eigene)).join(', ');
+    /*
+     * Der Titel mit demselben Wort wie die Auslöserliste unter „Muster"
+     * (EINSTUFUNG_WORT in js/auswertung.js): 'auffaellig' heißt dort
+     * „auffällig", 'moeglich' nur „möglicherweise". Bis zur Fassung 30 stand
+     * über beiden „Auffällig in deinem Verlauf" – derselbe Fund wäre auf
+     * „Für heute" höher eingestuft gewesen als unter „Muster". Welche Zeilen
+     * auf die Karte kommen, ist unverändert.
+     */
+    const namenVon = (liste) => liste.map((b) => ausloeserName(b.id, d.eigene)).join(', ');
+    const sicher = auffaellig.filter((b) => einstufung(b) === 'auffaellig');
+    const vielleicht = auffaellig.filter((b) => einstufung(b) === 'moeglich');
+    let titel;
+    if (!vielleicht.length) titel = `Auffällig in deinem Verlauf: ${namenVon(sicher)}`;
+    else if (!sicher.length) titel = `Möglicherweise auffällig in deinem Verlauf: ${namenVon(vielleicht)}`;
+    else titel = `Auffällig in deinem Verlauf: ${namenVon(sicher)}; möglicherweise auch ${namenVon(vielleicht)}`;
     /*
      * Was ein Tagebuch dabei kann und was nicht. gesund.bund.de,
      * Reizmagensyndrom (Stand 05.02.2026): „durch das Führen eines
@@ -19519,7 +19704,7 @@ function raete(d) {
      * Unterschied mindestens eine Stufe).
      */
     raus.push(rat('essen-eigen', 'essen',
-      `Auffällig in deinem Verlauf: ${namen}`,
+      titel,
       'Danach lag dein Bauchwert im Mittel höher als ohne. Ob ein Lebensmittel '
       + 'wirklich der Auslöser ist, lässt sich aus dem Tagebuch allein nicht sicher '
       + 'sagen; ob ein Auslassversuch für dich sinnvoll ist, lässt sich in der Praxis '
@@ -24206,10 +24391,18 @@ function ratKarte(s) {
       <p>${esc(r.text)}</p>
       <p class="klein">${esc(r.warum)}</p>
     </li>`).join('')}</ul>
-    <p class="klein">„Aus deinem Verlauf" heißt: aus deinen eigenen Eintragungen
+    <p class="klein">„Aus deinem Verlauf“ heißt: aus deinen eigenen Eintragungen
     gerechnet, mit den Zahlen daneben. „Allgemein“ heißt: allgemeine Hinweise,
-    oft nicht gut untersucht – dein eigener Verlauf sticht das.</p>
+    oft nicht gut untersucht.</p>
   </div>`;
+  /*
+   * Bis zur Fassung 30 endete die Zeile mit „– dein eigener Verlauf sticht
+   * das". Unter „allgemein" stehen aber auch Verweise an die Praxis (etwa
+   * „Halten die Beschwerden an, gehört das in die Praxis"), und eine
+   * Auffälligkeit im Tagebuch ist kein Beleg (Karte 'essen-eigen' in
+   * js/rat.js, versuchTeil). Einen Vorrang des eigenen Verlaufs nennt keine
+   * der Quellen im Kopf von js/rat.js, und raete() sortiert auch nicht danach.
+   */
 }
 
 /* ==================== Reiter: Verlauf ==================== */

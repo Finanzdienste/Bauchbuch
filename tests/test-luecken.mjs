@@ -276,6 +276,39 @@ check(
     && satzC.includes('besonders sorgfältige ärztliche Überwachung') && satzC.includes('Praxis oder Apotheke')
     && !satzC.includes('Sicher ist nur'),
   `Typ C mit Schmerzmittel: belegter Wortlaut statt „Sicher ist nur …“ (${satzC.slice(0, 80)}…)`);
+
+  /*
+   * Magen- oder Zwölffingerdarmgeschwür (Fassung 30, dritte Runde). Laut
+   * gesund.bund.de kommen die Beschwerden beim Zwölffingerdarmgeschwür eher
+   * bei leerem Magen, beim Magengeschwür oft unabhängig von den Mahlzeiten
+   * oder eher nach dem Essen. Bis dahin galten Beschwerden überwiegend kurz
+   * nach dem Essen als „Dagegen spricht“, der Satz zum Nüchternschmerz stand
+   * für beide Geschwüre, und die Frage behauptete auch ohne Muster einen
+   * Schmerz, der nüchtern kommt. Belege am Verdacht 'ulkus' in js/luecken.js.
+   */
+  const kurzNach = { bewertbar: 20, nuechtern: 2, nachDemEssen: 16, anteilNuechtern: 0.1, anteilNachDemEssen: 0.8 };
+  const ulkus = luecken({ ...d, essen: kurzNach }).verdaechte.find((v) => v.id === 'ulkus');
+  check(ulkus.dagegen.length === 0 && ulkus.stand === 'offen',
+    `Geschwür: Beschwerden kurz nach dem Essen sind kein Gegenzeichen (${ulkus.dagegen.join(' | ') || 'kein Dagegen'})`);
+  check(ulkus.was.includes('Beim Zwölffingerdarmgeschwür kommen die Beschwerden laut gesund.bund.de eher bei leerem Magen')
+    && ulkus.was.includes('beim Magengeschwür sind Schmerzen im Oberbauch oft unabhängig von den Mahlzeiten')
+    && !ulkus.was.includes('Tut typischerweise nüchtern weh'),
+  'Geschwür: der Satz trennt Magen- und Zwölffingerdarmgeschwür wie die Quelle');
+  check(ulkus.frage === 'Ist eine Magenspiegelung angezeigt?',
+    `ohne Nüchternmuster behauptet die Frage keines (${ulkus.frage})`);
+  check(ulkus.offen.includes('nicht auf einen Termin warten – Notaufnahme oder 112'),
+    'schwarzer, klebriger Stuhl mit dem Satz der Warnkarte');
+  const mitMuster = luecken({ ...d, musterIds: ['nuechtern'], essen: { ...kurzNach, nuechtern: 14, nachDemEssen: 3, anteilNuechtern: 0.7, anteilNachDemEssen: 0.15 } })
+    .verdaechte.find((v) => v.id === 'ulkus');
+  check(mitMuster.stand === 'moeglich' && mitMuster.frage.includes('kommt oft nüchtern')
+    && !mitMuster.frage.includes('bessert sich'),
+  `mit Nüchternmuster: die Frage sagt nur, was gezählt ist (${mitMuster.frage})`);
+  const lUlkus = JSON.stringify(luecken({ ...d, essen: kurzNach, nachtwachAn: false }));
+  const wegUlkus = ['nicht nüchtern', 'Tut typischerweise nüchtern weh', 'die einzige, die eine Blutung',
+    'würden es dringend machen', 'dauert einen Vormittag', 'Je Zucker ein Termin', 'ausgeschaltet zählt er'];
+  const nochUlkus = wegUlkus.filter((w) => lUlkus.includes(w));
+  check(nochUlkus.length === 0 && lUlkus.includes('Ist die Frage ausgeschaltet, zählt dieser Posten immer null'),
+    `auch diese Sätze sind gestrichen oder neu gefasst (${nochUlkus.join(', ') || 'keiner übrig'})`);
 }
 
 /*

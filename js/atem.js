@@ -61,7 +61,9 @@ export const UEBUNGEN = [
   {
     id: 'kohaerenz',
     name: 'Gleichmaß',
-    zweck: 'Ohne Halten, gut sechs Atemzüge in der Minute',
+    // 5,5 s ein und 5,5 s aus sind 11 s je Atemzug, also 60/11 ≈ 5,5 in der
+    // Minute; bis zur Fassung 30 stand hier „gut sechs".
+    zweck: 'Ohne Halten, etwa fünfeinhalb Atemzüge in der Minute',
     beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus. '
       + 'Unauffällig genug für den Bus.',
     runden: 10,

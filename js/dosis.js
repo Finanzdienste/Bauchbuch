@@ -63,6 +63,14 @@ const STUFEN_SCHWELLE = 1;
 
 const schnittVon = (l) => (l.length ? l.reduce((s, x) => s + x, 0) / l.length : 0);
 
+/** Eine Zehntelzahl mit Komma, wie überall in der Anzeige („3,0"). */
+const zehntel = (x) => x.toFixed(1).replace('.', ',');
+
+/** „a, b und c" – oder mit „oder". */
+const undOder = (namen, wort) => (namen.length > 1
+  ? `${namen.slice(0, -1).join(', ')} ${wort} ${namen[namen.length - 1]}`
+  : namen.join(''));
+
 /**
  * Ab welcher Menge fällt dieser Auslöser auf?
  *
@@ -123,18 +131,30 @@ export function dosisBild(eintraege, id, fenster = 4) {
      * hieß es „fast immer", auch wenn die Zutat in der Hälfte der Fälle schon
      * kleiner vorkam; jetzt steht die Zahl dabei. Das Urteil 'unklar' ist
      * unverändert.
+     *
+     * Kommen zwei Rollen gleich oft vor, ist keine „am häufigsten": Dann
+     * stehen alle gleich häufigen da. Bis zur Fassung 30 gewann bei
+     * Gleichstand die Rolle, die in STUFEN zuerst steht.
      */
     const haeufigste = [...stufen].sort((a, b) => b.faelle - a.faelle)[0];
     const gesamt = stufen.reduce((s, st) => s + st.faelle, 0);
+    const gleichOft = haeufigste ? stufen.filter((st) => st.faelle === haeufigste.faelle) : [];
+    let wieOft;
+    if (haeufigste && haeufigste.faelle === gesamt) {
+      wieOft = `Bisher kam das immer ${haeufigste.satz} vor (${gesamt} Mal).`;
+    } else if (gleichOft.length > 1) {
+      wieOft = `Bisher kam das gleich oft ${undOder(gleichOft.map((st) => st.name), 'und')} vor `
+        + `(je ${haeufigste.faelle} von ${gesamt} Mal).`;
+    } else if (haeufigste) {
+      wieOft = `Bisher kam das am häufigsten ${haeufigste.satz} vor (${haeufigste.faelle} `
+        + `von ${gesamt} Mal).`;
+    }
     return {
       urteil: 'unklar',
       stufen,
       gegenFaelle,
       satz: haeufigste && haeufigste.faelle
-        ? `${haeufigste.faelle === gesamt
-          ? `Bisher kam das immer ${haeufigste.satz} vor (${gesamt} Mal).`
-          : `Bisher kam das am häufigsten ${haeufigste.satz} vor (${haeufigste.faelle} `
-            + `von ${gesamt} Mal).`} Ob die Menge eine Rolle spielt, lässt sich aus dem `
+        ? `${wieOft} Ob die Menge eine Rolle spielt, lässt sich aus dem `
           + 'Tagebuch noch nicht sagen: Für einen Vergleich nach Menge sind bisher zu '
           + 'wenige Mahlzeiten eingetragen.'
         : 'Dafür ist es noch zu selten eingetragen.',
@@ -191,7 +211,7 @@ export function dosisBild(eintraege, id, fenster = 4) {
       satz: `${hoechsteHarmlos.satz.replace(/^./, (c) => c.toUpperCase())} `
         + `war es unauffällig (${hoechsteHarmlos.faelle} Mahlzeiten), `
         + `${niedrigsteAuffaellig.satz} dagegen um `
-        + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter `
+        + `${zehntel(niedrigsteAuffaellig.differenz)} Stufen schlechter `
         + `(${niedrigsteAuffaellig.faelle} Mahlzeiten). Woran das liegt, zeigt das `
         + 'Tagebuch nicht: Ob eine kleinere Menge vertragen wird, hängt an der Ursache. '
         + 'Was das für dein Essen heißt, lässt sich in der Praxis besprechen.',
@@ -216,11 +236,20 @@ export function dosisBild(eintraege, id, fenster = 4) {
       abStufe: niedrigsteAuffaellig,
       satz: `Schon ${niedrigsteAuffaellig.satz} fällt es auf `
         + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
-        + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter). Eine `
+        + `${zehntel(niedrigsteAuffaellig.differenz)} Stufen schlechter). Eine `
         + 'Menge, die durchgeht, ist bisher nicht dabei.',
     };
   }
 
+  /*
+   * Die kleineren Rollen, die hier zu selten sind: nur die unter der
+   * auffälligen Stufe. Wäre eine davon prüfbar, stünde sie oben als
+   * auffällig oder harmlos da. Bis zur Fassung 30 hieß es fest „nur als
+   * Beilage, Topping oder Würze" – auch wenn die Beilage selbst die
+   * auffällige Stufe war und ihre Mahlzeiten im Satz davor standen.
+   */
+  const kleiner = STUFEN.filter((st) => st.rang < niedrigsteAuffaellig.rang)
+    .reverse().map((st) => st.name.replace(/^als /, ''));
   return {
     urteil: 'ab-hier',
     stufen,
@@ -228,9 +257,9 @@ export function dosisBild(eintraege, id, fenster = 4) {
     abStufe: niedrigsteAuffaellig,
     satz: `Auffällig wird es ${niedrigsteAuffaellig.satz} `
       + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
-      + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter). Ob `
+      + `${zehntel(niedrigsteAuffaellig.differenz)} Stufen schlechter). Ob `
       + 'kleinere Mengen anders wirken, lässt sich aus dem Tagebuch noch nicht sagen: '
-      + 'Mahlzeiten, in denen es nur als Beilage, Topping oder Würze vorkommt, sind '
+      + `Mahlzeiten, in denen es nur als ${undOder(kleiner, 'oder')} vorkommt, sind `
       + 'bisher zu wenige eingetragen.',
   };
 }

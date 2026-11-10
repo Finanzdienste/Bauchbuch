@@ -43,6 +43,11 @@ await page.reload({ waitUntil: 'networkidle' });
   const gleichmass = await page.evaluate(() => import('./js/atem.js').then((m) => m.uebungVon('kohaerenz')));
   check(/ohne Halten/i.test(gleichmass.zweck) && !/ohne Halten/i.test(gleichmass.beschreibung),
     'Gleichmaß: „Ohne Halten“ steht einmal, nicht im Zweck und gleich darunter noch einmal');
+  // Die Zahl im Zweck passt zum eigenen Takt: 60 s durch die Dauer eines
+  // Atemzugs. Bis zur Fassung 30 stand dort „gut sechs“ bei 5,5 + 5,5 s.
+  const jeMinute = 60 / gleichmass.phasen.reduce((s, p) => s + p.sek, 0);
+  check(Math.abs(jeMinute - 5.5) < 0.1 && gleichmass.zweck.includes('etwa fünfeinhalb Atemzüge in der Minute'),
+    `Gleichmaß: „etwa fünfeinhalb Atemzüge in der Minute“ bei ${jeMinute.toFixed(2)} je Minute`);
 }
 
 /* ---------- Der Ablauf, ohne ihn abzuwarten ---------- */

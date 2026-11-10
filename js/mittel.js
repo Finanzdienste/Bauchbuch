@@ -432,7 +432,9 @@ export const REIZSTOFFE = [
     // dieser Zählung.
     beispiele: ['Ibuprofen', 'Ibu', 'Dolormin', 'Nurofen', 'Diclofenac', 'Diclo',
       'Voltaren', 'Naproxen', 'ASS', 'Aspirin'],
-    kurz: 'Regelmäßig genommen, neben Helicobacter einer der häufigsten Gründe für eine entzündete Magenschleimhaut.',
+    // „Häufig genommen" wie in js/bild.js und js/luecken.js; die Quelle sagt
+    // „die häufige Einnahme". Bis zur Fassung 30 hier „Regelmäßig genommen".
+    kurz: 'Häufig genommen, neben Helicobacter einer der häufigsten Gründe für eine entzündete Magenschleimhaut.',
     wirkung: 'Sie hemmen Botenstoffe, die Schmerz und Entzündung machen – dieselben '
       + 'Botenstoffe sorgen aber auch dafür, dass der Magen Schleim und säureneutralisierende '
       + 'Stoffe bildet. Bei Einnahme über Wochen oder Monate kann das die Schutzfunktion der '
@@ -675,7 +677,14 @@ export const WEITERE_MITTEL = [
     id: 'opioid',
     gruppe: 'Opioide',
     beispiele: ['Tramadol', 'Tramal', 'Tilidin', 'Valoron', 'Codein', 'Oxycodon', 'Tapentadol'],
-    kurz: 'Ein Opioid – für den Kopf gilt die niedrigere Grenze von zehn Tagen im Monat.',
+    // ICHD-3 8.2.4 (Opioide) und 8.2.2 (Triptane): „≥10 days/month for >3
+    // months", 8.2.3 (einfache Schmerzmittel): „15 or more days/month". Bis zur
+    // Fassung 30: „die niedrigere Grenze von zehn Tagen im Monat" – ohne die
+    // drei Monate und ohne Vergleich; so las es sich wie eine erlaubte Menge
+    // (siehe die Kombinationsmittel in js/app.js).
+    kurz: 'Ein Opioid – für den Kopf gilt wie bei Triptanen eine niedrigere Schwelle für '
+      + 'Übergebrauch als bei einfachen Schmerzmitteln: zehn oder mehr Tage im Monat über '
+      + 'mehr als drei Monate.',
     wirkung: 'Wirkt vor allem an bestimmten Nervenzellen in Rückenmark und Gehirn. Die '
       + 'Fachinformationen nennen als Anwendungsgebiet Schmerzen allgemein, je nach Wirkstoff '
       + 'mäßig starke bis sehr starke; Migräne steht dort nicht eigens. Bei wiederholter '

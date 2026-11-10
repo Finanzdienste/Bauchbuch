@@ -425,6 +425,21 @@ check(
   'der Bericht sagt dasselbe wie die App: kein Ergebnis ist ohne Verblindung ein Nachweis',
 );
 
+/*
+ * Erbliche Fruktoseintoleranz: so deutlich ausgeschlossen wie die Allergie
+ * (NICHT_BEI_ALLERGIE). Laut EMA sollen Menschen mit dieser Erkrankung
+ * Arzneimittel mit Fruchtzucker oder Sorbit nicht einnehmen (Beleg in
+ * js/provokation.js). Bis zur Fassung 30 hieß es „Nicht gedacht bei …“.
+ */
+{
+  const warum = await page.evaluate(() => import('./js/provokation.js')
+    .then((m) => Object.fromEntries(m.PRUEFBAR.map((x) => [x.id, x.warum]))));
+  check(['fruktose', 'sorbit'].every((id) => warum[id].includes('nicht anwenden bei der seltenen erblichen Fruktoseintoleranz')
+    || warum[id].includes('Nicht anwenden bei der seltenen erblichen Fruktoseintoleranz'))
+    && !Object.values(warum).some((w) => w.includes('Nicht gedacht')),
+  'Fruktose und Sorbit: „Nicht anwenden“ bei erblicher Fruktoseintoleranz, kein „Nicht gedacht bei …“');
+}
+
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);
 await page.screenshot({ path: `${SHOT}/provokation.png`, fullPage: true });
 await browser.close();

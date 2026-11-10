@@ -50,6 +50,10 @@ const rat = await page.locator('.rat').textContent();
 check(rat.includes('Auffällig in deinem Verlauf: Kaffee'), 'der auffällige Auslöser steht auf der Karte für heute');
 check(rat.includes('7,0 statt 0,0'), 'mit den Zahlen, aus denen das folgt');
 check(rat.includes('12 Mahlzeiten damit'), 'und der Fallzahl');
+// Die Fußzeile ohne Rangurteil: Unter „allgemein“ stehen auch Verweise an die
+// Praxis, und eine Auffälligkeit im Tagebuch ist kein Beleg (js/app.js, ratKarte).
+check(!rat.includes('sticht') && rat.replace(/\s+/g, ' ').includes('„Aus deinem Verlauf“ heißt: aus deinen eigenen Eintragungen'),
+  'die Fußzeile sagt nicht mehr, der eigene Verlauf „steche“ die allgemeinen Hinweise');
 check(
   (await page.locator('.rat-quelle.q-eigen').count()) > 0,
   'als „aus deinem Verlauf" ausgezeichnet',
@@ -283,6 +287,24 @@ const zusatz = raete({ ...grundlage, essenVorsicht: 'zusatz' });
 check(ids(ohne).includes('essen-eigen') && ids(ohne).includes('essen-spaet')
   && !ids(bremse).includes('essen-eigen') && !ids(bremse).includes('essen-spaet'),
 'raete(): die Bremse nimmt „Auffällig in deinem Verlauf: …“ und „Spätes Essen und Liegen“ heraus');
+/*
+ * Der Titel mit demselben Wort wie unter „Muster": Ein Fund der Stufe
+ * 'moeglich' heißt dort nur „möglicherweise“ (EINSTUFUNG_WORT in
+ * js/auswertung.js). Bis zur Fassung 30 stand über beiden „Auffällig“.
+ */
+{
+  const zeile = (id, schnittMit) => ({
+    id, genug: true, differenz: schnittMit - 1, spielraum: 0, schnittMit, schnittOhne: 1, faelle: 12, gegenFaelle: 30,
+  });
+  const titel = (bilanz) => raete({ ...grundlage, bilanz }).find((x) => x.id === 'essen-eigen').titel;
+  const beide = titel([zeile('kaffee', 4), zeile('zwiebel', 2.5)]);
+  const nurMoeglich = titel([zeile('zwiebel', 2.5)]);
+  const nurAuffaellig = titel([zeile('kaffee', 4)]);
+  check(nurAuffaellig === 'Auffällig in deinem Verlauf: Kaffee'
+    && nurMoeglich === 'Möglicherweise auffällig in deinem Verlauf: Zwiebel, Knoblauch'
+    && beide === 'Auffällig in deinem Verlauf: Kaffee; möglicherweise auch Zwiebel, Knoblauch',
+  `raete(): der Titel stuft wie unter „Muster“ ein (${nurAuffaellig} | ${nurMoeglich} | ${beide})`);
+}
 check(JSON.stringify(ohne.filter((x) => x.id !== 'essen-spaet')) === JSON.stringify(zusatz.filter((x) => x.id !== 'essen-spaet'))
   && zusatz.find((x) => x.id === 'essen-spaet').warum.endsWith('wägt deshalb die Praxis ab, nicht diese Karte.'),
 'raete(): der Zusatz ändert nur den Grund unter der späten Mahlzeit');
