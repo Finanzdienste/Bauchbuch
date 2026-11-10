@@ -136,10 +136,10 @@ const TEXTE = [
     alt: 'Mehrere kleine Portionen statt zwei großen, und dabei bleiben bei: Haferbrei mit Wasser, Kartoffeln, '
       + 'gestampft, gedünstete Karotte oder Zucchini, Reis, Banane, mageres Geflügel oder Fisch.',
   },
-  { wo: ['raete'], neu: 'Atemübungen unter „Ruhe"', alt: 'Zwei Minuten Atmen' },
+  { wo: ['raete'], neu: 'Atemübungen unter „Ruhe“', alt: 'Zwei Minuten Atmen' },
   {
     wo: ['raete'],
-    neu: 'Unter „Ruhe" liegen Atemübungen, etwa 4–7–8 und Gleichmaß, mit Ton, damit die Augen zubleiben können. '
+    neu: 'Unter „Ruhe“ liegen Atemübungen, etwa 4–7–8 und Gleichmaß, mit Ton, damit die Augen zubleiben können. '
       + 'Tiefes Ein- und Ausatmen kann laut gesund.bund.de die Entspannung fördern.',
     alt: 'Unter „Ruhe": 4–7–8 zum Runterkommen, Gleichmaß fürs Sitzen zwischendurch. Mit Ton, damit die Augen '
       + 'zubleiben können.',
@@ -148,8 +148,8 @@ const TEXTE = [
   {
     wo: ['raete'],
     neu: 'Atemübungen vor dem Schlafengehen zählt gesund.bund.de zu den Entspannungstechniken bei Schlafproblemen; '
-      + 'wie gut sie wirken, ist nicht hinreichend untersucht, und zu 4–7–8 gibt es bisher wenig Studien. Die '
-      + 'Übung liegt unter „Ruhe".',
+      + 'wie gut sie wirken, ist nicht hinreichend untersucht, und für 4–7–8 gibt es bisher wenig Belege. Die '
+      + 'Übung liegt unter „Ruhe“.',
     alt: 'Die Übung ist ursprünglich fürs Einschlafen gedacht. Vier Runden im Bett, Licht schon aus.',
   },
   { wo: ['raete'], neu: 'Bewegung bei starken Beschwerden', alt: 'Heute nur spazieren' },
@@ -164,7 +164,7 @@ const TEXTE = [
     wo: ['raete'],
     neu: 'Bei dir hängen Anspannung und Beschwerden messbar zusammen. Bei akutem Stress fährt der Körper laut '
       + 'gesund.bund.de unter anderem die Magen- und Darmtätigkeit zurück; tiefes Ein- und Ausatmen kann die '
-      + 'Entspannung fördern. Unter „Ruhe" liegt die Übung 4–7–8, mit vier Runden gut eine Minute.',
+      + 'Entspannung fördern. Unter „Ruhe“ liegt die Übung 4–7–8, mit vier Runden gut eine Minute.',
     alt: 'Bei dir hängen Anspannung und Beschwerden messbar zusammen. Langes Ausatmen schaltet auf den Teil des '
       + 'Nervensystems um, unter dem der Darm arbeitet – unter „Ruhe" liegt 4–7–8, gut zwei Minuten.',
   },
@@ -211,12 +211,69 @@ const TEXTE = [
 ];
 
 /*
+ * Für die Sätze unter HAT ES ETWAS BEWIRKT? (befund in js/ansprechen.js): Der
+ * Bericht bricht sie selbst um (umbrochen in js/bericht.js, 68 Zeichen, fünf
+ * Leerzeichen davor), und wo der Satz anders lang ist, liegen die Umbrüche
+ * anders. Die Regel liest deshalb den Satz über alle Umbrüche hinweg und
+ * bricht den alten genauso um, wie die Fassung 27 es tat.
+ */
+function umbrechen(satz, breite = 68) {
+  const zeilen = [];
+  let zeile = '';
+  satz.split(/\s+/).forEach((wort) => {
+    if (zeile && zeile.length + wort.length + 1 > breite) {
+      zeilen.push(zeile);
+      zeile = wort;
+    } else zeile = zeile ? `${zeile} ${wort}` : wort;
+  });
+  if (zeile) zeilen.push(zeile);
+  return zeilen.map((z) => `     ${z}`).join('\n');
+}
+/** Ein Satz als Muster über Umbrüche hinweg; ZAHL und DATUM werden Gruppen. */
+function locker(vorlage) {
+  const teile = vorlage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(' ')
+    .map((w) => w.replace(/ZAHL/g, '([\\d,]+)').replace(/DATUM/g, '([\\d.]+)'));
+  return new RegExp(` {5}${teile.join('\\s+')}`, 'g');
+}
+
+/*
  * Der Bericht (js/bericht.js und die Sätze, die er aus kopf.js, gewicht.js,
  * zeitprofil.js und kriterien.js übernimmt). Er ist umbrochener Text; jede
  * Regel nennt deshalb die Zeilen, wie sie dastehen. Wo eine Zahl je Tagebuch
  * anders ist, steht sie als Gruppe im Muster und wird übernommen.
  */
 const BERICHT = [
+  /*
+   * HAT ES ETWAS BEWIRKT? (js/ansprechen.js): Der Säureblocker ohne Besserung
+   * ohne Schluss auf die Ursache und ohne Säure-Rebound; Mittel außerhalb der
+   * Magengruppen ohne Urteil, nur mit den beiden Zahlen. „Darunter
+   * schlechter" ist das, was die Fassung 27 für das Ibuprofen dieser
+   * Tagebücher schrieb – ob es noch so gerechnet wird, prüft die Rechnung
+   * `mittelBilanz` oben Zeichen für Zeichen.
+   */
+  {
+    neu: locker('Seit ZAHL Wochen im Gebrauch, ohne dass die Bauchwerte darunter besser geworden wären: '
+      + 'ZAHL davor gegen ZAHL darunter (ZAHL gegen ZAHL notierte Tage). Bleiben Beschwerden unter der '
+      + 'Behandlung bestehen, nennen manche Fachinformationen weitere Untersuchungen; was es hier bedeutet, '
+      + 'klärt die Praxis. Frage für den Termin: Was heißt es, dass es darunter nicht besser geworden ist – '
+      + 'und wie geht es weiter? Laut Packungsbeilage mancher Präparate, etwa Pantozol, wird die Einnahme '
+      + 'nicht beendet, ohne vorher mit Ärztin, Arzt oder Apotheke zu sprechen.'),
+    alt: (z, wochen, davor, unter, nDavor, nUnter) => umbrechen(`Seit ${wochen} Wochen im Gebrauch, ohne dass `
+      + `sich die Beschwerdestärke geändert hätte: ${davor} davor gegen ${unter} darunter (${nDavor} gegen `
+      + `${nUnter} notierte Tage). Das ist selbst ein Befund. Wenn Säure die Ursache wäre, wäre nach vier `
+      + 'bis acht Wochen etwas zu sehen. Frage für den Termin: Was heißt es, dass es darunter nicht besser '
+      + 'geworden ist – und wie geht es weiter? Nicht von selbst absetzen: Nach längerer Einnahme antwortet '
+      + 'der Magen kurzzeitig mit mehr Säure als vorher.'),
+  },
+  {
+    neu: locker('Seit dem ersten Eintrag (DATUM) im Mittel ZAHL, in der Zeit davor ZAHL (ZAHL gegen ZAHL '
+      + 'notierte Tage). Verglichen wird der Bauchwert; ob das etwas mit dem Mittel zu tun hat, zeigt dieser '
+      + 'Vergleich nicht.'),
+    alt: (z, datum, unter, davor, nUnter, nDavor) => umbrechen(`Darunter schlechter als davor: ${davor} davor `
+      + `gegen ${unter} darunter (${nDavor} gegen ${nUnter} notierte Tage). Das heißt nicht, dass das Mittel `
+      + 'schadet – eher, dass es angefangen wurde, als es schlechter wurde. Wenn es dabei bleibt, gehört es '
+      + 'angesprochen.'),
+  },
   // Später Fund in „In Kürze": ohne „im Dickdarm, nicht im Magen".
   {
     neu: ' fällt im eingestellten Zeitfenster nach dem\n    Essen nicht auf, wohl aber 4–8 Stunden danach.',

@@ -1559,7 +1559,13 @@ const MITTEL_WISSEN = [
    *            „Nach oraler Gabe tritt die Wirkung innerhalb 1 Stunde ein“. In der FI
    *            Cimetidin Genericon (AT, BASG 17360) steht kein solcher Zeitpunkt, nur
    *            dass eine „sofortige symptomatische Wirkung“ zu Beginn ausbleiben kann.
-   *            „Schwächer als ein PPI“ steht schon im Feld kurz.
+   *   kurz     Famotidin 5.1: „kompetitiver Histamin-H2-Rezeptor-Antagonist“ (siehe
+   *            wirkung). Bis zur Fassung 29 stand hier „schwächer als ein PPI, aber
+   *            schneller“: Den Zeitpunkt nennt nur die FI von Famotidin, und
+   *            „schwächer“ beschreibt keine geprüfte Fachinformation so allgemein –
+   *            PANTOZOL Control (EMA, Fachinformation 5.1) sagt nur, Pantoprazol habe
+   *            sich in den Studien zur Linderung der Refluxbeschwerden „gegenüber
+   *            Placebo und H2RAs überlegen“ erwiesen.
    *   hinweis  Famotidin 4.2: Dauer je nach Erkrankung (Geschwür „4-8 Wochen“,
    *            Zollinger-Ellison „so lange …, wie sie klinisch erforderlich ist“).
    *            Ein Nachlassen der Wirkung bei täglicher Einnahme („gewöhnt sich“)
@@ -1569,7 +1575,7 @@ const MITTEL_WISSEN = [
     id: 'h2',
     gruppe: 'H2-Blocker',
     beispiele: ['Famotidin', 'Cimetidin'],
-    kurz: 'Drosselt die Säure auch, schwächer als ein PPI, aber schneller.',
+    kurz: 'Drosselt die Säurebildung auch, an einer anderen Stelle als ein PPI.',
     wirkung: 'Setzt eine Stufe früher an als der PPI: Er besetzt den Schalter '
       + '(den Histamin-H2-Rezeptor), über den die Säurebildung angeregt wird. '
       + 'Bei Famotidin setzt die Wirkung laut Fachinformation innerhalb einer Stunde ein.',
@@ -1607,7 +1613,8 @@ const MITTEL_WISSEN = [
     beispiele: ['Magaldrat', 'Hydrotalcit', 'Riopan', 'Talcid', 'Rennie', 'Antazidum', 'Maaloxan'],
     kurz: 'Neutralisiert die Säure, die schon da ist. Wirkt in Minuten.',
     wirkung: 'Eine Base, die die vorhandene Säure abpuffert. Die Säurebildung selbst '
-      + 'wird nicht gehemmt; laut Fachinformation dient es der Linderung der Beschwerden. '
+      + 'wird nicht gehemmt; laut Fachinformation dienen Antazida der Linderung der '
+      + 'Beschwerden. '
       + 'Wie lange es anhält, hängt vom Wirkstoff ab: Laut Fachinformation bleibt der '
       + 'Säurewert im Magen bei Magaldrat im Mittel 20 bis 40 Minuten im Zielbereich, '
       + 'bei Hydrotalcit etwa zwei Stunden.',
@@ -1757,7 +1764,7 @@ const MITTEL_WISSEN = [
     einnahme: 'Wann und wie oft ein Mittel oder ein Arzneitee genommen wird, steht in der '
       + 'jeweiligen Packungsbeilage – bei Iberogast etwa „vor oder zu den Mahlzeiten“. '
       + 'Fragen dazu beantwortet die Apotheke.',
-    hinweis: '„Pflanzlich" heißt nicht „harmlos". Für Iberogast Classic, das Schöllkraut '
+    hinweis: '„Pflanzlich“ heißt nicht „harmlos“. Für Iberogast Classic, das Schöllkraut '
       + 'enthält, nennen Fach- und Gebrauchsinformation Fälle von Leberschäden bis hin zu '
       + 'Leberversagen; bei Lebererkrankungen ist es dort ausgeschlossen. Iberogast Advance '
       + 'enthält kein Schöllkraut. Süßholz in größeren Mengen über längere Zeit kann '
@@ -1836,9 +1843,9 @@ const MITTEL_WISSEN = [
       + 'Tageszeiten, unterscheidet sich je nach Kombination; das steht im Plan und in den '
       + 'Packungsbeilagen.',
     hinweis: 'Laut Packungsbeilage ist es wichtig, die ganze Behandlungszeit einzuhalten, '
-      + 'auch wenn es einem nach ein paar Tagen schon besser geht: Zu früh beendet, heilt '
-      + 'die Infektion womöglich nicht ganz aus, und die Keime können gegen die '
-      + 'Antibiotika unempfindlich werden. Ob der Keim weg ist, wird hinterher '
+      + 'auch wenn es einem nach ein paar Tagen schon besser geht: Wird die Behandlung zu '
+      + 'früh beendet, heilt die Infektion womöglich nicht ganz aus, und die Keime können '
+      + 'gegen die Antibiotika unempfindlich werden. Ob der Keim weg ist, wird hinterher '
       + 'nachgeprüft. Fragen zur Einnahme und zur Dauer klären Praxis oder Apotheke.',
   },
 ];
@@ -1900,7 +1907,7 @@ const REIZSTOFFE = [
       + 'davon, entscheidet sich nicht am Magen allein. Zusammen mit Kortison steigt das '
       + 'Risiko weiter. Als Gel oder Pflaster auf der Haut zählt Body Check es hier nicht '
       + 'mit: Davon gelangt laut Fachinformation nur ein kleiner Teil ins Blut, viel weniger '
-      + 'als beim Einnehmen. Großflächig und über längere Zeit angewendet, sind '
+      + 'als beim Einnehmen. Wird es großflächig und über längere Zeit angewendet, sind '
       + 'Nebenwirkungen auch an Magen und Darm aber nicht ganz ausgeschlossen.',
   },
   /*
@@ -2030,9 +2037,18 @@ const WEITERE_MITTEL = [
    *                  „können intensiv sein, gehen aber im Allgemeinen schnell vorüber“, „Bei
    *                  sehr wenigen Patienten … durch einen Herzinfarkt verursacht“, bei
    *                  Andauern „umgehend einen Arzt“. Darm: GI AscoTop 5 mg (Januar 2022)
-   *                  sehr selten, „sofort einen Arzt“; GI Naramig (September 2023) selten;
-   *                  Imigran und Maxalt 4.8 „Nicht bekannt“. Beide Fälle sind
-   *                  Warnzeichen der Stufe „sofort“ und folgen dem Text der Warnkarte.
+   *                  sehr selten, „Brechen Sie die Einnahme von AscoTop ab und suchen Sie
+   *                  sofort einen Arzt auf“ (Abschnitt 4); GI Naramig (September 2023)
+   *                  selten, „Informieren Sie Ihren Arzt oder Apotheker“; Imigran und
+   *                  Maxalt 4.8 „Nicht bekannt“. Die Brust: Schmerz mit Luftnot oder
+   *                  kaltem Schweiß entspricht dem Warnzeichen „ausstrahlung“ der Stufe
+   *                  „sofort“ in js/bild.js, und gesund.bund.de, Herzinfarkt (Stand
+   *                  28.08.2020), sagt bei Schmerzen im Brustbereich „immer den Notruf
+   *                  112 wählen“ – deshalb dort der Text der Warnkarte. Der Darm ist kein
+   *                  Warnzeichen aus js/bild.js; einen Notruf nennt keine Quelle. Bis zur
+   *                  Fassung 29 hieß es auch hier „Notaufnahme oder 112“ für alle
+   *                  Triptane; jetzt steht nur, was die strengste Packungsbeilage sagt,
+   *                  mit ihrem Namen.
    *                  Übergebrauch: ICHD-3 8.2.2 „≥10 days/month for >3 months“, 8.2.3 „15
    *                  or more days/month“, 8.2.5 „≥10 days/month“.
    */
@@ -2058,9 +2074,10 @@ const WEITERE_MITTEL = [
       + 'langsamer aufgenommen, bei anderen beschreibt die Fachinformation keinen solchen '
       + 'Einfluss. Manche Triptane gibt es außer als Tablette auch als Schmelztablette, '
       + 'Nasenspray oder Spritze. Die Schmelztablette löst sich auf der Zunge und wird mit '
-      + 'dem Speichel geschluckt, geht also ebenfalls über den Magen; das Nasenspray nennt '
-      + 'die Fachinformation von AscoTop Nasal vor allem für Übelkeit und Erbrechen im '
-      + 'Anfall. Wer im Anfall erbricht, hat damit eine Frage für die Sprechstunde.',
+      + 'dem Speichel geschluckt, geht also ebenfalls über den Magen. Das Nasenspray kann '
+      + 'laut Fachinformation von AscoTop Nasal vor allem für Menschen von Nutzen sein, die '
+      + 'im Anfall unter Übelkeit und Erbrechen leiden. Wer im Anfall erbricht, hat damit '
+      + 'eine Frage für die Sprechstunde.',
     hinweis: 'Triptane engen Gefäße auch außerhalb des Kopfes. Darum sind sie laut '
       + 'Fachinformation nicht vorgesehen bei Erkrankungen der Herzkranzgefäße, nach einem '
       + 'Herzinfarkt, bei Durchblutungsstörungen etwa der Beine, nach einem Schlaganfall '
@@ -2077,7 +2094,8 @@ const WEITERE_MITTEL = [
       + 'Notaufnahme oder 112. Übelkeit kann vom Anfall kommen und vom Mittel. Beschrieben '
       + 'ist außerdem, je nach Mittel selten, sehr selten oder ohne bekannte Häufigkeit, '
       + 'eine Durchblutungsstörung des Darms: Bauchschmerzen mit blutigem Durchfall nach '
-      + 'der Einnahme. Dann ebenso nicht auf einen Termin warten – Notaufnahme oder 112. '
+      + 'der Einnahme. Laut Packungsbeilage etwa von AscoTop ist das ein Grund, sofort '
+      + 'einen Arzt aufzusuchen. '
       + 'Und wird ein Triptan über mehr als drei Monate an zehn oder mehr Tagen im Monat '
       + 'genommen, kann es den Kopfschmerz selbst unterhalten – die Grenze liegt niedriger '
       + 'als bei einfachen Schmerzmitteln und gleichauf mit Kombinationsmitteln.',
@@ -2123,8 +2141,8 @@ const WEITERE_MITTEL = [
     wirkung: 'Wirkt vor allem an bestimmten Nervenzellen in Rückenmark und Gehirn. Die '
       + 'Fachinformationen nennen als Anwendungsgebiet Schmerzen allgemein, je nach Wirkstoff '
       + 'mäßig starke bis sehr starke; Migräne steht dort nicht eigens. Bei wiederholter '
-      + 'Einnahme kann es abhängig machen, auch in üblicher Dosierung; wie hoch dieses '
-      + 'Risiko ist, ist laut Packungsbeilage von Person zu Person unterschiedlich. Body '
+      + 'Einnahme kann es abhängig machen, auch in üblicher Dosierung; wie hoch das Risiko '
+      + 'ausfällt, ist laut Packungsbeilage von Person zu Person unterschiedlich. Body '
       + 'Check zählt die Tage, an denen es eingetragen ist, wie bei jedem Akutmittel mit.',
     einnahme: '–',
     hinweis: 'Übelkeit und Müdigkeit oder Benommenheit sind laut Fachinformationen häufig, '
@@ -2191,7 +2209,7 @@ const WEITERE_MITTEL = [
       + 'Praxis. Übelkeit gehört bei beiden zu den häufigen Nebenwirkungen.',
     einnahme: 'Rimegepant und Lasmiditan gibt es nur auf Rezept. Zugelassen sind beide '
       + 'zur Behandlung des Migräneanfalls, Rimegepant (Vydura) auch zur Vorbeugung; wann '
-      + 'und wie es genommen wird, steht in der Packungsbeilage und wird in der Praxis '
+      + 'und wie sie genommen werden, steht in der Packungsbeilage und wird in der Praxis '
       + 'besprochen. Lasmiditan macht laut Fachinformation sehr häufig benommen; '
       + 'Schläfrigkeit, Erschöpfung und Schwindel sind häufig. Dort steht auch, dass nach '
       + 'jeder Einnahme mindestens acht Stunden lang kein Fahrzeug geführt und keine '
@@ -2201,8 +2219,9 @@ const WEITERE_MITTEL = [
       + 'Übergebrauchsgrenze prüft Body Check für diese Mittel nicht. Die internationale '
       + 'Kopfschmerzklassifikation nennt Gepante und Ditane nicht eigens; für Akutmittel, '
       + 'die dort nicht einzeln aufgeführt sind, nennt sie eine Grenze: über mehr als drei '
-      + 'Monate an zehn oder mehr Tagen im Monat. Was es im Einzelnen tut und verträgt, '
-      + 'steht in der Packungsbeilage; Fragen dazu beantworten Praxis oder Apotheke.',
+      + 'Monate an zehn oder mehr Tagen im Monat. Was es im Einzelnen tut und wie es '
+      + 'vertragen wird, steht in der Packungsbeilage; Fragen dazu beantworten Praxis oder '
+      + 'Apotheke.',
   },
   /*
    * Quellen (Fassung 30), Fachinformationen von fachinfo.de/fi/pdf/<nr>, im Volltext
@@ -2521,8 +2540,9 @@ const ADHS_MITTEL = [
     kuerzel: 'MPH',
     beispiele: namenVon('mph'),
     kurz: 'Stimulans bei ADHS. Bei manchen Kapseln (Medikinet retard, Medikinet adult) kann '
-      + 'der Wirkstoff laut Fachinformation nüchtern oder zusammen mit Säureblockern schneller '
-      + 'frei werden – mehr unter „Je nach Form“.',
+      + 'der Wirkstoff laut Fachinformation nüchtern oder zusammen mit H2-Blockern, '
+      + 'Protonenpumpenhemmern oder Antazida schneller frei werden – mehr unter „Je nach '
+      + 'Form“.',
     wirkung: 'Wie schnell es ins Blut geht und wie lange es wirkt, ist laut '
       + 'Fachinformationen je nach Form verschieden: sofort freisetzend oder retardiert, und '
       + 'retardiert auf verschiedene Weise. Bei manchen Formen verschiebt auch Essen den '
@@ -2943,12 +2963,18 @@ function istAdhsMittel(name) {
  * Kügelchen, ihre Fachinformationen (010445, 015153, September 2025) nennen
  * Säureblocker aber nicht, ebenso wenig Ritalin (002958), Equasym Retard (012100),
  * Concerta (Februar 2026) und Methylphenidat-HCl-ratiopharm Retardtabletten (022094).
+ *
+ * Die Gruppen so, wie die Fachinformation sie nennt (009621, 4.5: „darf nicht
+ * zusammen mit H2-Rezeptorenblockern, Protonenpumpen-Inhibitoren oder
+ * Antazida eingenommen werden"), und das eingetragene Mittel wie in
+ * js/zusammen.js: Der Satz steht auch bei Alginaten, und „Säureblocker" (bis
+ * zur Fassung 29) passt für sie nicht.
  */
-const KLAER_SATZ = 'Ob ein Säureblocker zu deinem Präparat passt, hängt bei '
+const KLAER_SATZ = 'Ob ein Mittel bei Säurebeschwerden zu deinem Präparat passt, hängt bei '
   + 'Methylphenidat am einzelnen Präparat: Bei Medikinet retard und Medikinet adult steht '
-  + 'die Behandlung mit Säureblockern laut Fachinformation unter den Gegenanzeigen, weil '
-  + 'dann die gesamte Wirkstoffmenge rascher frei werden kann. Was für deins gilt, '
-  + 'das klären Apotheke oder Praxis.';
+  + 'die Behandlung mit H2-Blockern, Protonenpumpenhemmern oder Antazida laut Fachinformation '
+  + 'unter den Gegenanzeigen, weil dann die gesamte Wirkstoffmenge rascher frei werden kann. '
+  + 'Was für deins gilt, das klären Apotheke oder Praxis.';
 
 /*
  * Methylphenidat gibt es in Formen, die sich beim Essen und bei
@@ -3074,9 +3100,9 @@ const MPH_FORMEN = [
     id: 'unbekannt',
     name: 'Weiß ich nicht',
     kurzname: 'Form nicht angegeben',
-    einnahme: 'Methylphenidat gibt es in Formen, die sich beim Essen und bei Säureblockern '
-      + 'verschieden verhalten. Welche du hast, steht auf der Packung oder weiß die '
-      + 'Apotheke.',
+    einnahme: 'Methylphenidat gibt es in Formen, die sich beim Essen und bei H2-Blockern, '
+      + 'Protonenpumpenhemmern oder Antazida verschieden verhalten. Welche du hast, steht auf '
+      + 'der Packung oder weiß die Apotheke.',
     saeure: KLAER_SATZ,
   },
 ];
@@ -3503,8 +3529,12 @@ const wTextW10 = 'Laut Fachinformation gibt es Hinweise, dass Methylphenidat den
 const wTextW11 = 'Laut Fachinformation gibt es Hinweise, dass Methylphenidat den Abbau von '
   + 'Blutverdünnern dieser Art hemmen kann – in Praxis oder Apotheke ansprechen.';
 
-/* Die Fragen für die Sprechstunde, in Ich-Form wie überall im Bericht. */
-const W_FRAGE_A = 'Passt mein Säureblocker zu meinem Methylphenidat?';
+/*
+ * Die Fragen für die Sprechstunde, in Ich-Form wie überall im Bericht. Das
+ * zweite Mittel heißt wie in W_MITTEL_SATZ: Zur Gruppe gehören auch Antazida
+ * und Alginate, und „Säureblocker" (bis zur Fassung 29) passt für sie nicht.
+ */
+const W_FRAGE_A = 'Passt mein Mittel bei Säurebeschwerden zu meinem Methylphenidat?';
 const W_FRAGE_B = 'Ich nehme Methylphenidat und ein säurebindendes oder säurehemmendes Mittel. '
   + 'Passt das zu meiner Freisetzungsform?';
 const wFrageZwei = (a, b) => `Passen ${a} und ${b} zusammen?`;
@@ -4464,10 +4494,12 @@ function widerspruchsSatz(t) {
  * DER FEHLER, DEN DIESE DATEI BEHEBT
  *
  * Diese App rechnet bisher so, als sei nichts bekannt. An mehreren Stellen
- * steht derselbe Vorbehalt, und er ist richtig:
+ * steht derselbe Vorbehalt, seit der Fassung 30 so, wie die Quellen ihn
+ * fassen (siehe kriterienVorbehalt unten):
  *
- *     „Die Regelwerke setzen ausdrücklich voraus, dass nichts Organisches
- *      dahintersteckt – und das weiß nur eine Untersuchung."
+ *     „Von einem Reizdarm oder Reizmagen sprechen Ärztinnen und Ärzte erst,
+ *      wenn andere Ursachen für die Beschwerden abgeklärt und ausgeschlossen
+ *      sind."
  *
  * Nur gilt er nicht für jeden. Wer eine Spiegelung hinter sich hat und einen
  * Befund bekommen hat, bei dem *steckt* etwas Organisches dahinter. Die App
@@ -4513,8 +4545,14 @@ function widerspruchsSatz(t) {
  * viel dasteht, kostet eine Nachfrage in der Sprechstunde. Einer, der zu
  * Unrecht verschwindet, kostet die Untersuchung.
  *
- * `organisch` ist die Angabe, auf die es bei den Kriterien ankommt: Rom IV
- * gilt ausdrücklich nur, solange nichts Organisches gefunden wurde.
+ * `organisch` ist die Angabe, auf die es bei den Kriterien ankommt: Von
+ * Reizdarm oder Reizmagen wird erst gesprochen, wenn andere Ursachen
+ * abgeklärt sind (gesund.bund.de, Reizmagensyndrom, Stand 05.02.2026;
+ * Reizdarmsyndrom, Stand 28.08.2024). Bis zur Fassung 29 stand hier, Rom IV
+ * gelte „ausdrücklich nur, solange nichts Organisches gefunden wurde"; das
+ * steht so in keiner geprüften Quelle, und laut gesund.bund.de kann ein
+ * Reizmagen auch neben einem Befund wie einer Magenschleimhautentzündung
+ * bestehen.
  */
 const BEFUNDE = [
   {
@@ -4639,8 +4677,21 @@ function geklaert(befunde) {
  * Der Satz, der an die Kriterien gehört, wenn etwas Organisches feststeht.
  *
  * Nicht „die Kriterien gelten nicht" – das wäre zu grob und auch nicht wahr.
- * Sie werden in der Sprechstunde durchaus weiter benutzt, nur beantworten sie
- * dann eine andere Frage: nicht mehr „was ist das", sondern „wie läuft es".
+ * Was unten steht, beantwortet dann eine andere Frage: nicht mehr „was ist
+ * das", sondern „wie läuft es".
+ *
+ * Der Vorbehalt so, wie die Quellen ihn fassen, und nur für Reizdarm und
+ * Reizmagen: gesund.bund.de, Reizmagensyndrom (Stand 05.02.2026, „Wie wird
+ * ein Reizmagen diagnostiziert?"): „Von einem Reizmagen wird deshalb erst
+ * gesprochen, wenn andere Ursachen für die Beschwerden abgeklärt und
+ * ausgeschlossen wurden"; dort steht auch: „Manchmal werden Gallensteine oder
+ * eine Magenschleimhautentzündung festgestellt, die die Beschwerden aber
+ * nicht ganz erklären. Dann kann ein Reizmagen zusätzlich bestehen." Für den
+ * GerdQ gilt der Ausschluss nicht – die Refluxkrankheit steht dort selbst
+ * unter den auszuschließenden Ursachen. Bis zur Fassung 29 hieß es „Diese
+ * Regelwerke setzen voraus, dass nichts Organisches dahintersteckt", wie im
+ * Kriterien-Kasten, wo die Fassung 30 es schon gestrichen hatte
+ * (kriterienTeil in js/app.js).
  */
 function kriterienVorbehalt(befunde) {
   const organische = (befunde || [])
@@ -4648,10 +4699,11 @@ function kriterienVorbehalt(befunde) {
     .filter((w) => w && w.organisch);
   if (!organische.length) return '';
   const namen = organische.map((w) => w.name).join(', ');
-  return `Bei dir steht schon etwas fest: ${namen}. Diese Regelwerke setzen `
-    + 'voraus, dass nichts Organisches dahintersteckt – das ist hier nicht mehr '
-    + 'die offene Frage. Was unten steht, ist deshalb keine Einordnung, sondern '
-    + 'eine Verlaufsbeobachtung: wie stark, wie oft, und ob es besser wird.';
+  return `Bei dir steht schon etwas fest: ${namen}. Von einem Reizdarm oder `
+    + 'Reizmagen wird erst gesprochen, wenn andere Ursachen der Beschwerden '
+    + 'abgeklärt sind; was dein Befund dafür heißt, klärt die Praxis. Was unten '
+    + 'steht, ist deshalb keine Einordnung, sondern eine Verlaufsbeobachtung: wie '
+    + 'stark, wie oft, und ob es besser wird.';
 }
 
 /* ===== js/klang.js ===== */
@@ -4755,14 +4807,24 @@ function ruettel(muster) {
 /*
  * Atemübungen – die Daten dazu, nicht der Ablauf.
  *
- * Warum in einem Magentagebuch: Bauch und Nervensystem hängen zusammen, und
- * zwar in beide Richtungen. Langes Ausatmen schaltet messbar auf den Teil des
- * Nervensystems um, unter dem der Darm arbeitet statt stillzustehen. Bei
- * stressgebundenen Beschwerden ist das keine Beschäftigungstherapie, sondern
- * das Mittel, das man ohne Rezept und ohne Nebenwirkung hat.
+ * Warum in einem Magentagebuch, und nur so viel, wie die Quellen tragen:
+ * gesund.bund.de, Stress (Stand 14.01.2026): Bei einer akuten Stressreaktion
+ * werden Vorgänge zurückgefahren, „Das betrifft unter anderem die Magen-,
+ * Darm- und Blasentätigkeit", und „Tiefes Ein- und Ausatmen kann die
+ * Entspannung fördern." Schlafstörungen (Stand 04.04.2025, „Wie wird eine
+ * Schlafstörung behandelt?"): Atemübungen stehen unter den Methoden, „deren
+ * Wirksamkeit jedoch nicht hinreichend untersucht ist". Zu 4–7–8 und zur
+ * Quadrat-Atmung: „popularly promoted by psychotherapists but have little
+ * empirical support" (Marchant et al., Appl Psychophysiol Biofeedback
+ * 2025;50(2):261-276, PMID 39864026, Abstract).
  *
- * Deshalb ist bei allen Übungen hier das Ausatmen mindestens so lang wie das
- * Einatmen. Umgekehrt – kurz aus, lang ein – täte das Gegenteil.
+ * Bis zur Fassung 29 stand hier und in den Texten der Übungen, langes
+ * Ausatmen schalte „messbar" auf den Teil des Nervensystems um, unter dem der
+ * Darm arbeitet, es sei „das Mittel, das man ohne Rezept und ohne
+ * Nebenwirkung hat", „der Wirkstoff", „direkt auf den Bauch, bei Druck und
+ * Krämpfen", das Zwerchfell „massiert", und umgekehrtes Atmen „täte das
+ * Gegenteil". Das trägt keine dieser Quellen; die Texte beschreiben jetzt
+ * nur, was die Übung ist.
  *
  * Reine Daten, keine Abhängigkeiten. Wer die Übung *ausführt*, ist js/app.js;
  * getaktet wird sie mit den Tönen aus js/klang.js.
@@ -4777,11 +4839,10 @@ const UEBUNGEN = [
   {
     id: '478',
     name: '4–7–8',
-    zweck: 'Zum Runterkommen und zum Einschlafen',
+    zweck: 'Mit langem Ausatmen',
     beschreibung: 'Vier Sekunden durch die Nase ein, sieben halten, acht durch '
-      + 'den Mund aus. Das lange Ausatmen ist der Wirkstoff; die Zahlen sind nur '
-      + 'die Verpackung. Wenn sieben Sekunden Halten zu lang sind, ist es keine '
-      + 'schlechtere Übung, wenn man kürzer macht.',
+      + 'den Mund aus. Wird das Halten unangenehm, lässt sich die Übung jederzeit '
+      + 'abbrechen.',
     runden: 4,
     phasen: [
       { art: 'ein', sek: 4, wort: 'Einatmen' },
@@ -4792,10 +4853,9 @@ const UEBUNGEN = [
   {
     id: 'box',
     name: 'Quadrat',
-    zweck: 'Wenn der Kopf rattert',
-    beschreibung: 'Vier ein, vier halten, vier aus, vier halten. Der gleiche '
-      + 'Takt in alle vier Richtungen gibt dem Denken etwas zu tun, ohne es zu '
-      + 'beschäftigen.',
+    zweck: 'Vier gleich lange Abschnitte',
+    beschreibung: 'Vier ein, vier halten, vier aus, vier halten – der gleiche '
+      + 'Takt in alle vier Richtungen.',
     runden: 6,
     phasen: [
       { art: 'ein', sek: 4, wort: 'Einatmen' },
@@ -4807,10 +4867,9 @@ const UEBUNGEN = [
   {
     id: 'kohaerenz',
     name: 'Gleichmaß',
-    zweck: 'Für zwischendurch, auch im Sitzen am Schreibtisch',
-    beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus, ohne Halten – gut '
-      + 'sechs Atemzüge in der Minute. Der Takt, bei dem Puls und Atem in einen '
-      + 'gemeinsamen Rhythmus fallen. Unauffällig genug für den Bus.',
+    zweck: 'Ohne Halten, gut sechs Atemzüge in der Minute',
+    beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus, ohne Halten. '
+      + 'Unauffällig genug für den Bus.',
     runden: 10,
     phasen: [
       { art: 'ein', sek: 5.5, wort: 'Einatmen' },
@@ -4820,10 +4879,9 @@ const UEBUNGEN = [
   {
     id: 'bauch',
     name: 'Bauchatmung',
-    zweck: 'Direkt auf den Bauch, bei Druck und Krämpfen',
+    zweck: 'Mit der Hand auf dem Bauch',
     beschreibung: 'Eine Hand auf den Bauch, vier Sekunden so einatmen, dass sich '
-      + 'die Hand hebt und nicht die Schulter, sechs Sekunden aus. Das Zwerchfell '
-      + 'massiert dabei, was darunter liegt.',
+      + 'die Hand hebt und nicht die Schulter, sechs Sekunden aus.',
     runden: 8,
     phasen: [
       { art: 'ein', sek: 4, wort: 'Einatmen, Bauch hebt sich' },
@@ -11977,6 +12035,24 @@ function a3Faelle(p, abschnitt, heute) {
 const A3_VORNACHT_LEER = 'Zur Nacht davor fehlen auf einer Seite die Angaben – ob sie schon verschieden war, '
   + 'kann der Vergleich nicht prüfen.';
 
+/*
+ * Derselbe Satz wie unter „Mehr" (WISSEN_ADHS in js/app.js) und im Bericht.
+ * Belegt ist nur der Zusammenhang, keine Ursache: Biol Psychiatry
+ * 2010;67(11):1091-6 (PMID 20163790, Abstract), 40 Erwachsene mit ADHS:
+ * „Compared with control subjects, both groups of ADHD adults had longer
+ * sleep-onset latency"; Neurosci Biobehav Rev 2018;89:61-71 (PMID 29477617,
+ * Abstract), Metaanalyse zu Erwachsenen: mit Bewegungsmessung „sleep onset
+ * latency: 0.80 (0.46-1.14)", im Schlaflabor dagegen „No significant
+ * differences were detected for polysomnographic parameters" – deshalb
+ * „manche Studien". Ob die Teilnehmer dabei Mittel nahmen, sagen die
+ * Abstracts nicht; deshalb „an ADHS selbst" nur als eine von zwei
+ * Möglichkeiten. Bis zur Fassung 29: „Späteres Einschlafen gehört oft auch zu
+ * ADHS selbst".
+ */
+const A3_STUDIEN = 'Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine längere Einschlafzeit '
+  + 'als bei anderen – ob ein Unterschied hier an der Einnahmezeit liegt oder an ADHS selbst, lässt sich '
+  + 'nicht trennen.';
+
 function a3Saetze(a3, v) {
   if (a3.dicht) return ['Deine Einnahmezeiten liegen zu dicht beieinander für diesen Vergleich.'];
   if (!v.genug) {
@@ -11987,8 +12063,7 @@ function a3Saetze(a3, v) {
     + `im Mittel mit ${fmtZahl(v.mit.schnitt)} bewertet, sonst mit ${fmtZahl(v.ohne.schnitt)} `
     + `(${v.mit.n} gegen ${v.ohne.n} Nächte; Spielraum ±${fmtZahl(v.urteil.spielraum)}).`
     + `${a3.stress.spaeter !== null && a3.stress.sonst !== null ? ` Anspannung an diesen Tagen: `
-      + `${fmtZahl(a3.stress.spaeter)} gegen ${fmtZahl(a3.stress.sonst)}.` : ''} Späteres `
-    + 'Einschlafen gehört oft auch zu ADHS selbst – beides lässt sich hier nicht trennen.';
+      + `${fmtZahl(a3.stress.spaeter)} gegen ${fmtZahl(a3.stress.sonst)}.` : ''} ${A3_STUDIEN}`;
   if (v.stoerung === 'vornacht') {
     return [zahlen, `Schon die Nacht davor war auf beiden Seiten verschieden (${fmtZahl(a3.vorNacht.spaeter)} `
       + `gegen ${fmtZahl(a3.vorNacht.sonst)}) – der Vergleich misst das mit.`];
@@ -12832,7 +12907,7 @@ function v4Rechnen(liste, tage, heute) {
       satz: `Kopfschmerztage je 30 notierte Tage: vor dem ersten Eintrag „${name}“ (${fmtDatum(erster)}) `
         + `${fmtZahl(vorher.je30)}, seitdem ${fmtZahl(seitdem.je30)}. Ob vorher schon ${V4_VERB[id]} wurde, `
         + 'weiß Body Check nicht. Beschwerden schwanken auch von selbst: Wird etwas begonnen, während es '
-        + 'gerade schlecht ist, kann eine Besserung danach auch ohne den neuen Anfang kommen.',
+        + 'gerade schlecht ist, kann eine Besserung danach auch von selbst kommen.',
     });
   });
   return raus;
@@ -13031,35 +13106,53 @@ function spannungAuswertung({
 
 /* ===== js/kriterien.js ===== */
 /*
- * Die Kriterien: dieselben Regeln, nach denen in der Sprechstunde eingeordnet
- * wird – auf die eigenen Eintragungen angewandt.
+ * Die Kriterien: Zählungen, die sich an veröffentlichten Kriterien
+ * orientieren – auf die eigenen Eintragungen angewandt.
  *
  * Bis hierher hat diese App beschrieben („säuretypisches Bild"). Diese Datei
- * geht einen Schritt weiter und rechnet zwei anerkannte Regelwerke nach:
+ * zählt nach zwei veröffentlichten Vorlagen:
  *
- *   * **Rom IV** für das Reizdarmsyndrom und die funktionelle Dyspepsie. Das
- *     sind die Kriterien, mit denen diese beiden Diagnosen tatsächlich gestellt
- *     werden – sie bestehen aus nichts als Beschwerden und Zeiträumen, also
- *     genau aus dem, was in einem Tagebuch steht.
- *   * **GerdQ** für die Refluxkrankheit. Sechs Fragen, eine veröffentlichte
- *     Schwelle, und in Studien ungefähr so treffsicher wie die Einschätzung
- *     einer Hausärztin.
+ *   * **Rom IV** für das Reizdarmsyndrom und die Magenbeschwerden der
+ *     funktionellen Dyspepsie. Was die Abstracts dazu hergeben, steht in
+ *     kriterienTeil in js/app.js (Mearin et al. 2016, PMID 27144627;
+ *     Stanghellini et al. 2016, PMID 27147122). Die Schwellen beim Reizdarm
+ *     (Schmerz im Mittel an einem Tag je Woche, zwei von drei Merkmalen,
+ *     Beginn vor sechs Monaten) gibt die FDA im Wortlaut wieder (NDA 211801,
+ *     Ibsrela, Multidisciplinary Review, Table 1 „Rome IV Diagnostic Criteria
+ *     for Irritable Bowel Syndrome", siehe README); die Häufigkeiten bei den
+ *     Magenbeschwerden sind die Rechnung dieser Datei.
+ *   * **GerdQ** für Reflux: laut Abstract ein „six-item diagnostic and
+ *     management tool" mit einer Sensitivität von 65 % und einer Spezifität
+ *     von 71 %, „similar to that achieved by gastroenterologists" (Jones et
+ *     al. 2009, PMID 19737151). Punkte je Frage, die Spanne bis 18 und die
+ *     Schwelle 8 stehen im Abstract nicht.
  *
  * DREI DINGE, DIE DAZUGEHÖREN, UND ZWAR JEDES MAL:
  *
- * 1. **Erfüllte Kriterien sind keine Diagnose.** Beide Regelwerke setzen
- *    ausdrücklich voraus, dass nichts Organisches dahintersteckt – und das
- *    weiß nur eine Untersuchung. „Erfüllt die Kriterien" heißt: Wenn Spiegelung
- *    und Blutbild unauffällig sind, passt der Name. Nicht mehr, und das ist
- *    schon viel.
+ * 1. **Erfüllte Kriterien sind keine Diagnose.** Von Reizdarm oder Reizmagen
+ *    wird erst gesprochen, wenn andere Ursachen ärztlich abgeklärt sind
+ *    (gesund.bund.de, Reizmagensyndrom, Stand 05.02.2026; Reizdarmsyndrom,
+ *    Stand 28.08.2024). Für den GerdQ gilt dieser Ausschluss nicht; auch sein
+ *    Punktwert ist keine Diagnose. Bis zur Fassung 29 stand hier, „beide
+ *    Regelwerke" setzten „ausdrücklich voraus, dass nichts Organisches
+ *    dahintersteckt", und es seien „dieselben Regeln, nach denen in der
+ *    Sprechstunde eingeordnet wird" – beides trägt keine Quelle.
  *
- * 2. **Ein Tagebuch untererfasst.** Der GerdQ wird sonst gefragt („an wie
- *    vielen Tagen hatten Sie …?"); hier wird gezählt. Wer einen Tag nicht
- *    einträgt, hat an diesem Tag laut Tagebuch nichts gehabt. Jede Punktzahl
- *    hier ist deshalb eher zu niedrig als zu hoch – sie ist eine Untergrenze.
+ * 2. **Gezählt wird, was eingetragen ist.** Der GerdQ wird sonst gefragt („an
+ *    wie vielen Tagen hatten Sie …?"); hier wird gezählt. Wer einen Tag nicht
+ *    einträgt, hat an diesem Tag laut Tagebuch nichts gehabt. Ob die Zahl
+ *    dadurch zu hoch oder zu niedrig ausfällt, lässt sich nicht sagen: Zwei
+ *    Posten zählen umgekehrt, und die Werte je Woche beziehen sich auf die
+ *    notierten Tage.
  *
- * 3. **Ohne genug Zeitraum kein Ergebnis.** Rom IV verlangt drei Monate
- *    Beschwerden und einen Beginn vor mindestens einem halben Jahr. Was diese
+ * 3. **Ohne genug Zeitraum kein Ergebnis.** Body Check rechnet mit drei
+ *    Monaten Beschwerden und einem Beginn vor mindestens einem halben Jahr –
+ *    so gibt die FDA die Rom-IV-Kriterien beim Reizdarm wieder (Table 1, siehe
+ *    oben: „Criteria fulfilled for the last 3 months with symptom onset at
+ *    least 6 months before diagnosis") und ebenso die EMA-Leitlinie die
+ *    Rom-III-Kriterien (CPMP/EWP/785/97 Rev. 1, Kapitel 4: „symptoms being
+ *    present for the last three months and onset at least 6 months prior to
+ *    diagnosis"). Was diese
  *    Datei nicht prüfen kann, behauptet sie nicht: Dann steht `pruefbar: false`
  *    und daneben, was noch fehlt.
  */
@@ -13067,19 +13160,19 @@ function spannungAuswertung({
 
 
 /*
- * Ab welcher Stärke eine Beschwerde als „belastend" gilt.
+ * Ab welcher Stärke eine Beschwerde gezählt wird: ab 4 („merklich").
  *
- * Die Rom-Kriterien sagen „bothersome" – belastend genug, um davon zu
- * erzählen. Auf der Skala dieser App ist das die 4, das Wort dazu heißt
- * „merklich". Eine 2 („sehr leicht") mitzuzählen würde die Kriterien bei fast
- * jedem erfüllen und sie damit wertlos machen.
+ * Diese Grenze hat Body Check festgelegt; so steht es auch im Kasten unter
+ * „Muster". Dass die Beschwerden „belastend" sein müssen, steht im Abstract
+ * zu Rom IV nicht (siehe kriterienTeil in js/app.js). Eine 2 („sehr leicht")
+ * mitzuzählen, hätte die Zählung bei fast jedem gefüllt.
  */
 const BELASTEND = 4;
 
-/** Rom IV rechnet in den letzten drei Monaten. */
+/** Body Check rechnet in den letzten drei Monaten (siehe 3. oben). */
 const FENSTER_TAGE = 90;
 
-/** Und verlangt einen Beginn vor mindestens einem halben Jahr. */
+/** Und mit einem Beginn vor mindestens einem halben Jahr (siehe 3. oben). */
 const BEGINN_MONATE = 6;
 
 /** GerdQ fragt nach den letzten sieben Tagen. */
@@ -13228,14 +13321,19 @@ function reizdarm(d) {
  * Rom IV: Funktionelle Dyspepsie
  * ---------------------------------------------------------------------------
  *
- * Mindestens eines von vier belastenden Beschwerdebildern in den letzten drei
- * Monaten. Unterteilt in zwei Formen, die verschieden behandelt werden:
+ * Laut Abstract eines oder mehrere von vier Beschwerdebildern, die eine
+ * übliche ärztliche Untersuchung nicht erklärt, mit zwei Unterformen, die
+ * sich überschneiden können (Stanghellini et al. 2016, PMID 27147122):
  *
- *   PDS  Völlegefühl nach dem Essen oder frühes Sattsein, an mindestens
- *        drei Tagen pro Woche.
- *   EPS  Schmerz oder Brennen im Oberbauch, an mindestens einem Tag pro Woche.
+ *   PDS  Völlegefühl nach dem Essen oder frühes Sattsein.
+ *   EPS  Schmerz oder Brennen im Oberbauch.
  *
- * Beides zugleich kommt vor und ist kein Widerspruch.
+ * Die Häufigkeiten hier (PDS an drei Tagen je Woche, EPS an einem) sind die
+ * Rechnung dieser Datei; das Abstract nennt sie nicht. Deshalb gibt keine
+ * Anzeige mehr ein „erfüllt" aus – der Kasten unter „Muster", der Bericht und
+ * „Was keine App beantwortet" zählen nur. Bis zur Fassung 29 stand hier
+ * außerdem, die beiden Formen würden „verschieden behandelt"; das trägt das
+ * Abstract nicht.
  */
 function dyspepsie(d) {
   const pdsTage = tageMit(d.eintraege, ['druck', 'saettigung'], d.von, d.bis);
@@ -13269,13 +13367,16 @@ function dyspepsie(d) {
  * GerdQ
  * ---------------------------------------------------------------------------
  *
- * Sechs Fragen nach den letzten sieben Tagen, jede 0 bis 3 Punkte, zusammen 0
- * bis 18. Ab 8 Punkten gilt eine Refluxkrankheit als wahrscheinlich.
+ * Sechs Posten nach den letzten sieben Tagen, jeder 0 bis 3 Punkte, zusammen
+ * 0 bis 18. Zwei davon zählt Body Check umgekehrt: Oberbauchschmerz und
+ * Übelkeit – je öfter eingetragen, desto weniger Punkte.
  *
- * Zwei der sechs zählen *umgekehrt*: Oberbauchschmerz und Übelkeit sprechen
- * eher gegen Reflux und für etwas anderes im Magen. Das ist keine Marotte des
- * Fragebogens, sondern sein eigentlicher Trick – er misst nicht, wie schlecht
- * es jemandem geht, sondern wie typisch das Muster ist.
+ * So rechnet diese Datei; das Abstract nennt nur „six-item" (siehe oben).
+ * Bis zur Fassung 29 stand hier „Ab 8 Punkten gilt eine Refluxkrankheit als
+ * wahrscheinlich" und, die umgekehrten Posten sprächen „für etwas anderes im
+ * Magen". Beides steht nirgends mehr in der Anzeige; `schwelle` und
+ * `wahrscheinlich` werden weiter gerechnet, aber nicht als Deutung
+ * ausgegeben (js/app.js, js/bericht.js, js/luecken.js).
  */
 const GERDQ_POSTEN = [
   { id: 'sodbrennen', frage: 'Brennen hinter dem Brustbein', arten: ['sodbrennen', 'brennen'], richtung: 1 },
@@ -13344,8 +13445,7 @@ function gerdq(d) {
     erfasst,
     von,
     bis: d.bis,
-    // Unter vier erfassten Tagen der letzten sieben ist die Zahl nicht mehr
-    // eine Untergrenze, sondern Zufall.
+    // Unter vier erfassten Tagen der letzten sieben ist die Zahl Zufall.
     belastbar: erfasst >= 4,
   };
 }
@@ -13641,24 +13741,53 @@ function vorschlaege(nachKlassen, nachAusloesern, anzahl = 4) {
 
 /* ===== js/ansprechen.js ===== */
 /*
- * Ob ein Mittel etwas bewirkt – und was es heißt, wenn nicht.
+ * Ob sich unter einem Mittel etwas geändert hat.
  *
  * Diese App schlägt kein Medikament vor; das steht in js/rat.js und bleibt so.
- * Hier geht es um etwas anderes: Sie *nimmt* schon etwas, sie trägt es ein, und
- * niemand rechnet nach, ob es wirkt. Genau diese Rechnung ist in der
- * Sprechstunde eine eigene Auskunft.
+ * Hier geht es um etwas anderes: Wer schon etwas nimmt und es einträgt, hat
+ * die Zahlen für einen Vergleich, und niemand rechnet ihn im Kopf nach. Für
+ * die Sprechstunde ist das eine eigene Auskunft.
  *
- * Denn ausbleibendes Ansprechen ist selbst ein Befund. Ein Säureblocker, der
- * nach vier bis acht Wochen nichts geändert hat, spricht gegen die Säure als
- * Ursache – und damit für eine funktionelle Störung oder für etwas, das noch
- * nicht gefunden wurde. Das ist eine der wenigen Stellen, an denen ein
- * Tagebuch eine Untersuchung ersetzen kann: Der „PPI-Versuch" ist genau das,
- * ein Versuch mit Beobachtung, und beobachtet wird hier ohnehin.
+ * WAS DARAUS NICHT FOLGT. Bleiben die Bauchwerte unter einem Säureblocker,
+ * wie sie waren, sagt diese Datei nichts über die Ursache. Die
+ * Fachinformationen ziehen daraus keinen Schluss, sie nennen weitere
+ * Untersuchungen: Antra MUPS (www.fachinfo.de/fi/pdf/004171, Stand Mai 2024,
+ * 4.2): wenn die Kontrolle der Symptome nach einer vierwöchigen Behandlung
+ * nicht erreicht wurde, „werden weitere Untersuchungen empfohlen";
+ * Pantoprazol-ratiopharm 20 mg (www.fachinfo.de/fi/pdf/020159, Stand Juni
+ * 2026, 4.4): „Sollten die Symptome trotz adäquater Behandlung weiter bestehen
+ * bleiben, sind weitere Untersuchungen in Betracht zu ziehen." Dieselbe
+ * Fachinformation sagt in 4.2, eine Besserung komme „im Allgemeinen innerhalb
+ * von 2-4 Wochen", sonst „normalerweise innerhalb weiterer 4 Wochen"; und
+ * auch bei meist endoskopisch gesicherter Refluxkrankheit war nach 28 Tagen
+ * eine vollständige Linderung des Sodbrennens nur bei „68,1 % bis 92,3 %"
+ * erreicht (EMA, Produktinformation PANTOZOL Control, Fachinformation 5.1).
+ * Bis zur Fassung 29 stand hier und im Satz für die Sprechstunde, ein
+ * Säureblocker ohne Wirkung nach vier bis acht Wochen spreche gegen die Säure
+ * als Ursache („wäre … etwas zu sehen"); das trägt keine dieser Quellen, und
+ * verglichen wird ohnehin der Bauchwert, nicht das Sodbrennen allein.
  *
- * WAS HIER TROTZDEM NICHT PASSIERT: kein „nimm mehr", kein „setz es ab", kein
- * „wechsle das Präparat". Ein Säureblocker wird nach längerer Einnahme nicht
- * von einem Tag auf den anderen weggelassen – der Magen antwortet dann mit mehr
- * Säure als vorher. Was hier steht, ist die Zahl und die Frage dazu.
+ * WAS HIER AUCH NICHT PASSIERT: kein „nimm mehr", kein „setz es ab", kein
+ * „wechsle das Präparat". Ob und wie ein Mittel beendet wird, gehört in
+ * Praxis oder Apotheke. Belegt ist dazu nur der Satz der Packungsbeilage:
+ * „Setzen Sie die Tabletten nicht ab, ohne zuerst mit Ihrem Arzt oder
+ * Apotheker zu sprechen." (Gebrauchsinformation Pantozol 20 mg,
+ * patienteninfo-service.de, überarbeitet April 2023, Abschnitt 3). Ein
+ * Säure-Rebound nach dem Absetzen steht in keiner geprüften Fach- oder
+ * Gebrauchsinformation (siehe js/mittel.js, ppi); der Satz dazu ist
+ * gestrichen.
+ *
+ * NUR MAGENMITTEL BEKOMMEN EIN URTEIL. Verglichen wird immer der Bauchwert.
+ * Für ein Mittel, das wegen des Bauchs genommen wird, ist „darunter besser
+ * oder nicht" eine Auskunft über das Mittel; für ein Schmerzmittel, ein
+ * Triptan oder ein Mittel, das Body Check nicht kennt, hieße es nichts und
+ * läse sich trotzdem wie ein Befund darüber – „darunter schlechter" bei
+ * Ibuprofen etwa, für das die Fachinformation sagt: „Die am häufigsten
+ * beobachteten Nebenwirkungen betreffen den Verdauungstrakt" (Ibuprofen-CT
+ * Filmtabletten, Stand Juni 2025, 4.8). Bis zur Fassung 29 hieß es dann „Das
+ * heißt nicht, dass das Mittel schadet"; das trägt keine Quelle. Dort stehen
+ * jetzt nur die beiden Zahlen (siehe urteilAnzeige), wie oben auf „Muster"
+ * (js/lage.js, 6.). Gerechnet wird `urteil` weiter für alle.
  *
  * EIN ADHS-MITTEL BEKOMMT KEIN URTEIL. Für den Säureblocker ist das
  * Vorher-Nachher die eine ehrliche Rechnung; für ein ADHS-Mittel ist es
@@ -13676,11 +13805,23 @@ function vorschlaege(nachKlassen, nachAusloesern, anzahl = 4) {
 /** Ab so vielen Einnahmetagen lohnt der Vergleich überhaupt. */
 const MINDEST_TAGE = 8;
 
-/** Ab so vielen Wochen ist ein Säureblocker-Versuch ausgereizt. */
+/*
+ * Ab so vielen Wochen steht beim Säureblocker der eigene Satz in befund().
+ * Vier Wochen nennt Antra MUPS (4.2, siehe oben) für die Refluxkrankheit;
+ * ein Urteil über das Mittel oder die Ursache ist das nicht – laut
+ * Fachinformation kann eine Besserung auch erst später kommen.
+ */
 const PPI_WOCHEN = 4;
 
-/** Gruppen, bei denen ausbleibendes Ansprechen eine eigene Aussage ist. */
+/** Säureblocker: Protonenpumpenhemmer und H2-Blocker. */
 const SAEURE_GRUPPEN = ['ppi', 'h2'];
+
+/*
+ * Die Gruppen aus js/mittel.js, die wegen Magen- und Bauchbeschwerden
+ * genommen werden – dieselben wie in js/lage.js. Nur für sie heißt der
+ * Vergleich der Bauchwerte etwas über das Mittel (siehe oben).
+ */
+const MAGEN_GRUPPEN = ['ppi', 'h2', 'antazida', 'alginat', 'sucralfat', 'prokinetika', 'pflanzlich', 'heilerde'];
 
 function schnittUeber(eintraege, tage, von, bis) {
   const werte = [];
@@ -13701,10 +13842,14 @@ function schnittUeber(eintraege, tage, von, bis) {
  *
  * Der Vergleichszeitraum ist genauso lang wie die Einnahmezeit und liegt
  * unmittelbar davor. Das ist die ehrlichste Zuordnung, die aus einem Tagebuch
- * herauszuholen ist – und sie hat eine bekannte Schwäche, die dabeisteht: Man
- * fängt ein Mittel meistens an, *weil* es gerade besonders schlecht ist.
- * Danach wird es oft von selbst wieder besser, Mittel hin oder her. Deshalb
- * sagt eine Besserung hier weniger als ein Ausbleiben.
+ * herauszuholen ist – und sie hat eine bekannte Schwäche, die dabeisteht:
+ * Wird ein Mittel begonnen, während es gerade schlecht ist, kann eine
+ * Besserung danach auch von selbst kommen. Deshalb steht bei einer Besserung
+ * ein Vorbehalt dabei – und ein Ausbleiben ist ebenso wenig ein Schluss auf
+ * die Ursache (siehe oben). Als Möglichkeit, nicht als Häufigkeit: Wie oft
+ * ein Mittel in einer schlechten Phase begonnen wird, belegt keine geprüfte
+ * Quelle; bis zur Fassung 29 hieß es hier und im Satz dazu „meist" und „oft"
+ * (wie bei V4 in js/spannung.js).
  */
 function mittelBilanz(eintraege, tage, opt = {}) {
   const gruppeVon = opt.gruppeVon || (() => null);
@@ -13777,8 +13922,8 @@ function mittelBilanz(eintraege, tage, opt = {}) {
       differenz,
       vergleichbar,
       urteil,
-      // Der Fall, für den es diese Datei gibt: ein Säureblocker, lange genug
-      // genommen, ohne dass sich etwas geändert hat.
+      // Ein Säureblocker, mindestens PPI_WOCHEN genommen, ohne dass die
+      // Bauchwerte darunter besser geworden wären.
       saeureVersuchAusgereizt: SAEURE_GRUPPEN.includes(gruppe)
         && wochen >= PPI_WOCHEN && vergleichbar && differenz < 1,
     });
@@ -13792,16 +13937,31 @@ const ANSPRECHEN_URTEIL = {
   schlechter: 'darunter schlechter',
   unveraendert: 'kein Unterschied',
   zuwenig: 'zu wenige notierte Tage',
-  // Nur bei ADHS-Mitteln: Zahlen nebeneinander, kein Urteil (siehe oben).
+  // Bei allem außer den Magenmitteln: Zahlen nebeneinander, kein Urteil
+  // (siehe oben).
   offen: 'ohne Urteil',
 };
+
+/** Hat dieses Mittel ein Urteil aus dem Bauchwert? Nur die Magenmittel. */
+function mitUrteil(m) {
+  return MAGEN_GRUPPEN.includes(m.gruppe) && !ADHS_GRUPPEN.includes(m.gruppe);
+}
+
+/**
+ * Das Urteil, wie es dasteht: Außerhalb der Magenmittel keines (siehe oben).
+ * Die Rechnung in mittelBilanz bleibt dieselbe.
+ */
+function urteilAnzeige(m) {
+  if (!m.genug || !m.vergleichbar || mitUrteil(m)) return m.urteil;
+  return 'offen';
+}
 
 /**
  * Der Satz, der in die Sprechstunde gehört.
  *
- * Für jedes Mittel mit genug Tagen einer – und für den ausgereizten
- * Säureblocker der eine, der etwas verändert: Er beendet eine Frage, statt eine
- * neue aufzumachen.
+ * Für jedes Mittel mit genug Tagen einer. Er nennt die Zahlen und, wo es
+ * passt, eine Frage für den Termin – keinen Schluss auf die Ursache und
+ * keinen Rat zum Mittel (Belege oben).
  */
 function befund(m) {
   if (!m.genug) {
@@ -13811,35 +13971,48 @@ function befund(m) {
     return 'Vor der Einnahme sind zu wenige Tage notiert, um zu vergleichen.';
   }
   const komma = (x) => x.toFixed(1).replace('.', ',');
+  const seitDatum = String(m.seit).split('-').reverse().join('.');
   if (ADHS_GRUPPEN.includes(m.gruppe)) {
-    const datum = String(m.seit).split('-').reverse().join('.');
-    return `Seit dem ersten Eintrag (${datum}) im Mittel ${komma(m.unter.schnitt)}, in der `
+    return `Seit dem ersten Eintrag (${seitDatum}) im Mittel ${komma(m.unter.schnitt)}, in der `
       + `Zeit davor ${komma(m.davor.schnitt)} (${m.unter.notierte} gegen `
       + `${m.davor.notierte} notierte Tage). Ob das Mittel vorher schon genommen und nur `
       + 'nicht eingetragen wurde, weiß Body Check nicht; ein ADHS-Mittel fängt man auch '
       + 'nicht wegen des Bauchs an.';
   }
+  if (!mitUrteil(m)) {
+    return `Seit dem ersten Eintrag (${seitDatum}) im Mittel ${komma(m.unter.schnitt)}, in der `
+      + `Zeit davor ${komma(m.davor.schnitt)} (${m.unter.notierte} gegen `
+      + `${m.davor.notierte} notierte Tage). Verglichen wird der Bauchwert; ob das etwas `
+      + 'mit dem Mittel zu tun hat, zeigt dieser Vergleich nicht.';
+  }
   const zahlen = `${m.davor.schnitt.toFixed(1).replace('.', ',')} davor gegen `
     + `${m.unter.schnitt.toFixed(1).replace('.', ',')} darunter `
     + `(${m.davor.notierte} gegen ${m.unter.notierte} notierte Tage).`;
 
+  /*
+   * Der Säureblocker ohne Besserung: die Zahlen, was die Fachinformationen
+   * für diesen Fall nennen, die Frage für den Termin und der Satz der
+   * Packungsbeilage zum Beenden (Belege im Kopf dieser Datei). „Nicht besser
+   * geworden" statt „nicht geändert": Der Zweig gilt auch, wenn die Werte
+   * darunter höher waren.
+   */
   if (m.saeureVersuchAusgereizt) {
-    return `Seit ${Math.round(m.wochen)} Wochen im Gebrauch, ohne dass sich die `
-      + `Beschwerdestärke geändert hätte: ${zahlen} Das ist selbst ein Befund. `
-      + `Wenn Säure die Ursache wäre, wäre nach vier bis acht Wochen etwas zu `
-      + `sehen. Frage für den Termin: Was heißt es, dass es darunter nicht besser `
-      + `geworden ist – und wie geht es weiter? Nicht von selbst absetzen: Nach `
-      + `längerer Einnahme antwortet der Magen kurzzeitig mit mehr Säure als vorher.`;
+    return `Seit ${Math.round(m.wochen)} Wochen im Gebrauch, ohne dass die Bauchwerte `
+      + `darunter besser geworden wären: ${zahlen} Bleiben Beschwerden unter der `
+      + 'Behandlung bestehen, nennen manche Fachinformationen weitere Untersuchungen; '
+      + 'was es hier bedeutet, klärt die Praxis. Frage für den Termin: Was heißt es, '
+      + 'dass es darunter nicht besser geworden ist – und wie geht es weiter? Laut '
+      + 'Packungsbeilage mancher Präparate, etwa Pantozol, wird die Einnahme nicht '
+      + 'beendet, ohne vorher mit Ärztin, Arzt oder Apotheke zu sprechen.';
   }
   if (m.urteil === 'besser') {
     return `Darunter ${m.differenz.toFixed(1).replace('.', ',')} Stufen besser: ${zahlen} `
-      + `Vorsicht bei der Deutung: Ein Mittel fängt man meist an, wenn es gerade `
-      + `besonders schlecht ist – danach wird es oft von selbst wieder besser.`;
+      + 'Vorsicht bei der Deutung: Wird ein Mittel begonnen, während es gerade schlecht '
+      + 'ist, kann eine Besserung danach auch von selbst kommen.';
   }
   if (m.urteil === 'schlechter') {
-    return `Darunter schlechter als davor: ${zahlen} Das heißt nicht, dass das `
-      + `Mittel schadet – eher, dass es angefangen wurde, als es schlechter wurde. `
-      + `Wenn es dabei bleibt, gehört es angesprochen.`;
+    return `Darunter schlechter als davor: ${zahlen} Woran das liegt, zeigt dieser `
+      + 'Vergleich nicht. Wenn es dabei bleibt, gehört es angesprochen.';
   }
   return `Kein Unterschied zur Zeit davor: ${zahlen} Ob das gegen das Mittel `
     + `spricht, hängt daran, wie lange es schon läuft – ${Math.round(m.wochen)} `
@@ -13867,6 +14040,22 @@ function befund(m) {
  * Kein Ranking von Diagnosen nach Wahrscheinlichkeit. Was hier je Verdacht
  * steht, ist: was dafür spricht, was dagegen, und was es entscheidet. Die
  * Entscheidung selbst fällt woanders.
+ *
+ * FASSUNG 30: GLEICHER WORTLAUT WIE DER KRITERIEN-KASTEN. Bis zur Fassung 29
+ * standen hier Sätze, die die Fassung 30 im Kriterien-Kasten (kriterienTeil in
+ * js/app.js) und im Arztbericht schon gestrichen hatte, weil keine Quelle sie
+ * trägt: „ab 8 gilt Reflux als wahrscheinlich", „die PDS-/EPS-Kriterien sind
+ * erfüllt (verlangt sind …)", „die Kriterien setzen voraus, dass nichts
+ * Organisches dahintersteckt. Das entscheidet die Spiegelung", „die
+ * Rom-Kriterien verlangen …". Dazu der Schluss aus einem Säureblocker ohne
+ * Besserung („Wäre Säure die Ursache, wäre nach vier bis acht Wochen etwas zu
+ * sehen"), der die Refluxkrankheit auf „spricht eher dagegen" stellte – die
+ * Fachinformationen ziehen daraus keinen Schluss (Belege im Kopf von
+ * js/ansprechen.js). Die Rechnungen in js/kriterien.js und js/ansprechen.js
+ * sind unverändert; entfallen ist nur, was hier als Einordnung daraus wurde:
+ * Der Punktwert und die gezählten Magenbeschwerden stehen ohne Schwelle unter
+ * dem Verdacht, nicht mehr als „dafür" oder „dagegen", und bestimmen den
+ * Stand nicht mehr. Quellen für den neuen Wortlaut stehen jeweils am Satz.
  */
 
 /** Wie weit ein Verdacht aus dem Tagebuch heraus gestützt ist. */
@@ -13893,10 +14082,10 @@ function tagebuchLuecken(d) {
 
   if (s.gesamt === 0) {
     nimm('stuhl', 10, 'Stuhlgang eintragen',
-      'Die größte Lücke. Ohne Häufigkeit und Form lässt sich ein Reizdarm '
-      + 'im Tagebuch überhaupt nicht prüfen, und der Typ – Verstopfung, '
-      + 'Durchfall, gemischt – entscheidet in der Praxis über die Behandlung. '
-      + 'Zwei Tipper am Tag, mit Bildchen statt Text.');
+      'Die größte Lücke. Ohne Häufigkeit und Form kann der Reizdarm-Kasten '
+      + 'unter „Muster“ nichts zählen und auch keinen Typ bestimmen – '
+      + 'Verstopfung, Durchfall, gemischt. Zwei Tipper am Tag, mit Bildchen '
+      + 'statt Text.');
   } else if (s.gesamt < 15) {
     nimm('stuhl', 8, 'Weiter Stuhlgang eintragen',
       `${s.gesamt} von 15 Eintragungen. Ab fünfzehn lässt sich der Typ `
@@ -13906,9 +14095,9 @@ function tagebuchLuecken(d) {
   if (!k.dauer.seit) {
     nimm('seit', 9, 'Seit wann hast du das?',
       'Die eine Angabe, die aus dem Tagebuch grundsätzlich nicht hervorgeht – '
-      + 'es beginnt an dem Tag, an dem du anfängst zu schreiben. Die '
-      + 'Rom-Kriterien verlangen einen Beginn vor mindestens einem halben '
-      + 'Jahr. Steht unter „Mehr", dauert fünf Sekunden.');
+      + 'es beginnt an dem Tag, an dem du anfängst zu schreiben. Für den '
+      + 'Reizdarm-Kasten unter „Muster“ rechnet Body Check mit einem Beginn vor '
+      + 'mindestens sechs Monaten. Steht unter „Mehr“, dauert fünf Sekunden.');
   }
 
   const bez = d.bezug;
@@ -13916,53 +14105,60 @@ function tagebuchLuecken(d) {
     nimm('stuhlbezug', 7, 'Die Frage nach dem Stuhlgang beantworten',
       `Unten im Beschwerdebogen: „Danach besser, schlechter, unverändert?" `
       + `Bisher ${bez.beantwortet} von 4 Malen beantwortet. Das ist eines der `
-      + 'drei Merkmale, an denen ein Reizdarmsyndrom festgemacht wird, und das '
-      + 'einzige, das sich nicht aus Zahlen ableiten lässt.');
+      + 'drei Merkmale im Reizdarm-Kasten unter „Muster“, und das einzige, das '
+      + 'sich nicht aus Zahlen ableiten lässt.');
   }
 
   if (!d.benutzt.oberbauch || !d.benutzt.saettigung) {
     nimm('arten', 6, 'Zwei neue Beschwerdezeilen benutzen',
       'Im Beschwerdebogen stehen jetzt „Schmerz im Oberbauch" und „Früh satt". '
       + 'Sie klingen wie „Brennen" und „kein Appetit" und sind etwas anderes: '
-      + 'An ihnen hängt, ob sich das Bild eher als Schmerz- oder als '
-      + 'Völlegefühl-Typ einordnen lässt – zwei Formen, die verschieden '
-      + 'behandelt werden.');
+      + 'Frühes Sattsein und Schmerz im Oberbauch gehören zu den Beschwerden, '
+      + 'mit denen Rom IV die funktionelle Dyspepsie beschreibt. Gezählt werden '
+      + 'sie im Kasten „Magenbeschwerden ab Stärke 4“ unter „Muster“ – ohne Einordnung.');
   }
 
   if (k.zeitraum.notierteTage < 30) {
     nimm('tage', 8, 'Regelmäßiger eintragen',
       `In den letzten drei Monaten sind ${k.zeitraum.notierteTage} Tage notiert. `
-      + 'Ab dreißig lassen sich die Rom-Kriterien rechnen. Wichtig ist nicht die '
+      + 'Ab dreißig rechnet Body Check die Kästen unter „Kriterien“. Wichtig ist nicht die '
       + 'Menge je Tag, sondern dass kein Tag fehlt – eine Lücke ist kein guter '
       + 'Tag, und Lücken häufen sich genau in den schlechten Wochen.');
   } else if (k.zeitraum.tagebuchTage < 90) {
     nimm('tage', 4, 'Weiterschreiben',
       `Das Tagebuch läuft seit ${k.zeitraum.tagebuchTage} Tagen. Die `
-      + 'Rom-Kriterien schauen auf drei Monate – bis dahin ist jede Aussage '
-      + 'dazu vorläufig.');
+      + 'Kästen unter „Kriterien“ rechnen mit den letzten drei Monaten – bis '
+      + 'dahin ist jede Zahl dort vorläufig.');
   }
 
+  // Der Punktwert ohne „zu niedrig statt falsch": Zwei Posten zählen
+  // umgekehrt (js/kriterien.js), fehlende Tage machen ihn also nicht nur
+  // niedriger. Wie der Kasten unter „Muster" (kriterienTeil in js/app.js).
   if (!k.gerdq.belastbar) {
     nimm('gerdq', 5, 'Die letzte Woche vollständig eintragen',
-      `Der GerdQ schaut auf sieben Tage; erfasst sind davon ${k.gerdq.erfasst}. `
-      + 'Was nicht eingetragen ist, zählt als „nicht gehabt" – die Punktzahl ist '
-      + 'dann zu niedrig statt falsch, aber eben auch nicht zu gebrauchen.');
+      `Der Punktwert angelehnt an den GerdQ schaut auf sieben Tage; erfasst sind `
+      + `davon ${k.gerdq.erfasst}. Was nicht eingetragen ist, zählt als „nicht `
+      + 'gehabt“ – die Punktzahl wäre damit nicht zu gebrauchen.');
   }
 
   if (!d.nachtwachAn) {
     nimm('nachtwach', 4, 'Die Frage „Nachts davon wach" anschalten',
-      'Sie steht unter „Mehr" bei den Tagesfragen. Im GerdQ ist sie eine eigene '
-      + 'Frage, und in der Sprechstunde eine der ersten – Beschwerden, die aus '
-      + 'dem Schlaf reißen, sind etwas anderes als solche am Tag.');
+      'Sie steht unter „Mehr“ bei den Tagesfragen. Der Punktwert angelehnt an '
+      + 'den GerdQ zählt sie als eigenen Posten; ausgeschaltet zählt er dort immer null.');
   }
 
+  // Wortlaut wie versuchTeil in js/app.js (Belege dort): Bis zur Fassung 29
+  // hieß es „Zwei Wochen weglassen … Das ist der einzige Weg"; die zwei
+  // Wochen nennen die Quellen nicht, und in der Praxis geschieht das
+  // Wiederessen ärztlich begleitet.
   if (d.versuchMoeglich && !d.versuchLaeuft) {
     nimm('versuch', 7, 'Einen Auslassversuch machen',
       'In deiner Bilanz steht etwas Auffälliges. Zählen allein macht daraus nie '
       + 'einen Beleg – wer an schlechten Tagen anders isst, findet sein Essen '
-      + 'auffällig, ohne dass es damit zu tun hat. Zwei Wochen weglassen, dann '
-      + 'bewusst wieder essen: Das ist der einzige Weg von „fällt zusammen" zu '
-      + '„liegt daran". Steht unter „Muster".');
+      + 'auffällig, ohne dass es damit zu tun hat. Ein Versuch dreht das um: eine '
+      + 'Zeit lang weglassen, dann bewusst wieder essen. Ob ein solcher Versuch '
+      + 'für dich sinnvoll ist, lässt sich in der Praxis besprechen. Steht unter '
+      + '„Muster“.');
   }
 
   const ohneZutaten = d.mahlzeitenOhneZutaten;
@@ -13990,9 +14186,19 @@ const VERDAECHTE = [
     was: 'Ein Bakterium in der Magenschleimhaut. Häufigste Ursache von Gastritis '
       + 'und Magengeschwür – und die einzige Möglichkeit auf dieser Liste, die '
       + 'sich in zwei Wochen behandeln und danach abhaken lässt.',
+    /*
+     * Bis zur Fassung 29: „Säureblocker zwei Wochen vorher absetzen (nach
+     * Absprache), sonst wird der Test falsch negativ" – eine Anweisung zum
+     * Absetzen, und die zwei Wochen stehen in keiner geprüften Quelle. Belegt
+     * ist: EMA, Produktinformation PANTOZOL Control, Fachinformation 4.4:
+     * „Patienten, bei denen eine Endoskopie oder ein 13C-HarnstoffAtemtest
+     * durchgeführt werden soll, sollten ihren Arzt vor Einnahme dieses
+     * Arzneimittels befragen."
+     */
     untersuchung: 'Atemtest, Stuhltest oder Gewebeprobe bei der Spiegelung. '
-      + 'Wichtig: Säureblocker zwei Wochen vorher absetzen (nach Absprache), '
-      + 'sonst wird der Test falsch negativ.',
+      + 'Laut Fachinformation von PANTOZOL Control ist eine geplante Spiegelung '
+      + 'oder ein Harnstoff-Atemtest ein Anlass, vor der Einnahme ärztlich '
+      + 'nachzufragen; was ein Säureblocker für den Test bedeutet, klärt die Praxis.',
     frage: 'Wäre ein Test auf Helicobacter pylori sinnvoll?',
     pruefe: (d) => {
       const dafuer = [];
@@ -14037,7 +14243,7 @@ const VERDAECHTE = [
           + 'wahrscheinlicher.');
       }
       if (d.essen.bewertbar >= 8 && d.essen.anteilNachDemEssen >= 0.6) {
-        dagegen.push('Die Beschwerden kommen überwiegend kurz *nach* dem Essen, '
+        dagegen.push('Die Beschwerden kommen überwiegend kurz nach dem Essen, '
           + 'nicht nüchtern.');
       }
       // Die Frage so, wie sie sich vorlesen lässt: Ohne Nüchternmuster darf
@@ -14061,71 +14267,121 @@ const VERDAECHTE = [
     name: 'Refluxkrankheit',
     was: 'Mageninhalt kommt in die Speiseröhre zurück. Brennen hinter dem '
       + 'Brustbein, oft im Liegen und nach spätem Essen.',
-    untersuchung: 'Meist zuerst ein befristeter Versuch mit einem Säureblocker; '
-      + 'bleibt es dabei oder kommt es wieder, Spiegelung und gegebenenfalls eine '
-      + 'Messung des Säurerückflusses über 24 Stunden.',
+    /*
+     * Bis zur Fassung 29: „Meist zuerst ein befristeter Versuch mit einem
+     * Säureblocker; bleibt es dabei …, Spiegelung" – die Reihenfolge nennt
+     * keine geprüfte Quelle. gesund.bund.de, Sodbrennen und Refluxkrankheit
+     * (Stand 04.04.2025, „Wie wird eine Refluxerkrankung diagnostiziert?"):
+     * „Eine Refluxerkrankung lässt sich an den typischen Symptomen erkennen.
+     * … Bei einem Verdacht auf Refluxkrankheit sind weitere Untersuchungen
+     * möglich. Dazu gehören eine Magenspiegelung und die Messung des pH-Werts
+     * in der unteren Speiseröhre."
+     */
+    untersuchung: 'Laut gesund.bund.de lässt sich eine Refluxerkrankung an den '
+      + 'typischen Beschwerden erkennen; bei Verdacht sind weitere Untersuchungen '
+      + 'möglich, etwa eine Magenspiegelung und die Messung des Säurewerts in der '
+      + 'unteren Speiseröhre. Welche davon nötig ist, klärt die Praxis.',
     frage: 'Spricht etwas für oder gegen einen befristeten Versuch mit einem '
       + 'Säureblocker – und was, wenn er nichts ändert?',
+    /*
+     * Der Punktwert angelehnt an den GerdQ und ein Säureblocker ohne
+     * Besserung stehen ohne Deutung im offenen Teil (siehe Kopf dieser
+     * Datei). Bis zur Fassung 29 waren sie „dafür" (ab 8 Punkten) oder
+     * „dagegen" (unter 8, oder ein Säureblocker ohne Besserung) und stellten
+     * die Refluxkrankheit damit auch auf „spricht eher dagegen". Die Schwelle
+     * 8 steht im Abstract nicht (Jones et al. 2009, PMID 19737151), und zum
+     * Säureblocker ziehen die Fachinformationen keinen Schluss auf die
+     * Ursache, sie nennen weitere Untersuchungen (Belege im Kopf von
+     * js/ansprechen.js). Der Satz zum Säureblocker ist derselbe wie dort.
+     */
     pruefe: (d) => {
       const dafuer = [];
-      const dagegen = [];
       const g = d.kriterien.gerdq;
-      if (g.belastbar && g.wahrscheinlich) {
-        dafuer.push(`GerdQ ${g.punkte} von 18 Punkten – ab 8 gilt Reflux als wahrscheinlich.`);
-      }
-      if (g.belastbar && !g.wahrscheinlich) {
-        dagegen.push(`GerdQ ${g.punkte} von 18 Punkten, unter der Schwelle von 8.`);
+      const hinweise = [];
+      if (g.belastbar) {
+        hinweise.push(`Punktwert angelehnt an den GerdQ: ${g.punkte} von 18, gezählt aus `
+          + 'deinen Eintragungen der letzten sieben Tage, kein ausgefüllter Fragebogen. '
+          + 'Was er bedeutet, kann die Praxis einordnen.');
       }
       if (d.musterIds.includes('saeure')) dafuer.push('Das Muster ist säuretypisch.');
       const ppi = (d.mittel || []).find((m) => m.saeureVersuchAusgereizt);
       if (ppi) {
-        dagegen.push(`${ppi.name} läuft seit ${Math.round(ppi.wochen)} Wochen, ohne dass `
-          + 'sich die Beschwerdestärke geändert hätte. Wäre Säure die Ursache, wäre '
-          + 'nach vier bis acht Wochen etwas zu sehen.');
+        hinweise.push(`${ppi.name} läuft seit ${Math.round(ppi.wochen)} Wochen, ohne dass die `
+          + 'Bauchwerte darunter besser geworden wären. Bleiben Beschwerden unter der '
+          + 'Behandlung bestehen, nennen manche Fachinformationen weitere Untersuchungen; '
+          + 'was es hier bedeutet, klärt die Praxis.');
       }
-      let stand = 'offen';
-      if (dafuer.length && !dagegen.length) stand = 'gestuetzt';
-      else if (dafuer.length) stand = 'moeglich';
-      else if (dagegen.length) stand = 'unwahrscheinlich';
       return {
-        stand,
+        stand: dafuer.length ? 'gestuetzt' : 'offen',
         dafuer,
-        dagegen,
-        offen: 'Ob die Speiseröhre Schaden genommen hat, zeigt nur die Spiegelung. '
-          + 'Der GerdQ sagt etwas über das Muster, nichts über den Zustand.',
+        dagegen: [],
+        offen: [...hinweise, 'Ob die Speiseröhre Schaden genommen hat, zeigt kein '
+          + 'Tagebuch. Der Punktwert sagt etwas über die eingetragenen Beschwerden, '
+          + 'nichts über den Zustand der Speiseröhre.'].join(' '),
       };
     },
   },
   {
     id: 'dyspepsie',
     name: 'Funktionelle Dyspepsie',
-    was: 'Beschwerden ohne fassbaren Befund. Kein Restposten und keine '
-      + 'Einbildung – eine eigene Störung mit eigener Behandlung, und die '
-      + 'häufigste Erklärung überhaupt.',
-    untersuchung: 'Die Diagnose steht, wenn die Kriterien erfüllt sind *und* eine '
-      + 'Spiegelung nichts zeigt. Ohne die Spiegelung bleibt sie eine Vermutung.',
+    /*
+     * gesund.bund.de, Reizmagensyndrom (funktionelle Dyspepsie), Stand
+     * 05.02.2026: Mit „funktionell" ist gemeint, „dass der Magen und der
+     * Zwölffingerdarm zwar gesund erscheinen, aber nicht so arbeiten, wie sie
+     * sollen"; „eine der häufigsten Erkrankungen des Magen-Darm-Trakts";
+     * „verschiedene Behandlungsmöglichkeiten". Bis zur Fassung 29 hieß es „die
+     * häufigste Erklärung überhaupt" – so steht es dort nicht.
+     */
+    was: 'Beschwerden im Oberbauch, für die sich keine andere Ursache findet: '
+      + 'Magen und Zwölffingerdarm erscheinen gesund, arbeiten aber nicht so, wie '
+      + 'sie sollen. Keine Einbildung – laut gesund.bund.de eine der häufigsten '
+      + 'Erkrankungen des Magen-Darm-Trakts, mit verschiedenen '
+      + 'Behandlungsmöglichkeiten.',
+    /*
+     * Dieselbe Seite, „Wie wird ein Reizmagen diagnostiziert?": „Von einem
+     * Reizmagen wird deshalb erst gesprochen, wenn andere Ursachen für die
+     * Beschwerden abgeklärt und ausgeschlossen wurden"; nach dem Gespräch
+     * „Blut- und Stuhltests, ein Bauch-Ultraschall und manchmal eine
+     * Magenspiegelung". Bis zur Fassung 29: „Die Diagnose steht, wenn die
+     * Kriterien erfüllt sind *und* eine Spiegelung nichts zeigt" – die
+     * Spiegelung als Maßstab nennt die Quelle nicht, und die Sternchen
+     * standen wörtlich auf dem Bildschirm.
+     */
+    untersuchung: 'Von einem Reizmagen wird laut gesund.bund.de erst gesprochen, '
+      + 'wenn andere Ursachen der Beschwerden abgeklärt und ausgeschlossen sind – '
+      + 'nach einem Gespräch etwa mit Blut- und Stuhltests, Ultraschall und '
+      + 'manchmal einer Magenspiegelung. Welche Untersuchungen nötig sind, klärt '
+      + 'die Praxis.',
     frage: 'Passt das Bild zu einer funktionellen Dyspepsie – und wenn ja, welche '
       + 'Form, PDS oder EPS?',
+    /*
+     * Die Magenbeschwerden nur gezählt, wie im Kasten „Magenbeschwerden ab
+     * Stärke 4" (kriterienTeil in js/app.js): Rom IV beschreibt die
+     * funktionelle Dyspepsie mit Völlegefühl nach dem Essen, frühem Sattsein,
+     * Schmerz oder Brennen im Oberbauch, „unexplained after a routine
+     * clinical evaluation" (Stanghellini et al. 2016, PMID 27147122,
+     * Abstract); wie oft sie dafür auftreten müssen, steht dort nicht. Bis zur
+     * Fassung 29 hieß es „Die PDS-/EPS-Kriterien sind erfüllt … (verlangt sind
+     * 3 / ist 1)", und daran hing der Stand „passt zum Verlauf" oder „spricht
+     * eher dagegen". Die Rechnung (dy.pds, dy.eps) ist unverändert.
+     */
     pruefe: (d) => {
-      const dafuer = [];
       const dy = d.kriterien.dyspepsie;
-      if (dy.pruefbar && dy.pds.erfuellt) {
-        dafuer.push(`Die PDS-Kriterien sind erfüllt: an ${dy.pds.tage} Tagen `
-          + `Völlegefühl oder frühes Sattsein, ${dy.pds.proWoche.toFixed(1).replace('.', ',')} `
-          + 'je Woche der notierten Tage (verlangt sind 3).');
-      }
-      if (dy.pruefbar && dy.eps.erfuellt) {
-        dafuer.push(`Die EPS-Kriterien sind erfüllt: an ${dy.eps.tage} Tagen `
-          + `Schmerz oder Brennen im Oberbauch, ${dy.eps.proWoche.toFixed(1).replace('.', ',')} `
-          + 'je Woche der notierten Tage (verlangt ist 1).');
-      }
+      const zahl = (x) => x.toFixed(1).replace('.', ',');
+      const tage = (n) => `${n} ${n === 1 ? 'Tag' : 'Tagen'}`;
+      const gezaehlt = dy.pruefbar
+        ? `Gezählt ab Stärke 4: Druck, Völlegefühl oder früh satt an ${tage(dy.pds.tage)} `
+          + `(${zahl(dy.pds.proWoche)} je Woche der notierten Tage), Brennen oder Schmerz `
+          + `im Oberbauch an ${tage(dy.eps.tage)} (${zahl(dy.eps.proWoche)} je Woche). Wie `
+          + 'oft diese Beschwerden für die Einordnung auftreten müssen, gibt Body Check '
+          + 'nicht wieder; ob andere Ursachen dahinterstecken, klärt die Praxis, nicht '
+          + 'dieses Tagebuch.'
+        : 'Für die Zählung fehlen noch notierte Tage.';
       return {
-        stand: dafuer.length ? 'gestuetzt' : (dy.pruefbar ? 'unwahrscheinlich' : 'offen'),
-        dafuer,
+        stand: 'offen',
+        dafuer: [],
         dagegen: [],
-        offen: dy.pruefbar ? 'Die Kriterien setzen voraus, dass nichts Organisches '
-          + 'dahintersteckt. Das entscheidet die Spiegelung, nicht dieses Tagebuch.'
-          : 'Für die Kriterien fehlen noch notierte Tage.',
+        offen: gezaehlt,
       };
     },
   },
@@ -14188,8 +14444,19 @@ const VERDAECHTE = [
         stand: dafuer.length ? 'moeglich' : 'offen',
         dafuer,
         dagegen: [],
-        offen: 'Ein Auslassversuch (unter „Muster") bringt hier fast so viel wie '
-          + 'der Test und geht sofort – der Test sagt dafür, *welcher* Zucker es ist.',
+        /*
+         * Bis zur Fassung 29: „Ein Auslassversuch bringt hier fast so viel wie
+         * der Test" – ohne Quelle; die Sternchen standen wörtlich da.
+         * gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026, „Wie wird eine
+         * Laktoseintoleranz diagnostiziert?"): Diät- oder Auslasstest, bei dem
+         * „die Ärztin oder der Arzt … die körperliche Reaktion" überwacht,
+         * Laktosetoleranztest oder Atemtest; „Das Standardverfahren in
+         * Deutschland ist der Atemtest."
+         */
+        offen: 'Das Tagebuch zählt nur, was nach dem Essen eingetragen ist. Bei '
+          + 'Laktoseintoleranz nennt gesund.bund.de einen ärztlich überwachten '
+          + 'Auslasstest, einen Laktosetoleranztest oder den Atemtest, in Deutschland '
+          + 'das Standardverfahren; welcher Test infrage kommt, klärt die Praxis.',
       };
     },
   },
@@ -14198,9 +14465,19 @@ const VERDAECHTE = [
     name: 'Zöliakie',
     was: 'Eine Abwehrreaktion auf Gluten, die die Dünndarmschleimhaut zerstört. '
       + 'Kann sich als Reizdarm tarnen und bleibt oft jahrelang unentdeckt.',
-    untersuchung: 'Bluttest auf Antikörper (Transglutaminase-IgA plus '
-      + 'Gesamt-IgA). **Nur aussagekräftig, solange noch Gluten gegessen wird** – '
-      + 'wer vorher weglässt, bekommt ein falsch unauffälliges Ergebnis.',
+    /*
+     * Wie in planAngebot (js/app.js): EMA, Wheat starch (containing gluten)
+     * used as an excipient, EMA/CHMP/639441/2013 corr. 2, 9. Oktober 2017,
+     * S. 4: „Diagnosis is by blood tests to check for relevant antibodies,
+     * followed by endoscopy/gastroscopy and biopsy. … However all tests lose
+     * their usefulness if the person has already been eating a gluten-free
+     * diet for 6–12 months." Bis zur Fassung 29: „wer vorher weglässt,
+     * bekommt ein falsch unauffälliges Ergebnis" – so zwingend sagt es die
+     * Quelle nicht; welche Antikörper bestimmt werden, nennt sie nicht.
+     */
+    untersuchung: 'Bluttest auf Antikörper, danach Spiegelung mit Gewebeprobe. '
+      + '**Laut EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon 6 bis 12 '
+      + 'Monate glutenfrei gegessen wurde.**',
     frage: 'Ist Zöliakie schon einmal ausgeschlossen worden?',
     pruefe: (d) => {
       const dafuer = [];
@@ -14214,9 +14491,12 @@ const VERDAECHTE = [
         stand: 'offen',
         dafuer,
         dagegen: [],
-        offen: 'Aus dem Tagebuch nicht zu unterscheiden von einer '
-          + 'Fruktan-Unverträglichkeit – im selben Korn steckt beides. Nur der '
-          + 'Bluttest trennt sie. Deshalb: erst testen, dann weglassen.',
+        // Ohne „Nur der Bluttest trennt sie. Deshalb: erst testen, dann
+        // weglassen" (bis zur Fassung 29): ein Rat zur Reihenfolge, den die
+        // Quelle oben so nicht gibt.
+        offen: 'Aus dem Tagebuch nicht zu unterscheiden von anderen Gründen, warum '
+          + 'Weizen nicht vertragen wird. Ob eine Zöliakie schon abgeklärt ist, lässt '
+          + 'sich vor einem Weglassen in der Praxis besprechen.',
       };
     },
   },
@@ -15510,6 +15790,20 @@ function dosisBild(eintraege, id, fenster = 4) {
   const niedrigsteAuffaellig = auffaellige[0];
   const hoechsteHarmlos = harmlose.filter((s) => s.rang < niedrigsteAuffaellig.rang).pop();
 
+  /*
+   * Die Sätze sagen nur, was gezählt ist – keinen Schluss auf die Ursache und
+   * nichts zum Weglassen. Ob eine kleinere Menge vertragen wird, hängt an der
+   * Ursache, die das Tagebuch nicht kennt: Bei einer Laktoseintoleranz werden
+   * „bestimmte Mengen an Milchzucker" vertragen, bei einer
+   * Nahrungsmittelallergie reichen „Bereits kleine Mengen eines Lebensmittels"
+   * (gesund.bund.de, Laktoseintoleranz, Stand 23.02.2026; Nahrungsmittelallergie,
+   * Stand 27.05.2024). Bis zur Fassung 29 hieß es hier „Es sieht also nach
+   * einer Menge aus, nicht nach der Zutat selbst – was heißt, dass Weglassen
+   * vermutlich zu viel wäre" und „Bis dahin wäre ganz weglassen womöglich
+   * mehr als nötig", dazu der Vorschlag, es einmal in kleinerer Rolle zu
+   * essen; js/lage.js hatte dieselbe Aussage in der Fassung 30 schon
+   * gestrichen. Die Urteile ('schwelle', 'ab-hier') sind unverändert.
+   */
   if (hoechsteHarmlos) {
     return {
       urteil: 'schwelle',
@@ -15521,9 +15815,9 @@ function dosisBild(eintraege, id, fenster = 4) {
         + `war es unauffällig (${hoechsteHarmlos.faelle} Mahlzeiten), `
         + `${niedrigsteAuffaellig.satz} dagegen um `
         + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter `
-        + `(${niedrigsteAuffaellig.faelle} Mahlzeiten). Es sieht also nach einer `
-        + 'Menge aus, nicht nach der Zutat selbst – was heißt, dass Weglassen '
-        + 'vermutlich zu viel wäre.',
+        + `(${niedrigsteAuffaellig.faelle} Mahlzeiten). Woran das liegt, zeigt das `
+        + 'Tagebuch nicht: Ob eine kleinere Menge vertragen wird, hängt an der Ursache. '
+        + 'Was das für dein Essen heißt, lässt sich in der Praxis besprechen.',
     };
   }
 
@@ -15558,9 +15852,9 @@ function dosisBild(eintraege, id, fenster = 4) {
     satz: `Auffällig wird es ${niedrigsteAuffaellig.satz} `
       + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
       + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter). Ob `
-      + 'kleinere Mengen durchgehen, ist damit nicht gesagt – dafür müsste es '
-      + 'auch mal in kleinerer Rolle vorkommen, als Beilage, Topping oder Würze. '
-      + 'Bis dahin wäre ganz weglassen womöglich mehr als nötig.',
+      + 'kleinere Mengen anders wirken, lässt sich aus dem Tagebuch noch nicht sagen: '
+      + 'Mahlzeiten, in denen es nur als Beilage, Topping oder Würze vorkommt, sind '
+      + 'bisher zu wenige eingetragen.',
   };
 }
 
@@ -15730,7 +16024,7 @@ function gewichtsBild(messungen, heute, gewollt = false) {
           + 'weniger. Ein deutlicher, ungewollter Gewichtsverlust gehört zu den Zeichen, '
           + 'die ärztlich abgeklärt werden. Body Check meldet sich ab fünf Prozent – das '
           + 'ist keine Diagnose, sondern die Grenze dieser App. Wenn du absichtlich '
-          + 'abnimmst, sag es der App unter „Mehr", dann hört sie damit auf.',
+          + 'abnimmst, sag es der App unter „Mehr“, dann hört sie damit auf.',
     };
   }
 
@@ -15974,7 +16268,7 @@ const PRUEFBAR = [
     id: 'sorbit',
     name: 'Sorbit – Zuckeralkohol',
     was: '3 zuckerfreie Kaugummis oder 5 Trockenpflaumen',
-    warum: 'Steckt als Süßungsmittel in manchen „zuckerfreien" Süßigkeiten und kommt in '
+    warum: 'Steckt als Süßungsmittel in manchen „zuckerfreien“ Süßigkeiten und kommt in '
       + 'manchen Früchten vor, in Trockenpflaumen oft reichlich. Der Darm nimmt es nur '
       + 'begrenzt auf; größere Mengen können Bauchbeschwerden machen und leicht '
       + 'abführend wirken. Zusammen mit Fruchtzucker konkurriert es womöglich um die '
@@ -17100,10 +17394,19 @@ function freischaltung(z) {
     stand: `${z.notierteTage} von 10 notierten Tagen, ${z.beschwerden} von 5 Eintragungen zu Beschwerden`,
   });
 
+  /*
+   * Wie die Kriterien-Karte (kriterienTeil in js/app.js): Bis zur Fassung 29
+   * hieß es „die Regelwerke, mit denen in der Sprechstunde eingeordnet wird";
+   * das trägt keine erreichbare Quelle. Die EMA-Leitlinie zum Reizdarm nennt
+   * Rom III für die Auswahl von Studienteilnehmern und vermerkt „the lesser
+   * acceptance of the criteria by primary care physicians"
+   * (CPMP/EWP/785/97 Rev. 1, Kapitel 4). Die Karte zählt nur.
+   */
   schritte.push({
     id: 'kriterien',
-    titel: 'Rom IV und GerdQ',
-    was: 'die Regelwerke, mit denen in der Sprechstunde eingeordnet wird',
+    titel: 'Zählungen nach Rom IV und GerdQ',
+    was: 'Zählungen, die sich an veröffentlichten Kriterien orientieren (Rom IV für den '
+      + 'Reizdarm, ein Punktwert angelehnt an den GerdQ)',
     offen: offen(z.notierteTage, 14),
     stand: `${z.notierteTage} von 14 notierten Tagen`,
   });
@@ -17503,15 +17806,15 @@ function istWach() {
  */
 
 
-/** Mehr als das liest niemand, und mehr braucht auch niemand. */
-const HOECHSTENS = 5;
-
 /*
  * Die Gruppen aus js/mittel.js, die wegen Magen- und Bauchbeschwerden
  * genommen werden. Nur für sie steht oben ein Satz, wenn sich die Bauchwerte
- * darunter nicht geändert haben (siehe 6.).
+ * darunter nicht geändert haben (siehe 6.) – dieselbe Liste, nach der
+ * js/ansprechen.js ein Urteil ausgibt oder nur die Zahlen.
  */
-const MAGEN_GRUPPEN = ['ppi', 'h2', 'antazida', 'alginat', 'sucralfat', 'prokinetika', 'pflanzlich', 'heilerde'];
+
+/** Mehr als das liest niemand, und mehr braucht auch niemand. */
+const HOECHSTENS = 5;
 
 /**
  * Aus den fertigen Befunden ein paar Sätze machen.
@@ -17621,19 +17924,22 @@ function wasSacheIst(q = {}) {
    * Namen im Satz. Und er nennt die Gruppen so, wie die Fachinformation sie
    * nennt, statt „Säureblocker": Ob ein eingetragenes Mittel (etwa ein reines
    * Alginat) dazugehört, sagt er damit nicht, das klären Praxis oder
-   * Apotheke.
+   * Apotheke. Das eingetragene Mittel heißt wie auf der Karte in
+   * js/zusammen.js „ein Mittel bei Säurebeschwerden" (W_MITTEL_SATZ): „gegen
+   * Magensäure", wie es zuerst in der Fassung 30 hier stand, trifft für ein
+   * Alginat nicht zu.
    */
   const paarIds = new Set((q.paare || []).map((p) => p && p.id));
   if (paarIds.has('W1')) {
     sag('paar', 'Eingetragen sind Methylphenidat als Kapsel mit zweierlei Kügelchen (Medikinet '
-      + 'retard, Medikinet adult) und ein Mittel gegen Magensäure. In der Fachinformation dieser '
+      + 'retard, Medikinet adult) und ein Mittel bei Säurebeschwerden. In der Fachinformation dieser '
       + 'Kapseln steht die Behandlung mit H2-Blockern, Protonenpumpenhemmern oder Antazida unter '
       + 'den Gegenanzeigen; das gehört in Praxis oder Apotheke geprüft, ohne etwas eigenmächtig '
       + 'wegzulassen.');
   }
   if (paarIds.has('W1u')) {
-    sag('paar', 'Eingetragen sind Methylphenidat ohne Angabe der Form und ein Mittel gegen '
-      + 'Magensäure. Bei manchen Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung '
+    sag('paar', 'Eingetragen sind Methylphenidat ohne Angabe der Form und ein Mittel bei '
+      + 'Säurebeschwerden. Bei manchen Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung '
       + 'mit H2-Blockern, Protonenpumpenhemmern oder Antazida in der Fachinformation unter den '
       + 'Gegenanzeigen; die Form gehört geklärt.');
   }
@@ -17688,8 +17994,11 @@ function wasSacheIst(q = {}) {
      * reichen „bereits kleine Mengen" (gesund.bund.de, Laktoseintoleranz,
      * Stand 23.02.2026, „Was ist …"; Nahrungsmittelallergie, Stand 27.05.2024).
      */
+    // „Es kommt dabei auf die Menge an" (bis zur Fassung 29) war schon ein
+    // Schluss; der Satz aus js/dosis.js sagt jetzt selbst, dass das Tagebuch
+    // die Ursache nicht kennt.
     const menge = bester.menge === 'schwelle'
-      ? ` Es kommt dabei auf die Menge an: ${bester.mengeSatz}`
+      ? ` Nach der Menge getrennt: ${bester.mengeSatz}`
       : (bester.menge === 'ab-hier'
         ? ' Ob kleinere Mengen anders wirken, lässt sich aus dem Tagebuch noch nicht sagen.'
         : '');
@@ -17717,7 +18026,7 @@ function wasSacheIst(q = {}) {
   const w = (q.wechsel || [])[0];
   if (w) {
     sag('wechsel', `${w.name} fällt nicht in jeder Zyklusphase gleich auf, sondern vor allem in `
-      + `der Phase „${w.phase}". Die Phasen sind geschätzt; was dahintersteckt, lässt sich `
+      + `der Phase „${w.phase}“. Die Phasen sind geschätzt; was dahintersteckt, lässt sich `
       + 'daraus nicht ablesen.');
   }
   /*
@@ -18855,10 +19164,10 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
  *
  * Die Vorschläge zum Essen sagen „weniger davon" oder „früher". Bei jemandem,
  * der ein ADHS-Mittel nimmt und dabei abnimmt oder tagsüber keinen Appetit
- * hat, ist das der falsche Rat: Weniger Appetit steht etwa bei Methylphenidat
- * und Lisdexamfetamin unter den häufigsten Nebenwirkungen (siehe die Texte in
- * ADHS_MITTEL, js/mittel.js), und eine späte Mahlzeit ist dann womöglich die
- * einzige, die gelingt. Was gegessen wird, wägt in diesem Fall die Praxis ab.
+ * hat, ist das der falsche Rat: Weniger Appetit steht in den Fachinformationen
+ * mancher ADHS-Mittel unter den sehr häufigen Nebenwirkungen (Belege unten bei
+ * SPAET_ZUSATZ und in ADHS_MITTEL, js/mittel.js). Was gegessen wird, wägt in
+ * diesem Fall die Praxis ab.
  *
  *   'bremse'  Schalter ADHS an, eine Einnahme in den letzten 14 Tagen, und
  *             ungewollt abgenommen oder „Kein Appetit" an mindestens 3 der
@@ -18881,11 +19190,19 @@ const ESSEN_VORSICHT = ['bremse', 'zusatz'];
  * dazu Elvanse 4.4, bei Erwachsenen: „Das Körpergewicht ist unter der
  * Behandlung mit Stimulanzien zu überwachen". Dass der Appetit tagsüber fehle
  * und erst abends komme und die späte Mahlzeit deshalb „vielleicht nötig"
- * sei, wie es bis zur Fassung 29 hieß, steht in keiner der beiden.
+ * sei, wie es bis zur Fassung 29 hieß, steht in keiner der beiden. Ritalin LA
+ * 4.2 („Laufende Überwachung"): „Das Wachstum (bei Kindern), das
+ * Körpergewicht, sowie der psychische und der kardiovaskuläre Status sollten
+ * kontinuierlich überwacht werden".
+ *
+ * Mit den Präparaten, nicht mit den Wirkstoffen: „bei Methylphenidat sehr
+ * häufig" wäre für Equasym Retard falsch – dort steht „Häufig – Anorexie,
+ * Appetitverlust" (www.fachinfo.de/fi/pdf/012100, Stand Juni 2026, 4.8;
+ * siehe die Leitregeln in js/mittel.js).
  */
-const SPAET_ZUSATZ = 'Weniger Appetit steht etwa bei Methylphenidat und Lisdexamfetamin unter den sehr '
-  + 'häufigen Nebenwirkungen, und das Gewicht wird dabei ärztlich beobachtet. Wann gegessen wird, '
-  + 'wägt deshalb die Praxis ab, nicht diese Karte.';
+const SPAET_ZUSATZ = 'Weniger Appetit steht etwa in den Fachinformationen von Ritalin LA und Elvanse '
+  + 'unter den sehr häufigen Nebenwirkungen, und das Gewicht wird dabei ärztlich beobachtet. Wann '
+  + 'gegessen wird, wägt deshalb die Praxis ab, nicht diese Karte.';
 
 /*
  * Bewegung und Reflux – derselbe Satz auf mehreren Karten.
@@ -19005,10 +19322,10 @@ function raete(d) {
      */
     raus.push(rat('essen-spaet', 'essen',
       'Spätes Essen und Liegen',
-      'Bei Sodbrennen nennt die Packungsbeilage eines rezeptfreien Säureblockers, in '
-      + 'den letzten drei Stunden vor dem Zubettgehen nichts mehr zu essen; im Liegen '
-      + 'können Refluxbeschwerden zunehmen. Ob das auch für deine Beschwerden gilt, '
-      + 'kann die Praxis oder Apotheke einordnen.',
+      'In der Packungsbeilage eines rezeptfreien Säureblockers steht für Sodbrennen: in '
+      + 'den letzten drei Stunden vor dem Zubettgehen nichts mehr essen. Im Liegen können '
+      + 'Refluxbeschwerden zunehmen. Ob das auch für deine Beschwerden gilt, kann die Praxis '
+      + 'oder Apotheke einordnen.',
       `Nach Mahlzeiten nach 20 Uhr lag der Wert bei `
       + `${spaet.schnittMit.toFixed(1).replace('.', ',')} statt `
       + `${spaet.schnittOhne.toFixed(1).replace('.', ',')} (${spaet.faelle} Fälle).`
@@ -19068,19 +19385,19 @@ function raete(d) {
 
   if (stress && stress.genug && stress.differenz >= 1) {
     raus.push(rat('ruhe-eigen', 'ruhe',
-      heuteAngespannt ? 'Atemübung unter „Ruhe"' : 'Anspannung ist bei dir ein Faktor',
+      heuteAngespannt ? 'Atemübung unter „Ruhe“' : 'Anspannung ist bei dir ein Faktor',
       'Bei dir hängen Anspannung und Beschwerden messbar zusammen. Bei akutem Stress '
       + 'fährt der Körper laut gesund.bund.de unter anderem die Magen- und '
       + 'Darmtätigkeit zurück; tiefes Ein- und Ausatmen kann die Entspannung fördern. '
-      + 'Unter „Ruhe" liegt die Übung 4–7–8, mit vier Runden gut eine Minute.',
+      + 'Unter „Ruhe“ liegt die Übung 4–7–8, mit vier Runden gut eine Minute.',
       `An angespannten Tagen ${stress.hoch.schnitt.toFixed(1).replace('.', ',')} `
       + `statt ${stress.niedrig.schnitt.toFixed(1).replace('.', ',')} `
       + `(${stress.hoch.tage} gegen ${stress.niedrig.tage} Tage).`,
       'eigen'));
   } else if (heuteAngespannt || akut) {
     raus.push(rat('ruhe-heute', 'ruhe',
-      'Atemübungen unter „Ruhe"',
-      'Unter „Ruhe" liegen Atemübungen, etwa 4–7–8 und Gleichmaß, mit Ton, damit '
+      'Atemübungen unter „Ruhe“',
+      'Unter „Ruhe“ liegen Atemübungen, etwa 4–7–8 und Gleichmaß, mit Ton, damit '
       + 'die Augen zubleiben können. Tiefes Ein- und Ausatmen kann laut '
       + 'gesund.bund.de die Entspannung fördern.',
       heuteAngespannt ? 'Du hast heute viel Anspannung eingetragen.'
@@ -19093,8 +19410,8 @@ function raete(d) {
       'Atemübung vor dem Schlafen',
       'Atemübungen vor dem Schlafengehen zählt gesund.bund.de zu den '
       + 'Entspannungstechniken bei Schlafproblemen; wie gut sie wirken, ist nicht '
-      + 'hinreichend untersucht, und zu 4–7–8 gibt es bisher wenig Studien. Die '
-      + 'Übung liegt unter „Ruhe".',
+      + 'hinreichend untersucht, und für 4–7–8 gibt es bisher wenig Belege. Die '
+      + 'Übung liegt unter „Ruhe“.',
       'Du hast für heute schlechten Schlaf eingetragen.',
       'allgemein'));
   }
@@ -19771,10 +20088,10 @@ const BER_PAAR = {
   W1u: 'Bei manchen Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung '
     + 'mit H2-Blockern, Protonenpumpenhemmern oder Antazida in der Fachinformation unter den '
     + 'Gegenanzeigen; die Form ist nicht angegeben.',
-  W3: 'Was in der Fachinformation zu Säureblockern steht, ist bei Methylphenidat von Präparat zu '
-    + 'Präparat verschieden – das klären Apotheke oder Praxis.',
-  W4: 'Was in der Fachinformation zu Säureblockern steht, ist bei Methylphenidat von Präparat zu '
-    + 'Präparat verschieden – das klären Apotheke oder Praxis.',
+  W3: 'Was in der Fachinformation zu H2-Blockern, Protonenpumpenhemmern und Antazida steht, ist bei '
+    + 'Methylphenidat von Präparat zu Präparat verschieden – das klären Apotheke oder Praxis.',
+  W4: 'Was in der Fachinformation zu H2-Blockern, Protonenpumpenhemmern und Antazida steht, ist bei '
+    + 'Methylphenidat von Präparat zu Präparat verschieden – das klären Apotheke oder Praxis.',
 };
 
 function berPaarKern(h) {
@@ -19947,9 +20264,15 @@ function berAdhs(a, rhythmus, { spannungAn, gewichtDa }) {
       if (v.stress.spaeter !== null && v.stress.sonst !== null) {
         saetze.push(`Anspannung an diesen Tagen ${fmtZahl(v.stress.spaeter)} gegen ${fmtZahl(v.stress.sonst)}.`);
       }
-      // Kein Satz mehr, dass späteres Einschlafen „oft auch zu ADHS selbst"
-      // gehöre – das belegt keine erreichbare Quelle für Erwachsene. Was
-      // bleibt, ist die Grenze dieser Rechnung selbst.
+      /*
+       * Bis zur Fassung 29 stand hier, späteres Einschlafen gehöre „oft auch
+       * zu ADHS selbst". Belegt ist ein Zusammenhang bei Erwachsenen, keine
+       * Ursache (Quellen bei A3_STUDIEN in js/adhs.js); deshalb steht der
+       * Satz wie in der App so vorsichtig da, und dazu die Grenze dieser
+       * Rechnung selbst.
+       */
+      saetze.push('Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine längere Einschlafzeit '
+        + 'als bei anderen.');
       saetze.push('Ob ein Unterschied an der Einnahmezeit liegt oder an etwas, das mit ihr '
         + 'zusammenfällt, trennt dieser Vergleich nicht.');
       klammer(saetze);
@@ -20905,8 +21228,19 @@ function arztBericht(zustand, von, bis) {
           ? `; ${fmtZahl(b.schnitt)} gegen ${fmtZahl(b.vergleich)} von 10` : ''));
       umbrochen(b.satz).forEach((z) => sag(`     ${z}`));
     });
-    sag('  (Nicht verblindet. Ein Test ohne Befund wiegt hier schwerer als einer');
-    sag('   mit: Die Erwartung schiebt nur in eine Richtung.)');
+    /*
+     * Wie in der App (Kopf von js/provokation.js): Erwartung kann Beschwerden
+     * verstärken und abschwächen – bei gleicher Glutenmenge hatten die, die
+     * kein Gluten erwarteten, deutlich weniger Magen-Darm-Beschwerden (de
+     * Graaf et al., Lancet Gastroenterol Hepatol 2024;9(2):110-123, PMID
+     * 38040019, Abstract: E(+)G(+) 16,6 mm gegen E(−)G(+) 6,9 mm,
+     * p=0,0010). Bis zur Fassung 29 stand hier „Ein Test ohne Befund wiegt
+     * hier schwerer als einer mit: Die Erwartung schiebt nur in eine
+     * Richtung" – das widerlegt diese Studie.
+     */
+    sag('  (Nicht verblindet. Ohne Verblindung ist keines der Ergebnisse ein');
+    sag('   Nachweis – weder das mit noch das ohne Reaktion; Erwartungen können');
+    sag('   Beschwerden verstärken und abschwächen.)');
     sag();
   }
 
@@ -22958,7 +23292,10 @@ function rueckfrageKarte(f, s) {
     // derselben Stelle. Der Fokus geht auf diese Überschrift – sie allein muss
     // sagen, um welches Mittel es jetzt geht (siehe auch rueckfrageWeiter).
     // Bei 320 Pixeln bleibt sie für übliche Namen zweizeilig wie vorher.
-    frage = `${name}: Welche Form steht auf der Packung?`;
+    // Nicht mehr „steht auf der Packung" (bis zur Fassung 29): Dort steht
+    // der Markenname, die Form nicht immer – siehe wKarteW1u in
+    // js/zusammen.js. Wer sie nicht weiß, findet „Weiß ich nicht".
+    frage = `${name}: Welche Form hat dein Präparat?`;
     teil = `${x.saeureDa
       ? '<p class="klein">Davon hängt ab, welcher Hinweis zu deinen Mitteln gilt. Nicht sicher? Dann „Weiß ich nicht“.</p>'
       : '<p class="klein">Davon hängt ab, ob es zu deinen Mitteln einen Hinweis gibt.</p>'}
@@ -23633,7 +23970,7 @@ function ratKarte(s) {
       <p class="klein">${esc(r.warum)}</p>
     </li>`).join('')}</ul>
     <p class="klein">„Aus deinem Verlauf" heißt: aus deinen eigenen Eintragungen
-    gerechnet, mit den Zahlen daneben. „Allgemein" heißt: allgemeine Hinweise,
+    gerechnet, mit den Zahlen daneben. „Allgemein“ heißt: allgemeine Hinweise,
     oft nicht gut untersucht – dein eigener Verlauf sticht das.</p>
   </div>`;
 }
@@ -24427,7 +24764,7 @@ function kriterienTeil(s, d) {
     Brennen im Oberbauch –, wenn eine übliche ärztliche Untersuchung sie nicht
     erklärt. Wie oft sie dafür auftreten müssen, gibt dieser Kasten nicht
     wieder; die Einordnung trifft die Praxis. Gezählt werden nur Eintragungen
-    ab Stärke 4 („merklich"). Diese Grenze hat Body Check festgelegt.</p>
+    ab Stärke 4 („merklich“). Diese Grenze hat Body Check festgelegt.</p>
   </li>`;
 
   const gerdqKasten = `<li class="krit">
@@ -24450,13 +24787,13 @@ function kriterienTeil(s, d) {
        desto weniger Punkte. Was die Punktzahl hier bedeutet, kann die Praxis
        einordnen.`
     : `Von den letzten sieben Tagen sind nur ${g.erfasst} notiert. Was nicht
-       eingetragen ist, zählt hier als „nicht gehabt" – die Punktzahl wäre damit
+       eingetragen ist, zählt hier als „nicht gehabt“ – die Punktzahl wäre damit
        nicht zu gebrauchen.`}</p>
   </li>`;
 
   const dauer = k.dauer.erfuellt === null
     ? `<p class="klein warnend">Seit wann die Beschwerden bestehen, ist nicht
-       eingetragen – unter „Mehr". Body Check rechnet beim Reizdarm mit einem
+       eingetragen – unter „Mehr“. Body Check rechnet beim Reizdarm mit einem
        Beginn vor mindestens sechs Monaten; ohne diese Angabe fehlt dem
        Reizdarm-Kasten darunter eine Bedingung.</p>`
     : `<p class="klein">Beschwerden seit ${esc(k.dauer.seit)}, also seit
@@ -24968,21 +25305,22 @@ function provokationHistorie(s, d) {
 }
 
 /**
- * Was die Mittel bewirken – gemessen, nicht behauptet.
+ * Was sich unter den Mitteln geändert hat – gemessen, nicht behauptet.
  *
- * Sie trägt ein, was sie nimmt, und niemand rechnet nach. Ausbleibendes
- * Ansprechen ist selbst ein Befund: Ein Säureblocker, der nach vier bis acht
- * Wochen nichts geändert hat, spricht gegen die Säure als Ursache.
+ * Wer etwas nimmt und es einträgt, hat die Zahlen für den Vergleich, und
+ * niemand rechnet ihn im Kopf nach. Was ein ausbleibender Unterschied für die
+ * Ursache heißt, sagt die Karte nicht; ein Urteil steht nur bei den
+ * Magenmitteln (Belege und Begründung im Kopf von js/ansprechen.js).
  */
 function ansprechenTeil(s, d) {
   const liste = d.mittel.filter((m) => m.genug);
   if (!liste.length) return '';
   return `<div class="karte">
     <h3>Ob es etwas bewirkt</h3>
-    <ul class="funde funde-mittel">${liste.map((m) => `<li class="fund fund-mittel f-${m.urteil === 'besser' ? 'unauffaellig' : (m.saeureVersuchAusgereizt ? 'auffaellig' : 'neutral')}">
+    <ul class="funde funde-mittel">${liste.map((m) => `<li class="fund fund-mittel f-${urteilAnzeige(m) === 'besser' ? 'unauffaellig' : (m.saeureVersuchAusgereizt ? 'auffaellig' : 'neutral')}">
       <div class="fund-kopf">
         <b>${esc(m.name)}</b>
-        <span class="fund-urteil">${ANSPRECHEN_URTEIL[m.urteil]}</span>
+        <span class="fund-urteil">${ANSPRECHEN_URTEIL[urteilAnzeige(m)]}</span>
       </div>
       ${m.vergleichbar ? vergleichBalken(m.unter.schnitt, m.davor.schnitt,
     { mit: 'darunter', ohne: 'davor' }) : ''}
@@ -25213,13 +25551,16 @@ function v28Punkte(s) {
   }).map((e) => String(e.mittel).trim()))];
   if (kombiNamen.length) {
     const para = mittel.some((e) => gruppe(e.mittel) === 'kombipara' && klein(e.mittel).includes('koffein'));
-    punkte.push('Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel. Für '
-      + 'sie nennt die internationale Kopfschmerzklassifikation eine niedrigere Schwelle für Übergebrauch als für '
-      + 'einzelne Schmerzmittel: an zehn oder mehr Tagen im Monat über mehr als drei Monate'
-      + `${para ? '. Paracetamol mit Koffein zählt in der Magenauswertung nicht mehr als NSAR, weil Paracetamol '
+    // Die Namen gehören an den ersten Satz: Hinter dem Satz zu Paracetamol
+    // läse sich auch ein Mittel mit ASS wie eines, das für den Magen nicht
+    // mehr als NSAR zählt (bis zur Fassung 29 standen sie dort).
+    punkte.push(`Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel `
+      + `(${kombiNamen.join(', ')}). Für sie nennt die internationale Kopfschmerzklassifikation eine niedrigere `
+      + 'Schwelle für Übergebrauch als für einzelne Schmerzmittel: an zehn oder mehr Tagen im Monat über mehr als '
+      + 'drei Monate.'
+      + `${para ? ' Paracetamol mit Koffein zählt in der Magenauswertung nicht mehr als NSAR, weil Paracetamol '
         + 'nicht zu dieser Wirkstoffgruppe gehört – Magenbeschwerden nennt seine Fachinformation trotzdem als '
-        + 'mögliche Nebenwirkung' : ''} `
-      + `(${kombiNamen.join(', ')}).`);
+        + 'mögliche Nebenwirkung.' : ''}`);
   }
   /*
    * Und was mit „Koffein" bisher ein Kombinationsmittel war, jetzt aber keine
@@ -26051,6 +26392,13 @@ function ruheAnsicht(s) {
         + 'er ab, hält die Übung an – dann lieber kurz wach halten.</p>')
     : '';
 
+  /*
+   * Der Kopfsatz so, wie die Karten auf „Für heute" (js/rat.js) und die
+   * Quellen im Kopf von js/atem.js es tragen. Bis zur Fassung 29: „Langes
+   * Ausatmen schaltet auf den Teil des Nervensystems um, unter dem der Darm
+   * arbeitet … ist das eine Behandlung und keine Beschäftigung" – eine
+   * Wirkaussage ohne Quelle, die rat.js schon als gestrichen führte.
+   */
   const kreis = `<div class="atem${laeuft ? ' laeuft' : ''}">
     <div class="atem-kreis" id="atemKreis"><span id="atemZahl">${laeuft ? '' : '·'}</span></div>
     <p class="atem-wort" id="atemWort">${laeuft ? '' : 'Bereit, wenn du bist'}</p>
@@ -26060,9 +26408,9 @@ function ruheAnsicht(s) {
 
   return `
   <h2>Ruhe</h2>
-  <p class="klein">Langes Ausatmen schaltet auf den Teil des Nervensystems um,
-  unter dem der Darm arbeitet statt stillzustehen. Bei Beschwerden, die an
-  Anspannung hängen, ist das eine Behandlung und keine Beschäftigung.</p>
+  <p class="klein">Atemübungen mit Ton. Tiefes Ein- und Ausatmen kann laut
+  gesund.bund.de die Entspannung fördern; wie gut Atemübungen wirken, ist dort
+  als nicht hinreichend untersucht beschrieben.</p>
 
   ${kreis}
 
@@ -26482,12 +26830,13 @@ function warnTeil(d) {
       <span class="klein">${mehrzahl(w.anzahl, 'Mal', 'Mal')} eingetragen,
         zuletzt ${esc(fmtDatum(w.zuletzt, true))}</span>
     </li>`).join('')}</ul>
-    <p class="klein">Bei erbrochenem Blut, schwarzem, klebrigem Stuhl, Schmerz,
-    der in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß,
-    einem Kopfschmerz, der schlagartig so stark war wie nie, Kopfschmerz mit
-    Fieber und steifem Nacken oder einer plötzlichen Lähmung, Taubheit einer
-    Körperseite, Sprachstörung, einem Sehverlust oder Verwirrtheit nicht auf
-    einen Termin warten – Notaufnahme oder 112.</p>
+    <p class="klein">Bei erbrochenem Blut; schwarzem, klebrigem Stuhl; Schmerz,
+    der in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß;
+    einem Kopfschmerz, der schlagartig so stark war wie nie; Kopfschmerz mit
+    Fieber und steifem Nacken; Ausfällen wie Lähmung, Taubheit einer
+    Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit, wenn sie plötzlich
+    kommen, länger als eine Stunde bleiben oder anders sind als die gewohnte
+    Aura: nicht auf einen Termin warten – Notaufnahme oder 112.</p>
   </div>`;
   /*
    * Der Satz nennt genau die Warnzeichen der Stufe „sofort" aus js/bild.js
@@ -26496,6 +26845,15 @@ function warnTeil(d) {
    * Fassung 29 stand „Bei Blut" – das schloss frisches Blut im Stuhl ein, das
    * in bild.js „zeitnah" ist –, und der Kopfschmerz mit Fieber und steifem
    * Nacken fehlte.
+   *
+   * Die Ausfälle mit derselben Bedingung wie in bild.js (kopfausfall):
+   * plötzlich, länger als eine Stunde oder anders als die gewohnte Aura. Nur
+   * „plötzlich", wie es zuerst in der Fassung 30 stand, liest jemand mit
+   * einer ungewohnt langen Aura als „trifft nicht zu". Unter den Merkmalen
+   * einer Aura nennt die Klassifikation „each individual aura symptom lasts
+   * 5-60 minutes" (ICHD-3, 2018, 1.2 Migraine with aura, Kriterium C:
+   * mindestens drei von sechs Merkmalen). Die Zeichen sind mit Semikolon
+   * getrennt, weil manche Namen selbst Kommas haben – wie in js/lage.js.
    *
    * Belege, je Zeichen:
    *   * Ausstrahlender Schmerz: gesund.bund.de, Herzinfarkt (Stand
@@ -27242,7 +27600,7 @@ function mehrAnsicht(s) {
     <h3>Seit wann hast du das?</h3>
     <p class="klein">Die eine Angabe, die aus dem Tagebuch nicht hervorgeht – es
     beginnt an dem Tag, an dem du anfängst zu schreiben, und das ist fast nie
-    der Tag, an dem es angefangen hat. Für den Reizdarm-Kasten unter „Muster"
+    der Tag, an dem es angefangen hat. Für den Reizdarm-Kasten unter „Muster“
     rechnet Body Check mit einem Beginn vor mindestens sechs Monaten; ohne
     diese Zeile bleibt dort eine Bedingung offen. Ungefähr genügt.</p>
     <input type="month" class="feld" data-act="seit" max="${heuteISO().slice(0, 7)}"
@@ -27340,6 +27698,15 @@ function mehrAnsicht(s) {
  *     bruxism"; zu Kopfschmerz J Oral Rehabil 2025;52(6):937-948 (PMID
  *     40312780, Abstract): „without certainty of their effects". Dass die
  *     Schiene „vor allem zum Schutz der Zähne gedacht" sei, steht in keiner.
+ *   * Einschlafen: „Späteres Einschlafen gehört oft zu ADHS selbst" ist
+ *     jetzt so vorsichtig gefasst wie in js/adhs.js (A3_STUDIEN) und im
+ *     Bericht: Biol Psychiatry 2010;67(11):1091-6 (PMID 20163790,
+ *     Abstract), 40 Erwachsene mit ADHS: „Compared with control subjects,
+ *     both groups of ADHD adults had longer sleep-onset latency"; Neurosci
+ *     Biobehav Rev
+ *     2018;89:61-71 (PMID 29477617, Abstract), Metaanalyse zu Erwachsenen:
+ *     mit Bewegungsmessung „sleep onset latency: 0.80 (0.46-1.14)", im
+ *     Schlaflabor „No significant differences" – deshalb „manche Studien".
  *   * Massagepistolen: J Funct Morphol Kinesiol 2023;8(3):138 (PMID
  *     37754971, Abstract): „281 records were screened, but only 11 could be
  *     included" – untersucht Beweglichkeit, Kraft und Erholung, nicht
@@ -27351,8 +27718,9 @@ const WISSEN_ADHS = 'Ob Magen-Darm-Beschwerden mit ADHS, den Mitteln, der Stimmu
   + 'Bei Kindern und Jugendlichen kommen Migräne und Spannungskopfschmerz laut internationaler '
   + 'Kopfschmerzklassifikation oft zusammen mit psychischen Störungen vor; ADHS steht dort unter '
   + 'denen, nach denen gezielt geschaut werden soll. Kopfschmerz steht bei den meisten ADHS-Mitteln '
-  + 'unter den häufigen Nebenwirkungen. Späteres Einschlafen gehört oft zu ADHS selbst; Stimulanzien können den Schlaf '
-  + 'zusätzlich stören – beides lässt sich in einem Tagebuch nicht trennen. Knirschen und Pressen sind '
+  + 'unter den häufigen Nebenwirkungen. Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine '
+  + 'längere Einschlafzeit als bei anderen; Stimulanzien können den Schlaf zusätzlich stören – beides lässt sich '
+  + 'in einem Tagebuch nicht trennen. Knirschen und Pressen sind '
   + 'bei Kindern und Jugendlichen mit ADHS häufiger beschrieben, für Erwachsene gibt es erst kleine '
   + 'Studien; bei Methylphenidat steht Zähneknirschen in den Fachinformationen als häufige '
   + 'Nebenwirkung. Body Check rechnet nichts davon für dich aus – es zählt, was du einträgst, und '
@@ -27513,7 +27881,7 @@ function meineMittelKarte(s) {
     const g = wissenZu(m.mittel);
     if (!g || g.id !== 'mph') return '';
     return `<div class="mm-form" role="group" aria-label="${esc(`Form von ${mittelName(m)}`)}">
-      <p class="feld-name">Welche Form? (steht auf der Packung)</p>
+      <p class="feld-name">Welche Form? (weiß die Apotheke)</p>
       <div class="marken marken-eng">${MPH_FORMEN.map((x) => `
         <button type="button" class="marke${m.form === x.id ? ' an' : ''}" data-act="mph-form"
                 data-mittel="${esc(m.id)}" data-id="${x.id}" aria-pressed="${m.form === x.id}">${esc(x.name)}</button>`).join('')}</div>
@@ -28176,7 +28544,7 @@ function wissenTeil(s, b) {
     const f = formImBogen(s, b);
     const form = mphForm(f.form);
     teile.push(`<div class="bogen-form" role="group" aria-label="Form">
-      <p class="feld-name">Welche Form? (steht auf der Packung)</p>
+      <p class="feld-name">Welche Form? (weiß die Apotheke)</p>
       <div class="marken marken-eng">${MPH_FORMEN.map((x) => `
         <button type="button" class="marke${f.form === x.id ? ' an' : ''}" data-act="bogen-form"
                 data-id="${x.id}" aria-pressed="${f.form === x.id}">${esc(x.name)}</button>`).join('')}</div>
@@ -28594,13 +28962,21 @@ function bogenHTML(s) {
      * genug" – das trägt keine Quelle; 1997 hieß es noch „not widely used in
      * clinical practice or research".
      *
-     * Und zu den Warnzeichen unten: gesund.bund.de, Reizdarmsyndrom (Stand
-     * 28.08.2024): „Bei Blut im Stuhl ist in jedem Fall eine Untersuchung
-     * durch eine Ärztin oder einen Arzt erforderlich"; Magengeschwür (Stand
-     * 07.01.2022): „schwarz gefärbter Stuhl" unter den Zeichen, die
-     * „zeitnah ärztlich" abzuklären sind. „Die zwei wichtigsten Warnzeichen
-     * überhaupt" – eine Rangfolge, die keine Quelle aufstellt – stand hier
-     * bis zur Fassung 29.
+     * Und zu den Warnzeichen unten, getrennt nach ihrer Stufe in js/bild.js.
+     * Schwarzer, klebriger Stuhl (teerstuhl) ist „sofort" und bekommt den
+     * Wortlaut der Warnkarte (warnTeil): EMA, Produktinformation PANTOZOL
+     * Control, Gebrauchsinformation Abschnitt 2: „Informieren Sie sofort
+     * Ihren Arzt" bei „Blut im Stuhl, der schwarz oder teerig aussehen kann".
+     * Frisches Blut (blutstuhl) ist „zeitnah": gesund.bund.de,
+     * Reizdarmsyndrom (Stand 28.08.2024): „Bei Blut im Stuhl ist in jedem
+     * Fall eine Untersuchung durch eine Ärztin oder einen Arzt erforderlich";
+     * Darmkrebs (Stand 28.05.2026): bei Blut im Stuhl „nicht bis zum
+     * Vorsorgetermin warten". „Die zwei wichtigsten Warnzeichen überhaupt" –
+     * eine Rangfolge, die keine Quelle aufstellt – stand hier bis zur Fassung
+     * 29; der Satz „gehören zu den Warnzeichen, die ärztlich abgeklärt
+     * gehören", der zuerst in der Fassung 30 stand, nannte für das Zeichen
+     * der Stufe „sofort" keine Eile und stützte sich auf eine Seite, die
+     * schwarzen Stuhl „zeitnah" nennt (gesund.bund.de, Magengeschwür).
      */
     mitte = `
       <p class="feld-name">Wie sah es aus?</p>
@@ -28626,10 +29002,12 @@ function bogenHTML(s) {
       </div>
       <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
         <summary>War Blut dabei oder war es schwarz?</summary>
-        <p class="klein">Blut im Stuhl und schwarzer Stuhl gehören zu den
-        Warnzeichen, die ärztlich abgeklärt gehören – deshalb stehen sie hier und
-        nicht im Beschwerdebogen. Was hier angekreuzt wird, taucht in keiner
-        Statistik auf, sondern ganz oben unter „Muster".</p>
+        <p class="klein">Bei schwarzem, klebrigem Stuhl nicht auf einen Termin
+        warten – Notaufnahme oder 112. Frisches Blut im Stuhl gehört zeitnah
+        ärztlich abgeklärt. Deshalb stehen beide hier und nicht im
+        Beschwerdebogen: Was hier angekreuzt wird, taucht in keiner Statistik
+        auf, sondern ganz oben unter „Muster“ – mit dem Hinweis, wie eilig es
+        ist.</p>
         ${marken(WARNZEICHEN.filter((w) => ['teerstuhl', 'blutstuhl'].includes(w.id)),
     e.warnzeichen || [], 'warnzeichen')}
       </details>`;
@@ -29570,7 +29948,7 @@ const AKTION = {
     if (!m) return;
     const am = ui.tag;
     // Die Form des eigenen Mittels geht mit, wenn eine angegeben ist – sie
-    // steht auf der Packung und ändert sich nicht von Tag zu Tag. Nur bei
+    // gehört zum Präparat und ändert sich nicht von Tag zu Tag. Nur bei
     // Methylphenidat: Dieser Weg läuft an bogenSpeichern() vorbei, und eine
     // Form an einem Säureblocker (etwa aus einem älteren Stand) wäre ein
     // Hinweis auf ein Paar, das es nicht gibt.
@@ -29755,7 +30133,7 @@ const AKTION = {
       // „Weiß ich nicht" ändert keine Mitteldaten – nur die Rückfrage merkt es sich.
       const meins = s.standardMittel.some((m) => gleichText(m.mittel, x.name));
       store.rueckfrageSetzen([k], { form: 'weissnicht' });
-      melden(`Gemerkt. Die Form von ${x.name} steht auf der Packung – angeben kannst du sie jederzeit `
+      melden(`Gemerkt. Die Form von ${x.name} weiß die Apotheke – angeben kannst du sie jederzeit `
         + `${meins ? 'bei deinem Mittel unter „Meine Mittel“' : 'beim Eintragen im Bogen'}.${rueckfrageWeiter(k)}`);
       rueckfrageFokus();
       zeichne();

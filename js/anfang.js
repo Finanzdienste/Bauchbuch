@@ -61,10 +61,19 @@ export function freischaltung(z) {
     stand: `${z.notierteTage} von 10 notierten Tagen, ${z.beschwerden} von 5 Eintragungen zu Beschwerden`,
   });
 
+  /*
+   * Wie die Kriterien-Karte (kriterienTeil in js/app.js): Bis zur Fassung 29
+   * hieß es „die Regelwerke, mit denen in der Sprechstunde eingeordnet wird";
+   * das trägt keine erreichbare Quelle. Die EMA-Leitlinie zum Reizdarm nennt
+   * Rom III für die Auswahl von Studienteilnehmern und vermerkt „the lesser
+   * acceptance of the criteria by primary care physicians"
+   * (CPMP/EWP/785/97 Rev. 1, Kapitel 4). Die Karte zählt nur.
+   */
   schritte.push({
     id: 'kriterien',
-    titel: 'Rom IV und GerdQ',
-    was: 'die Regelwerke, mit denen in der Sprechstunde eingeordnet wird',
+    titel: 'Zählungen nach Rom IV und GerdQ',
+    was: 'Zählungen, die sich an veröffentlichten Kriterien orientieren (Rom IV für den '
+      + 'Reizdarm, ein Punktwert angelehnt an den GerdQ)',
     offen: offen(z.notierteTage, 14),
     stand: `${z.notierteTage} von 14 notierten Tagen`,
   });

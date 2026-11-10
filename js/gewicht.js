@@ -154,7 +154,7 @@ export function gewichtsBild(messungen, heute, gewollt = false) {
           + 'weniger. Ein deutlicher, ungewollter Gewichtsverlust gehört zu den Zeichen, '
           + 'die ärztlich abgeklärt werden. Body Check meldet sich ab fünf Prozent – das '
           + 'ist keine Diagnose, sondern die Grenze dieser App. Wenn du absichtlich '
-          + 'abnimmst, sag es der App unter „Mehr", dann hört sie damit auf.',
+          + 'abnimmst, sag es der App unter „Mehr“, dann hört sie damit auf.',
     };
   }
 

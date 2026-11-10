@@ -86,8 +86,9 @@ check(
   'ohne Befund steht der alte Vorbehalt da',
 );
 check(
-  ohne.includes('dass nichts Organisches'),
-  'samt der Voraussetzung, die dann wirklich offen ist',
+  ohne.includes('wenn andere Ursachen für die Beschwerden abgeklärt und ausgeschlossen sind')
+    && !ohne.includes('dass nichts Organisches'),
+  'samt der Voraussetzung, die dann wirklich offen ist – so, wie die Quellen sie fassen',
 );
 check(
   ohne.includes('Helicobacter pylori'),

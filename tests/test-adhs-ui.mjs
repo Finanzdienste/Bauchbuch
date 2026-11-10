@@ -609,7 +609,7 @@ const knopfSagt = (page, id) => page.locator(`[data-act="standard-eintragen"][da
   let s = await speicher(page);
   check(s.standardMittel[0].form === 'sodas', 'ein Tipp speichert die Form beim eigenen Mittel');
   check(await page.locator('[data-act="mph-form"][data-id="sodas"]').getAttribute('aria-pressed') === 'true', 'und zeigt sie');
-  check((await text(page, '#meineMittel')).includes('Ob ein Säureblocker zu deinem Präparat passt'), 'darunter jetzt der Hinweis der Stufe B');
+  check((await text(page, '#meineMittel')).includes('Ob ein Mittel bei Säurebeschwerden zu deinem Präparat passt'), 'darunter jetzt der Hinweis der Stufe B');
   check(await breitOk(page), '„Mehr" passt in 320 Pixel');
   await tab(page, 'heute');
   check(await zahl(page, '.wechsel-karte') === 0, 'auf „Tag" keine Karte mehr – die Form ist geklärt');

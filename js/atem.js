@@ -1,14 +1,24 @@
 /*
  * Atemübungen – die Daten dazu, nicht der Ablauf.
  *
- * Warum in einem Magentagebuch: Bauch und Nervensystem hängen zusammen, und
- * zwar in beide Richtungen. Langes Ausatmen schaltet messbar auf den Teil des
- * Nervensystems um, unter dem der Darm arbeitet statt stillzustehen. Bei
- * stressgebundenen Beschwerden ist das keine Beschäftigungstherapie, sondern
- * das Mittel, das man ohne Rezept und ohne Nebenwirkung hat.
+ * Warum in einem Magentagebuch, und nur so viel, wie die Quellen tragen:
+ * gesund.bund.de, Stress (Stand 14.01.2026): Bei einer akuten Stressreaktion
+ * werden Vorgänge zurückgefahren, „Das betrifft unter anderem die Magen-,
+ * Darm- und Blasentätigkeit", und „Tiefes Ein- und Ausatmen kann die
+ * Entspannung fördern." Schlafstörungen (Stand 04.04.2025, „Wie wird eine
+ * Schlafstörung behandelt?"): Atemübungen stehen unter den Methoden, „deren
+ * Wirksamkeit jedoch nicht hinreichend untersucht ist". Zu 4–7–8 und zur
+ * Quadrat-Atmung: „popularly promoted by psychotherapists but have little
+ * empirical support" (Marchant et al., Appl Psychophysiol Biofeedback
+ * 2025;50(2):261-276, PMID 39864026, Abstract).
  *
- * Deshalb ist bei allen Übungen hier das Ausatmen mindestens so lang wie das
- * Einatmen. Umgekehrt – kurz aus, lang ein – täte das Gegenteil.
+ * Bis zur Fassung 29 stand hier und in den Texten der Übungen, langes
+ * Ausatmen schalte „messbar" auf den Teil des Nervensystems um, unter dem der
+ * Darm arbeitet, es sei „das Mittel, das man ohne Rezept und ohne
+ * Nebenwirkung hat", „der Wirkstoff", „direkt auf den Bauch, bei Druck und
+ * Krämpfen", das Zwerchfell „massiert", und umgekehrtes Atmen „täte das
+ * Gegenteil". Das trägt keine dieser Quellen; die Texte beschreiben jetzt
+ * nur, was die Übung ist.
  *
  * Reine Daten, keine Abhängigkeiten. Wer die Übung *ausführt*, ist js/app.js;
  * getaktet wird sie mit den Tönen aus js/klang.js.
@@ -23,11 +33,10 @@ export const UEBUNGEN = [
   {
     id: '478',
     name: '4–7–8',
-    zweck: 'Zum Runterkommen und zum Einschlafen',
+    zweck: 'Mit langem Ausatmen',
     beschreibung: 'Vier Sekunden durch die Nase ein, sieben halten, acht durch '
-      + 'den Mund aus. Das lange Ausatmen ist der Wirkstoff; die Zahlen sind nur '
-      + 'die Verpackung. Wenn sieben Sekunden Halten zu lang sind, ist es keine '
-      + 'schlechtere Übung, wenn man kürzer macht.',
+      + 'den Mund aus. Wird das Halten unangenehm, lässt sich die Übung jederzeit '
+      + 'abbrechen.',
     runden: 4,
     phasen: [
       { art: 'ein', sek: 4, wort: 'Einatmen' },
@@ -38,10 +47,9 @@ export const UEBUNGEN = [
   {
     id: 'box',
     name: 'Quadrat',
-    zweck: 'Wenn der Kopf rattert',
-    beschreibung: 'Vier ein, vier halten, vier aus, vier halten. Der gleiche '
-      + 'Takt in alle vier Richtungen gibt dem Denken etwas zu tun, ohne es zu '
-      + 'beschäftigen.',
+    zweck: 'Vier gleich lange Abschnitte',
+    beschreibung: 'Vier ein, vier halten, vier aus, vier halten – der gleiche '
+      + 'Takt in alle vier Richtungen.',
     runden: 6,
     phasen: [
       { art: 'ein', sek: 4, wort: 'Einatmen' },
@@ -53,10 +61,9 @@ export const UEBUNGEN = [
   {
     id: 'kohaerenz',
     name: 'Gleichmaß',
-    zweck: 'Für zwischendurch, auch im Sitzen am Schreibtisch',
-    beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus, ohne Halten – gut '
-      + 'sechs Atemzüge in der Minute. Der Takt, bei dem Puls und Atem in einen '
-      + 'gemeinsamen Rhythmus fallen. Unauffällig genug für den Bus.',
+    zweck: 'Ohne Halten, gut sechs Atemzüge in der Minute',
+    beschreibung: 'Fünfeinhalb Sekunden ein, fünfeinhalb aus, ohne Halten. '
+      + 'Unauffällig genug für den Bus.',
     runden: 10,
     phasen: [
       { art: 'ein', sek: 5.5, wort: 'Einatmen' },
@@ -66,10 +73,9 @@ export const UEBUNGEN = [
   {
     id: 'bauch',
     name: 'Bauchatmung',
-    zweck: 'Direkt auf den Bauch, bei Druck und Krämpfen',
+    zweck: 'Mit der Hand auf dem Bauch',
     beschreibung: 'Eine Hand auf den Bauch, vier Sekunden so einatmen, dass sich '
-      + 'die Hand hebt und nicht die Schulter, sechs Sekunden aus. Das Zwerchfell '
-      + 'massiert dabei, was darunter liegt.',
+      + 'die Hand hebt und nicht die Schulter, sechs Sekunden aus.',
     runden: 8,
     phasen: [
       { art: 'ein', sek: 4, wort: 'Einatmen, Bauch hebt sich' },

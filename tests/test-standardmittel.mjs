@@ -286,7 +286,7 @@ check(
 /* ---------- 8. Die Form bei Methylphenidat ---------- */
 
 /*
- * Die Form steht auf der Packung und gehört zum eigenen Mittel. Sie darf
+ * Die Form gehört zum Präparat und damit zum eigenen Mittel. Sie darf
  * nicht verschwinden, weil jemand unter „Mehr" die Dosis ändert oder im Bogen
  * „Dort so ändern" tippt: Daran hängt später, ob ein Säureblocker dazu passt.
  * Und sie darf nicht stehen bleiben, wenn aus dem Eintrag ein anderes Mittel
@@ -430,7 +430,7 @@ check(await page.locator('.wechsel-karte').count() === 0, 'mit der nicht retardi
 /* ---------- 10. Die Form folgt dem Mittel ---------- */
 
 /*
- * Die Form steht auf der Packung eines bestimmten Mittels. Wählt man im Bogen
+ * Die Form gehört zu einem bestimmten Präparat. Wählt man im Bogen
  * ein anderes eigenes Mittel oder benennt man eins unter „Mehr" um, darf die
  * alte Form nicht mitwandern: Aus einer Kapsel mit zweierlei Kügelchen würde
  * sonst eine Retardtablette mit Hülle, und der Hinweis zum Säureblocker

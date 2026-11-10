@@ -99,7 +99,7 @@ for (const [merkmal, name] of [['gross', 'Große Portion'], ['spaet', 'Spät geg
   check(!!r.lageText, `${name}: „Was Sache ist" steht da`);
   const satz = (r.lageText.match(/Am deutlichsten fällt [^.]*\.[^]*?(?= Zusammengefasst)/) || [''])[0];
   check(satz.includes(`Am deutlichsten fällt ${name}`), `${name}: der Satz nennt den Umstand (${satz.slice(0, 70)})`);
-  check(!satz.includes('Es kommt dabei auf die Menge an') && !satz.includes('kleinere Mengen'),
+  check(!satz.includes('Nach der Menge getrennt') && !satz.includes('kleinere Mengen'),
     `${name}: ohne einen Satz zur Menge – ein Umstand hat keine`);
   const fund = r.funde.find((f) => f.includes(name));
   check(!!fund && /auffällig|möglich/i.test(fund), `${name}: steht bei den Funden, auffällig oder möglich`);

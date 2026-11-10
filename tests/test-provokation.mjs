@@ -416,6 +416,14 @@ check(
   /Nicht verblindet/.test(text),
   'und dem Hinweis, dass der Test nicht verblindet ist',
 );
+// Wie in der App: Ohne Verblindung ist keines der Ergebnisse ein Nachweis.
+// Bis zur Fassung 29 stand im Bericht „Die Erwartung schiebt nur in eine
+// Richtung" – das widerlegt de Graaf 2024 (PMID 38040019, js/bericht.js).
+check(
+  text.replace(/\s+/g, ' ').includes('Ohne Verblindung ist keines der Ergebnisse ein Nachweis – weder das mit noch das ohne Reaktion')
+    && !/nur in eine\s+Richtung|wiegt hier schwerer/.test(text),
+  'der Bericht sagt dasselbe wie die App: kein Ergebnis ist ohne Verblindung ein Nachweis',
+);
 
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);
 await page.screenshot({ path: `${SHOT}/provokation.png`, fullPage: true });

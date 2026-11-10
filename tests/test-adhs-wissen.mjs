@@ -241,7 +241,7 @@ check(gleich(ergibt(mitForm('pellet')), ['W1']) && gleich(ergibt(mitForm('oros')
   'Kapsel mit zweierlei Kügelchen → W1; Hülle → nichts');
 check(w1u[0].schluessel === 'W1u|medikinet|pantoprazol' && gleich(w1u[0].namen, ['Medikinet', 'Pantoprazol']),
   `Schlüssel mit kleingeschriebenen Namen (${w1u[0].schluessel})`);
-check(w1u[0].frage === 'Passt mein Säureblocker zu meinem Methylphenidat?' && w1u[0].text.includes('Medikinet retard, Medikinet adult'),
+check(w1u[0].frage === 'Passt mein Mittel bei Säurebeschwerden zu meinem Methylphenidat?' && w1u[0].text.includes('Medikinet retard, Medikinet adult'),
   'W1u mit Frage und Kartentext');
 check(wechselHinweise(meine('Medikinet adult', 'Pantozol'), [], heute)[0].text.includes('auch Pantozol nicht'),
   'die Karte W1 nennt den Säureblocker beim Namen – und rät nicht, ihn wegzulassen');

@@ -147,8 +147,9 @@ check(
 );
 check(voll.includes('HAT ES ETWAS BEWIRKT?'), 'das Ansprechen auf die Mittel steht drin');
 check(
-  voll.includes('Das ist selbst ein Befund'),
-  'und der Säureblocker ohne Wirkung wird als Befund benannt – das ist die nützlichste Zeile',
+  voll.replace(/\s+/g, ' ').includes('nennen manche Fachinformationen weitere Untersuchungen')
+    && !voll.includes('Das ist selbst ein Befund') && !voll.replace(/\s+/g, ' ').includes('Wenn Säure die Ursache'),
+  'und der Säureblocker ohne Besserung steht mit dem, was die Fachinformationen dafür nennen – ohne Schluss auf die Ursache',
 );
 check(
   !/^.{80,}$/m.test(voll),
@@ -252,11 +253,12 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   `Tagebuch ${saat}: alle Abschnitte an${fehlt.length ? ` – es fehlt: ${fehlt.join(', ')}` : ''}`);
   // Die 30 Tage sind die Umsetzung der App für „Monat", keine Vorgabe der
   // Neurologie; die Zyklusphasen sind geschätzt, der Eisprung nicht gemessen;
-  // und dass späteres Einschlafen „oft zu ADHS selbst" gehöre, belegt keine
-  // erreichbare Quelle.
+  // und dass späteres Einschlafen „oft zu ADHS selbst" gehöre, ist mehr, als
+  // die Quellen tragen (ein Zusammenhang, keine Ursache – A3_STUDIEN in
+  // js/adhs.js).
   const flach = text.replace(/\s+/g, ' ');
   check(flach.includes('Je 30 Kalendertage (jüngster Zeitraum zuerst):') && !flach.includes('Für die Neurologie')
-    && !flach.includes('ADHS selbst')
+    && !flach.includes('ADHS selbst') && !flach.includes('gehört oft')
     && (!flach.includes('Nach Zyklusphase (') || flach.includes('Eisprung nicht gemessen')),
   `Tagebuch ${saat}: Kopfschmerztage je 30 Kalendertage, ohne „für die Neurologie" und ohne „ADHS selbst"`);
   const lang = zuLang(text);
@@ -335,7 +337,7 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   const kurz = abschnitt(text, 'IN KÜRZE').split('\n  - ').map((x) => x.replace(/\s+/g, ' ').trim());
   check(kurz[1].startsWith('Im Tagebuch stehen Dinge, die zeitnah ärztlich abgeklärt gehören')
     && kurz[2].startsWith('Eingetragen sind Methylphenidat als Kapsel mit zweierlei Kügelchen (Medikinet retard, '
-      + 'Medikinet adult) und ein Mittel gegen Magensäure. In der Fachinformation dieser Kapseln steht die '
+      + 'Medikinet adult) und ein Mittel bei Säurebeschwerden. In der Fachinformation dieser Kapseln steht die '
       + 'Behandlung mit H2-Blockern, Protonenpumpenhemmern oder Antazida unter den Gegenanzeigen'),
   `IN KÜRZE: W1 als erster Satz nach den Warnzeichen (${(kurz[2] || '').slice(0, 40)}…)`);
   check(kurz.length - 1 <= 5, `IN KÜRZE: höchstens fünf Sätze (${kurz.length - 1})`);
@@ -343,7 +345,7 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
   check(mittel.includes('Medikinet retard 20 mg – 30 Mal\n    Form: Kapsel mit zweierlei Kügelchen'),
     'unter dem Methylphenidat steht seine Form');
   check(/Zusammen eingetragen: Medikinet retard \(Methylphenidat, Kapsel mit\s+zweierlei Kügelchen\) und Nexium\./.test(mittel)
-    && mittel.includes('Frage: Passt mein Säureblocker zu meinem Methylphenidat?'),
+    && mittel.replace(/\s+/g, ' ').includes('Frage: Passt mein Mittel bei Säurebeschwerden zu meinem Methylphenidat?'),
   'das Paar steht bei den Mitteln, mit der Frage für die Sprechstunde');
   // So streng, wie die Fachinformation es sagt: eine Gegenanzeige, nicht bloß „nicht vorgesehen".
   check(/unter den\s+Gegenanzeigen/.test(mittel) && !/nicht zusammen\s+vor/.test(mittel),
@@ -367,7 +369,7 @@ for (const [saat, name] of [[4, LANG_MIT], [9, LANG_OHNE]]) {
     : (e.mittel === 'Nexium' ? { ...e, mittel: 'Rennie' } : e))).filter((e) => !e.warnzeichen);
   const t2 = arztBericht({ eintraege: ohneForm, tage: {} }, isoPlus(GRUND, -59), GRUND);
   const kurz2 = abschnitt(t2, 'IN KÜRZE').split('\n  - ').map((x) => x.replace(/\s+/g, ' ').trim());
-  check(kurz2[1].startsWith('Eingetragen sind Methylphenidat ohne Angabe der Form und ein Mittel gegen Magensäure'),
+  check(kurz2[1].startsWith('Eingetragen sind Methylphenidat ohne Angabe der Form und ein Mittel bei Säurebeschwerden'),
     'IN KÜRZE: W1u ohne Warnzeichen als erster Satz');
   check(kurz2[1].includes('Bei manchen Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung mit '
     + 'H2-Blockern, Protonenpumpenhemmern oder Antazida in der Fachinformation unter den Gegenanzeigen')

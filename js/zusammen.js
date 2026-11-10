@@ -387,8 +387,12 @@ const wTextW10 = 'Laut Fachinformation gibt es Hinweise, dass Methylphenidat den
 const wTextW11 = 'Laut Fachinformation gibt es Hinweise, dass Methylphenidat den Abbau von '
   + 'Blutverdünnern dieser Art hemmen kann – in Praxis oder Apotheke ansprechen.';
 
-/* Die Fragen für die Sprechstunde, in Ich-Form wie überall im Bericht. */
-const W_FRAGE_A = 'Passt mein Säureblocker zu meinem Methylphenidat?';
+/*
+ * Die Fragen für die Sprechstunde, in Ich-Form wie überall im Bericht. Das
+ * zweite Mittel heißt wie in W_MITTEL_SATZ: Zur Gruppe gehören auch Antazida
+ * und Alginate, und „Säureblocker" (bis zur Fassung 29) passt für sie nicht.
+ */
+const W_FRAGE_A = 'Passt mein Mittel bei Säurebeschwerden zu meinem Methylphenidat?';
 const W_FRAGE_B = 'Ich nehme Methylphenidat und ein säurebindendes oder säurehemmendes Mittel. '
   + 'Passt das zu meiner Freisetzungsform?';
 const wFrageZwei = (a, b) => `Passen ${a} und ${b} zusammen?`;

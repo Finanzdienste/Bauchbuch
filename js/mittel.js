@@ -97,7 +97,13 @@ export const MITTEL_WISSEN = [
    *            „Nach oraler Gabe tritt die Wirkung innerhalb 1 Stunde ein“. In der FI
    *            Cimetidin Genericon (AT, BASG 17360) steht kein solcher Zeitpunkt, nur
    *            dass eine „sofortige symptomatische Wirkung“ zu Beginn ausbleiben kann.
-   *            „Schwächer als ein PPI“ steht schon im Feld kurz.
+   *   kurz     Famotidin 5.1: „kompetitiver Histamin-H2-Rezeptor-Antagonist“ (siehe
+   *            wirkung). Bis zur Fassung 29 stand hier „schwächer als ein PPI, aber
+   *            schneller“: Den Zeitpunkt nennt nur die FI von Famotidin, und
+   *            „schwächer“ beschreibt keine geprüfte Fachinformation so allgemein –
+   *            PANTOZOL Control (EMA, Fachinformation 5.1) sagt nur, Pantoprazol habe
+   *            sich in den Studien zur Linderung der Refluxbeschwerden „gegenüber
+   *            Placebo und H2RAs überlegen“ erwiesen.
    *   hinweis  Famotidin 4.2: Dauer je nach Erkrankung (Geschwür „4-8 Wochen“,
    *            Zollinger-Ellison „so lange …, wie sie klinisch erforderlich ist“).
    *            Ein Nachlassen der Wirkung bei täglicher Einnahme („gewöhnt sich“)
@@ -107,7 +113,7 @@ export const MITTEL_WISSEN = [
     id: 'h2',
     gruppe: 'H2-Blocker',
     beispiele: ['Famotidin', 'Cimetidin'],
-    kurz: 'Drosselt die Säure auch, schwächer als ein PPI, aber schneller.',
+    kurz: 'Drosselt die Säurebildung auch, an einer anderen Stelle als ein PPI.',
     wirkung: 'Setzt eine Stufe früher an als der PPI: Er besetzt den Schalter '
       + '(den Histamin-H2-Rezeptor), über den die Säurebildung angeregt wird. '
       + 'Bei Famotidin setzt die Wirkung laut Fachinformation innerhalb einer Stunde ein.',
@@ -145,7 +151,8 @@ export const MITTEL_WISSEN = [
     beispiele: ['Magaldrat', 'Hydrotalcit', 'Riopan', 'Talcid', 'Rennie', 'Antazidum', 'Maaloxan'],
     kurz: 'Neutralisiert die Säure, die schon da ist. Wirkt in Minuten.',
     wirkung: 'Eine Base, die die vorhandene Säure abpuffert. Die Säurebildung selbst '
-      + 'wird nicht gehemmt; laut Fachinformation dient es der Linderung der Beschwerden. '
+      + 'wird nicht gehemmt; laut Fachinformation dienen Antazida der Linderung der '
+      + 'Beschwerden. '
       + 'Wie lange es anhält, hängt vom Wirkstoff ab: Laut Fachinformation bleibt der '
       + 'Säurewert im Magen bei Magaldrat im Mittel 20 bis 40 Minuten im Zielbereich, '
       + 'bei Hydrotalcit etwa zwei Stunden.',
@@ -295,7 +302,7 @@ export const MITTEL_WISSEN = [
     einnahme: 'Wann und wie oft ein Mittel oder ein Arzneitee genommen wird, steht in der '
       + 'jeweiligen Packungsbeilage – bei Iberogast etwa „vor oder zu den Mahlzeiten“. '
       + 'Fragen dazu beantwortet die Apotheke.',
-    hinweis: '„Pflanzlich" heißt nicht „harmlos". Für Iberogast Classic, das Schöllkraut '
+    hinweis: '„Pflanzlich“ heißt nicht „harmlos“. Für Iberogast Classic, das Schöllkraut '
       + 'enthält, nennen Fach- und Gebrauchsinformation Fälle von Leberschäden bis hin zu '
       + 'Leberversagen; bei Lebererkrankungen ist es dort ausgeschlossen. Iberogast Advance '
       + 'enthält kein Schöllkraut. Süßholz in größeren Mengen über längere Zeit kann '
@@ -374,9 +381,9 @@ export const MITTEL_WISSEN = [
       + 'Tageszeiten, unterscheidet sich je nach Kombination; das steht im Plan und in den '
       + 'Packungsbeilagen.',
     hinweis: 'Laut Packungsbeilage ist es wichtig, die ganze Behandlungszeit einzuhalten, '
-      + 'auch wenn es einem nach ein paar Tagen schon besser geht: Zu früh beendet, heilt '
-      + 'die Infektion womöglich nicht ganz aus, und die Keime können gegen die '
-      + 'Antibiotika unempfindlich werden. Ob der Keim weg ist, wird hinterher '
+      + 'auch wenn es einem nach ein paar Tagen schon besser geht: Wird die Behandlung zu '
+      + 'früh beendet, heilt die Infektion womöglich nicht ganz aus, und die Keime können '
+      + 'gegen die Antibiotika unempfindlich werden. Ob der Keim weg ist, wird hinterher '
       + 'nachgeprüft. Fragen zur Einnahme und zur Dauer klären Praxis oder Apotheke.',
   },
 ];
@@ -438,7 +445,7 @@ export const REIZSTOFFE = [
       + 'davon, entscheidet sich nicht am Magen allein. Zusammen mit Kortison steigt das '
       + 'Risiko weiter. Als Gel oder Pflaster auf der Haut zählt Body Check es hier nicht '
       + 'mit: Davon gelangt laut Fachinformation nur ein kleiner Teil ins Blut, viel weniger '
-      + 'als beim Einnehmen. Großflächig und über längere Zeit angewendet, sind '
+      + 'als beim Einnehmen. Wird es großflächig und über längere Zeit angewendet, sind '
       + 'Nebenwirkungen auch an Magen und Darm aber nicht ganz ausgeschlossen.',
   },
   /*
@@ -568,9 +575,18 @@ export const WEITERE_MITTEL = [
    *                  „können intensiv sein, gehen aber im Allgemeinen schnell vorüber“, „Bei
    *                  sehr wenigen Patienten … durch einen Herzinfarkt verursacht“, bei
    *                  Andauern „umgehend einen Arzt“. Darm: GI AscoTop 5 mg (Januar 2022)
-   *                  sehr selten, „sofort einen Arzt“; GI Naramig (September 2023) selten;
-   *                  Imigran und Maxalt 4.8 „Nicht bekannt“. Beide Fälle sind
-   *                  Warnzeichen der Stufe „sofort“ und folgen dem Text der Warnkarte.
+   *                  sehr selten, „Brechen Sie die Einnahme von AscoTop ab und suchen Sie
+   *                  sofort einen Arzt auf“ (Abschnitt 4); GI Naramig (September 2023)
+   *                  selten, „Informieren Sie Ihren Arzt oder Apotheker“; Imigran und
+   *                  Maxalt 4.8 „Nicht bekannt“. Die Brust: Schmerz mit Luftnot oder
+   *                  kaltem Schweiß entspricht dem Warnzeichen „ausstrahlung“ der Stufe
+   *                  „sofort“ in js/bild.js, und gesund.bund.de, Herzinfarkt (Stand
+   *                  28.08.2020), sagt bei Schmerzen im Brustbereich „immer den Notruf
+   *                  112 wählen“ – deshalb dort der Text der Warnkarte. Der Darm ist kein
+   *                  Warnzeichen aus js/bild.js; einen Notruf nennt keine Quelle. Bis zur
+   *                  Fassung 29 hieß es auch hier „Notaufnahme oder 112“ für alle
+   *                  Triptane; jetzt steht nur, was die strengste Packungsbeilage sagt,
+   *                  mit ihrem Namen.
    *                  Übergebrauch: ICHD-3 8.2.2 „≥10 days/month for >3 months“, 8.2.3 „15
    *                  or more days/month“, 8.2.5 „≥10 days/month“.
    */
@@ -596,9 +612,10 @@ export const WEITERE_MITTEL = [
       + 'langsamer aufgenommen, bei anderen beschreibt die Fachinformation keinen solchen '
       + 'Einfluss. Manche Triptane gibt es außer als Tablette auch als Schmelztablette, '
       + 'Nasenspray oder Spritze. Die Schmelztablette löst sich auf der Zunge und wird mit '
-      + 'dem Speichel geschluckt, geht also ebenfalls über den Magen; das Nasenspray nennt '
-      + 'die Fachinformation von AscoTop Nasal vor allem für Übelkeit und Erbrechen im '
-      + 'Anfall. Wer im Anfall erbricht, hat damit eine Frage für die Sprechstunde.',
+      + 'dem Speichel geschluckt, geht also ebenfalls über den Magen. Das Nasenspray kann '
+      + 'laut Fachinformation von AscoTop Nasal vor allem für Menschen von Nutzen sein, die '
+      + 'im Anfall unter Übelkeit und Erbrechen leiden. Wer im Anfall erbricht, hat damit '
+      + 'eine Frage für die Sprechstunde.',
     hinweis: 'Triptane engen Gefäße auch außerhalb des Kopfes. Darum sind sie laut '
       + 'Fachinformation nicht vorgesehen bei Erkrankungen der Herzkranzgefäße, nach einem '
       + 'Herzinfarkt, bei Durchblutungsstörungen etwa der Beine, nach einem Schlaganfall '
@@ -615,7 +632,8 @@ export const WEITERE_MITTEL = [
       + 'Notaufnahme oder 112. Übelkeit kann vom Anfall kommen und vom Mittel. Beschrieben '
       + 'ist außerdem, je nach Mittel selten, sehr selten oder ohne bekannte Häufigkeit, '
       + 'eine Durchblutungsstörung des Darms: Bauchschmerzen mit blutigem Durchfall nach '
-      + 'der Einnahme. Dann ebenso nicht auf einen Termin warten – Notaufnahme oder 112. '
+      + 'der Einnahme. Laut Packungsbeilage etwa von AscoTop ist das ein Grund, sofort '
+      + 'einen Arzt aufzusuchen. '
       + 'Und wird ein Triptan über mehr als drei Monate an zehn oder mehr Tagen im Monat '
       + 'genommen, kann es den Kopfschmerz selbst unterhalten – die Grenze liegt niedriger '
       + 'als bei einfachen Schmerzmitteln und gleichauf mit Kombinationsmitteln.',
@@ -661,8 +679,8 @@ export const WEITERE_MITTEL = [
     wirkung: 'Wirkt vor allem an bestimmten Nervenzellen in Rückenmark und Gehirn. Die '
       + 'Fachinformationen nennen als Anwendungsgebiet Schmerzen allgemein, je nach Wirkstoff '
       + 'mäßig starke bis sehr starke; Migräne steht dort nicht eigens. Bei wiederholter '
-      + 'Einnahme kann es abhängig machen, auch in üblicher Dosierung; wie hoch dieses '
-      + 'Risiko ist, ist laut Packungsbeilage von Person zu Person unterschiedlich. Body '
+      + 'Einnahme kann es abhängig machen, auch in üblicher Dosierung; wie hoch das Risiko '
+      + 'ausfällt, ist laut Packungsbeilage von Person zu Person unterschiedlich. Body '
       + 'Check zählt die Tage, an denen es eingetragen ist, wie bei jedem Akutmittel mit.',
     einnahme: '–',
     hinweis: 'Übelkeit und Müdigkeit oder Benommenheit sind laut Fachinformationen häufig, '
@@ -729,7 +747,7 @@ export const WEITERE_MITTEL = [
       + 'Praxis. Übelkeit gehört bei beiden zu den häufigen Nebenwirkungen.',
     einnahme: 'Rimegepant und Lasmiditan gibt es nur auf Rezept. Zugelassen sind beide '
       + 'zur Behandlung des Migräneanfalls, Rimegepant (Vydura) auch zur Vorbeugung; wann '
-      + 'und wie es genommen wird, steht in der Packungsbeilage und wird in der Praxis '
+      + 'und wie sie genommen werden, steht in der Packungsbeilage und wird in der Praxis '
       + 'besprochen. Lasmiditan macht laut Fachinformation sehr häufig benommen; '
       + 'Schläfrigkeit, Erschöpfung und Schwindel sind häufig. Dort steht auch, dass nach '
       + 'jeder Einnahme mindestens acht Stunden lang kein Fahrzeug geführt und keine '
@@ -739,8 +757,9 @@ export const WEITERE_MITTEL = [
       + 'Übergebrauchsgrenze prüft Body Check für diese Mittel nicht. Die internationale '
       + 'Kopfschmerzklassifikation nennt Gepante und Ditane nicht eigens; für Akutmittel, '
       + 'die dort nicht einzeln aufgeführt sind, nennt sie eine Grenze: über mehr als drei '
-      + 'Monate an zehn oder mehr Tagen im Monat. Was es im Einzelnen tut und verträgt, '
-      + 'steht in der Packungsbeilage; Fragen dazu beantworten Praxis oder Apotheke.',
+      + 'Monate an zehn oder mehr Tagen im Monat. Was es im Einzelnen tut und wie es '
+      + 'vertragen wird, steht in der Packungsbeilage; Fragen dazu beantworten Praxis oder '
+      + 'Apotheke.',
   },
   /*
    * Quellen (Fassung 30), Fachinformationen von fachinfo.de/fi/pdf/<nr>, im Volltext
@@ -1059,8 +1078,9 @@ export const ADHS_MITTEL = [
     kuerzel: 'MPH',
     beispiele: namenVon('mph'),
     kurz: 'Stimulans bei ADHS. Bei manchen Kapseln (Medikinet retard, Medikinet adult) kann '
-      + 'der Wirkstoff laut Fachinformation nüchtern oder zusammen mit Säureblockern schneller '
-      + 'frei werden – mehr unter „Je nach Form“.',
+      + 'der Wirkstoff laut Fachinformation nüchtern oder zusammen mit H2-Blockern, '
+      + 'Protonenpumpenhemmern oder Antazida schneller frei werden – mehr unter „Je nach '
+      + 'Form“.',
     wirkung: 'Wie schnell es ins Blut geht und wie lange es wirkt, ist laut '
       + 'Fachinformationen je nach Form verschieden: sofort freisetzend oder retardiert, und '
       + 'retardiert auf verschiedene Weise. Bei manchen Formen verschiebt auch Essen den '
@@ -1481,12 +1501,18 @@ export function istAdhsMittel(name) {
  * Kügelchen, ihre Fachinformationen (010445, 015153, September 2025) nennen
  * Säureblocker aber nicht, ebenso wenig Ritalin (002958), Equasym Retard (012100),
  * Concerta (Februar 2026) und Methylphenidat-HCl-ratiopharm Retardtabletten (022094).
+ *
+ * Die Gruppen so, wie die Fachinformation sie nennt (009621, 4.5: „darf nicht
+ * zusammen mit H2-Rezeptorenblockern, Protonenpumpen-Inhibitoren oder
+ * Antazida eingenommen werden"), und das eingetragene Mittel wie in
+ * js/zusammen.js: Der Satz steht auch bei Alginaten, und „Säureblocker" (bis
+ * zur Fassung 29) passt für sie nicht.
  */
-export const KLAER_SATZ = 'Ob ein Säureblocker zu deinem Präparat passt, hängt bei '
+export const KLAER_SATZ = 'Ob ein Mittel bei Säurebeschwerden zu deinem Präparat passt, hängt bei '
   + 'Methylphenidat am einzelnen Präparat: Bei Medikinet retard und Medikinet adult steht '
-  + 'die Behandlung mit Säureblockern laut Fachinformation unter den Gegenanzeigen, weil '
-  + 'dann die gesamte Wirkstoffmenge rascher frei werden kann. Was für deins gilt, '
-  + 'das klären Apotheke oder Praxis.';
+  + 'die Behandlung mit H2-Blockern, Protonenpumpenhemmern oder Antazida laut Fachinformation '
+  + 'unter den Gegenanzeigen, weil dann die gesamte Wirkstoffmenge rascher frei werden kann. '
+  + 'Was für deins gilt, das klären Apotheke oder Praxis.';
 
 /*
  * Methylphenidat gibt es in Formen, die sich beim Essen und bei
@@ -1612,9 +1638,9 @@ export const MPH_FORMEN = [
     id: 'unbekannt',
     name: 'Weiß ich nicht',
     kurzname: 'Form nicht angegeben',
-    einnahme: 'Methylphenidat gibt es in Formen, die sich beim Essen und bei Säureblockern '
-      + 'verschieden verhalten. Welche du hast, steht auf der Packung oder weiß die '
-      + 'Apotheke.',
+    einnahme: 'Methylphenidat gibt es in Formen, die sich beim Essen und bei H2-Blockern, '
+      + 'Protonenpumpenhemmern oder Antazida verschieden verhalten. Welche du hast, steht auf '
+      + 'der Packung oder weiß die Apotheke.',
     saeure: KLAER_SATZ,
   },
 ];

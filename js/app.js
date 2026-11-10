@@ -40,7 +40,9 @@ import {
   DAUER_VORSCHLAEGE, VERSUCH_URTEIL, betrifft, ergebnis, phase, versuchStand,
   vorschlaege,
 } from './versuch.js';
-import { ANSPRECHEN_URTEIL, befund, mittelBilanz } from './ansprechen.js';
+import {
+  ANSPRECHEN_URTEIL, befund, mittelBilanz, urteilAnzeige,
+} from './ansprechen.js';
 import { luecken } from './luecken.js';
 import { vergleichBalken, verlaufTafel } from './chart.js';
 import { arztBericht, berichtName } from './bericht.js';
@@ -1850,7 +1852,10 @@ function rueckfrageKarte(f, s) {
     // derselben Stelle. Der Fokus geht auf diese Überschrift – sie allein muss
     // sagen, um welches Mittel es jetzt geht (siehe auch rueckfrageWeiter).
     // Bei 320 Pixeln bleibt sie für übliche Namen zweizeilig wie vorher.
-    frage = `${name}: Welche Form steht auf der Packung?`;
+    // Nicht mehr „steht auf der Packung" (bis zur Fassung 29): Dort steht
+    // der Markenname, die Form nicht immer – siehe wKarteW1u in
+    // js/zusammen.js. Wer sie nicht weiß, findet „Weiß ich nicht".
+    frage = `${name}: Welche Form hat dein Präparat?`;
     teil = `${x.saeureDa
       ? '<p class="klein">Davon hängt ab, welcher Hinweis zu deinen Mitteln gilt. Nicht sicher? Dann „Weiß ich nicht“.</p>'
       : '<p class="klein">Davon hängt ab, ob es zu deinen Mitteln einen Hinweis gibt.</p>'}
@@ -2525,7 +2530,7 @@ function ratKarte(s) {
       <p class="klein">${esc(r.warum)}</p>
     </li>`).join('')}</ul>
     <p class="klein">„Aus deinem Verlauf" heißt: aus deinen eigenen Eintragungen
-    gerechnet, mit den Zahlen daneben. „Allgemein" heißt: allgemeine Hinweise,
+    gerechnet, mit den Zahlen daneben. „Allgemein“ heißt: allgemeine Hinweise,
     oft nicht gut untersucht – dein eigener Verlauf sticht das.</p>
   </div>`;
 }
@@ -3319,7 +3324,7 @@ function kriterienTeil(s, d) {
     Brennen im Oberbauch –, wenn eine übliche ärztliche Untersuchung sie nicht
     erklärt. Wie oft sie dafür auftreten müssen, gibt dieser Kasten nicht
     wieder; die Einordnung trifft die Praxis. Gezählt werden nur Eintragungen
-    ab Stärke 4 („merklich"). Diese Grenze hat Body Check festgelegt.</p>
+    ab Stärke 4 („merklich“). Diese Grenze hat Body Check festgelegt.</p>
   </li>`;
 
   const gerdqKasten = `<li class="krit">
@@ -3342,13 +3347,13 @@ function kriterienTeil(s, d) {
        desto weniger Punkte. Was die Punktzahl hier bedeutet, kann die Praxis
        einordnen.`
     : `Von den letzten sieben Tagen sind nur ${g.erfasst} notiert. Was nicht
-       eingetragen ist, zählt hier als „nicht gehabt" – die Punktzahl wäre damit
+       eingetragen ist, zählt hier als „nicht gehabt“ – die Punktzahl wäre damit
        nicht zu gebrauchen.`}</p>
   </li>`;
 
   const dauer = k.dauer.erfuellt === null
     ? `<p class="klein warnend">Seit wann die Beschwerden bestehen, ist nicht
-       eingetragen – unter „Mehr". Body Check rechnet beim Reizdarm mit einem
+       eingetragen – unter „Mehr“. Body Check rechnet beim Reizdarm mit einem
        Beginn vor mindestens sechs Monaten; ohne diese Angabe fehlt dem
        Reizdarm-Kasten darunter eine Bedingung.</p>`
     : `<p class="klein">Beschwerden seit ${esc(k.dauer.seit)}, also seit
@@ -3860,21 +3865,22 @@ function provokationHistorie(s, d) {
 }
 
 /**
- * Was die Mittel bewirken – gemessen, nicht behauptet.
+ * Was sich unter den Mitteln geändert hat – gemessen, nicht behauptet.
  *
- * Sie trägt ein, was sie nimmt, und niemand rechnet nach. Ausbleibendes
- * Ansprechen ist selbst ein Befund: Ein Säureblocker, der nach vier bis acht
- * Wochen nichts geändert hat, spricht gegen die Säure als Ursache.
+ * Wer etwas nimmt und es einträgt, hat die Zahlen für den Vergleich, und
+ * niemand rechnet ihn im Kopf nach. Was ein ausbleibender Unterschied für die
+ * Ursache heißt, sagt die Karte nicht; ein Urteil steht nur bei den
+ * Magenmitteln (Belege und Begründung im Kopf von js/ansprechen.js).
  */
 function ansprechenTeil(s, d) {
   const liste = d.mittel.filter((m) => m.genug);
   if (!liste.length) return '';
   return `<div class="karte">
     <h3>Ob es etwas bewirkt</h3>
-    <ul class="funde funde-mittel">${liste.map((m) => `<li class="fund fund-mittel f-${m.urteil === 'besser' ? 'unauffaellig' : (m.saeureVersuchAusgereizt ? 'auffaellig' : 'neutral')}">
+    <ul class="funde funde-mittel">${liste.map((m) => `<li class="fund fund-mittel f-${urteilAnzeige(m) === 'besser' ? 'unauffaellig' : (m.saeureVersuchAusgereizt ? 'auffaellig' : 'neutral')}">
       <div class="fund-kopf">
         <b>${esc(m.name)}</b>
-        <span class="fund-urteil">${ANSPRECHEN_URTEIL[m.urteil]}</span>
+        <span class="fund-urteil">${ANSPRECHEN_URTEIL[urteilAnzeige(m)]}</span>
       </div>
       ${m.vergleichbar ? vergleichBalken(m.unter.schnitt, m.davor.schnitt,
     { mit: 'darunter', ohne: 'davor' }) : ''}
@@ -4105,13 +4111,16 @@ function v28Punkte(s) {
   }).map((e) => String(e.mittel).trim()))];
   if (kombiNamen.length) {
     const para = mittel.some((e) => gruppe(e.mittel) === 'kombipara' && klein(e.mittel).includes('koffein'));
-    punkte.push('Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel. Für '
-      + 'sie nennt die internationale Kopfschmerzklassifikation eine niedrigere Schwelle für Übergebrauch als für '
-      + 'einzelne Schmerzmittel: an zehn oder mehr Tagen im Monat über mehr als drei Monate'
-      + `${para ? '. Paracetamol mit Koffein zählt in der Magenauswertung nicht mehr als NSAR, weil Paracetamol '
+    // Die Namen gehören an den ersten Satz: Hinter dem Satz zu Paracetamol
+    // läse sich auch ein Mittel mit ASS wie eines, das für den Magen nicht
+    // mehr als NSAR zählt (bis zur Fassung 29 standen sie dort).
+    punkte.push(`Schmerzmittel mit Koffein, deren Wirkstoff die App erkennt, zählen jetzt als Kombinationsmittel `
+      + `(${kombiNamen.join(', ')}). Für sie nennt die internationale Kopfschmerzklassifikation eine niedrigere `
+      + 'Schwelle für Übergebrauch als für einzelne Schmerzmittel: an zehn oder mehr Tagen im Monat über mehr als '
+      + 'drei Monate.'
+      + `${para ? ' Paracetamol mit Koffein zählt in der Magenauswertung nicht mehr als NSAR, weil Paracetamol '
         + 'nicht zu dieser Wirkstoffgruppe gehört – Magenbeschwerden nennt seine Fachinformation trotzdem als '
-        + 'mögliche Nebenwirkung' : ''} `
-      + `(${kombiNamen.join(', ')}).`);
+        + 'mögliche Nebenwirkung.' : ''}`);
   }
   /*
    * Und was mit „Koffein" bisher ein Kombinationsmittel war, jetzt aber keine
@@ -4943,6 +4952,13 @@ function ruheAnsicht(s) {
         + 'er ab, hält die Übung an – dann lieber kurz wach halten.</p>')
     : '';
 
+  /*
+   * Der Kopfsatz so, wie die Karten auf „Für heute" (js/rat.js) und die
+   * Quellen im Kopf von js/atem.js es tragen. Bis zur Fassung 29: „Langes
+   * Ausatmen schaltet auf den Teil des Nervensystems um, unter dem der Darm
+   * arbeitet … ist das eine Behandlung und keine Beschäftigung" – eine
+   * Wirkaussage ohne Quelle, die rat.js schon als gestrichen führte.
+   */
   const kreis = `<div class="atem${laeuft ? ' laeuft' : ''}">
     <div class="atem-kreis" id="atemKreis"><span id="atemZahl">${laeuft ? '' : '·'}</span></div>
     <p class="atem-wort" id="atemWort">${laeuft ? '' : 'Bereit, wenn du bist'}</p>
@@ -4952,9 +4968,9 @@ function ruheAnsicht(s) {
 
   return `
   <h2>Ruhe</h2>
-  <p class="klein">Langes Ausatmen schaltet auf den Teil des Nervensystems um,
-  unter dem der Darm arbeitet statt stillzustehen. Bei Beschwerden, die an
-  Anspannung hängen, ist das eine Behandlung und keine Beschäftigung.</p>
+  <p class="klein">Atemübungen mit Ton. Tiefes Ein- und Ausatmen kann laut
+  gesund.bund.de die Entspannung fördern; wie gut Atemübungen wirken, ist dort
+  als nicht hinreichend untersucht beschrieben.</p>
 
   ${kreis}
 
@@ -5374,12 +5390,13 @@ function warnTeil(d) {
       <span class="klein">${mehrzahl(w.anzahl, 'Mal', 'Mal')} eingetragen,
         zuletzt ${esc(fmtDatum(w.zuletzt, true))}</span>
     </li>`).join('')}</ul>
-    <p class="klein">Bei erbrochenem Blut, schwarzem, klebrigem Stuhl, Schmerz,
-    der in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß,
-    einem Kopfschmerz, der schlagartig so stark war wie nie, Kopfschmerz mit
-    Fieber und steifem Nacken oder einer plötzlichen Lähmung, Taubheit einer
-    Körperseite, Sprachstörung, einem Sehverlust oder Verwirrtheit nicht auf
-    einen Termin warten – Notaufnahme oder 112.</p>
+    <p class="klein">Bei erbrochenem Blut; schwarzem, klebrigem Stuhl; Schmerz,
+    der in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß;
+    einem Kopfschmerz, der schlagartig so stark war wie nie; Kopfschmerz mit
+    Fieber und steifem Nacken; Ausfällen wie Lähmung, Taubheit einer
+    Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit, wenn sie plötzlich
+    kommen, länger als eine Stunde bleiben oder anders sind als die gewohnte
+    Aura: nicht auf einen Termin warten – Notaufnahme oder 112.</p>
   </div>`;
   /*
    * Der Satz nennt genau die Warnzeichen der Stufe „sofort" aus js/bild.js
@@ -5388,6 +5405,15 @@ function warnTeil(d) {
    * Fassung 29 stand „Bei Blut" – das schloss frisches Blut im Stuhl ein, das
    * in bild.js „zeitnah" ist –, und der Kopfschmerz mit Fieber und steifem
    * Nacken fehlte.
+   *
+   * Die Ausfälle mit derselben Bedingung wie in bild.js (kopfausfall):
+   * plötzlich, länger als eine Stunde oder anders als die gewohnte Aura. Nur
+   * „plötzlich", wie es zuerst in der Fassung 30 stand, liest jemand mit
+   * einer ungewohnt langen Aura als „trifft nicht zu". Unter den Merkmalen
+   * einer Aura nennt die Klassifikation „each individual aura symptom lasts
+   * 5-60 minutes" (ICHD-3, 2018, 1.2 Migraine with aura, Kriterium C:
+   * mindestens drei von sechs Merkmalen). Die Zeichen sind mit Semikolon
+   * getrennt, weil manche Namen selbst Kommas haben – wie in js/lage.js.
    *
    * Belege, je Zeichen:
    *   * Ausstrahlender Schmerz: gesund.bund.de, Herzinfarkt (Stand
@@ -6134,7 +6160,7 @@ function mehrAnsicht(s) {
     <h3>Seit wann hast du das?</h3>
     <p class="klein">Die eine Angabe, die aus dem Tagebuch nicht hervorgeht – es
     beginnt an dem Tag, an dem du anfängst zu schreiben, und das ist fast nie
-    der Tag, an dem es angefangen hat. Für den Reizdarm-Kasten unter „Muster"
+    der Tag, an dem es angefangen hat. Für den Reizdarm-Kasten unter „Muster“
     rechnet Body Check mit einem Beginn vor mindestens sechs Monaten; ohne
     diese Zeile bleibt dort eine Bedingung offen. Ungefähr genügt.</p>
     <input type="month" class="feld" data-act="seit" max="${heuteISO().slice(0, 7)}"
@@ -6232,6 +6258,15 @@ function mehrAnsicht(s) {
  *     bruxism"; zu Kopfschmerz J Oral Rehabil 2025;52(6):937-948 (PMID
  *     40312780, Abstract): „without certainty of their effects". Dass die
  *     Schiene „vor allem zum Schutz der Zähne gedacht" sei, steht in keiner.
+ *   * Einschlafen: „Späteres Einschlafen gehört oft zu ADHS selbst" ist
+ *     jetzt so vorsichtig gefasst wie in js/adhs.js (A3_STUDIEN) und im
+ *     Bericht: Biol Psychiatry 2010;67(11):1091-6 (PMID 20163790,
+ *     Abstract), 40 Erwachsene mit ADHS: „Compared with control subjects,
+ *     both groups of ADHD adults had longer sleep-onset latency"; Neurosci
+ *     Biobehav Rev
+ *     2018;89:61-71 (PMID 29477617, Abstract), Metaanalyse zu Erwachsenen:
+ *     mit Bewegungsmessung „sleep onset latency: 0.80 (0.46-1.14)", im
+ *     Schlaflabor „No significant differences" – deshalb „manche Studien".
  *   * Massagepistolen: J Funct Morphol Kinesiol 2023;8(3):138 (PMID
  *     37754971, Abstract): „281 records were screened, but only 11 could be
  *     included" – untersucht Beweglichkeit, Kraft und Erholung, nicht
@@ -6243,8 +6278,9 @@ const WISSEN_ADHS = 'Ob Magen-Darm-Beschwerden mit ADHS, den Mitteln, der Stimmu
   + 'Bei Kindern und Jugendlichen kommen Migräne und Spannungskopfschmerz laut internationaler '
   + 'Kopfschmerzklassifikation oft zusammen mit psychischen Störungen vor; ADHS steht dort unter '
   + 'denen, nach denen gezielt geschaut werden soll. Kopfschmerz steht bei den meisten ADHS-Mitteln '
-  + 'unter den häufigen Nebenwirkungen. Späteres Einschlafen gehört oft zu ADHS selbst; Stimulanzien können den Schlaf '
-  + 'zusätzlich stören – beides lässt sich in einem Tagebuch nicht trennen. Knirschen und Pressen sind '
+  + 'unter den häufigen Nebenwirkungen. Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine '
+  + 'längere Einschlafzeit als bei anderen; Stimulanzien können den Schlaf zusätzlich stören – beides lässt sich '
+  + 'in einem Tagebuch nicht trennen. Knirschen und Pressen sind '
   + 'bei Kindern und Jugendlichen mit ADHS häufiger beschrieben, für Erwachsene gibt es erst kleine '
   + 'Studien; bei Methylphenidat steht Zähneknirschen in den Fachinformationen als häufige '
   + 'Nebenwirkung. Body Check rechnet nichts davon für dich aus – es zählt, was du einträgst, und '
@@ -6405,7 +6441,7 @@ function meineMittelKarte(s) {
     const g = wissenZu(m.mittel);
     if (!g || g.id !== 'mph') return '';
     return `<div class="mm-form" role="group" aria-label="${esc(`Form von ${mittelName(m)}`)}">
-      <p class="feld-name">Welche Form? (steht auf der Packung)</p>
+      <p class="feld-name">Welche Form? (weiß die Apotheke)</p>
       <div class="marken marken-eng">${MPH_FORMEN.map((x) => `
         <button type="button" class="marke${m.form === x.id ? ' an' : ''}" data-act="mph-form"
                 data-mittel="${esc(m.id)}" data-id="${x.id}" aria-pressed="${m.form === x.id}">${esc(x.name)}</button>`).join('')}</div>
@@ -7068,7 +7104,7 @@ function wissenTeil(s, b) {
     const f = formImBogen(s, b);
     const form = mphForm(f.form);
     teile.push(`<div class="bogen-form" role="group" aria-label="Form">
-      <p class="feld-name">Welche Form? (steht auf der Packung)</p>
+      <p class="feld-name">Welche Form? (weiß die Apotheke)</p>
       <div class="marken marken-eng">${MPH_FORMEN.map((x) => `
         <button type="button" class="marke${f.form === x.id ? ' an' : ''}" data-act="bogen-form"
                 data-id="${x.id}" aria-pressed="${f.form === x.id}">${esc(x.name)}</button>`).join('')}</div>
@@ -7486,13 +7522,21 @@ function bogenHTML(s) {
      * genug" – das trägt keine Quelle; 1997 hieß es noch „not widely used in
      * clinical practice or research".
      *
-     * Und zu den Warnzeichen unten: gesund.bund.de, Reizdarmsyndrom (Stand
-     * 28.08.2024): „Bei Blut im Stuhl ist in jedem Fall eine Untersuchung
-     * durch eine Ärztin oder einen Arzt erforderlich"; Magengeschwür (Stand
-     * 07.01.2022): „schwarz gefärbter Stuhl" unter den Zeichen, die
-     * „zeitnah ärztlich" abzuklären sind. „Die zwei wichtigsten Warnzeichen
-     * überhaupt" – eine Rangfolge, die keine Quelle aufstellt – stand hier
-     * bis zur Fassung 29.
+     * Und zu den Warnzeichen unten, getrennt nach ihrer Stufe in js/bild.js.
+     * Schwarzer, klebriger Stuhl (teerstuhl) ist „sofort" und bekommt den
+     * Wortlaut der Warnkarte (warnTeil): EMA, Produktinformation PANTOZOL
+     * Control, Gebrauchsinformation Abschnitt 2: „Informieren Sie sofort
+     * Ihren Arzt" bei „Blut im Stuhl, der schwarz oder teerig aussehen kann".
+     * Frisches Blut (blutstuhl) ist „zeitnah": gesund.bund.de,
+     * Reizdarmsyndrom (Stand 28.08.2024): „Bei Blut im Stuhl ist in jedem
+     * Fall eine Untersuchung durch eine Ärztin oder einen Arzt erforderlich";
+     * Darmkrebs (Stand 28.05.2026): bei Blut im Stuhl „nicht bis zum
+     * Vorsorgetermin warten". „Die zwei wichtigsten Warnzeichen überhaupt" –
+     * eine Rangfolge, die keine Quelle aufstellt – stand hier bis zur Fassung
+     * 29; der Satz „gehören zu den Warnzeichen, die ärztlich abgeklärt
+     * gehören", der zuerst in der Fassung 30 stand, nannte für das Zeichen
+     * der Stufe „sofort" keine Eile und stützte sich auf eine Seite, die
+     * schwarzen Stuhl „zeitnah" nennt (gesund.bund.de, Magengeschwür).
      */
     mitte = `
       <p class="feld-name">Wie sah es aus?</p>
@@ -7518,10 +7562,12 @@ function bogenHTML(s) {
       </div>
       <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
         <summary>War Blut dabei oder war es schwarz?</summary>
-        <p class="klein">Blut im Stuhl und schwarzer Stuhl gehören zu den
-        Warnzeichen, die ärztlich abgeklärt gehören – deshalb stehen sie hier und
-        nicht im Beschwerdebogen. Was hier angekreuzt wird, taucht in keiner
-        Statistik auf, sondern ganz oben unter „Muster".</p>
+        <p class="klein">Bei schwarzem, klebrigem Stuhl nicht auf einen Termin
+        warten – Notaufnahme oder 112. Frisches Blut im Stuhl gehört zeitnah
+        ärztlich abgeklärt. Deshalb stehen beide hier und nicht im
+        Beschwerdebogen: Was hier angekreuzt wird, taucht in keiner Statistik
+        auf, sondern ganz oben unter „Muster“ – mit dem Hinweis, wie eilig es
+        ist.</p>
         ${marken(WARNZEICHEN.filter((w) => ['teerstuhl', 'blutstuhl'].includes(w.id)),
     e.warnzeichen || [], 'warnzeichen')}
       </details>`;
@@ -8462,7 +8508,7 @@ const AKTION = {
     if (!m) return;
     const am = ui.tag;
     // Die Form des eigenen Mittels geht mit, wenn eine angegeben ist – sie
-    // steht auf der Packung und ändert sich nicht von Tag zu Tag. Nur bei
+    // gehört zum Präparat und ändert sich nicht von Tag zu Tag. Nur bei
     // Methylphenidat: Dieser Weg läuft an bogenSpeichern() vorbei, und eine
     // Form an einem Säureblocker (etwa aus einem älteren Stand) wäre ein
     // Hinweis auf ein Paar, das es nicht gibt.
@@ -8647,7 +8693,7 @@ const AKTION = {
       // „Weiß ich nicht" ändert keine Mitteldaten – nur die Rückfrage merkt es sich.
       const meins = s.standardMittel.some((m) => gleichText(m.mittel, x.name));
       store.rueckfrageSetzen([k], { form: 'weissnicht' });
-      melden(`Gemerkt. Die Form von ${x.name} steht auf der Packung – angeben kannst du sie jederzeit `
+      melden(`Gemerkt. Die Form von ${x.name} weiß die Apotheke – angeben kannst du sie jederzeit `
         + `${meins ? 'bei deinem Mittel unter „Meine Mittel“' : 'beim Eintragen im Bogen'}.${rueckfrageWeiter(k)}`);
       rueckfrageFokus();
       zeichne();

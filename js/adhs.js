@@ -837,6 +837,24 @@ function a3Faelle(p, abschnitt, heute) {
 const A3_VORNACHT_LEER = 'Zur Nacht davor fehlen auf einer Seite die Angaben – ob sie schon verschieden war, '
   + 'kann der Vergleich nicht prüfen.';
 
+/*
+ * Derselbe Satz wie unter „Mehr" (WISSEN_ADHS in js/app.js) und im Bericht.
+ * Belegt ist nur der Zusammenhang, keine Ursache: Biol Psychiatry
+ * 2010;67(11):1091-6 (PMID 20163790, Abstract), 40 Erwachsene mit ADHS:
+ * „Compared with control subjects, both groups of ADHD adults had longer
+ * sleep-onset latency"; Neurosci Biobehav Rev 2018;89:61-71 (PMID 29477617,
+ * Abstract), Metaanalyse zu Erwachsenen: mit Bewegungsmessung „sleep onset
+ * latency: 0.80 (0.46-1.14)", im Schlaflabor dagegen „No significant
+ * differences were detected for polysomnographic parameters" – deshalb
+ * „manche Studien". Ob die Teilnehmer dabei Mittel nahmen, sagen die
+ * Abstracts nicht; deshalb „an ADHS selbst" nur als eine von zwei
+ * Möglichkeiten. Bis zur Fassung 29: „Späteres Einschlafen gehört oft auch zu
+ * ADHS selbst".
+ */
+export const A3_STUDIEN = 'Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine längere Einschlafzeit '
+  + 'als bei anderen – ob ein Unterschied hier an der Einnahmezeit liegt oder an ADHS selbst, lässt sich '
+  + 'nicht trennen.';
+
 function a3Saetze(a3, v) {
   if (a3.dicht) return ['Deine Einnahmezeiten liegen zu dicht beieinander für diesen Vergleich.'];
   if (!v.genug) {
@@ -847,8 +865,7 @@ function a3Saetze(a3, v) {
     + `im Mittel mit ${fmtZahl(v.mit.schnitt)} bewertet, sonst mit ${fmtZahl(v.ohne.schnitt)} `
     + `(${v.mit.n} gegen ${v.ohne.n} Nächte; Spielraum ±${fmtZahl(v.urteil.spielraum)}).`
     + `${a3.stress.spaeter !== null && a3.stress.sonst !== null ? ` Anspannung an diesen Tagen: `
-      + `${fmtZahl(a3.stress.spaeter)} gegen ${fmtZahl(a3.stress.sonst)}.` : ''} Späteres `
-    + 'Einschlafen gehört oft auch zu ADHS selbst – beides lässt sich hier nicht trennen.';
+      + `${fmtZahl(a3.stress.spaeter)} gegen ${fmtZahl(a3.stress.sonst)}.` : ''} ${A3_STUDIEN}`;
   if (v.stoerung === 'vornacht') {
     return [zahlen, `Schon die Nacht davor war auf beiden Seiten verschieden (${fmtZahl(a3.vorNacht.spaeter)} `
       + `gegen ${fmtZahl(a3.vorNacht.sonst)}) – der Vergleich misst das mit.`];

@@ -1,23 +1,26 @@
 /*
- * Ob ein Mittel etwas bewirkt.
+ * Ob sich unter einem Mittel etwas geändert hat.
  *
- * Der interessante Fall ist nicht die Besserung, sondern ihr Ausbleiben: Ein
- * Säureblocker, der nach vier bis acht Wochen nichts geändert hat, spricht
- * gegen die Säure als Ursache. Das ist eine der wenigen Stellen, an denen ein
- * Tagebuch eine Untersuchung ersetzt, und deshalb steht dieser Fall hier im
- * Mittelpunkt.
+ * Der Fall, der hier im Mittelpunkt steht, ist ein Säureblocker, unter dem die
+ * Bauchwerte nicht besser geworden sind. Seit der Fassung 30 sagt die App dazu
+ * nur, was die Fachinformationen nennen – weitere Untersuchungen –, und keinen
+ * Schluss auf die Ursache mehr (Belege im Kopf von js/ansprechen.js).
  *
- * Zwei Grenzen werden mitgeprüft, weil sie leicht zu übertreten wären:
+ * Drei Grenzen werden mitgeprüft, weil sie leicht zu übertreten wären:
  *
- *   * Kein Rat zum Absetzen. Ein Säureblocker wird nach längerer Einnahme
- *     nicht von einem Tag auf den anderen weggelassen – der Magen antwortet
- *     dann mit mehr Säure als vorher.
- *   * Kein Triumph bei Besserung. Man fängt ein Mittel meistens an, *weil* es
- *     gerade besonders schlecht ist; danach wird es oft von selbst besser.
+ *   * Kein Rat zum Absetzen, und kein Säure-Rebound: Den nennt keine geprüfte
+ *     Fach- oder Gebrauchsinformation. Belegt ist nur der Satz der
+ *     Packungsbeilage, dass die Einnahme nicht ohne Rücksprache beendet wird.
+ *   * Kein Triumph bei Besserung. Wird ein Mittel begonnen, während es gerade
+ *     schlecht ist, kann eine Besserung danach auch von selbst kommen.
+ *   * Ein Urteil aus dem Bauchwert nur bei Magenmitteln – bei Ibuprofen,
+ *     Bupropion oder einem ADHS-Mittel stehen nur die Zahlen.
  */
 import { chromium } from 'playwright';
 import { URL, KEY, HANDY, pruefer, vorTagen } from './umgebung.mjs';
-import { ANSPRECHEN_URTEIL, befund, mittelBilanz } from '../js/ansprechen.js';
+import {
+  ANSPRECHEN_URTEIL, befund, mittelBilanz, urteilAnzeige,
+} from '../js/ansprechen.js';
 import { wissenZu } from '../js/mittel.js';
 
 const { check, ende } = pruefer();
@@ -66,20 +69,25 @@ check(
   'mit der Zahl der Einnahmetage – daran hängt, ob das Urteil überhaupt etwas wert ist',
 );
 check(
-  kText.includes('Das ist selbst ein Befund'),
-  'ausbleibendes Ansprechen wird als Befund benannt, nicht als Lücke',
+  kText.includes('ohne dass die Bauchwerte darunter besser geworden wären')
+    && kText.includes('nennen manche Fachinformationen weitere Untersuchungen')
+    && kText.includes('klärt die Praxis'),
+  'ohne Besserung: was die Fachinformationen dafür nennen, und dass die Praxis es einordnet',
 );
 check(
-  kText.includes('vier bis acht Wochen'),
-  'mit der Frist, nach der ein Säureblockerversuch ausgereizt ist',
+  !kText.includes('Wenn Säure die Ursache wäre') && !kText.includes('vier bis acht Wochen')
+    && !kText.includes('Das ist selbst ein Befund'),
+  'kein Schluss auf die Säure als Ursache mehr (bis zur Fassung 29)',
 );
 check(
   kText.includes('Frage für den Termin'),
   'und mit der fertigen Frage dafür',
 );
 check(
-  kText.includes('Nicht von selbst absetzen'),
-  'ausdrücklich ohne Rat zum Absetzen – der Magen antwortet dann mit mehr Säure als vorher',
+  kText.includes('Laut Packungsbeilage mancher Präparate, etwa Pantozol, wird die Einnahme nicht beendet, '
+    + 'ohne vorher mit Ärztin, Arzt oder Apotheke zu sprechen')
+    && !kText.includes('mehr Säure als vorher') && !kText.includes('Nicht von selbst absetzen'),
+  'zum Beenden nur der Satz der Packungsbeilage – kein Säure-Rebound, keine Anweisung',
 );
 check(
   kText.includes('6,0 davor gegen 6,0 darunter'),
@@ -98,12 +106,14 @@ await setze({ begruesst: true, tab: 'muster', eintraege: mitWirkung, tage: {}, f
 const besser = await text(page.locator('.karte', { hasText: 'Ob es etwas bewirkt' }));
 check(besser.includes('darunter besser'), 'eine deutliche Besserung wird auch so genannt');
 check(
-  besser.includes('Vorsicht bei der Deutung'),
-  'aber mit dem Vorbehalt: Man fängt ein Mittel an, wenn es gerade besonders schlecht ist',
+  besser.includes('Vorsicht bei der Deutung')
+    && besser.includes('kann eine Besserung danach auch von selbst kommen')
+    && !/\bmeist\b|\boft\b/.test(besser),
+  'aber mit dem Vorbehalt, dass eine Besserung auch von selbst kommen kann – als Möglichkeit, ohne „meist“ und „oft“',
 );
 check(
-  !besser.includes('Das ist selbst ein Befund'),
-  'und ohne den Satz zum ausgereizten Versuch – der gilt hier nicht',
+  !besser.includes('weitere Untersuchungen'),
+  'und ohne den Satz zum Säureblocker ohne Besserung – der gilt hier nicht',
 );
 
 /* ---------- Zu wenige Tage: gar kein Urteil ---------- */
@@ -149,14 +159,39 @@ B4.forEach(([name, vorher, nachher]) => {
     && !/besser|schlechter|Kein Unterschied/.test(satz),
   `${name} (${vorher} → ${nachher}): kein Urteil, nur die beiden Zahlen (${m.urteil})`);
 });
+/*
+ * Fassung 30: Ein Urteil aus dem Bauchwert steht nur bei den Magenmitteln.
+ * Gerechnet wird es für alle weiter – ausgegeben wird es bei Bupropion oder
+ * Ibuprofen nicht, sondern nur die beiden Zahlen. Bei Ibuprofen hieß es bis
+ * zur Fassung 29 „Das heißt nicht, dass das Mittel schadet".
+ */
 const [bupro] = mittelBilanz(verlaufMit('Elontril', 2, 7), {}, { heute: vorTagen(0), gruppeVon });
-check(bupro.urteil === 'schlechter', 'Bupropion bekommt sein Urteil wie jedes andere Mittel');
+const buproSatz = befund(bupro);
+check(bupro.urteil === 'schlechter' && urteilAnzeige(bupro) === 'offen'
+  && buproSatz.includes('ob das etwas mit dem Mittel zu tun hat, zeigt dieser Vergleich nicht')
+  && !/besser|schlechter|Kein Unterschied/.test(buproSatz),
+`Bupropion: gerechnet „schlechter", angezeigt ohne Urteil – nur die Zahlen (${urteilAnzeige(bupro)})`);
+const [ibu] = mittelBilanz(verlaufMit('Ibuprofen', 2, 7), {}, { heute: vorTagen(0), gruppeVon });
+const ibuSatz = befund(ibu);
+check(ibu.gruppe === 'nsar' && ibu.urteil === 'schlechter' && urteilAnzeige(ibu) === 'offen'
+  && ibuSatz.startsWith(`Seit dem ersten Eintrag (${vorTagen(35).split('-').reverse().join('.')}) im Mittel 7,0, in der Zeit davor 2,0`)
+  && !ibuSatz.includes('schadet') && !/besser|schlechter/.test(ibuSatz),
+`Ibuprofen: ohne Urteil und ohne „schadet nicht", nur die Zahlen (${ibuSatz.slice(0, 90)})`);
+const [ibero] = mittelBilanz(verlaufMit('Iberogast', 2, 7), {}, { heute: vorTagen(0), gruppeVon });
+check(urteilAnzeige(ibero) === 'schlechter' && befund(ibero).startsWith('Darunter schlechter als davor')
+  && befund(ibero).includes('Woran das liegt, zeigt dieser Vergleich nicht') && !befund(ibero).includes('schadet'),
+'ein Magenmittel behält sein Urteil – ohne Deutung, woran es liegt');
 
 await setze({ begruesst: true, tab: 'muster', eintraege: verlaufMit('Intuniv', 1, 6), tage: {}, fenster: 4, mindestFaelle: 5 });
 const adhsKarte = await text(page.locator('.karte', { hasText: 'Ob es etwas bewirkt' }));
 check(adhsKarte.includes('Intuniv') && adhsKarte.includes('ohne Urteil') && adhsKarte.includes('Seit dem ersten Eintrag')
   && !adhsKarte.includes('darunter schlechter'),
 `in der App: „ohne Urteil" und der Satz statt „darunter schlechter" (${adhsKarte.slice(0, 120)})`);
+
+await setze({ begruesst: true, tab: 'muster', eintraege: verlaufMit('Ibuprofen', 2, 7), tage: {}, fenster: 4, mindestFaelle: 5 });
+const ibuKarte = await text(page.locator('.karte', { hasText: 'Ob es etwas bewirkt' }));
+check(ibuKarte.includes('Ibuprofen') && ibuKarte.includes('ohne Urteil') && !ibuKarte.includes('darunter schlechter'),
+  `in der App bei Ibuprofen: „ohne Urteil" statt „darunter schlechter" (${ibuKarte.slice(0, 120)})`);
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

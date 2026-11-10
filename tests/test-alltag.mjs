@@ -236,6 +236,12 @@ const speicher = (page) => page.evaluate(async (k) => {
   const kombiSatz = (karte.match(/Schmerzmittel mit Koffein[^.]*\./) || [''])[0];
   check(!/\balle\b/.test(kombiSatz) && kombiSatz.includes('deren Wirkstoff die App erkennt') && !kombiSatz.includes('Kopfschmerztabletten'),
     `der Satz zu den Kombinationsmitteln sagt nicht „alle“ und nennt nur, was die App erkennt (${kombiSatz})`);
+  // Die Namen stehen am ersten Satz: Hinter dem Satz zu Paracetamol läse sich
+  // „Spalt plus Koffein“ (mit ASS) wie ein Mittel, das für den Magen nicht
+  // mehr als NSAR zählt – so stand es bis zur Fassung 29.
+  check(/\((Paracetamol Koffein, Spalt plus Koffein|Spalt plus Koffein, Paracetamol Koffein)\)/.test(kombiSatz)
+    && /mögliche Nebenwirkung\./.test(karte) && !/mögliche Nebenwirkung \(/.test(karte),
+  `die Namen der Kombinationsmittel stehen am ersten Satz, nicht hinter dem zu Paracetamol (${kombiSatz})`);
   const fremdSatz = (karte.match(/Kopfschmerztabletten mit Koffein[^.]*\.[^.]*\.[^.]*\./) || [''])[0];
   check(fremdSatz.startsWith('Kopfschmerztabletten mit Koffein zählte bisher als Kombinationsmittel')
     && fremdSatz.includes('zählt jetzt nicht mehr mit') && !karte.includes('Kopfweg mit Coffein zählte'),

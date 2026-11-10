@@ -1,33 +1,51 @@
 /*
- * Die Kriterien: dieselben Regeln, nach denen in der Sprechstunde eingeordnet
- * wird – auf die eigenen Eintragungen angewandt.
+ * Die Kriterien: Zählungen, die sich an veröffentlichten Kriterien
+ * orientieren – auf die eigenen Eintragungen angewandt.
  *
  * Bis hierher hat diese App beschrieben („säuretypisches Bild"). Diese Datei
- * geht einen Schritt weiter und rechnet zwei anerkannte Regelwerke nach:
+ * zählt nach zwei veröffentlichten Vorlagen:
  *
- *   * **Rom IV** für das Reizdarmsyndrom und die funktionelle Dyspepsie. Das
- *     sind die Kriterien, mit denen diese beiden Diagnosen tatsächlich gestellt
- *     werden – sie bestehen aus nichts als Beschwerden und Zeiträumen, also
- *     genau aus dem, was in einem Tagebuch steht.
- *   * **GerdQ** für die Refluxkrankheit. Sechs Fragen, eine veröffentlichte
- *     Schwelle, und in Studien ungefähr so treffsicher wie die Einschätzung
- *     einer Hausärztin.
+ *   * **Rom IV** für das Reizdarmsyndrom und die Magenbeschwerden der
+ *     funktionellen Dyspepsie. Was die Abstracts dazu hergeben, steht in
+ *     kriterienTeil in js/app.js (Mearin et al. 2016, PMID 27144627;
+ *     Stanghellini et al. 2016, PMID 27147122). Die Schwellen beim Reizdarm
+ *     (Schmerz im Mittel an einem Tag je Woche, zwei von drei Merkmalen,
+ *     Beginn vor sechs Monaten) gibt die FDA im Wortlaut wieder (NDA 211801,
+ *     Ibsrela, Multidisciplinary Review, Table 1 „Rome IV Diagnostic Criteria
+ *     for Irritable Bowel Syndrome", siehe README); die Häufigkeiten bei den
+ *     Magenbeschwerden sind die Rechnung dieser Datei.
+ *   * **GerdQ** für Reflux: laut Abstract ein „six-item diagnostic and
+ *     management tool" mit einer Sensitivität von 65 % und einer Spezifität
+ *     von 71 %, „similar to that achieved by gastroenterologists" (Jones et
+ *     al. 2009, PMID 19737151). Punkte je Frage, die Spanne bis 18 und die
+ *     Schwelle 8 stehen im Abstract nicht.
  *
  * DREI DINGE, DIE DAZUGEHÖREN, UND ZWAR JEDES MAL:
  *
- * 1. **Erfüllte Kriterien sind keine Diagnose.** Beide Regelwerke setzen
- *    ausdrücklich voraus, dass nichts Organisches dahintersteckt – und das
- *    weiß nur eine Untersuchung. „Erfüllt die Kriterien" heißt: Wenn Spiegelung
- *    und Blutbild unauffällig sind, passt der Name. Nicht mehr, und das ist
- *    schon viel.
+ * 1. **Erfüllte Kriterien sind keine Diagnose.** Von Reizdarm oder Reizmagen
+ *    wird erst gesprochen, wenn andere Ursachen ärztlich abgeklärt sind
+ *    (gesund.bund.de, Reizmagensyndrom, Stand 05.02.2026; Reizdarmsyndrom,
+ *    Stand 28.08.2024). Für den GerdQ gilt dieser Ausschluss nicht; auch sein
+ *    Punktwert ist keine Diagnose. Bis zur Fassung 29 stand hier, „beide
+ *    Regelwerke" setzten „ausdrücklich voraus, dass nichts Organisches
+ *    dahintersteckt", und es seien „dieselben Regeln, nach denen in der
+ *    Sprechstunde eingeordnet wird" – beides trägt keine Quelle.
  *
- * 2. **Ein Tagebuch untererfasst.** Der GerdQ wird sonst gefragt („an wie
- *    vielen Tagen hatten Sie …?"); hier wird gezählt. Wer einen Tag nicht
- *    einträgt, hat an diesem Tag laut Tagebuch nichts gehabt. Jede Punktzahl
- *    hier ist deshalb eher zu niedrig als zu hoch – sie ist eine Untergrenze.
+ * 2. **Gezählt wird, was eingetragen ist.** Der GerdQ wird sonst gefragt („an
+ *    wie vielen Tagen hatten Sie …?"); hier wird gezählt. Wer einen Tag nicht
+ *    einträgt, hat an diesem Tag laut Tagebuch nichts gehabt. Ob die Zahl
+ *    dadurch zu hoch oder zu niedrig ausfällt, lässt sich nicht sagen: Zwei
+ *    Posten zählen umgekehrt, und die Werte je Woche beziehen sich auf die
+ *    notierten Tage.
  *
- * 3. **Ohne genug Zeitraum kein Ergebnis.** Rom IV verlangt drei Monate
- *    Beschwerden und einen Beginn vor mindestens einem halben Jahr. Was diese
+ * 3. **Ohne genug Zeitraum kein Ergebnis.** Body Check rechnet mit drei
+ *    Monaten Beschwerden und einem Beginn vor mindestens einem halben Jahr –
+ *    so gibt die FDA die Rom-IV-Kriterien beim Reizdarm wieder (Table 1, siehe
+ *    oben: „Criteria fulfilled for the last 3 months with symptom onset at
+ *    least 6 months before diagnosis") und ebenso die EMA-Leitlinie die
+ *    Rom-III-Kriterien (CPMP/EWP/785/97 Rev. 1, Kapitel 4: „symptoms being
+ *    present for the last three months and onset at least 6 months prior to
+ *    diagnosis"). Was diese
  *    Datei nicht prüfen kann, behauptet sie nicht: Dann steht `pruefbar: false`
  *    und daneben, was noch fehlt.
  */
@@ -36,19 +54,19 @@ import { bezugBilanz, schmerzVergleich, stuhlTyp } from './stuhl.js';
 import { tagZaehlt, zaehltFuerBauch } from './wasser.js';
 
 /*
- * Ab welcher Stärke eine Beschwerde als „belastend" gilt.
+ * Ab welcher Stärke eine Beschwerde gezählt wird: ab 4 („merklich").
  *
- * Die Rom-Kriterien sagen „bothersome" – belastend genug, um davon zu
- * erzählen. Auf der Skala dieser App ist das die 4, das Wort dazu heißt
- * „merklich". Eine 2 („sehr leicht") mitzuzählen würde die Kriterien bei fast
- * jedem erfüllen und sie damit wertlos machen.
+ * Diese Grenze hat Body Check festgelegt; so steht es auch im Kasten unter
+ * „Muster". Dass die Beschwerden „belastend" sein müssen, steht im Abstract
+ * zu Rom IV nicht (siehe kriterienTeil in js/app.js). Eine 2 („sehr leicht")
+ * mitzuzählen, hätte die Zählung bei fast jedem gefüllt.
  */
 const BELASTEND = 4;
 
-/** Rom IV rechnet in den letzten drei Monaten. */
+/** Body Check rechnet in den letzten drei Monaten (siehe 3. oben). */
 const FENSTER_TAGE = 90;
 
-/** Und verlangt einen Beginn vor mindestens einem halben Jahr. */
+/** Und mit einem Beginn vor mindestens einem halben Jahr (siehe 3. oben). */
 const BEGINN_MONATE = 6;
 
 /** GerdQ fragt nach den letzten sieben Tagen. */
@@ -197,14 +215,19 @@ function reizdarm(d) {
  * Rom IV: Funktionelle Dyspepsie
  * ---------------------------------------------------------------------------
  *
- * Mindestens eines von vier belastenden Beschwerdebildern in den letzten drei
- * Monaten. Unterteilt in zwei Formen, die verschieden behandelt werden:
+ * Laut Abstract eines oder mehrere von vier Beschwerdebildern, die eine
+ * übliche ärztliche Untersuchung nicht erklärt, mit zwei Unterformen, die
+ * sich überschneiden können (Stanghellini et al. 2016, PMID 27147122):
  *
- *   PDS  Völlegefühl nach dem Essen oder frühes Sattsein, an mindestens
- *        drei Tagen pro Woche.
- *   EPS  Schmerz oder Brennen im Oberbauch, an mindestens einem Tag pro Woche.
+ *   PDS  Völlegefühl nach dem Essen oder frühes Sattsein.
+ *   EPS  Schmerz oder Brennen im Oberbauch.
  *
- * Beides zugleich kommt vor und ist kein Widerspruch.
+ * Die Häufigkeiten hier (PDS an drei Tagen je Woche, EPS an einem) sind die
+ * Rechnung dieser Datei; das Abstract nennt sie nicht. Deshalb gibt keine
+ * Anzeige mehr ein „erfüllt" aus – der Kasten unter „Muster", der Bericht und
+ * „Was keine App beantwortet" zählen nur. Bis zur Fassung 29 stand hier
+ * außerdem, die beiden Formen würden „verschieden behandelt"; das trägt das
+ * Abstract nicht.
  */
 function dyspepsie(d) {
   const pdsTage = tageMit(d.eintraege, ['druck', 'saettigung'], d.von, d.bis);
@@ -238,13 +261,16 @@ function dyspepsie(d) {
  * GerdQ
  * ---------------------------------------------------------------------------
  *
- * Sechs Fragen nach den letzten sieben Tagen, jede 0 bis 3 Punkte, zusammen 0
- * bis 18. Ab 8 Punkten gilt eine Refluxkrankheit als wahrscheinlich.
+ * Sechs Posten nach den letzten sieben Tagen, jeder 0 bis 3 Punkte, zusammen
+ * 0 bis 18. Zwei davon zählt Body Check umgekehrt: Oberbauchschmerz und
+ * Übelkeit – je öfter eingetragen, desto weniger Punkte.
  *
- * Zwei der sechs zählen *umgekehrt*: Oberbauchschmerz und Übelkeit sprechen
- * eher gegen Reflux und für etwas anderes im Magen. Das ist keine Marotte des
- * Fragebogens, sondern sein eigentlicher Trick – er misst nicht, wie schlecht
- * es jemandem geht, sondern wie typisch das Muster ist.
+ * So rechnet diese Datei; das Abstract nennt nur „six-item" (siehe oben).
+ * Bis zur Fassung 29 stand hier „Ab 8 Punkten gilt eine Refluxkrankheit als
+ * wahrscheinlich" und, die umgekehrten Posten sprächen „für etwas anderes im
+ * Magen". Beides steht nirgends mehr in der Anzeige; `schwelle` und
+ * `wahrscheinlich` werden weiter gerechnet, aber nicht als Deutung
+ * ausgegeben (js/app.js, js/bericht.js, js/luecken.js).
  */
 const GERDQ_POSTEN = [
   { id: 'sodbrennen', frage: 'Brennen hinter dem Brustbein', arten: ['sodbrennen', 'brennen'], richtung: 1 },
@@ -313,8 +339,7 @@ function gerdq(d) {
     erfasst,
     von,
     bis: d.bis,
-    // Unter vier erfassten Tagen der letzten sieben ist die Zahl nicht mehr
-    // eine Untergrenze, sondern Zufall.
+    // Unter vier erfassten Tagen der letzten sieben ist die Zahl Zufall.
     belastbar: erfasst >= 4,
   };
 }

@@ -4,10 +4,12 @@
  * DER FEHLER, DEN DIESE DATEI BEHEBT
  *
  * Diese App rechnet bisher so, als sei nichts bekannt. An mehreren Stellen
- * steht derselbe Vorbehalt, und er ist richtig:
+ * steht derselbe Vorbehalt, seit der Fassung 30 so, wie die Quellen ihn
+ * fassen (siehe kriterienVorbehalt unten):
  *
- *     „Die Regelwerke setzen ausdrücklich voraus, dass nichts Organisches
- *      dahintersteckt – und das weiß nur eine Untersuchung."
+ *     „Von einem Reizdarm oder Reizmagen sprechen Ärztinnen und Ärzte erst,
+ *      wenn andere Ursachen für die Beschwerden abgeklärt und ausgeschlossen
+ *      sind."
  *
  * Nur gilt er nicht für jeden. Wer eine Spiegelung hinter sich hat und einen
  * Befund bekommen hat, bei dem *steckt* etwas Organisches dahinter. Die App
@@ -53,8 +55,14 @@
  * viel dasteht, kostet eine Nachfrage in der Sprechstunde. Einer, der zu
  * Unrecht verschwindet, kostet die Untersuchung.
  *
- * `organisch` ist die Angabe, auf die es bei den Kriterien ankommt: Rom IV
- * gilt ausdrücklich nur, solange nichts Organisches gefunden wurde.
+ * `organisch` ist die Angabe, auf die es bei den Kriterien ankommt: Von
+ * Reizdarm oder Reizmagen wird erst gesprochen, wenn andere Ursachen
+ * abgeklärt sind (gesund.bund.de, Reizmagensyndrom, Stand 05.02.2026;
+ * Reizdarmsyndrom, Stand 28.08.2024). Bis zur Fassung 29 stand hier, Rom IV
+ * gelte „ausdrücklich nur, solange nichts Organisches gefunden wurde"; das
+ * steht so in keiner geprüften Quelle, und laut gesund.bund.de kann ein
+ * Reizmagen auch neben einem Befund wie einer Magenschleimhautentzündung
+ * bestehen.
  */
 export const BEFUNDE = [
   {
@@ -179,8 +187,21 @@ export function geklaert(befunde) {
  * Der Satz, der an die Kriterien gehört, wenn etwas Organisches feststeht.
  *
  * Nicht „die Kriterien gelten nicht" – das wäre zu grob und auch nicht wahr.
- * Sie werden in der Sprechstunde durchaus weiter benutzt, nur beantworten sie
- * dann eine andere Frage: nicht mehr „was ist das", sondern „wie läuft es".
+ * Was unten steht, beantwortet dann eine andere Frage: nicht mehr „was ist
+ * das", sondern „wie läuft es".
+ *
+ * Der Vorbehalt so, wie die Quellen ihn fassen, und nur für Reizdarm und
+ * Reizmagen: gesund.bund.de, Reizmagensyndrom (Stand 05.02.2026, „Wie wird
+ * ein Reizmagen diagnostiziert?"): „Von einem Reizmagen wird deshalb erst
+ * gesprochen, wenn andere Ursachen für die Beschwerden abgeklärt und
+ * ausgeschlossen wurden"; dort steht auch: „Manchmal werden Gallensteine oder
+ * eine Magenschleimhautentzündung festgestellt, die die Beschwerden aber
+ * nicht ganz erklären. Dann kann ein Reizmagen zusätzlich bestehen." Für den
+ * GerdQ gilt der Ausschluss nicht – die Refluxkrankheit steht dort selbst
+ * unter den auszuschließenden Ursachen. Bis zur Fassung 29 hieß es „Diese
+ * Regelwerke setzen voraus, dass nichts Organisches dahintersteckt", wie im
+ * Kriterien-Kasten, wo die Fassung 30 es schon gestrichen hatte
+ * (kriterienTeil in js/app.js).
  */
 export function kriterienVorbehalt(befunde) {
   const organische = (befunde || [])
@@ -188,8 +209,9 @@ export function kriterienVorbehalt(befunde) {
     .filter((w) => w && w.organisch);
   if (!organische.length) return '';
   const namen = organische.map((w) => w.name).join(', ');
-  return `Bei dir steht schon etwas fest: ${namen}. Diese Regelwerke setzen `
-    + 'voraus, dass nichts Organisches dahintersteckt – das ist hier nicht mehr '
-    + 'die offene Frage. Was unten steht, ist deshalb keine Einordnung, sondern '
-    + 'eine Verlaufsbeobachtung: wie stark, wie oft, und ob es besser wird.';
+  return `Bei dir steht schon etwas fest: ${namen}. Von einem Reizdarm oder `
+    + 'Reizmagen wird erst gesprochen, wenn andere Ursachen der Beschwerden '
+    + 'abgeklärt sind; was dein Befund dafür heißt, klärt die Praxis. Was unten '
+    + 'steht, ist deshalb keine Einordnung, sondern eine Verlaufsbeobachtung: wie '
+    + 'stark, wie oft, und ob es besser wird.';
 }

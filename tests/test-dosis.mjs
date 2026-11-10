@@ -92,9 +92,13 @@ check(schwelle.abStufe === 'haupt', `ab Hauptzutat nicht mehr (${schwelle.abStuf
  * Und der Satz muss die Folgerung mitliefern. Eine Schwelle zu finden und
  * trotzdem „auffällig" stehen zu lassen, hieße den ganzen Aufwand wegwerfen.
  */
+// Fassung 30: Bis zur Fassung 29 hieß es hier, Weglassen wäre „vermutlich
+// zu viel" – ein Rat zum Essen und ein Schluss auf die Ursache (js/dosis.js).
 check(
-  /Weglassen.*zu viel/.test(schwelle.satz),
-  'und die App sagt, dass Weglassen zu viel wäre',
+  !/Weglassen|nicht nach der Zutat selbst/.test(schwelle.satz)
+    && schwelle.satz.includes('Woran das liegt, zeigt das Tagebuch nicht')
+    && schwelle.satz.includes('in der Praxis besprechen'),
+  'die App sagt, was gezählt ist – und nichts zum Weglassen',
 );
 
 /* ---------- 2. Auch in kleiner Menge ---------- */
@@ -154,17 +158,19 @@ check(
 const einerlei = await dosis(bauen({ rollen: ['haupt'], wirkung: { haupt: 4 } }));
 check(einerlei.urteil === 'ab-hier', `nur die große Menge geprüft (${einerlei.urteil})`);
 check(
-  /Ob kleinere Mengen durchgehen, ist damit nicht gesagt/
+  /Ob kleinere Mengen anders wirken, lässt sich aus dem Tagebuch noch nicht sagen/
     .test(einerlei.satz.replace(/\s+/g, ' ')),
   'und das steht auch so da',
 );
+/*
+ * Fassung 30: kein Vorschlag mehr, es kleiner zu essen, und keine Einschätzung
+ * zum Weglassen – ob eine kleinere Menge vertragen wird, hängt an der Ursache
+ * (bei einer Nahrungsmittelallergie reichen laut gesund.bund.de schon kleine
+ * Mengen). Belege in js/dosis.js.
+ */
 check(
-  /kleinerer Rolle vorkommen/.test(einerlei.satz.replace(/\s+/g, ' ')),
-  'mit dem Vorschlag, es einmal kleiner zu essen',
-);
-check(
-  /weglassen.*mehr als nötig/i.test(einerlei.satz.replace(/\s+/g, ' ')),
-  'und der Warnung, dass Streichen womöglich zu weit ginge',
+  !/weglassen|kleinerer Rolle vorkommen|müsste es/i.test(einerlei.satz),
+  'ohne Rat, es kleiner zu essen, und ohne Einschätzung zum Weglassen',
 );
 
 /* ---------- Und in der Anzeige ---------- */

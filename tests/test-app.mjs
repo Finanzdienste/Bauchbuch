@@ -178,7 +178,9 @@ const SOFORT_WORT = {
   teerstuhl: 'schwarzem, klebrigem Stuhl',
   ausstrahlung: 'in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß',
   donnerschlag: 'schlagartig so stark war wie nie',
-  kopfausfall: 'plötzlichen Lähmung, Taubheit einer Körperseite, Sprachstörung, einem Sehverlust oder Verwirrtheit',
+  // Mit derselben Bedingung wie in bild.js – nicht nur „plötzlich".
+  kopfausfall: 'Lähmung, Taubheit einer Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit, wenn sie '
+    + 'plötzlich kommen, länger als eine Stunde bleiben oder anders sind als die gewohnte Aura',
   kopfnacken: 'Kopfschmerz mit Fieber und steifem Nacken',
 };
 const sofortIds = WARNZEICHEN.filter((w) => w.dringlichkeit === 'sofort').map((w) => w.id).sort();
@@ -195,7 +197,8 @@ const warnKarte = page.locator('.karte-warn').first();
 check(await warnKarte.count() === 1, 'mit frischem Blut im Stuhl steht die Warnkarte da');
 const warnSatz = ((await warnKarte.locator('p.klein').last().textContent()) || '').replace(/\s+/g, ' ').trim();
 const fehltWort = Object.entries(SOFORT_WORT).filter(([, w]) => !warnSatz.includes(w)).map(([id]) => id);
-check(fehltWort.length === 0 && warnSatz.endsWith('nicht auf einen Termin warten – Notaufnahme oder 112.'),
+check(fehltWort.length === 0 && warnSatz.endsWith(': nicht auf einen Termin warten – Notaufnahme oder 112.')
+  && warnSatz.split(';').length === 6,
   `ihr letzter Satz nennt jedes „sofort“-Zeichen und sagt dazu: Notaufnahme oder 112${fehltWort.length ? ` – es fehlt: ${fehltWort.join(', ')}` : ''}`);
 check(!/^Bei Blut,/.test(warnSatz) && !warnSatz.includes('frisch'),
   'frisches Blut im Stuhl (Stufe „zeitnah“) steht nicht in diesem Satz');

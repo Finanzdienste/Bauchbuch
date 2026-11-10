@@ -152,10 +152,10 @@ const WORTLAUT_30 = [
     alt: 'Mehrere kleine Portionen statt zwei großen, und dabei bleiben bei: Haferbrei mit Wasser, Kartoffeln, '
       + 'gestampft, gedünstete Karotte oder Zucchini, Reis, Banane, mageres Geflügel oder Fisch.',
   },
-  { tab: 'heute', neu: 'Atemübungen unter „Ruhe"', alt: 'Zwei Minuten Atmen' },
+  { tab: 'heute', neu: 'Atemübungen unter „Ruhe“', alt: 'Zwei Minuten Atmen' },
   {
     tab: 'heute',
-    neu: 'Unter „Ruhe" liegen Atemübungen, etwa 4–7–8 und Gleichmaß, mit Ton, damit die Augen zubleiben können. '
+    neu: 'Unter „Ruhe“ liegen Atemübungen, etwa 4–7–8 und Gleichmaß, mit Ton, damit die Augen zubleiben können. '
       + 'Tiefes Ein- und Ausatmen kann laut gesund.bund.de die Entspannung fördern.',
     alt: 'Unter „Ruhe": 4–7–8 zum Runterkommen, Gleichmaß fürs Sitzen zwischendurch. Mit Ton, damit die Augen '
       + 'zubleiben können.',
@@ -164,8 +164,8 @@ const WORTLAUT_30 = [
   {
     tab: 'heute',
     neu: 'Atemübungen vor dem Schlafengehen zählt gesund.bund.de zu den Entspannungstechniken bei Schlafproblemen; '
-      + 'wie gut sie wirken, ist nicht hinreichend untersucht, und zu 4–7–8 gibt es bisher wenig Studien. Die '
-      + 'Übung liegt unter „Ruhe".',
+      + 'wie gut sie wirken, ist nicht hinreichend untersucht, und für 4–7–8 gibt es bisher wenig Belege. Die '
+      + 'Übung liegt unter „Ruhe“.',
     alt: 'Die Übung ist ursprünglich fürs Einschlafen gedacht. Vier Runden im Bett, Licht schon aus.',
   },
   { tab: 'heute', neu: 'Bewegung bei starken Beschwerden', alt: 'Heute nur spazieren' },
@@ -179,7 +179,7 @@ const WORTLAUT_30 = [
   {
     tab: 'heute',
     teil: true,
-    neu: '„Allgemein" heißt: allgemeine Hinweise, oft nicht gut untersucht – dein eigener Verlauf sticht das.',
+    neu: '„Allgemein“ heißt: allgemeine Hinweise, oft nicht gut untersucht – dein eigener Verlauf sticht das.',
     alt: '„Allgemein" heißt: gilt für einen Durchschnitt, den es nicht gibt – dein eigener Verlauf sticht das.',
   },
 
@@ -231,7 +231,7 @@ const WORTLAUT_30 = [
       'Rom IV beschreibt die funktionelle Dyspepsie mit solchen Beschwerden – Völlegefühl nach dem Essen, frühes '
         + 'Sattsein, Schmerz oder Brennen im Oberbauch –, wenn eine übliche ärztliche Untersuchung sie nicht '
         + 'erklärt. Wie oft sie dafür auftreten müssen, gibt dieser Kasten nicht wieder; die Einordnung trifft die '
-        + 'Praxis. Gezählt werden nur Eintragungen ab Stärke 4 („merklich"). Diese Grenze hat Body Check festgelegt.',
+        + 'Praxis. Gezählt werden nur Eintragungen ab Stärke 4 („merklich“). Diese Grenze hat Body Check festgelegt.',
     ],
     alt: (titel, urteil, s1, [, pds], s2, [, eps]) => [
       'Funktionelle Dyspepsie (Rom IV)',
@@ -333,6 +333,30 @@ const WORTLAUT_30 = [
       + 'weggelassen.',
   },
 
+  /* ----- „Muster": Ob es etwas bewirkt (js/ansprechen.js) ----- */
+  {
+    tab: 'muster',
+    neu: /^Seit (\d+) Wochen im Gebrauch, ohne dass die Bauchwerte darunter besser geworden wären: ([\d,]+) davor gegen ([\d,]+) darunter \((\d+) gegen (\d+) notierte Tage\)\. Bleiben Beschwerden unter der Behandlung bestehen, nennen manche Fachinformationen weitere Untersuchungen; was es hier bedeutet, klärt die Praxis\. Frage für den Termin: Was heißt es, dass es darunter nicht besser geworden ist – und wie geht es weiter\? Laut Packungsbeilage mancher Präparate, etwa Pantozol, wird die Einnahme nicht beendet, ohne vorher mit Ärztin, Arzt oder Apotheke zu sprechen\.$/,
+    alt: ([, wochen, davor, unter, nDavor, nUnter]) => `Seit ${wochen} Wochen im Gebrauch, ohne dass sich die `
+      + `Beschwerdestärke geändert hätte: ${davor} davor gegen ${unter} darunter (${nDavor} gegen ${nUnter} `
+      + 'notierte Tage). Das ist selbst ein Befund. Wenn Säure die Ursache wäre, wäre nach vier bis acht '
+      + 'Wochen etwas zu sehen. Frage für den Termin: Was heißt es, dass es darunter nicht besser geworden '
+      + 'ist – und wie geht es weiter? Nicht von selbst absetzen: Nach längerer Einnahme antwortet der Magen '
+      + 'kurzzeitig mit mehr Säure als vorher.',
+  },
+
+  /* ----- „Muster": Was noch fehlt (js/luecken.js) ----- */
+  {
+    tab: 'muster',
+    neu: 'In deiner Bilanz steht etwas Auffälliges. Zählen allein macht daraus nie einen Beleg – wer an schlechten '
+      + 'Tagen anders isst, findet sein Essen auffällig, ohne dass es damit zu tun hat. Ein Versuch dreht das um: '
+      + 'eine Zeit lang weglassen, dann bewusst wieder essen. Ob ein solcher Versuch für dich sinnvoll ist, lässt '
+      + 'sich in der Praxis besprechen. Steht unter „Muster“.',
+    alt: 'In deiner Bilanz steht etwas Auffälliges. Zählen allein macht daraus nie einen Beleg – wer an schlechten '
+      + 'Tagen anders isst, findet sein Essen auffällig, ohne dass es damit zu tun hat. Zwei Wochen weglassen, dann '
+      + 'bewusst wieder essen: Das ist der einzige Weg von „fällt zusammen" zu „liegt daran". Steht unter „Muster".',
+  },
+
   /* ----- „Muster": Kopfschmerz (js/kopf.js, js/app.js) ----- */
   {
     tab: 'muster',
@@ -399,7 +423,7 @@ const WORTLAUT_30 = [
   {
     tab: 'mehr',
     teil: true,
-    neu: ' Für den Reizdarm-Kasten unter „Muster" rechnet Body Check mit einem Beginn vor mindestens sechs Monaten;',
+    neu: ' Für den Reizdarm-Kasten unter „Muster“ rechnet Body Check mit einem Beginn vor mindestens sechs Monaten;',
     alt: ' Die Rom-Kriterien unter „Muster" verlangen einen Beginn vor mindestens einem halben Jahr;',
   },
 ];

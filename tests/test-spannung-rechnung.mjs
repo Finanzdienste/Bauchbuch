@@ -352,7 +352,7 @@ function v2Tagebuch(saat, p = [0.15, 0.6]) {
   check(v4.satz.includes('Ob vorher schon massiert wurde, weiß Body Check nicht'), 'V4 mit dem Satz, dass vorher unbekannt ist');
   // Regression zur Mitte als Möglichkeit („kann"), nicht als Häufigkeit über
   // das Verhalten („angefangen wird oft") – dafür steht keine Quelle.
-  check(v4.satz.includes('kann eine Besserung danach auch ohne den neuen Anfang kommen') && !/oft/.test(v4.satz),
+  check(v4.satz.includes('kann eine Besserung danach auch von selbst kommen') && !/oft/.test(v4.satz),
     'V4: eine Besserung danach kann auch von selbst kommen – ohne unbelegtes „oft"');
   check(s.v5.genug && s.v5.mit.schnitt === 3 && s.v5.ohne.schnitt === 1 && !('art' in s.v5),
     'V5: Kiefer nach Nächten mit und ohne „Nachts davon wach“ – nur beschrieben');

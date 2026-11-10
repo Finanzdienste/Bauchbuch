@@ -203,7 +203,7 @@ check(
 /* ---------- Vorsicht beim Essen mit einem ADHS-Mittel (seit der Fassung 28) ---------- */
 
 /*
- * Weniger Appetit gehört bei ADHS-Mitteln zu den häufigen Nebenwirkungen.
+ * Weniger Appetit steht bei manchen ADHS-Mitteln unter den häufigen Nebenwirkungen.
  * Wer dabei ungewollt abnimmt oder tagsüber keinen Appetit hat, bekommt hier
  * keinen Rat, weniger oder früher zu essen – das wägt die Praxis ab. Ohne
  * Abnehmen und ohne „Kein Appetit" bleibt der Rat zur späten Mahlzeit, mit
@@ -227,6 +227,12 @@ await setze({ eintraege: [...essenRat, einnahme, ...appetit] });
 let r = await ratText();
 check(r.includes('Heute eher ohne Kaffee') && r.includes('Spätes Essen und Liegen'),
   'ohne den Schalter ADHS: die Vorschläge zum Essen wie bisher');
+// Fassung 30: die drei Stunden aus der Packungsbeilage als eigener Satz –
+// vorher „nennt die Packungsbeilage …, … nichts mehr zu essen".
+check(r.replace(/\s+/g, ' ').includes('In der Packungsbeilage eines rezeptfreien Säureblockers steht für '
+  + 'Sodbrennen: in den letzten drei Stunden vor dem Zubettgehen nichts mehr essen.')
+  && !r.includes('nennt die Packungsbeilage'),
+'„Spätes Essen und Liegen“: die drei Stunden so, wie die Packungsbeilage sie nennt');
 await setze({ adhsAn: true, eintraege: [...essenRat, einnahme, ...appetit] });
 r = await ratText();
 check(!r.includes('Heute eher ohne') && !r.includes('Spätes Essen und Liegen'),
@@ -235,8 +241,10 @@ await setze({ adhsAn: true, eintraege: [...essenRat, einnahme, ...appetit.slice(
 r = await ratText();
 check(r.includes('Heute eher ohne Kaffee') && r.includes('Spätes Essen und Liegen')
   && r.includes('Wann gegessen wird, wägt deshalb die Praxis ab, nicht diese Karte.')
+  && r.replace(/\s+/g, ' ').includes('in den Fachinformationen von Ritalin LA und Elvanse')
+  && !r.includes('bei Methylphenidat und Lisdexamfetamin')
   && !r.includes('vielleicht nötig'),
-'an 2 von 7 Tagen: die Vorschläge bleiben, die späte Mahlzeit bekommt den Satz dazu – ohne „vielleicht nötig“');
+'an 2 von 7 Tagen: die Vorschläge bleiben, die späte Mahlzeit bekommt den Satz dazu – mit den Präparaten, ohne „vielleicht nötig“');
 const waage = [
   { am: vorTagen(1), kg: 60 }, { am: vorTagen(8), kg: 60.2 }, { am: vorTagen(15), kg: 60.1 },
   { am: vorTagen(70), kg: 64 }, { am: vorTagen(80), kg: 64.2 }, { am: vorTagen(90), kg: 64.1 },

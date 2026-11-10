@@ -207,10 +207,10 @@ const BER_PAAR = {
   W1u: 'Bei manchen Methylphenidat-Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung '
     + 'mit H2-Blockern, Protonenpumpenhemmern oder Antazida in der Fachinformation unter den '
     + 'Gegenanzeigen; die Form ist nicht angegeben.',
-  W3: 'Was in der Fachinformation zu Säureblockern steht, ist bei Methylphenidat von Präparat zu '
-    + 'Präparat verschieden – das klären Apotheke oder Praxis.',
-  W4: 'Was in der Fachinformation zu Säureblockern steht, ist bei Methylphenidat von Präparat zu '
-    + 'Präparat verschieden – das klären Apotheke oder Praxis.',
+  W3: 'Was in der Fachinformation zu H2-Blockern, Protonenpumpenhemmern und Antazida steht, ist bei '
+    + 'Methylphenidat von Präparat zu Präparat verschieden – das klären Apotheke oder Praxis.',
+  W4: 'Was in der Fachinformation zu H2-Blockern, Protonenpumpenhemmern und Antazida steht, ist bei '
+    + 'Methylphenidat von Präparat zu Präparat verschieden – das klären Apotheke oder Praxis.',
 };
 
 function berPaarKern(h) {
@@ -383,9 +383,15 @@ function berAdhs(a, rhythmus, { spannungAn, gewichtDa }) {
       if (v.stress.spaeter !== null && v.stress.sonst !== null) {
         saetze.push(`Anspannung an diesen Tagen ${fmtZahl(v.stress.spaeter)} gegen ${fmtZahl(v.stress.sonst)}.`);
       }
-      // Kein Satz mehr, dass späteres Einschlafen „oft auch zu ADHS selbst"
-      // gehöre – das belegt keine erreichbare Quelle für Erwachsene. Was
-      // bleibt, ist die Grenze dieser Rechnung selbst.
+      /*
+       * Bis zur Fassung 29 stand hier, späteres Einschlafen gehöre „oft auch
+       * zu ADHS selbst". Belegt ist ein Zusammenhang bei Erwachsenen, keine
+       * Ursache (Quellen bei A3_STUDIEN in js/adhs.js); deshalb steht der
+       * Satz wie in der App so vorsichtig da, und dazu die Grenze dieser
+       * Rechnung selbst.
+       */
+      saetze.push('Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine längere Einschlafzeit '
+        + 'als bei anderen.');
       saetze.push('Ob ein Unterschied an der Einnahmezeit liegt oder an etwas, das mit ihr '
         + 'zusammenfällt, trennt dieser Vergleich nicht.');
       klammer(saetze);
@@ -1341,8 +1347,19 @@ export function arztBericht(zustand, von, bis) {
           ? `; ${fmtZahl(b.schnitt)} gegen ${fmtZahl(b.vergleich)} von 10` : ''));
       umbrochen(b.satz).forEach((z) => sag(`     ${z}`));
     });
-    sag('  (Nicht verblindet. Ein Test ohne Befund wiegt hier schwerer als einer');
-    sag('   mit: Die Erwartung schiebt nur in eine Richtung.)');
+    /*
+     * Wie in der App (Kopf von js/provokation.js): Erwartung kann Beschwerden
+     * verstärken und abschwächen – bei gleicher Glutenmenge hatten die, die
+     * kein Gluten erwarteten, deutlich weniger Magen-Darm-Beschwerden (de
+     * Graaf et al., Lancet Gastroenterol Hepatol 2024;9(2):110-123, PMID
+     * 38040019, Abstract: E(+)G(+) 16,6 mm gegen E(−)G(+) 6,9 mm,
+     * p=0,0010). Bis zur Fassung 29 stand hier „Ein Test ohne Befund wiegt
+     * hier schwerer als einer mit: Die Erwartung schiebt nur in eine
+     * Richtung" – das widerlegt diese Studie.
+     */
+    sag('  (Nicht verblindet. Ohne Verblindung ist keines der Ergebnisse ein');
+    sag('   Nachweis – weder das mit noch das ohne Reaktion; Erwartungen können');
+    sag('   Beschwerden verstärken und abschwächen.)');
     sag();
   }
 

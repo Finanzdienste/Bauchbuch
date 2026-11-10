@@ -189,7 +189,7 @@ export const PRUEFBAR = [
     id: 'sorbit',
     name: 'Sorbit – Zuckeralkohol',
     was: '3 zuckerfreie Kaugummis oder 5 Trockenpflaumen',
-    warum: 'Steckt als Süßungsmittel in manchen „zuckerfreien" Süßigkeiten und kommt in '
+    warum: 'Steckt als Süßungsmittel in manchen „zuckerfreien“ Süßigkeiten und kommt in '
       + 'manchen Früchten vor, in Trockenpflaumen oft reichlich. Der Darm nimmt es nur '
       + 'begrenzt auf; größere Mengen können Bauchbeschwerden machen und leicht '
       + 'abführend wirken. Zusammen mit Fruchtzucker konkurriert es womöglich um die '

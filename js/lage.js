@@ -36,16 +36,16 @@
  */
 import { ADHS_GRUPPEN } from './mittel.js';
 import { KEIN_ORT } from './zeitprofil.js';
-
-/** Mehr als das liest niemand, und mehr braucht auch niemand. */
-const HOECHSTENS = 5;
-
 /*
  * Die Gruppen aus js/mittel.js, die wegen Magen- und Bauchbeschwerden
  * genommen werden. Nur für sie steht oben ein Satz, wenn sich die Bauchwerte
- * darunter nicht geändert haben (siehe 6.).
+ * darunter nicht geändert haben (siehe 6.) – dieselbe Liste, nach der
+ * js/ansprechen.js ein Urteil ausgibt oder nur die Zahlen.
  */
-const MAGEN_GRUPPEN = ['ppi', 'h2', 'antazida', 'alginat', 'sucralfat', 'prokinetika', 'pflanzlich', 'heilerde'];
+import { MAGEN_GRUPPEN } from './ansprechen.js';
+
+/** Mehr als das liest niemand, und mehr braucht auch niemand. */
+const HOECHSTENS = 5;
 
 /**
  * Aus den fertigen Befunden ein paar Sätze machen.
@@ -155,19 +155,22 @@ export function wasSacheIst(q = {}) {
    * Namen im Satz. Und er nennt die Gruppen so, wie die Fachinformation sie
    * nennt, statt „Säureblocker": Ob ein eingetragenes Mittel (etwa ein reines
    * Alginat) dazugehört, sagt er damit nicht, das klären Praxis oder
-   * Apotheke.
+   * Apotheke. Das eingetragene Mittel heißt wie auf der Karte in
+   * js/zusammen.js „ein Mittel bei Säurebeschwerden" (W_MITTEL_SATZ): „gegen
+   * Magensäure", wie es zuerst in der Fassung 30 hier stand, trifft für ein
+   * Alginat nicht zu.
    */
   const paarIds = new Set((q.paare || []).map((p) => p && p.id));
   if (paarIds.has('W1')) {
     sag('paar', 'Eingetragen sind Methylphenidat als Kapsel mit zweierlei Kügelchen (Medikinet '
-      + 'retard, Medikinet adult) und ein Mittel gegen Magensäure. In der Fachinformation dieser '
+      + 'retard, Medikinet adult) und ein Mittel bei Säurebeschwerden. In der Fachinformation dieser '
       + 'Kapseln steht die Behandlung mit H2-Blockern, Protonenpumpenhemmern oder Antazida unter '
       + 'den Gegenanzeigen; das gehört in Praxis oder Apotheke geprüft, ohne etwas eigenmächtig '
       + 'wegzulassen.');
   }
   if (paarIds.has('W1u')) {
-    sag('paar', 'Eingetragen sind Methylphenidat ohne Angabe der Form und ein Mittel gegen '
-      + 'Magensäure. Bei manchen Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung '
+    sag('paar', 'Eingetragen sind Methylphenidat ohne Angabe der Form und ein Mittel bei '
+      + 'Säurebeschwerden. Bei manchen Kapseln (Medikinet retard, Medikinet adult) steht die Behandlung '
       + 'mit H2-Blockern, Protonenpumpenhemmern oder Antazida in der Fachinformation unter den '
       + 'Gegenanzeigen; die Form gehört geklärt.');
   }
@@ -222,8 +225,11 @@ export function wasSacheIst(q = {}) {
      * reichen „bereits kleine Mengen" (gesund.bund.de, Laktoseintoleranz,
      * Stand 23.02.2026, „Was ist …"; Nahrungsmittelallergie, Stand 27.05.2024).
      */
+    // „Es kommt dabei auf die Menge an" (bis zur Fassung 29) war schon ein
+    // Schluss; der Satz aus js/dosis.js sagt jetzt selbst, dass das Tagebuch
+    // die Ursache nicht kennt.
     const menge = bester.menge === 'schwelle'
-      ? ` Es kommt dabei auf die Menge an: ${bester.mengeSatz}`
+      ? ` Nach der Menge getrennt: ${bester.mengeSatz}`
       : (bester.menge === 'ab-hier'
         ? ' Ob kleinere Mengen anders wirken, lässt sich aus dem Tagebuch noch nicht sagen.'
         : '');
@@ -251,7 +257,7 @@ export function wasSacheIst(q = {}) {
   const w = (q.wechsel || [])[0];
   if (w) {
     sag('wechsel', `${w.name} fällt nicht in jeder Zyklusphase gleich auf, sondern vor allem in `
-      + `der Phase „${w.phase}". Die Phasen sind geschätzt; was dahintersteckt, lässt sich `
+      + `der Phase „${w.phase}“. Die Phasen sind geschätzt; was dahintersteckt, lässt sich `
       + 'daraus nicht ablesen.');
   }
   /*

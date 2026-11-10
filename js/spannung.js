@@ -375,7 +375,7 @@ function v4Rechnen(liste, tage, heute) {
       satz: `Kopfschmerztage je 30 notierte Tage: vor dem ersten Eintrag „${name}“ (${fmtDatum(erster)}) `
         + `${fmtZahl(vorher.je30)}, seitdem ${fmtZahl(seitdem.je30)}. Ob vorher schon ${V4_VERB[id]} wurde, `
         + 'weiß Body Check nicht. Beschwerden schwanken auch von selbst: Wird etwas begonnen, während es '
-        + 'gerade schlecht ist, kann eine Besserung danach auch ohne den neuen Anfang kommen.',
+        + 'gerade schlecht ist, kann eine Besserung danach auch von selbst kommen.',
     });
   });
   return raus;

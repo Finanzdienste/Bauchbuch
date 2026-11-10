@@ -1094,4 +1094,17 @@ function a3Tagebuch({ spaetAm, schlafSpaet = 2, schlafFrueh = 1, vorNacht = [1, 
   check(dosis.length === 0, `kein Satz nennt eine Dosis${dosis.length ? `: ${dosis[0]}` : ''}`);
 }
 
+/*
+ * Fassung 30: Späteres Einschlafen bei ADHS steht an allen Stellen gleich
+ * vorsichtig – ein Zusammenhang aus manchen Studien, keine Ursache (Quellen
+ * bei A3_STUDIEN in js/adhs.js). Bis zur Fassung 29: „gehört oft auch zu
+ * ADHS selbst".
+ */
+{
+  const { A3_STUDIEN } = await import('../js/adhs.js');
+  check(A3_STUDIEN.startsWith('Manche Studien finden bei Erwachsenen mit ADHS im Mittel eine längere '
+    + 'Einschlafzeit als bei anderen') && !/gehört oft/.test(A3_STUDIEN),
+  'A3: der Satz zum Einschlafen bei ADHS ohne „gehört oft zu ADHS selbst“');
+}
+
 ende();

@@ -280,8 +280,9 @@ check(await page.locator('.karte-warn').count() === 1, 'ein schlagartiger Kopfsc
 const warnText = eng(await page.locator('.karte-warn').textContent());
 check(warnText.includes('so stark war wie nie zuvor'), 'mit seinem Namen');
 check(warnText.includes('heute abgeklärt'), 'und mit der Dringlichkeit „sofort"');
-check(warnText.includes('Lähmung, Taubheit einer Körperseite, Sprachstörung, einem Sehverlust oder Verwirrtheit'),
-  'die Fußzeile nennt auch den Ausfall – mit denselben Zeichen wie die Zeile im Kopfbogen (seit der Fassung 30)');
+check(warnText.includes('Lähmung, Taubheit einer Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit, wenn sie '
+  + 'plötzlich kommen, länger als eine Stunde bleiben oder anders sind als die gewohnte Aura'),
+'die Fußzeile nennt auch den Ausfall – mit denselben Zeichen und derselben Bedingung wie die Zeile im Kopfbogen');
 
 /* ---------- 5. Schmerzmittel und der Bauch danach ---------- */
 

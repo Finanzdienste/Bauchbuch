@@ -245,13 +245,18 @@ Unter „Muster" steht **„Was du gemacht hast"**: je Aktivität, wie oft in de
 Stunden danach Beschwerden kamen (dasselbe Fenster wie bei den Auslösern) und
 in den 24 Stunden danach Kopfschmerz. Die 24 Stunden haben einen Grund:
 Kopfschmerz durch körperliche Anstrengung beginnt laut internationaler
-Kopfschmerzklassifikation während oder nach ihr, Kopfschmerz durch Alkohol
-dagegen innerhalb von 5 bis 12 Stunden, nach einem Abend also womöglich erst
-am nächsten Morgen. Eine Feier ist dabei nicht dasselbe wie Alkohol. <!--
+Kopfschmerzklassifikation während oder nach ihr. Beim Kopfschmerz durch
+Alkohol unterscheidet sie zwei Formen: die häufigere verzögerte nach 5 bis 12
+Stunden, nach einem Abend also womöglich erst am nächsten Morgen, und die
+seltenere sofortige binnen drei Stunden. Eine Feier ist dabei nicht dasselbe
+wie Alkohol. <!--
 Quelle: ICHD-3 (ichd-3.org, 2018), 4.2 Primary exercise headache, Kriterium B:
 „Brought on by and occurring only during or after strenuous physical exercise";
 8.1.4.2 Delayed alcohol-induced headache, Kriterium C1: „headache has developed
-within 5-12 hours after ingestion of alcohol". Ebenso js/aktivitaet.js. --> Verglichen
+within 5-12 hours after ingestion of alcohol", Kommentar: „one of the
+commonest secondary headaches"; 8.1.4.1 Immediate alcohol-induced headache,
+Kriterium C1: „headache has developed within 3 hours of alcohol ingestion",
+Kommentar: „much rarer than 8.1.4.2". Ebenso js/aktivitaet.js. --> Verglichen
 wird nicht mit anderen Aktivitäten, sondern mit **denselben Stunden an Tagen
 ohne sie**, ab der mittleren Uhrzeit der Aktivität: Wer abends trainiert, wird
 mit seinen Abenden ohne Training verglichen. Nicht gezählt werden Tage ohne
@@ -1294,8 +1299,8 @@ Retardtablette mit Hülle und Equasym mit
 einem Säureblocker steht nichts da: Belegt war dazu nichts, und ein
 beruhigender Satz wäre genauso unbelegt. Im Bericht stehen die Paare unter
 EINGENOMMENE MITTEL mit einem Satz aus der Fachinformation und einer Frage für
-die Sprechstunde („Passt mein Säureblocker zu meinem Methylphenidat?“), unter
-jedem Methylphenidat seine Form.
+die Sprechstunde („Passt mein Mittel bei Säurebeschwerden zu meinem
+Methylphenidat?“), unter jedem Methylphenidat seine Form.
 
 **Die Rückfrage.** Ein Hinweis zu einem Paar steht nur da, wenn beide Mittel
 eingetragen sind und die Form bekannt ist. Für alle, die ein Methylphenidat
@@ -1304,7 +1309,7 @@ anzugeben oder einen Säureblocker zu notieren, fragt deshalb eine Karte oben
 auf „Tag“ (nur heute, direkt unter den Hinweisen der Stufe A, ohne Schalter)
 genau das, was fehlt, und sonst nichts:
 
-* „{Name}: Welche Form steht auf der Packung?“ – mit dem Namen des Mittels
+* „{Name}: Welche Form hat dein Präparat?“ – mit dem Namen des Mittels
   vorn, damit bei zwei Methylphenidat-Namen die Frage zum zweiten nicht
   aussieht wie die eben beantwortete, und mit denselben sieben Wahlen wie im
   Bogen und unter „Meine Mittel“: den sechs Formen mit denselben
@@ -1423,15 +1428,17 @@ Alles bleibt auf diesem Gerät.
   letzten 14 Tagen ein ADHS-Mittel eingetragen ist und das Gewicht ungewollt
   sinkt oder an drei der letzten sieben Bauch-Tage „Kein Appetit“ steht: Dann
   entfallen „Heute eher ohne …“ und „Spätes Essen und Liegen“. Sonst bekommt
-  der zweite Vorschlag einen Satz dazu: Weniger Appetit steht etwa bei
-  Methylphenidat und Lisdexamfetamin unter den sehr häufigen Nebenwirkungen,
-  und das Gewicht wird dabei ärztlich beobachtet; wann gegessen wird, wägt
-  deshalb die Praxis ab, nicht die Karte. <!--
+  der zweite Vorschlag einen Satz dazu: Weniger Appetit steht etwa in den
+  Fachinformationen von Ritalin LA und Elvanse unter den sehr häufigen
+  Nebenwirkungen, und das Gewicht wird dabei ärztlich beobachtet; wann
+  gegessen wird, wägt deshalb die Praxis ab, nicht die Karte. <!--
   Quelle: Fachinformation Elvanse (fachinfo.de/fi/pdf/020737, Stand Oktober
   2026), 4.8: „Verminderter Appetit Sehr häufig"; 4.4: „Das Körpergewicht ist
   unter der Behandlung mit Stimulanzien zu überwachen"; Fachinformation Ritalin
-  LA (010445, September 2025), 4.8: „Sehr häufig Appetitverlust". Wortlaut
-  SPAET_ZUSATZ in js/rat.js. -->
+  LA (010445, September 2025), 4.8: „Sehr häufig Appetitverlust"; 4.2:
+  Körpergewicht „kontinuierlich überwacht". Nicht für jedes
+  Methylphenidat-Präparat: Equasym Retard (012100, Juni 2026), 4.8: „Häufig –
+  Anorexie, Appetitverlust". Wortlaut SPAET_ZUSATZ in js/rat.js. -->
 
 Gerechnet wird in `js/adhs.js`, alles nur Zählung in festen Fenstern, keine
 Wirkdauer:
@@ -1731,8 +1738,27 @@ der Kopfschmerz mit Fieber und steifem Nacken, und frisches Blut im Stuhl, in
 beides: die Zeichen der Stufe „sofort“ mit der 112, die übrigen als zeitnah
 abzuklären – bisher hieß es dort für die einen, einen Termin zu machen, für
 die anderen, sie beim nächsten Termin anzusprechen. Dieselbe Formulierung
-steht in den Wissenstexten zum Bismut und zu den Triptanen. Welches Zeichen
-welche Stufe hat, ist unverändert.
+steht in den Wissenstexten zum Bismut und bei den Triptanen für den Schmerz
+in der Brust. Welches Zeichen welche Stufe hat, ist unverändert.
+
+Dieselben Berichtigungen gelten auch an den Stellen, die dabei zuerst
+übersehen waren. Unter „Ob es etwas bewirkt“, im Bericht und in „Was keine
+App beantwortet“ zieht die App aus einem Säureblocker ohne Besserung keinen
+Schluss mehr auf die Ursache und nennt keinen Säure-Rebound; dort steht, dass
+manche Fachinformationen dann weitere Untersuchungen nennen und die Praxis es
+einordnet. Ein Urteil aus dem Bauchwert („darunter besser“, „schlechter“)
+steht nur noch bei Mitteln, die wegen des Bauchs genommen werden; bei
+Ibuprofen, einem Triptan oder einem Mittel, das die App nicht kennt, stehen
+nur die beiden Zahlen. In „Was keine App beantwortet“ stehen der Punktwert
+angelehnt an den GerdQ und die gezählten Magenbeschwerden ohne Schwelle und
+ohne „Kriterien erfüllt“ und bestimmen die Einstufung dort nicht mehr. Die
+Sätze zur Menge sagen nichts mehr zum Weglassen, der Reiter „Ruhe“ beschreibt
+die Übungen ohne Wirkversprechen, die Warnkarte nennt die Ausfälle mit
+derselben Bedingung wie der Kopfbogen, und im Stuhlbogen steht für
+schwarzen, klebrigen Stuhl der Wortlaut der Warnkarte, für frisches Blut
+„zeitnah“. Die Rechnungen dahinter sind unverändert. <!-- Belege jeweils im
+Kopf von js/ansprechen.js, js/luecken.js, js/dosis.js und js/atem.js sowie
+bei warnTeil und dem Stuhlbogen in js/app.js. -->
 
 Das Gold der Fassung 27 bleibt, wie es erzeugt wurde. `tests/test-gold.mjs`
 und `tests/test-gleich-v27.mjs` geben jeder berichtigten Stelle vor dem
@@ -2245,7 +2271,7 @@ daraus wird eines von fünf Urteilen:
 
 | | |
 | --- | --- |
-| **kommt auf die Menge an** | als Würze unauffällig, als Hauptzutat nicht — mit dem ausdrücklichen Zusatz, dass Weglassen zu viel wäre |
+| **kommt auf die Menge an** | als Würze unauffällig, als Hauptzutat nicht — mit dem Zusatz, dass das Tagebuch die Ursache nicht kennt: Ob eine kleinere Menge vertragen wird, hängt an ihr |
 | **auch in kleiner Menge** | schon als Würze oder Topping auffällig |
 | **ab dieser Menge** | auffällig als Beilage oder Hauptzutat, kleinere Mengen kamen nie vor — also **nicht** geprüft |
 | **in jeder geprüften Menge unauffällig** | die stärkste Entlastung, die es hier gibt — aber nur so viel wert wie die größte geprüfte Menge |
@@ -2256,8 +2282,11 @@ ersten Entwurf war er falsch: Dort hieß er „auch in kleiner Menge", auch wenn
 die auffällige Stufe die Hauptzutat war. „Schon als Hauptzutat fällt es auf"
 ist aber gar keine Aussage über Mengen — und hätte jemanden dazu gebracht, eine
 Zutat zu streichen, ohne dass je eine kleinere Menge geprüft worden wäre. Genau
-das soll diese Rechnung verhindern. Jetzt steht dort, was zu tun ist: es einmal
-in kleinerer Rolle essen.
+das soll diese Rechnung verhindern. Jetzt steht dort, dass sich über kleinere
+Mengen noch nichts sagen lässt, weil Mahlzeiten mit der Zutat in kleinerer Rolle
+fehlen. Einen Rat, sie kleiner zu essen oder wegzulassen, gibt die App nicht:
+Bei einer Nahrungsmittelallergie reichen laut gesund.bund.de schon kleine
+Mengen (Belege in `js/dosis.js`).
 
 „Getränk dazu" zählt in dieser Reihe nicht mit. Ein Glas Wein ist keine
 kleinere Fassung von Wein als Hauptzutat, und ein Kaffee ist nie eine Beilage.
@@ -3034,12 +3063,12 @@ den Rückgabewert.
 | `test-rat.mjs` | jeder Vorschlag mit Grund, und keine Medikamentenempfehlung; „25 Minuten“ und „1,5 Stunden“ statt Dezimalpunkt, knapp unter der Grenze „knapp 2 Stunden“ statt „2 Stunden“, nach einem Datum ein Punkt statt zwei |
 | `test-atem.mjs` | Phasenlängen, Ablauf, Abbruch beim Reiterwechsel, stummer Betrieb |
 | `test-app.mjs` | Installieren, Verknüpfungen des Symbols, Druckansicht; die Warnkarte nennt genau die Zeichen der Stufe „sofort“ aus `js/bild.js` |
-| `test-stuhl.mjs` | Bristol eintragen, die Anteile, und das Warnzeichen aus dem Stuhlbogen |
+| `test-stuhl.mjs` | Bristol eintragen, die Anteile, und das Warnzeichen aus dem Stuhlbogen – mit der Eile seiner Stufe |
 | `test-kriterien.mjs` | Rom IV in beide Richtungen – erfüllt *und* nicht erfüllt; Magenbeschwerden und der Punktwert zu Reflux nur gezählt, nie „erfüllt“ |
 | `test-klassen.mjs` | die Klasse trägt, wo die Zutat noch zählt – und schweigt ohne Vergleichsgruppe |
 | `test-versuch.mjs` | vor allem, wann *nicht* „spricht dafür" herauskommt |
-| `test-ansprechen.mjs` | der ausgereizte Säureblocker, und kein Rat zum Absetzen |
-| `test-luecken.mjs` | die zwei Sorten Lücken bleiben getrennt |
+| `test-ansprechen.mjs` | der Säureblocker ohne Besserung – ohne Schluss auf die Ursache, ohne Rat zum Absetzen und ohne Säure-Rebound; ein Urteil aus dem Bauchwert nur bei Magenmitteln |
+| `test-luecken.mjs` | die zwei Sorten Lücken bleiben getrennt; derselbe Wortlaut wie der Kriterien-Kasten, ohne Schwelle und ohne „Kriterien erfüllt“ |
 | `test-trend.mjs` | vor allem, wann *keine* Richtung genannt wird – und dass Lücken keine guten Tage sind |
 | `test-tresor.mjs` | in der Datei steht nichts Lesbares; falsches Passwort und veränderte Datei gehen nicht auf |
 | `test-termin.mjs` | das Fenster fängt am Termin an und die Richtung rechnet nicht von davor mit |
@@ -3048,7 +3077,7 @@ den Rückgabewert.
 | `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
 | `test-unterleib.mjs` | die Fragen bleiben aus, bis jemand sie einschaltet; und Regelschmerz allein ergibt noch kein Muster |
 | `test-vorschlaege.mjs` | fremder Text bricht nicht aus seinem Block aus, und ein Bot-Zweig kommt nicht an die Wächter |
-| `test-dosis.mjs` | als Würze harmlos, als Hauptzutat nicht – und kein Urteil über Mengen, die nie vorkamen |
+| `test-dosis.mjs` | als Würze harmlos, als Hauptzutat nicht – und kein Urteil über Mengen, die nie vorkamen, kein Rat zum Weglassen |
 | `test-zufall.mjs` | acht Tagebücher aus reinem Zufall – die App muss schweigen, und einen echten Fund trotzdem finden |
 | `test-lage.mjs` | die Zusammenfassung sagt nichts, was unten nicht mit Zahlen steht – und schweigt, wo nichts ist; Warnzeichen der Stufe „sofort“ mit der 112, die übrigen als zeitnah, und kein Ort aus dem Zeitabstand |
 | `test-wechsel.mjs` | ein Auslöser, der nur in einer Zyklusphase wirkt – und kein Wechsel, wo keiner ist |

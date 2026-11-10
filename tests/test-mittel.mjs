@@ -195,8 +195,17 @@ check(treffer.length === 0,
 const SOFORT = 'nicht auf einen Termin warten – Notaufnahme oder 112';
 check(gruppe('heilerde').hinweis.includes(SOFORT) && gruppe('heilerde').hinweis.includes('verdautes Blut'),
   'schwarzer Stuhl unter Bismut: harmlos laut Fachinformation, aber das Warnzeichen bleibt eins');
-check((gruppe('triptan').hinweis.split(SOFORT).length - 1) === 2 && !/:\s*sofort\b/.test(gruppe('triptan').hinweis),
-  'beim Triptan beide Notfälle – Brust und Darm – im Wortlaut der Warnkarte');
+/*
+ * Beim Triptan nur die Brust im Wortlaut der Warnkarte: Schmerz mit Luftnot
+ * oder kaltem Schweiß ist das Warnzeichen „ausstrahlung" in js/bild.js. Der
+ * Darm ist kein Warnzeichen dort, und einen Notruf nennt keine Quelle – bis zur
+ * Fassung 29 stand auch dort „Notaufnahme oder 112". Jetzt steht, was die
+ * Packungsbeilage von AscoTop sagt, mit ihrem Namen.
+ */
+check((gruppe('triptan').hinweis.split(SOFORT).length - 1) === 1 && !/:\s*sofort\b/.test(gruppe('triptan').hinweis)
+  && gruppe('triptan').hinweis.includes('blutigem Durchfall nach der Einnahme. Laut Packungsbeilage etwa von AscoTop '
+    + 'ist das ein Grund, sofort einen Arzt aufzusuchen.'),
+'beim Triptan die Brust im Wortlaut der Warnkarte, der Darm so, wie die Packungsbeilage von AscoTop es sagt');
 
 // Übergebrauch nach ICHD-3: die Schwelle mit ihrer Dauer, nicht ein einzelner Monat.
 const ohneDauer = ['kombi', 'triptan', 'opioid']

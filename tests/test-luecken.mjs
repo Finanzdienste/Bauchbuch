@@ -120,8 +120,9 @@ check(
   'Helicobacter mit dem Test dazu – die einzige Möglichkeit hier, die sich behandeln und abhaken lässt',
 );
 check(
-  vText.includes('Zöliakie') && vText.includes('solange noch Gluten gegessen wird'),
-  'Zöliakie mit dem Fallstrick: Wer vorher weglässt, bekommt ein falsch unauffälliges Ergebnis',
+  vText.includes('Zöliakie') && vText.includes('wenn schon 6 bis 12 Monate glutenfrei gegessen wurde')
+    && !vText.includes('falsch unauffällig'),
+  'Zöliakie mit dem Fallstrick, so wie die EMA ihn nennt: nach 6 bis 12 Monaten glutenfrei verlieren die Tests ihren Nutzen',
 );
 check(
   vText.includes('Gallensteine') && vText.includes('Ultraschall'),
@@ -170,6 +171,72 @@ check(
     .includes('nicht beurteilbar'),
   'wozu das Tagebuch nichts sagen kann, steht als „nicht beurteilbar" da statt als „unauffällig"',
 );
+
+/* ---------- Fassung 30: derselbe Wortlaut wie der Kriterien-Kasten ---------- */
+
+/*
+ * Bis zur Fassung 29 stand hier, was die Fassung 30 im Kriterien-Kasten und im
+ * Bericht schon gestrichen hatte: „ab 8 gilt Reflux als wahrscheinlich", „die
+ * PDS-/EPS-Kriterien sind erfüllt", „setzen voraus, dass nichts Organisches
+ * dahintersteckt", und ein Säureblocker ohne Besserung stellte die
+ * Refluxkrankheit auf „spricht eher dagegen". Geprüft direkt an der Funktion,
+ * mit einem Säureblocker ohne Besserung, einem Punktwert über 8 und allen
+ * Magenbeschwerden über den alten Schwellen.
+ */
+{
+  const d = {
+    kriterien: {
+      dauer: { seit: '2024-01' },
+      zeitraum: { notierteTage: 60, tagebuchTage: 120 },
+      gerdq: { belastbar: true, punkte: 11, wahrscheinlich: true, erfasst: 7 },
+      dyspepsie: {
+        pruefbar: true,
+        pds: { tage: 40, proWoche: 4.7, erfuellt: true },
+        eps: { tage: 30, proWoche: 3.5, erfuellt: true },
+      },
+      reizdarm: {
+        pruefbar: true, schmerzErfuellt: false, schmerzTage: 2, proWoche: 0.2,
+        merkmale: [], typ: { typ: null, fehlt: 5 }, erfuellt: false,
+      },
+    },
+    stuhl: { gesamt: 20 },
+    bezug: { genug: true },
+    benutzt: { oberbauch: true, saettigung: true },
+    nachtwachAn: true,
+    musterIds: [],
+    essen: { bewertbar: 0 },
+    nsarTage: 0,
+    nsarKopfTage: 0,
+    warnIds: [],
+    krampfAnteil: 0,
+    klassen: [],
+    mittel: [{ name: 'Pantoprazol', wochen: 6, saeureVersuchAusgereizt: true }],
+    mahlzeitenOhneZutaten: 0,
+  };
+  const { luecken } = await import('../js/luecken.js');
+  const l = luecken(d);
+  const reflux = l.verdaechte.find((v) => v.id === 'reflux');
+  const dys = l.verdaechte.find((v) => v.id === 'dyspepsie');
+  const alles = JSON.stringify(l);
+  check(reflux.stand === 'offen' && reflux.dagegen.length === 0 && reflux.dafuer.length === 0
+    && reflux.offen.includes('Pantoprazol läuft seit 6 Wochen, ohne dass die Bauchwerte darunter besser geworden wären')
+    && reflux.offen.includes('nennen manche Fachinformationen weitere Untersuchungen')
+    && reflux.offen.includes('Punktwert angelehnt an den GerdQ: 11 von 18'),
+  `Refluxkrankheit: Säureblocker und Punktwert ohne Deutung, kein „spricht eher dagegen" (${reflux.stand})`);
+  check(dys.stand === 'offen' && dys.dafuer.length === 0
+    && dys.offen.includes('Druck, Völlegefühl oder früh satt an 40 Tagen'),
+  `funktionelle Dyspepsie: die Magenbeschwerden nur gezählt, kein „passt zum Verlauf" (${dys.stand})`);
+  const weg = ['gilt Reflux als wahrscheinlich', 'Schwelle von 8', 'Kriterien sind erfüllt', 'verlangt sind 3',
+    'nichts Organisches', 'Wäre Säure die Ursache', 'vier bis acht Wochen', 'Das entscheidet die Spiegelung',
+    'Rom-Kriterien verlangen', 'der einzige Weg', 'absetzen', 'falsch negativ', 'erst testen, dann weglassen',
+    'fast so viel wie'];
+  const noch = weg.filter((w) => alles.includes(w));
+  check(noch.length === 0, `keine der gestrichenen Aussagen mehr (${noch.join(', ') || 'keine'})`);
+  // Einfache Sternchen setzt die Anzeige nicht um – sie stünden wörtlich da.
+  const sterne = l.verdaechte.flatMap((v) => [v.was, v.offen, v.frage, ...v.dafuer, ...v.dagegen,
+    v.untersuchung.replace(/\*\*(.+?)\*\*/g, '$1')]).filter((x) => /\*/.test(x || ''));
+  check(sterne.length === 0, `kein Sternchen, das wörtlich auf dem Bildschirm stünde (${sterne.length})`);
+}
 
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();

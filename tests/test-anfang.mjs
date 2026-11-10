@@ -156,6 +156,22 @@ check(
   'sondern daneben weiter der Stand, wie weit es noch ist',
 );
 
+/*
+ * Der Schritt zu den Kriterien so, wie die Kriterien-Karte es seit der
+ * Fassung 30 sagt: Zählungen, die sich an veröffentlichten Kriterien
+ * orientieren – nicht „die Regelwerke, mit denen in der Sprechstunde
+ * eingeordnet wird" (das trägt keine erreichbare Quelle, js/anfang.js).
+ */
+{
+  const { freischaltung } = await import('../js/anfang.js');
+  const schritte = JSON.stringify(freischaltung({
+    notierteTage: 3, beschwerden: 2, zuordenbar: 1, mahlzeiten: 4, naechsteBilanz: null, mindestFaelle: 5,
+  }));
+  check(!schritte.includes('Sprechstunde eingeordnet') && !schritte.includes('Regelwerke')
+    && schritte.includes('Zählungen, die sich an veröffentlichten Kriterien orientieren'),
+  'der Schritt zu den Kriterien zählt nur – keine „Regelwerke, mit denen in der Sprechstunde eingeordnet wird“');
+}
+
 check(fehler.length === 0, `keine Fehler in der Konsole (${fehler.join(' | ') || 'keine'})`);
 await page.screenshot({ path: `${SHOT}/anfang.png`, fullPage: true });
 await browser.close();

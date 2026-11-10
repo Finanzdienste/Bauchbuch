@@ -18,6 +18,22 @@
  * Kein Ranking von Diagnosen nach Wahrscheinlichkeit. Was hier je Verdacht
  * steht, ist: was dafür spricht, was dagegen, und was es entscheidet. Die
  * Entscheidung selbst fällt woanders.
+ *
+ * FASSUNG 30: GLEICHER WORTLAUT WIE DER KRITERIEN-KASTEN. Bis zur Fassung 29
+ * standen hier Sätze, die die Fassung 30 im Kriterien-Kasten (kriterienTeil in
+ * js/app.js) und im Arztbericht schon gestrichen hatte, weil keine Quelle sie
+ * trägt: „ab 8 gilt Reflux als wahrscheinlich", „die PDS-/EPS-Kriterien sind
+ * erfüllt (verlangt sind …)", „die Kriterien setzen voraus, dass nichts
+ * Organisches dahintersteckt. Das entscheidet die Spiegelung", „die
+ * Rom-Kriterien verlangen …". Dazu der Schluss aus einem Säureblocker ohne
+ * Besserung („Wäre Säure die Ursache, wäre nach vier bis acht Wochen etwas zu
+ * sehen"), der die Refluxkrankheit auf „spricht eher dagegen" stellte – die
+ * Fachinformationen ziehen daraus keinen Schluss (Belege im Kopf von
+ * js/ansprechen.js). Die Rechnungen in js/kriterien.js und js/ansprechen.js
+ * sind unverändert; entfallen ist nur, was hier als Einordnung daraus wurde:
+ * Der Punktwert und die gezählten Magenbeschwerden stehen ohne Schwelle unter
+ * dem Verdacht, nicht mehr als „dafür" oder „dagegen", und bestimmen den
+ * Stand nicht mehr. Quellen für den neuen Wortlaut stehen jeweils am Satz.
  */
 
 /** Wie weit ein Verdacht aus dem Tagebuch heraus gestützt ist. */
@@ -44,10 +60,10 @@ export function tagebuchLuecken(d) {
 
   if (s.gesamt === 0) {
     nimm('stuhl', 10, 'Stuhlgang eintragen',
-      'Die größte Lücke. Ohne Häufigkeit und Form lässt sich ein Reizdarm '
-      + 'im Tagebuch überhaupt nicht prüfen, und der Typ – Verstopfung, '
-      + 'Durchfall, gemischt – entscheidet in der Praxis über die Behandlung. '
-      + 'Zwei Tipper am Tag, mit Bildchen statt Text.');
+      'Die größte Lücke. Ohne Häufigkeit und Form kann der Reizdarm-Kasten '
+      + 'unter „Muster“ nichts zählen und auch keinen Typ bestimmen – '
+      + 'Verstopfung, Durchfall, gemischt. Zwei Tipper am Tag, mit Bildchen '
+      + 'statt Text.');
   } else if (s.gesamt < 15) {
     nimm('stuhl', 8, 'Weiter Stuhlgang eintragen',
       `${s.gesamt} von 15 Eintragungen. Ab fünfzehn lässt sich der Typ `
@@ -57,9 +73,9 @@ export function tagebuchLuecken(d) {
   if (!k.dauer.seit) {
     nimm('seit', 9, 'Seit wann hast du das?',
       'Die eine Angabe, die aus dem Tagebuch grundsätzlich nicht hervorgeht – '
-      + 'es beginnt an dem Tag, an dem du anfängst zu schreiben. Die '
-      + 'Rom-Kriterien verlangen einen Beginn vor mindestens einem halben '
-      + 'Jahr. Steht unter „Mehr", dauert fünf Sekunden.');
+      + 'es beginnt an dem Tag, an dem du anfängst zu schreiben. Für den '
+      + 'Reizdarm-Kasten unter „Muster“ rechnet Body Check mit einem Beginn vor '
+      + 'mindestens sechs Monaten. Steht unter „Mehr“, dauert fünf Sekunden.');
   }
 
   const bez = d.bezug;
@@ -67,53 +83,60 @@ export function tagebuchLuecken(d) {
     nimm('stuhlbezug', 7, 'Die Frage nach dem Stuhlgang beantworten',
       `Unten im Beschwerdebogen: „Danach besser, schlechter, unverändert?" `
       + `Bisher ${bez.beantwortet} von 4 Malen beantwortet. Das ist eines der `
-      + 'drei Merkmale, an denen ein Reizdarmsyndrom festgemacht wird, und das '
-      + 'einzige, das sich nicht aus Zahlen ableiten lässt.');
+      + 'drei Merkmale im Reizdarm-Kasten unter „Muster“, und das einzige, das '
+      + 'sich nicht aus Zahlen ableiten lässt.');
   }
 
   if (!d.benutzt.oberbauch || !d.benutzt.saettigung) {
     nimm('arten', 6, 'Zwei neue Beschwerdezeilen benutzen',
       'Im Beschwerdebogen stehen jetzt „Schmerz im Oberbauch" und „Früh satt". '
       + 'Sie klingen wie „Brennen" und „kein Appetit" und sind etwas anderes: '
-      + 'An ihnen hängt, ob sich das Bild eher als Schmerz- oder als '
-      + 'Völlegefühl-Typ einordnen lässt – zwei Formen, die verschieden '
-      + 'behandelt werden.');
+      + 'Frühes Sattsein und Schmerz im Oberbauch gehören zu den Beschwerden, '
+      + 'mit denen Rom IV die funktionelle Dyspepsie beschreibt. Gezählt werden '
+      + 'sie im Kasten „Magenbeschwerden ab Stärke 4“ unter „Muster“ – ohne Einordnung.');
   }
 
   if (k.zeitraum.notierteTage < 30) {
     nimm('tage', 8, 'Regelmäßiger eintragen',
       `In den letzten drei Monaten sind ${k.zeitraum.notierteTage} Tage notiert. `
-      + 'Ab dreißig lassen sich die Rom-Kriterien rechnen. Wichtig ist nicht die '
+      + 'Ab dreißig rechnet Body Check die Kästen unter „Kriterien“. Wichtig ist nicht die '
       + 'Menge je Tag, sondern dass kein Tag fehlt – eine Lücke ist kein guter '
       + 'Tag, und Lücken häufen sich genau in den schlechten Wochen.');
   } else if (k.zeitraum.tagebuchTage < 90) {
     nimm('tage', 4, 'Weiterschreiben',
       `Das Tagebuch läuft seit ${k.zeitraum.tagebuchTage} Tagen. Die `
-      + 'Rom-Kriterien schauen auf drei Monate – bis dahin ist jede Aussage '
-      + 'dazu vorläufig.');
+      + 'Kästen unter „Kriterien“ rechnen mit den letzten drei Monaten – bis '
+      + 'dahin ist jede Zahl dort vorläufig.');
   }
 
+  // Der Punktwert ohne „zu niedrig statt falsch": Zwei Posten zählen
+  // umgekehrt (js/kriterien.js), fehlende Tage machen ihn also nicht nur
+  // niedriger. Wie der Kasten unter „Muster" (kriterienTeil in js/app.js).
   if (!k.gerdq.belastbar) {
     nimm('gerdq', 5, 'Die letzte Woche vollständig eintragen',
-      `Der GerdQ schaut auf sieben Tage; erfasst sind davon ${k.gerdq.erfasst}. `
-      + 'Was nicht eingetragen ist, zählt als „nicht gehabt" – die Punktzahl ist '
-      + 'dann zu niedrig statt falsch, aber eben auch nicht zu gebrauchen.');
+      `Der Punktwert angelehnt an den GerdQ schaut auf sieben Tage; erfasst sind `
+      + `davon ${k.gerdq.erfasst}. Was nicht eingetragen ist, zählt als „nicht `
+      + 'gehabt“ – die Punktzahl wäre damit nicht zu gebrauchen.');
   }
 
   if (!d.nachtwachAn) {
     nimm('nachtwach', 4, 'Die Frage „Nachts davon wach" anschalten',
-      'Sie steht unter „Mehr" bei den Tagesfragen. Im GerdQ ist sie eine eigene '
-      + 'Frage, und in der Sprechstunde eine der ersten – Beschwerden, die aus '
-      + 'dem Schlaf reißen, sind etwas anderes als solche am Tag.');
+      'Sie steht unter „Mehr“ bei den Tagesfragen. Der Punktwert angelehnt an '
+      + 'den GerdQ zählt sie als eigenen Posten; ausgeschaltet zählt er dort immer null.');
   }
 
+  // Wortlaut wie versuchTeil in js/app.js (Belege dort): Bis zur Fassung 29
+  // hieß es „Zwei Wochen weglassen … Das ist der einzige Weg"; die zwei
+  // Wochen nennen die Quellen nicht, und in der Praxis geschieht das
+  // Wiederessen ärztlich begleitet.
   if (d.versuchMoeglich && !d.versuchLaeuft) {
     nimm('versuch', 7, 'Einen Auslassversuch machen',
       'In deiner Bilanz steht etwas Auffälliges. Zählen allein macht daraus nie '
       + 'einen Beleg – wer an schlechten Tagen anders isst, findet sein Essen '
-      + 'auffällig, ohne dass es damit zu tun hat. Zwei Wochen weglassen, dann '
-      + 'bewusst wieder essen: Das ist der einzige Weg von „fällt zusammen" zu '
-      + '„liegt daran". Steht unter „Muster".');
+      + 'auffällig, ohne dass es damit zu tun hat. Ein Versuch dreht das um: eine '
+      + 'Zeit lang weglassen, dann bewusst wieder essen. Ob ein solcher Versuch '
+      + 'für dich sinnvoll ist, lässt sich in der Praxis besprechen. Steht unter '
+      + '„Muster“.');
   }
 
   const ohneZutaten = d.mahlzeitenOhneZutaten;
@@ -141,9 +164,19 @@ const VERDAECHTE = [
     was: 'Ein Bakterium in der Magenschleimhaut. Häufigste Ursache von Gastritis '
       + 'und Magengeschwür – und die einzige Möglichkeit auf dieser Liste, die '
       + 'sich in zwei Wochen behandeln und danach abhaken lässt.',
+    /*
+     * Bis zur Fassung 29: „Säureblocker zwei Wochen vorher absetzen (nach
+     * Absprache), sonst wird der Test falsch negativ" – eine Anweisung zum
+     * Absetzen, und die zwei Wochen stehen in keiner geprüften Quelle. Belegt
+     * ist: EMA, Produktinformation PANTOZOL Control, Fachinformation 4.4:
+     * „Patienten, bei denen eine Endoskopie oder ein 13C-HarnstoffAtemtest
+     * durchgeführt werden soll, sollten ihren Arzt vor Einnahme dieses
+     * Arzneimittels befragen."
+     */
     untersuchung: 'Atemtest, Stuhltest oder Gewebeprobe bei der Spiegelung. '
-      + 'Wichtig: Säureblocker zwei Wochen vorher absetzen (nach Absprache), '
-      + 'sonst wird der Test falsch negativ.',
+      + 'Laut Fachinformation von PANTOZOL Control ist eine geplante Spiegelung '
+      + 'oder ein Harnstoff-Atemtest ein Anlass, vor der Einnahme ärztlich '
+      + 'nachzufragen; was ein Säureblocker für den Test bedeutet, klärt die Praxis.',
     frage: 'Wäre ein Test auf Helicobacter pylori sinnvoll?',
     pruefe: (d) => {
       const dafuer = [];
@@ -188,7 +221,7 @@ const VERDAECHTE = [
           + 'wahrscheinlicher.');
       }
       if (d.essen.bewertbar >= 8 && d.essen.anteilNachDemEssen >= 0.6) {
-        dagegen.push('Die Beschwerden kommen überwiegend kurz *nach* dem Essen, '
+        dagegen.push('Die Beschwerden kommen überwiegend kurz nach dem Essen, '
           + 'nicht nüchtern.');
       }
       // Die Frage so, wie sie sich vorlesen lässt: Ohne Nüchternmuster darf
@@ -212,71 +245,121 @@ const VERDAECHTE = [
     name: 'Refluxkrankheit',
     was: 'Mageninhalt kommt in die Speiseröhre zurück. Brennen hinter dem '
       + 'Brustbein, oft im Liegen und nach spätem Essen.',
-    untersuchung: 'Meist zuerst ein befristeter Versuch mit einem Säureblocker; '
-      + 'bleibt es dabei oder kommt es wieder, Spiegelung und gegebenenfalls eine '
-      + 'Messung des Säurerückflusses über 24 Stunden.',
+    /*
+     * Bis zur Fassung 29: „Meist zuerst ein befristeter Versuch mit einem
+     * Säureblocker; bleibt es dabei …, Spiegelung" – die Reihenfolge nennt
+     * keine geprüfte Quelle. gesund.bund.de, Sodbrennen und Refluxkrankheit
+     * (Stand 04.04.2025, „Wie wird eine Refluxerkrankung diagnostiziert?"):
+     * „Eine Refluxerkrankung lässt sich an den typischen Symptomen erkennen.
+     * … Bei einem Verdacht auf Refluxkrankheit sind weitere Untersuchungen
+     * möglich. Dazu gehören eine Magenspiegelung und die Messung des pH-Werts
+     * in der unteren Speiseröhre."
+     */
+    untersuchung: 'Laut gesund.bund.de lässt sich eine Refluxerkrankung an den '
+      + 'typischen Beschwerden erkennen; bei Verdacht sind weitere Untersuchungen '
+      + 'möglich, etwa eine Magenspiegelung und die Messung des Säurewerts in der '
+      + 'unteren Speiseröhre. Welche davon nötig ist, klärt die Praxis.',
     frage: 'Spricht etwas für oder gegen einen befristeten Versuch mit einem '
       + 'Säureblocker – und was, wenn er nichts ändert?',
+    /*
+     * Der Punktwert angelehnt an den GerdQ und ein Säureblocker ohne
+     * Besserung stehen ohne Deutung im offenen Teil (siehe Kopf dieser
+     * Datei). Bis zur Fassung 29 waren sie „dafür" (ab 8 Punkten) oder
+     * „dagegen" (unter 8, oder ein Säureblocker ohne Besserung) und stellten
+     * die Refluxkrankheit damit auch auf „spricht eher dagegen". Die Schwelle
+     * 8 steht im Abstract nicht (Jones et al. 2009, PMID 19737151), und zum
+     * Säureblocker ziehen die Fachinformationen keinen Schluss auf die
+     * Ursache, sie nennen weitere Untersuchungen (Belege im Kopf von
+     * js/ansprechen.js). Der Satz zum Säureblocker ist derselbe wie dort.
+     */
     pruefe: (d) => {
       const dafuer = [];
-      const dagegen = [];
       const g = d.kriterien.gerdq;
-      if (g.belastbar && g.wahrscheinlich) {
-        dafuer.push(`GerdQ ${g.punkte} von 18 Punkten – ab 8 gilt Reflux als wahrscheinlich.`);
-      }
-      if (g.belastbar && !g.wahrscheinlich) {
-        dagegen.push(`GerdQ ${g.punkte} von 18 Punkten, unter der Schwelle von 8.`);
+      const hinweise = [];
+      if (g.belastbar) {
+        hinweise.push(`Punktwert angelehnt an den GerdQ: ${g.punkte} von 18, gezählt aus `
+          + 'deinen Eintragungen der letzten sieben Tage, kein ausgefüllter Fragebogen. '
+          + 'Was er bedeutet, kann die Praxis einordnen.');
       }
       if (d.musterIds.includes('saeure')) dafuer.push('Das Muster ist säuretypisch.');
       const ppi = (d.mittel || []).find((m) => m.saeureVersuchAusgereizt);
       if (ppi) {
-        dagegen.push(`${ppi.name} läuft seit ${Math.round(ppi.wochen)} Wochen, ohne dass `
-          + 'sich die Beschwerdestärke geändert hätte. Wäre Säure die Ursache, wäre '
-          + 'nach vier bis acht Wochen etwas zu sehen.');
+        hinweise.push(`${ppi.name} läuft seit ${Math.round(ppi.wochen)} Wochen, ohne dass die `
+          + 'Bauchwerte darunter besser geworden wären. Bleiben Beschwerden unter der '
+          + 'Behandlung bestehen, nennen manche Fachinformationen weitere Untersuchungen; '
+          + 'was es hier bedeutet, klärt die Praxis.');
       }
-      let stand = 'offen';
-      if (dafuer.length && !dagegen.length) stand = 'gestuetzt';
-      else if (dafuer.length) stand = 'moeglich';
-      else if (dagegen.length) stand = 'unwahrscheinlich';
       return {
-        stand,
+        stand: dafuer.length ? 'gestuetzt' : 'offen',
         dafuer,
-        dagegen,
-        offen: 'Ob die Speiseröhre Schaden genommen hat, zeigt nur die Spiegelung. '
-          + 'Der GerdQ sagt etwas über das Muster, nichts über den Zustand.',
+        dagegen: [],
+        offen: [...hinweise, 'Ob die Speiseröhre Schaden genommen hat, zeigt kein '
+          + 'Tagebuch. Der Punktwert sagt etwas über die eingetragenen Beschwerden, '
+          + 'nichts über den Zustand der Speiseröhre.'].join(' '),
       };
     },
   },
   {
     id: 'dyspepsie',
     name: 'Funktionelle Dyspepsie',
-    was: 'Beschwerden ohne fassbaren Befund. Kein Restposten und keine '
-      + 'Einbildung – eine eigene Störung mit eigener Behandlung, und die '
-      + 'häufigste Erklärung überhaupt.',
-    untersuchung: 'Die Diagnose steht, wenn die Kriterien erfüllt sind *und* eine '
-      + 'Spiegelung nichts zeigt. Ohne die Spiegelung bleibt sie eine Vermutung.',
+    /*
+     * gesund.bund.de, Reizmagensyndrom (funktionelle Dyspepsie), Stand
+     * 05.02.2026: Mit „funktionell" ist gemeint, „dass der Magen und der
+     * Zwölffingerdarm zwar gesund erscheinen, aber nicht so arbeiten, wie sie
+     * sollen"; „eine der häufigsten Erkrankungen des Magen-Darm-Trakts";
+     * „verschiedene Behandlungsmöglichkeiten". Bis zur Fassung 29 hieß es „die
+     * häufigste Erklärung überhaupt" – so steht es dort nicht.
+     */
+    was: 'Beschwerden im Oberbauch, für die sich keine andere Ursache findet: '
+      + 'Magen und Zwölffingerdarm erscheinen gesund, arbeiten aber nicht so, wie '
+      + 'sie sollen. Keine Einbildung – laut gesund.bund.de eine der häufigsten '
+      + 'Erkrankungen des Magen-Darm-Trakts, mit verschiedenen '
+      + 'Behandlungsmöglichkeiten.',
+    /*
+     * Dieselbe Seite, „Wie wird ein Reizmagen diagnostiziert?": „Von einem
+     * Reizmagen wird deshalb erst gesprochen, wenn andere Ursachen für die
+     * Beschwerden abgeklärt und ausgeschlossen wurden"; nach dem Gespräch
+     * „Blut- und Stuhltests, ein Bauch-Ultraschall und manchmal eine
+     * Magenspiegelung". Bis zur Fassung 29: „Die Diagnose steht, wenn die
+     * Kriterien erfüllt sind *und* eine Spiegelung nichts zeigt" – die
+     * Spiegelung als Maßstab nennt die Quelle nicht, und die Sternchen
+     * standen wörtlich auf dem Bildschirm.
+     */
+    untersuchung: 'Von einem Reizmagen wird laut gesund.bund.de erst gesprochen, '
+      + 'wenn andere Ursachen der Beschwerden abgeklärt und ausgeschlossen sind – '
+      + 'nach einem Gespräch etwa mit Blut- und Stuhltests, Ultraschall und '
+      + 'manchmal einer Magenspiegelung. Welche Untersuchungen nötig sind, klärt '
+      + 'die Praxis.',
     frage: 'Passt das Bild zu einer funktionellen Dyspepsie – und wenn ja, welche '
       + 'Form, PDS oder EPS?',
+    /*
+     * Die Magenbeschwerden nur gezählt, wie im Kasten „Magenbeschwerden ab
+     * Stärke 4" (kriterienTeil in js/app.js): Rom IV beschreibt die
+     * funktionelle Dyspepsie mit Völlegefühl nach dem Essen, frühem Sattsein,
+     * Schmerz oder Brennen im Oberbauch, „unexplained after a routine
+     * clinical evaluation" (Stanghellini et al. 2016, PMID 27147122,
+     * Abstract); wie oft sie dafür auftreten müssen, steht dort nicht. Bis zur
+     * Fassung 29 hieß es „Die PDS-/EPS-Kriterien sind erfüllt … (verlangt sind
+     * 3 / ist 1)", und daran hing der Stand „passt zum Verlauf" oder „spricht
+     * eher dagegen". Die Rechnung (dy.pds, dy.eps) ist unverändert.
+     */
     pruefe: (d) => {
-      const dafuer = [];
       const dy = d.kriterien.dyspepsie;
-      if (dy.pruefbar && dy.pds.erfuellt) {
-        dafuer.push(`Die PDS-Kriterien sind erfüllt: an ${dy.pds.tage} Tagen `
-          + `Völlegefühl oder frühes Sattsein, ${dy.pds.proWoche.toFixed(1).replace('.', ',')} `
-          + 'je Woche der notierten Tage (verlangt sind 3).');
-      }
-      if (dy.pruefbar && dy.eps.erfuellt) {
-        dafuer.push(`Die EPS-Kriterien sind erfüllt: an ${dy.eps.tage} Tagen `
-          + `Schmerz oder Brennen im Oberbauch, ${dy.eps.proWoche.toFixed(1).replace('.', ',')} `
-          + 'je Woche der notierten Tage (verlangt ist 1).');
-      }
+      const zahl = (x) => x.toFixed(1).replace('.', ',');
+      const tage = (n) => `${n} ${n === 1 ? 'Tag' : 'Tagen'}`;
+      const gezaehlt = dy.pruefbar
+        ? `Gezählt ab Stärke 4: Druck, Völlegefühl oder früh satt an ${tage(dy.pds.tage)} `
+          + `(${zahl(dy.pds.proWoche)} je Woche der notierten Tage), Brennen oder Schmerz `
+          + `im Oberbauch an ${tage(dy.eps.tage)} (${zahl(dy.eps.proWoche)} je Woche). Wie `
+          + 'oft diese Beschwerden für die Einordnung auftreten müssen, gibt Body Check '
+          + 'nicht wieder; ob andere Ursachen dahinterstecken, klärt die Praxis, nicht '
+          + 'dieses Tagebuch.'
+        : 'Für die Zählung fehlen noch notierte Tage.';
       return {
-        stand: dafuer.length ? 'gestuetzt' : (dy.pruefbar ? 'unwahrscheinlich' : 'offen'),
-        dafuer,
+        stand: 'offen',
+        dafuer: [],
         dagegen: [],
-        offen: dy.pruefbar ? 'Die Kriterien setzen voraus, dass nichts Organisches '
-          + 'dahintersteckt. Das entscheidet die Spiegelung, nicht dieses Tagebuch.'
-          : 'Für die Kriterien fehlen noch notierte Tage.',
+        offen: gezaehlt,
       };
     },
   },
@@ -339,8 +422,19 @@ const VERDAECHTE = [
         stand: dafuer.length ? 'moeglich' : 'offen',
         dafuer,
         dagegen: [],
-        offen: 'Ein Auslassversuch (unter „Muster") bringt hier fast so viel wie '
-          + 'der Test und geht sofort – der Test sagt dafür, *welcher* Zucker es ist.',
+        /*
+         * Bis zur Fassung 29: „Ein Auslassversuch bringt hier fast so viel wie
+         * der Test" – ohne Quelle; die Sternchen standen wörtlich da.
+         * gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026, „Wie wird eine
+         * Laktoseintoleranz diagnostiziert?"): Diät- oder Auslasstest, bei dem
+         * „die Ärztin oder der Arzt … die körperliche Reaktion" überwacht,
+         * Laktosetoleranztest oder Atemtest; „Das Standardverfahren in
+         * Deutschland ist der Atemtest."
+         */
+        offen: 'Das Tagebuch zählt nur, was nach dem Essen eingetragen ist. Bei '
+          + 'Laktoseintoleranz nennt gesund.bund.de einen ärztlich überwachten '
+          + 'Auslasstest, einen Laktosetoleranztest oder den Atemtest, in Deutschland '
+          + 'das Standardverfahren; welcher Test infrage kommt, klärt die Praxis.',
       };
     },
   },
@@ -349,9 +443,19 @@ const VERDAECHTE = [
     name: 'Zöliakie',
     was: 'Eine Abwehrreaktion auf Gluten, die die Dünndarmschleimhaut zerstört. '
       + 'Kann sich als Reizdarm tarnen und bleibt oft jahrelang unentdeckt.',
-    untersuchung: 'Bluttest auf Antikörper (Transglutaminase-IgA plus '
-      + 'Gesamt-IgA). **Nur aussagekräftig, solange noch Gluten gegessen wird** – '
-      + 'wer vorher weglässt, bekommt ein falsch unauffälliges Ergebnis.',
+    /*
+     * Wie in planAngebot (js/app.js): EMA, Wheat starch (containing gluten)
+     * used as an excipient, EMA/CHMP/639441/2013 corr. 2, 9. Oktober 2017,
+     * S. 4: „Diagnosis is by blood tests to check for relevant antibodies,
+     * followed by endoscopy/gastroscopy and biopsy. … However all tests lose
+     * their usefulness if the person has already been eating a gluten-free
+     * diet for 6–12 months." Bis zur Fassung 29: „wer vorher weglässt,
+     * bekommt ein falsch unauffälliges Ergebnis" – so zwingend sagt es die
+     * Quelle nicht; welche Antikörper bestimmt werden, nennt sie nicht.
+     */
+    untersuchung: 'Bluttest auf Antikörper, danach Spiegelung mit Gewebeprobe. '
+      + '**Laut EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon 6 bis 12 '
+      + 'Monate glutenfrei gegessen wurde.**',
     frage: 'Ist Zöliakie schon einmal ausgeschlossen worden?',
     pruefe: (d) => {
       const dafuer = [];
@@ -365,9 +469,12 @@ const VERDAECHTE = [
         stand: 'offen',
         dafuer,
         dagegen: [],
-        offen: 'Aus dem Tagebuch nicht zu unterscheiden von einer '
-          + 'Fruktan-Unverträglichkeit – im selben Korn steckt beides. Nur der '
-          + 'Bluttest trennt sie. Deshalb: erst testen, dann weglassen.',
+        // Ohne „Nur der Bluttest trennt sie. Deshalb: erst testen, dann
+        // weglassen" (bis zur Fassung 29): ein Rat zur Reihenfolge, den die
+        // Quelle oben so nicht gibt.
+        offen: 'Aus dem Tagebuch nicht zu unterscheiden von anderen Gründen, warum '
+          + 'Weizen nicht vertragen wird. Ob eine Zöliakie schon abgeklärt ist, lässt '
+          + 'sich vor einem Weglassen in der Praxis besprechen.',
       };
     },
   },

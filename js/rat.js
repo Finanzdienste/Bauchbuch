@@ -78,10 +78,10 @@ const rat = (id, bereich, titel, text, warum, quelle) => ({
  *
  * Die Vorschläge zum Essen sagen „weniger davon" oder „früher". Bei jemandem,
  * der ein ADHS-Mittel nimmt und dabei abnimmt oder tagsüber keinen Appetit
- * hat, ist das der falsche Rat: Weniger Appetit steht etwa bei Methylphenidat
- * und Lisdexamfetamin unter den häufigsten Nebenwirkungen (siehe die Texte in
- * ADHS_MITTEL, js/mittel.js), und eine späte Mahlzeit ist dann womöglich die
- * einzige, die gelingt. Was gegessen wird, wägt in diesem Fall die Praxis ab.
+ * hat, ist das der falsche Rat: Weniger Appetit steht in den Fachinformationen
+ * mancher ADHS-Mittel unter den sehr häufigen Nebenwirkungen (Belege unten bei
+ * SPAET_ZUSATZ und in ADHS_MITTEL, js/mittel.js). Was gegessen wird, wägt in
+ * diesem Fall die Praxis ab.
  *
  *   'bremse'  Schalter ADHS an, eine Einnahme in den letzten 14 Tagen, und
  *             ungewollt abgenommen oder „Kein Appetit" an mindestens 3 der
@@ -104,11 +104,19 @@ export const ESSEN_VORSICHT = ['bremse', 'zusatz'];
  * dazu Elvanse 4.4, bei Erwachsenen: „Das Körpergewicht ist unter der
  * Behandlung mit Stimulanzien zu überwachen". Dass der Appetit tagsüber fehle
  * und erst abends komme und die späte Mahlzeit deshalb „vielleicht nötig"
- * sei, wie es bis zur Fassung 29 hieß, steht in keiner der beiden.
+ * sei, wie es bis zur Fassung 29 hieß, steht in keiner der beiden. Ritalin LA
+ * 4.2 („Laufende Überwachung"): „Das Wachstum (bei Kindern), das
+ * Körpergewicht, sowie der psychische und der kardiovaskuläre Status sollten
+ * kontinuierlich überwacht werden".
+ *
+ * Mit den Präparaten, nicht mit den Wirkstoffen: „bei Methylphenidat sehr
+ * häufig" wäre für Equasym Retard falsch – dort steht „Häufig – Anorexie,
+ * Appetitverlust" (www.fachinfo.de/fi/pdf/012100, Stand Juni 2026, 4.8;
+ * siehe die Leitregeln in js/mittel.js).
  */
-const SPAET_ZUSATZ = 'Weniger Appetit steht etwa bei Methylphenidat und Lisdexamfetamin unter den sehr '
-  + 'häufigen Nebenwirkungen, und das Gewicht wird dabei ärztlich beobachtet. Wann gegessen wird, '
-  + 'wägt deshalb die Praxis ab, nicht diese Karte.';
+const SPAET_ZUSATZ = 'Weniger Appetit steht etwa in den Fachinformationen von Ritalin LA und Elvanse '
+  + 'unter den sehr häufigen Nebenwirkungen, und das Gewicht wird dabei ärztlich beobachtet. Wann '
+  + 'gegessen wird, wägt deshalb die Praxis ab, nicht diese Karte.';
 
 /*
  * Bewegung und Reflux – derselbe Satz auf mehreren Karten.
@@ -228,10 +236,10 @@ export function raete(d) {
      */
     raus.push(rat('essen-spaet', 'essen',
       'Spätes Essen und Liegen',
-      'Bei Sodbrennen nennt die Packungsbeilage eines rezeptfreien Säureblockers, in '
-      + 'den letzten drei Stunden vor dem Zubettgehen nichts mehr zu essen; im Liegen '
-      + 'können Refluxbeschwerden zunehmen. Ob das auch für deine Beschwerden gilt, '
-      + 'kann die Praxis oder Apotheke einordnen.',
+      'In der Packungsbeilage eines rezeptfreien Säureblockers steht für Sodbrennen: in '
+      + 'den letzten drei Stunden vor dem Zubettgehen nichts mehr essen. Im Liegen können '
+      + 'Refluxbeschwerden zunehmen. Ob das auch für deine Beschwerden gilt, kann die Praxis '
+      + 'oder Apotheke einordnen.',
       `Nach Mahlzeiten nach 20 Uhr lag der Wert bei `
       + `${spaet.schnittMit.toFixed(1).replace('.', ',')} statt `
       + `${spaet.schnittOhne.toFixed(1).replace('.', ',')} (${spaet.faelle} Fälle).`
@@ -291,19 +299,19 @@ export function raete(d) {
 
   if (stress && stress.genug && stress.differenz >= 1) {
     raus.push(rat('ruhe-eigen', 'ruhe',
-      heuteAngespannt ? 'Atemübung unter „Ruhe"' : 'Anspannung ist bei dir ein Faktor',
+      heuteAngespannt ? 'Atemübung unter „Ruhe“' : 'Anspannung ist bei dir ein Faktor',
       'Bei dir hängen Anspannung und Beschwerden messbar zusammen. Bei akutem Stress '
       + 'fährt der Körper laut gesund.bund.de unter anderem die Magen- und '
       + 'Darmtätigkeit zurück; tiefes Ein- und Ausatmen kann die Entspannung fördern. '
-      + 'Unter „Ruhe" liegt die Übung 4–7–8, mit vier Runden gut eine Minute.',
+      + 'Unter „Ruhe“ liegt die Übung 4–7–8, mit vier Runden gut eine Minute.',
       `An angespannten Tagen ${stress.hoch.schnitt.toFixed(1).replace('.', ',')} `
       + `statt ${stress.niedrig.schnitt.toFixed(1).replace('.', ',')} `
       + `(${stress.hoch.tage} gegen ${stress.niedrig.tage} Tage).`,
       'eigen'));
   } else if (heuteAngespannt || akut) {
     raus.push(rat('ruhe-heute', 'ruhe',
-      'Atemübungen unter „Ruhe"',
-      'Unter „Ruhe" liegen Atemübungen, etwa 4–7–8 und Gleichmaß, mit Ton, damit '
+      'Atemübungen unter „Ruhe“',
+      'Unter „Ruhe“ liegen Atemübungen, etwa 4–7–8 und Gleichmaß, mit Ton, damit '
       + 'die Augen zubleiben können. Tiefes Ein- und Ausatmen kann laut '
       + 'gesund.bund.de die Entspannung fördern.',
       heuteAngespannt ? 'Du hast heute viel Anspannung eingetragen.'
@@ -316,8 +324,8 @@ export function raete(d) {
       'Atemübung vor dem Schlafen',
       'Atemübungen vor dem Schlafengehen zählt gesund.bund.de zu den '
       + 'Entspannungstechniken bei Schlafproblemen; wie gut sie wirken, ist nicht '
-      + 'hinreichend untersucht, und zu 4–7–8 gibt es bisher wenig Studien. Die '
-      + 'Übung liegt unter „Ruhe".',
+      + 'hinreichend untersucht, und für 4–7–8 gibt es bisher wenig Belege. Die '
+      + 'Übung liegt unter „Ruhe“.',
       'Du hast für heute schlechten Schlaf eingetragen.',
       'allgemein'));
   }

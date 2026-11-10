@@ -154,6 +154,20 @@ export function dosisBild(eintraege, id, fenster = 4) {
   const niedrigsteAuffaellig = auffaellige[0];
   const hoechsteHarmlos = harmlose.filter((s) => s.rang < niedrigsteAuffaellig.rang).pop();
 
+  /*
+   * Die Sätze sagen nur, was gezählt ist – keinen Schluss auf die Ursache und
+   * nichts zum Weglassen. Ob eine kleinere Menge vertragen wird, hängt an der
+   * Ursache, die das Tagebuch nicht kennt: Bei einer Laktoseintoleranz werden
+   * „bestimmte Mengen an Milchzucker" vertragen, bei einer
+   * Nahrungsmittelallergie reichen „Bereits kleine Mengen eines Lebensmittels"
+   * (gesund.bund.de, Laktoseintoleranz, Stand 23.02.2026; Nahrungsmittelallergie,
+   * Stand 27.05.2024). Bis zur Fassung 29 hieß es hier „Es sieht also nach
+   * einer Menge aus, nicht nach der Zutat selbst – was heißt, dass Weglassen
+   * vermutlich zu viel wäre" und „Bis dahin wäre ganz weglassen womöglich
+   * mehr als nötig", dazu der Vorschlag, es einmal in kleinerer Rolle zu
+   * essen; js/lage.js hatte dieselbe Aussage in der Fassung 30 schon
+   * gestrichen. Die Urteile ('schwelle', 'ab-hier') sind unverändert.
+   */
   if (hoechsteHarmlos) {
     return {
       urteil: 'schwelle',
@@ -165,9 +179,9 @@ export function dosisBild(eintraege, id, fenster = 4) {
         + `war es unauffällig (${hoechsteHarmlos.faelle} Mahlzeiten), `
         + `${niedrigsteAuffaellig.satz} dagegen um `
         + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter `
-        + `(${niedrigsteAuffaellig.faelle} Mahlzeiten). Es sieht also nach einer `
-        + 'Menge aus, nicht nach der Zutat selbst – was heißt, dass Weglassen '
-        + 'vermutlich zu viel wäre.',
+        + `(${niedrigsteAuffaellig.faelle} Mahlzeiten). Woran das liegt, zeigt das `
+        + 'Tagebuch nicht: Ob eine kleinere Menge vertragen wird, hängt an der Ursache. '
+        + 'Was das für dein Essen heißt, lässt sich in der Praxis besprechen.',
     };
   }
 
@@ -202,9 +216,9 @@ export function dosisBild(eintraege, id, fenster = 4) {
     satz: `Auffällig wird es ${niedrigsteAuffaellig.satz} `
       + `(${niedrigsteAuffaellig.faelle} Mahlzeiten, um `
       + `${niedrigsteAuffaellig.differenz.toFixed(1)} Stufen schlechter). Ob `
-      + 'kleinere Mengen durchgehen, ist damit nicht gesagt – dafür müsste es '
-      + 'auch mal in kleinerer Rolle vorkommen, als Beilage, Topping oder Würze. '
-      + 'Bis dahin wäre ganz weglassen womöglich mehr als nötig.',
+      + 'kleinere Mengen anders wirken, lässt sich aus dem Tagebuch noch nicht sagen: '
+      + 'Mahlzeiten, in denen es nur als Beilage, Topping oder Würze vorkommt, sind '
+      + 'bisher zu wenige eingetragen.',
   };
 }
 

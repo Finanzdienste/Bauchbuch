@@ -186,7 +186,7 @@ const NIE = `${KARTE} [data-act="rueckfrage-nie"]`;
  * Bei zwei Namen sähe die Frage zum zweiten sonst aus wie die eben
  * beantwortete (Abschnitt 16f).
  */
-const fForm = (name) => `${name}: Welche Form steht auf der Packung?`;
+const fForm = (name) => `${name}: Welche Form hat dein Präparat?`;
 const F_SAEURE = 'Nimmst du außerdem ein Mittel gegen Magensäure?';
 const F_WELCHES = 'Welches Mittel gegen Magensäure?';
 // Nur, was stimmt: Viele Namen kennt Body Check – nur nicht als Mittel gegen Magensäure.
@@ -783,7 +783,7 @@ for (const [was, fehltipp, neuere] of [
     '„Weiß ich nicht" ändert keine Mitteldaten');
   check(s.mphRueckfrage.medikinet && s.mphRueckfrage.medikinet.form === 'weissnicht', 'nur die Rückfrage merkt es sich');
   check(await frage(page) === F_SAEURE, 'weiter mit der Säurefrage');
-  check(await meldung(page) === 'Gemerkt. Die Form von Medikinet steht auf der Packung – angeben kannst du sie jederzeit '
+  check(await meldung(page) === 'Gemerkt. Die Form von Medikinet weiß die Apotheke – angeben kannst du sie jederzeit '
     + 'bei deinem Mittel unter „Meine Mittel“.',
   'die Meldung nennt das Mittel und „Meine Mittel", wo es steht');
   await ctx.close();
@@ -1640,7 +1640,7 @@ for (const [vp, wie, schritte, ersteMeldung] of [
   [IPHONE, '390×844, Hülle', [form('oros')],
     'Form von Medikinet: Retardtablette mit Hülle. Steht jetzt bei deinem Mittel unter „Meine Mittel“. Jetzt zu Methylphenidat.'],
   [IPHONE, '390×844, „Weiß ich nicht" und „Nein"', [form('unbekannt'), `${KARTE} [data-act="rueckfrage-saeure-nein"]`],
-    'Gemerkt. Die Form von Medikinet steht auf der Packung – angeben kannst du sie jederzeit bei deinem Mittel unter „Meine Mittel“.'],
+    'Gemerkt. Die Form von Medikinet weiß die Apotheke – angeben kannst du sie jederzeit bei deinem Mittel unter „Meine Mittel“.'],
 ]) {
   const { ctx, page } = await iphone(ZWEI, { viewport: vp });
   const vorher = [await kopf(page), await frage(page)];

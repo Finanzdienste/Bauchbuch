@@ -50,6 +50,19 @@ check(
   await page.locator('.bristol-bild').count() === 7,
   'und mit einer Zeichnung: Eine Frage, die peinlich und umständlich ist, wird gar nicht beantwortet',
 );
+/*
+ * Die Warnzeichen im Bogen, getrennt nach ihrer Stufe in js/bild.js:
+ * Schwarzer, klebriger Stuhl ist „sofort" und bekommt den Wortlaut der
+ * Warnkarte, frisches Blut ist „zeitnah". Bis zur Fassung 29 stand dort keine
+ * Eile, zuerst in der Fassung 30 nur „ärztlich abgeklärt" für beide.
+ */
+{
+  const warnbogen = ((await page.locator('details.warnbogen').textContent()) || '').replace(/\s+/g, ' ');
+  check(warnbogen.includes('Bei schwarzem, klebrigem Stuhl nicht auf einen Termin warten – Notaufnahme oder 112.')
+    && warnbogen.includes('Frisches Blut im Stuhl gehört zeitnah ärztlich abgeklärt.')
+    && warnbogen.includes('mit dem Hinweis, wie eilig es ist') && !warnbogen.includes('abgeklärt gehören'),
+  `im Stuhlbogen: schwarzer Stuhl mit „Notaufnahme oder 112“, frisches Blut „zeitnah“ (${warnbogen.slice(0, 80)})`);
+}
 
 // Ohne Form speichern: Der Eintrag darf nicht entstehen.
 await page.locator('[data-act="bogen-speichern"]').click();
