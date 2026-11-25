@@ -74,7 +74,7 @@ for d in dateien:
 for rechner in ('auswertung.js', 'bericht.js', 'store.js', 'daten.js', 'datum.js',
                 'text.js', 'mittel.js', 'zyklus.js', 'bild.js', 'rat.js',
                 'atem.js', 'klang.js', 'stuhl.js', 'kriterien.js', 'versuch.js',
-                'ansprechen.js', 'luecken.js', 'tresor.js', 'briefkasten.js', 'unterleib.js', 'schichten.js',
+                'ansprechen.js', 'luecken.js', 'tresor.js', 'briefkasten.js', 'teilen.js', 'unterleib.js', 'schichten.js',
                 'zeitprofil.js', 'wechselwirkung.js', 'lage.js', 'zufall.js', 'dosis.js', 'gewicht.js',
                 'provokation.js', 'stufenplan.js', 'anfang.js', 'kalender.js', 'wach.js',
                 'kopf.js', 'wasser.js', 'aktivitaet.js', 'zusammen.js', 'adhs.js', 'vergleich.js',

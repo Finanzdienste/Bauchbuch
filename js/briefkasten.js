@@ -15,7 +15,8 @@
  *             und selbst abschickst."
  *
  * Was unverändert gilt und der eigentliche Grund für all das war:
- * **Gesundheitsdaten verlassen dieses Gerät nie.** Kein Eintrag, kein Tag,
+ * **Gesundheitsdaten verlassen dieses Gerät nie** – außer jemand stimmt dem
+ * Teilen mit einer Vertrauensperson selbst zu (js/teilen.js, Fassung 31). Kein Eintrag, kein Tag,
  * keine Auswertung, kein Bericht, keine Kennung, keine Zählung von Aufrufen.
  *
  * Und das ist keine Absichtserklärung:

@@ -1708,6 +1708,29 @@ bleibt, wie es erzeugt wurde: `tests/test-gleich-v27.mjs` gibt dieser einen
 Zeile vor dem Vergleich ihren zweiten Punkt zurück und prüft für sich, dass
 nur noch einer dasteht.
 
+### Neu in der Fassung 31
+
+**Teilen mit einer Vertrauensperson – nur, wenn du zustimmst.** Wer möchte,
+dass eine vertraute Person das Tagebuch sehen kann, bekommt von ihr einen
+Teilen-Link (oder Code). Öffnet man ihn – oder fügt den Code unter „Mehr“ ›
+„Mit jemandem teilen“ ein –, fragt Body Check auf „Tag“: „Dein Tagebuch mit …
+teilen?“ Erst nach „Ja, teilen“ geht etwas weg: der ganze Tagebuchstand (wie
+die Sicherung), immer wenn er sich geändert hat und Netz da ist. Unter „Mehr“
+steht dann „Geteilt mit …“ und „Teilen beenden“; das bittet das Ziel, den
+Stand zu löschen, und vergisst die Kopplung auf dem Gerät.
+
+- Ohne Link ändert sich nichts: keine Adresse im Code, null Anfragen
+  (tests/test-schweigen.mjs, tests/test-still.mjs).
+- Ziel ist nur eine Datenbankfunktion eines Supabase-Projekts, die der Link
+  nennt und die nur mit dem Kopplungsschlüssel aus dem Link schreibt;
+  Lesen kann dort nur die Vertrauensperson. Andere Ziele nimmt die App nicht
+  an (js/teilen.js, tools/pruefung/keine-leitung.py).
+- Die Kopplung liegt im Gerätespeicher, nie im Tagebuch und nie in einer
+  Sicherung.
+- Auf dem iPhone öffnen Links in Safari, nicht in der App vom Home-Bildschirm.
+  Die Frage bietet dort „Code kopieren“ an; eingefügt wird er in der App.
+- Geprüft in tests/test-teilen.mjs.
+
 ### Neu in der Fassung 30
 
 Die medizinischen Texte sind Satz für Satz gegen Fachinformationen,
@@ -2732,7 +2755,8 @@ sie ist einmal enger gefasst worden:
 | | |
 | --- | --- |
 | **früher** | Die App sendet nichts. |
-| **jetzt** | Die App sendet nichts außer den Ideen, die du unter „Ideen" einträgst. |
+| **dann** | Die App sendet nichts außer den Ideen, die du unter „Ideen" einträgst. |
+| **seit Fassung 31** | Dazu, nur wenn du selbst zustimmst: dein Tagebuch an eine Person, die dir einen Teilen-Link geschickt hat (siehe „Neu in der Fassung 31“). |
 
 Der Grund war kein Sinneswandel, sondern eine Sackgasse: Der Reiter „Ideen"
 nahm Verbesserungsvorschläge entgegen, und niemand bekam sie je zu sehen. Wer
@@ -3152,6 +3176,7 @@ den Rückgabewert.
 | `test-termin.mjs` | das Fenster fängt am Termin an und die Richtung rechnet nicht von davor mit |
 | `test-schnell.mjs` | ein Tipp legt dieselbe Mahlzeit an, nichts Erfundenes – und die Versuchs-Historie bleibt stehen |
 | `test-still.mjs` | bis zum Tastendruck null Anfragen; danach genau eine, ohne ein Wort aus dem Tagebuch – auch keins aus den Teilen zum Einschalten |
+| `test-teilen.mjs` | Teilen mit einer Vertrauensperson: ohne Link null Anfragen, vor dem Ja nichts, nach dem Ja genau der Stand an genau die gekoppelte Funktion, Unverändertes nicht doppelt, „Teilen beenden“ bittet ums Löschen, fremde Ziele werden abgelehnt, Code in der App einfügen |
 | `test-schweigen.mjs` | volles Tagebuch, alles angefasst – und trotzdem null Anfragen |
 | `test-unterleib.mjs` | die Fragen bleiben aus, bis jemand sie einschaltet; und Regelschmerz allein ergibt noch kein Muster |
 | `test-vorschlaege.mjs` | fremder Text bricht nicht aus seinem Block aus, und ein Bot-Zweig kommt nicht an die Wächter |

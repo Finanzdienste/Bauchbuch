@@ -101,7 +101,7 @@ MODULES = ['js/datum.js', 'js/text.js', 'js/mittel.js', 'js/zusammen.js', 'js/wa
            'js/anfang.js', 'js/kalender.js', 'js/wach.js',
            'js/lage.js',
            'js/unterleib.js', 'js/bild.js',
-           'js/rat.js', 'js/tresor.js', 'js/briefkasten.js',
+           'js/rat.js', 'js/tresor.js', 'js/briefkasten.js', 'js/teilen.js',
            'js/bericht.js', 'js/app.js']
 
 IMPORT_RE = re.compile(r'^\s*import\s.+?;\s*$', re.MULTILINE | re.DOTALL)

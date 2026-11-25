@@ -30,8 +30,8 @@
  * dem Startbildschirm.
  */
 
-const VERSION = 'v30';
-const STAND = 'b14b76d08f89';
+const VERSION = 'v31';
+const STAND = 'aed2114cd3ab';
 const CACHE = `bauchbuch-${VERSION}-${STAND}`;
 
 const SHELL = [
@@ -66,6 +66,7 @@ const SHELL = [
   './js/luecken.js',
   './js/tresor.js',
   './js/briefkasten.js',
+  './js/teilen.js',
   './js/kueche.js',
   './js/befunde.js',
   './js/unterleib.js',

@@ -59,6 +59,12 @@ DATEIEN = sorted(ROOT.glob('js/*.js')) + [ROOT / 'sw.js', ROOT / 'index.html']
 TUER = 'js/briefkasten.js'
 ZIEL = 'https://briefkasten.tobias-kruse-184.workers.dev/idee'
 
+# Die zweite Tuer (Fassung 31): Teilen mit einer Vertrauensperson. Sie hat
+# keine feste Adresse - nur diese eine Vorlage, deren Projekt erst ein
+# Kopplungslink liefert und die erst nach ausdruecklichem Ja benutzt wird.
+TUER2 = 'js/teilen.js'
+ZIEL2 = 'https://${kp.r}.supabase.co/rest/v1/rpc/${fn}'
+
 # Was in keiner Zeile stehen darf - auch nicht in der Tuer. Die Wege hier
 # umgehen entweder jede Sichtbarkeit (sendBeacon feuert noch beim Schliessen
 # des Tabs) oder halten eine Leitung offen, die niemand mehr sieht.
@@ -88,6 +94,8 @@ for datei in DATEIEN:
             # In der Tuer ist genau eine Adresse erlaubt.
             if rel == TUER and treffer.rstrip("',;.") == ZIEL:
                 continue
+            if rel == TUER2 and treffer.rstrip("',;.`") == ZIEL2:
+                continue
             fehler.append(f'{rel}:{nr}: eine Adresse - {treffer[:90]}')
 
 # Die Tuer muss es geben, und die Adresse muss darin stehen. Ohne diese
@@ -116,6 +124,27 @@ else:
                     f'den Speicher nicht kennen, nur den uebergebenen Text'
                 )
 
+# Die zweite Tuer: kennt den Speicher nicht, hat genau die eine Vorlage, und
+# jeder Versand haengt an aktiv() - der Kopplung, der jemand zugestimmt hat.
+tuer2 = ROOT / TUER2
+if not tuer2.exists():
+    fehler.append(f'{TUER2} fehlt')
+else:
+    q2 = tuer2.read_text(encoding='utf-8')
+    if q2.count(ZIEL2) != 1:
+        fehler.append(f'{TUER2}: die Vorlage der Adresse muss genau einmal dastehen')
+    for nr, zeile in enumerate(q2.splitlines(), 1):
+        nackt = zeile.strip()
+        if nackt.startswith(('*', '//', '/*')):
+            continue
+        for verdaechtig in ('store.js', 'eintraege'):
+            if re.search(rf'\b{re.escape(verdaechtig)}\b', zeile):
+                fehler.append(f'{TUER2}:{nr}: fasst {verdaechtig} an - das Teilen bekommt den fertigen Text')
+    for fn in ('teilenMelden', 'teilenBeenden'):
+        m = re.search(rf'export async function {fn}\(.*?\n\}}', q2, re.S)
+        if not m or 'const kp = teilenAktiv();' not in m.group(0):
+            fehler.append(f'{TUER2}: {fn}() fragt nicht zuerst teilenAktiv() - ohne Zustimmung darf nichts gehen')
+
 # Auch das Blatt: eingebundene Schriften waeren ein Aufruf bei jedem Start.
 css = (ROOT / 'css' / 'styles.css').read_text(encoding='utf-8')
 for muster, was in [(re.compile(r'https?://'), 'eine Adresse'),
@@ -131,5 +160,5 @@ if fehler:
         print('  ' + f)
     sys.exit(1)
 
-print(f'{len(DATEIEN) + 1} Dateien geprueft: genau ein Versandweg, in {TUER},')
-print('an genau eine Adresse. Sonst keine fremde Adresse, kein Versandweg.')
+print(f'{len(DATEIEN) + 1} Dateien geprueft: Ideen nur in {TUER} an genau eine Adresse,')
+print(f'Teilen nur in {TUER2} und nur nach Zustimmung. Sonst keine fremde Adresse.')

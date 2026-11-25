@@ -97,6 +97,9 @@ import { KLAENGE, ruettel, weckKlang } from './klang.js';
 import { wachHalten, wachLoslassen } from './wach.js';
 import { schicken } from './briefkasten.js';
 import {
+  teilenAblehnen, teilenAktiv, teilenAusCode, teilenAusLink, teilenBeenden, teilenMelden, teilenWartet, teilenWartetCode, teilenZustimmen,
+} from './teilen.js';
+import {
   KUECHEN_ARTEN, widersprechendeFunde, widerspruchsSatz,
 } from './kueche.js';
 import { BEFUNDE, BEFUND_VON, geklaert, kriterienVorbehalt } from './befunde.js';
@@ -1318,7 +1321,7 @@ function tagAnsicht(s) {
   ui.gezeigt = mitFrage || mitNeu
     ? { am: heuteISO(), rueckfrage: mitFrage ? frage.alleDran : [], neu: mitNeu } : null;
 
-  return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
+  return alterNameKarte(s) + teilenFrageKarte() + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + jetztZeile(s, iso) + sicherungKarte(iso) + wechselKarte(s, iso)
     + (mitFrage ? rueckfrageKarte(frage, s) : '') + (mitNeu ? v29Karte(s) : '')
     + planZeile(s, iso) + versuchZeile(s, iso)
@@ -6060,6 +6063,55 @@ function speicherSatz() {
     + 'hast. Leg Body Check auf den Home-Bildschirm (siehe oben) und sichere.';
 }
 
+/*
+ * Teilen mit einer Vertrauensperson (js/teilen.js). Die Frage steht nur, wenn
+ * ein Kopplungslink geöffnet wurde; ohne Ja geht nichts weg.
+ */
+function teilenFrageKarte() {
+  const kp = teilenWartet();
+  if (!kp) return '';
+  const n = esc(kp.n);
+  return `<div class="karte karte-warn teilen-frage">
+    <h3>Dein Tagebuch mit ${n} teilen?</h3>
+    <p>Du hast einen Link von ${n} geöffnet. Wenn du zustimmst, schickt Body Check
+    dein ganzes Tagebuch an ${n}: alle Einträge, Mittel, Werte und Notizen –
+    jedes Mal, wenn sich etwas ändert und Netz da ist.</p>
+    <p class="klein">Bis du zustimmst, geht nichts weg. Unter „Mehr“ kannst du das
+    Teilen jederzeit beenden; dann bittet Body Check darum, es dort zu löschen.</p>
+    ${istApfel() && !laeuftAlsApp() ? `<p class="klein">Du trägst sonst in Body Check vom
+    Home-Bildschirm ein? Dann gilt das hier nicht für dieses Tagebuch: Kopiere den Code,
+    öffne Body Check vom Home-Bildschirm und füge ihn dort unter „Mehr“ › „Mit jemandem teilen“ ein.</p>
+    <div class="reihe">${knopf('teilen-kopieren', 'Code kopieren')}</div>` : ''}
+    <div class="reihe">
+      ${knopf('teilen-ja', 'Ja, teilen', 'btn-primary')}
+      ${knopf('teilen-nein', 'Nein', 'btn-ghost')}
+    </div>
+  </div>`;
+}
+
+function teilenKarte() {
+  const kp = teilenAktiv();
+  if (!kp) {
+    if (teilenWartet()) return '';
+    return `<details class="karte teilen-einrichten">
+      <summary>Mit jemandem teilen</summary>
+      <p class="klein">Hat dir jemand, dem du vertraust, einen Teilen-Code oder -Link
+      geschickt? Füge ihn hier ein. Danach fragt Body Check dich auf „Tag“, ob dein
+      Tagebuch wirklich an diese Person gehen soll – vorher geht nichts weg.</p>
+      <input type="text" id="teilenCode" autocomplete="off" aria-label="Teilen-Code">
+      <div class="reihe">${knopf('teilen-code', 'Code einfügen')}</div>
+    </details>`;
+  }
+  const n = esc(kp.n);
+  return `<div class="karte teilen-karte">
+    <h3>Geteilt mit ${n}</h3>
+    <p class="klein">Dein Tagebuch geht an ${n}, sobald sich etwas ändert und Netz da ist.
+    Das ist die einzige Ausnahme davon, dass alles auf diesem Gerät bleibt.</p>
+    <p class="klein">Zuletzt geschickt: ${kp.zuletzt ? esc(fmtDatum(String(kp.zuletzt).slice(0, 10), true)) : 'noch nicht'}</p>
+    <div class="reihe">${knopf('teilen-beenden', 'Teilen beenden', 'btn-danger')}</div>
+  </div>`;
+}
+
 function mehrAnsicht(s) {
   if (ui.anleitung && istApfel()) return anleitungAnsicht(s);
   const gesichert = s.lastBackup
@@ -6082,6 +6134,7 @@ function mehrAnsicht(s) {
   ${istApfel() ? anleitungKarte() : ''}
   ${installKarte()}
   ${fassungKarte()}
+  ${teilenKarte()}
 
   <div class="karte">
     <h3>Sicherung</h3>
@@ -7791,8 +7844,9 @@ function willkommen() {
     ${zuerst}
     <ul class="punkte">
       <li><b>Bleibt hier.</b> Kein Konto, kein Server. Was du über deinen
-        Bauch einträgst, liegt auf diesem Gerät und geht nirgendwo hin. Einzige Ausnahme: Verbesserungsvorschläge unter „Ideen" – die
-        gehen an den, der die App gebaut hat, und dort steht das auch.</li>
+        Bauch einträgst, liegt auf diesem Gerät und geht nirgendwo hin. Ausnahmen: Verbesserungsvorschläge unter „Ideen" – die
+        gehen an den, der die App gebaut hat –, und das Teilen mit einer Person, dem du
+        selbst ausdrücklich zustimmst. Beides steht dort, wo es passiert.</li>
       <li><b>Läuft ohne Netz.</b> Einmal geöffnet, funktioniert die App auch
         im Flugzeug und im Keller.</li>
       <li><b>Sichern nicht vergessen.</b> Was nur auf einem Gerät liegt, ist
@@ -9882,6 +9936,42 @@ const AKTION = {
     datenAusgeben(ui.bericht || '', berichtName(plusTage(bis, -29), bis), 'text/plain');
   },
 
+  'teilen-ja': () => {
+    if (teilenZustimmen()) {
+      melden('Gut. Dein Tagebuch wird jetzt geteilt.');
+      teilenSenden(true);
+    }
+    zeichne();
+  },
+  'teilen-kopieren': () => {
+    const code = teilenWartetCode();
+    try {
+      navigator.clipboard.writeText(code).then(() => melden('Code kopiert.'), () => melden('Kopieren ging nicht.'));
+    } catch { melden('Kopieren ging nicht.'); }
+  },
+  'teilen-code': () => {
+    const feld = document.getElementById('teilenCode');
+    if (teilenAusCode(feld ? feld.value : '')) {
+      store.einstellen('tab', 'heute');
+    } else {
+      melden('Das ist kein gültiger Teilen-Code.');
+    }
+    zeichne();
+  },
+  'teilen-nein': () => {
+    teilenAblehnen();
+    melden('Gut. Es wird nichts geteilt.');
+    zeichne();
+  },
+  'teilen-beenden': () => {
+    if (!window.confirm('Teilen beenden? Body Check schickt dann nichts mehr und bittet darum, das Geteilte zu löschen.')) return;
+    teilenBeenden().then((ok) => {
+      melden(ok ? 'Teilen beendet. Das Geteilte wurde gelöscht.' : 'Teilen beendet. Löschen ging gerade nicht – ohne Netz?');
+      zeichne();
+    });
+    zeichne();
+  },
+
   'alles-weg': () => {
     // Zwei Fragen sind eine zu viel, keine ist eine zu wenig: Der Knopf steht
     // unter „Mehr" und löscht Monate.
@@ -10298,6 +10388,35 @@ try {
 // voran der Wechsel auf „kann nicht mehr speichern", den der Schreibvorgang
 // selbst feststellt.
 store.horche(zeichne);
+
+/*
+ * Teilen (js/teilen.js): Ein Kopplungslink (#teilen=…) wird gemerkt und die
+ * Adresse sauber gemacht; die Frage steht dann auf „Tag“. Eingeschaltet geht
+ * der Stand nach Änderungen (gebündelt), beim Weglegen und bei „online“ –
+ * und nur, wenn er sich geändert hat.
+ */
+function teilenAusAdresse() {
+  try {
+    if (teilenAusLink(location.hash)) {
+      store.einstellen('tab', 'heute');
+      window.history.replaceState(null, '', location.pathname + location.search);
+      zeichne();
+    }
+  } catch { /* dann eben nicht */ }
+}
+teilenAusAdresse();
+window.addEventListener('hashchange', teilenAusAdresse);
+let teilenUhr = 0;
+function teilenSenden(sofort = false) {
+  if (!teilenAktiv()) return;
+  clearTimeout(teilenUhr);
+  const los = () => { teilenMelden(store.alsJSON(), { fassung: 'v31' }).then((ok) => { if (ok && store.zustandLesen().tab === 'mehr') zeichne(); }); };
+  if (sofort) los(); else teilenUhr = setTimeout(los, 4000);
+}
+store.horche(() => teilenSenden());
+window.addEventListener('online', () => teilenSenden(true));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') teilenSenden(true); });
+teilenSenden(true);
 
 /*
  * Nach einem Neuladen wegen einer neuen Fassung: derselbe Tag, derselbe

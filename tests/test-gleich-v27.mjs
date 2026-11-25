@@ -54,7 +54,10 @@ function ohneBlock(zeilen, anfang, naechste) {
 function bereinigt(ansichten) {
   const raus = { ...ansichten };
   const mehr = ohneBlock(ansichten.mehr, 'Was Body Check mitdenken soll', 'Welche Fragen stellt der Tag?');
-  raus.mehr = mehr.zeilen.filter((z) => !/^Läuft: v\d+/.test(z));
+  // Fassung 31: die zugeklappte Karte „Mit jemandem teilen“ (js/teilen.js) –
+  // eine Zeile, nur ihre Überschrift; sonst bleibt „Mehr“ wie es war.
+  const teilenMal = mehr.zeilen.filter((z) => z === 'Mit jemandem teilen').length;
+  raus.mehr = mehr.zeilen.filter((z) => !/^Läuft: v\d+/.test(z) && z !== 'Mit jemandem teilen');
   raus.verlauf = ansichten.verlauf.map((z) => (z === 'nichts eingetragen oder zum Bauch nichts' ? 'nichts eingetragen' : z));
   const muster = ohneBlock(ansichten.muster, 'Was sich an deinen Zahlen geändert hat', 'Gelesen');
   raus.muster = muster.block ? muster.zeilen.filter((z, i) => !(i === muster.zeilen.indexOf('Gelesen'))) : ansichten.muster;
@@ -72,6 +75,7 @@ function bereinigt(ansichten) {
     neuMal: neu.mal,
     punktMal: punkt.mal,
     wortlautMal,
+    teilenMal,
   };
 }
 
@@ -556,8 +560,9 @@ function vergleiche(name, ist, soll) {
     'der Stand des Golds kennt die Schalter nicht – sie gelten als nie entschieden');
   const jetzt = await ansichtenLesen({ wurzel: ROOT, port: PORT, zustand });
   const {
-    raus, mehrKarte, musterKarte, neuMal, punktMal, wortlautMal,
+    raus, mehrKarte, musterKarte, neuMal, punktMal, wortlautMal, teilenMal,
   } = bereinigt(jetzt);
+  check(teilenMal === 1, 'unter „Mehr“ steht genau einmal die zugeklappte Karte „Mit jemandem teilen“');
   check(neuMal === 0, 'nach „Gelesen" steht oben auf „Tag" keine Karte „Neu"');
   const nie = WORTLAUT_30.filter((r) => !wortlautMal.get(r)).map((r) => `„${String(r.neu).slice(0, 40)}…“`);
   check(nie.length === 0,

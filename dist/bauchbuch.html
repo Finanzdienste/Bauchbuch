@@ -20346,7 +20346,8 @@ export async function entschluesseln(text, passwort) {
  *             und selbst abschickst."
  *
  * Was unverändert gilt und der eigentliche Grund für all das war:
- * **Gesundheitsdaten verlassen dieses Gerät nie.** Kein Eintrag, kein Tag,
+ * **Gesundheitsdaten verlassen dieses Gerät nie** – außer jemand stimmt dem
+ * Teilen mit einer Vertrauensperson selbst zu (js/teilen.js, Fassung 31). Kein Eintrag, kein Tag,
  * keine Auswertung, kein Bericht, keine Kennung, keine Zählung von Aufrufen.
  *
  * Und das ist keine Absichtserklärung:
@@ -20449,6 +20450,157 @@ export async function schicken(text) {
     grund = d && d.fehler ? String(d.fehler) : '';
   } catch { /* dann eben ohne */ }
   throw new Error(grund || `Ging nicht (${antwort.status}).`);
+}
+
+/* ===== js/teilen.js ===== */
+/*
+ * Teilen mit einer Vertrauensperson – die zweite und letzte Stelle, die nach
+ * draußen spricht, und die einzige, die ein Tagebuch verschickt.
+ *
+ * Wer Body Check einfach benutzt, merkt von dieser Datei nichts: Sie hat
+ * keine Adresse. Eine Adresse bekommt sie nur über einen Kopplungslink, den
+ * die Vertrauensperson schickt (…/Bauchbuch/#teilen=…). Öffnet man ihn, fragt
+ * die App auf „Tag“ ausdrücklich, ob das Tagebuch an diese Person gehen soll.
+ * Erst nach „Ja, teilen“ geht etwas weg; nach „Nein“ ist die Kopplung
+ * vergessen.
+ *
+ * Eingeschaltet schickt die App den ganzen Tagebuchstand (wie die Sicherung),
+ * aber nur, wenn er sich seit dem letzten Mal geändert hat. „Teilen beenden“
+ * unter „Mehr“ bittet das Ziel, den Stand zu löschen, und vergisst die
+ * Kopplung auf diesem Gerät – auch ohne Netz.
+ *
+ * Wie bei js/briefkasten.js: Dieses Modul importiert store.js nicht. Es
+ * bekommt den fertigen Text übergeben. Die Kopplung liegt im Gerätespeicher,
+ * nie im Tagebuch und nie in einer Sicherung – ein eingelesenes Tagebuch auf
+ * einem anderen Gerät teilt also nicht von selbst mit.
+ *
+ * Ziel ist eine Datenbankfunktion bei Supabase (rest/v1/rpc/…), die nur mit
+ * einem gültigen Kopplungsschlüssel schreibt; lesen kann dort nur die
+ * Vertrauensperson. Andere Ziele nimmt die App nicht an.
+ */
+
+const TEILEN_SCHLUESSEL = 'bauchbuch.teilen.v1';
+const TEILEN_WARTET = 'bauchbuch.teilen.wartet.v1';
+// Nur so ein Ziel wird angenommen: ein Supabase-Projekt, nichts anderes.
+const TEILEN_PROJEKT = /^[a-z0-9]{20}$/;
+const TEILEN_KOPPLUNG = /^[A-Za-z0-9]{24,64}$/;
+const TEILEN_OEFFENTLICH = /^[A-Za-z0-9_.-]{20,300}$/;
+
+const teilenLies = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const teilenSchreib = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* egal */ } };
+
+/** Prüft eine Kopplung aus dem Link; Unbrauchbares → null. */
+function teilenKopplungPruefen(roh) {
+  if (!roh || typeof roh !== 'object') return null;
+  const r = String(roh.r || ''); const k = String(roh.k || ''); const c = String(roh.c || '');
+  const n = String(roh.n || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 40);
+  if (!TEILEN_PROJEKT.test(r) || !TEILEN_OEFFENTLICH.test(k) || !TEILEN_KOPPLUNG.test(c) || !n) return null;
+  return { r, k, c, n };
+}
+
+/** Liest „#teilen=…“ aus der Adresse und merkt die Kopplung als „teilenWartet auf Ja“. */
+function teilenAusLink(hash) {
+  const m = /(?:^|[#&])teilen=([A-Za-z0-9_-]+)/.exec(String(hash || ''));
+  if (!m) return false;
+  let roh = null;
+  try {
+    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    roh = JSON.parse(decodeURIComponent(escape(atob(b64))));
+  } catch { return false; }
+  const kp = teilenKopplungPruefen(roh);
+  if (!kp) return false;
+  teilenSchreib(TEILEN_WARTET, { ...kp, code: m[1] });
+  return true;
+}
+
+/** Ein eingefügter Code – der ganze Link oder nur der Teil nach „teilen=“. */
+function teilenAusCode(text) {
+  const t = String(text || '').trim();
+  return teilenAusLink(t.includes('teilen=') ? t : `#teilen=${t}`);
+}
+
+/** Der Code der wartenden Kopplung zum Weitergeben in die App, oder ''. */
+function teilenWartetCode() {
+  const w = teilenLies(TEILEN_WARTET);
+  return w && teilenKopplungPruefen(w) && /^[A-Za-z0-9_-]+$/.test(String(w.code || '')) ? w.code : '';
+}
+
+/** Die Kopplung, die auf ein Ja teilenWartet, oder null. */
+const teilenWartet = () => teilenKopplungPruefen(teilenLies(TEILEN_WARTET));
+/** Die eingeschaltete Kopplung, oder null. */
+function teilenAktiv() {
+  const a = teilenLies(TEILEN_SCHLUESSEL);
+  const kp = a && teilenKopplungPruefen(a);
+  return kp ? { ...kp, zuletzt: a.zuletzt || null, abdruck: a.abdruck || '' } : null;
+}
+
+function teilenZustimmen() {
+  const kp = teilenWartet();
+  teilenSchreib(TEILEN_WARTET, null);
+  if (kp) teilenSchreib(TEILEN_SCHLUESSEL, { ...kp, zuletzt: null, abdruck: '' });
+  return !!kp;
+}
+function teilenAblehnen() { teilenSchreib(TEILEN_WARTET, null); }
+
+const teilenZiel = (kp, fn) => `https://${kp.r}.supabase.co/rest/v1/rpc/${fn}`;
+
+/** Ein kurzer Abdruck des Textes – nur, um Unverändertes nicht noch einmal zu schicken. */
+function teilenAbdruck(text) {
+  let h1 = 0x811c9dc5; let h2 = 0x01000193;
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
+    h2 = Math.imul(h2 + c, 2246822519) >>> 0;
+  }
+  return `${text.length}.${h1.toString(36)}.${h2.toString(36)}`;
+}
+
+let teilenLaeuft = false;
+/**
+ * Schickt den Tagebuchstand, wenn geteilt wird und er sich geändert hat.
+ * Wirft nie; ohne Netz eben beim nächsten Mal.
+ */
+export async function teilenMelden(text, { fassung = '', holen = (...a) => fetch(...a) } = {}) {
+  const kp = teilenAktiv();
+  if (!kp || teilenLaeuft || typeof text !== 'string') return false;
+  const ab = teilenAbdruck(text);
+  if (kp.abdruck === ab) return false;
+  let stand;
+  try { stand = JSON.parse(text); } catch { return false; }
+  teilenLaeuft = true;
+  try {
+    const res = await holen(teilenZiel(kp, 'bodycheck_melden'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', apikey: kp.k },
+      body: JSON.stringify({ p_kopplung: kp.c, p_stand: stand, p_fassung: String(fassung).slice(0, 20) }),
+      keepalive: text.length < 60000,
+    });
+    // Noch eingeschaltet? „Teilen teilenBeenden“ kann dazwischengekommen sein.
+    if (res.ok && teilenAktiv()) teilenSchreib(TEILEN_SCHLUESSEL, { ...kp, zuletzt: new Date().toISOString(), abdruck: ab });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    teilenLaeuft = false;
+  }
+}
+
+/** Teilen beenden: Ziel um Löschen bitten, Kopplung hier vergessen – auch ohne Netz. */
+export async function teilenBeenden({ holen = (...a) => fetch(...a) } = {}) {
+  const kp = teilenAktiv();
+  teilenSchreib(TEILEN_SCHLUESSEL, null);
+  teilenSchreib(TEILEN_WARTET, null);
+  if (!kp) return false;
+  try {
+    const res = await holen(teilenZiel(kp, 'bodycheck_beenden'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', apikey: kp.k },
+      body: JSON.stringify({ p_kopplung: kp.c }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 /* ===== js/bericht.js ===== */
@@ -23312,7 +23464,7 @@ function tagAnsicht(s) {
   ui.gezeigt = mitFrage || mitNeu
     ? { am: heuteISO(), rueckfrage: mitFrage ? frage.alleDran : [], neu: mitNeu } : null;
 
-  return alterNameKarte(s) + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
+  return alterNameKarte(s) + teilenFrageKarte() + umzugErgebnisKarte() + umzugHolenKarte(s) + startbildschirmKarte(s, 'tag')
     + kopf + jetztZeile(s, iso) + sicherungKarte(iso) + wechselKarte(s, iso)
     + (mitFrage ? rueckfrageKarte(frage, s) : '') + (mitNeu ? v29Karte(s) : '')
     + planZeile(s, iso) + versuchZeile(s, iso)
@@ -28054,6 +28206,55 @@ function speicherSatz() {
     + 'hast. Leg Body Check auf den Home-Bildschirm (siehe oben) und sichere.';
 }
 
+/*
+ * Teilen mit einer Vertrauensperson (js/teilen.js). Die Frage steht nur, wenn
+ * ein Kopplungslink geöffnet wurde; ohne Ja geht nichts weg.
+ */
+function teilenFrageKarte() {
+  const kp = teilenWartet();
+  if (!kp) return '';
+  const n = esc(kp.n);
+  return `<div class="karte karte-warn teilen-frage">
+    <h3>Dein Tagebuch mit ${n} teilen?</h3>
+    <p>Du hast einen Link von ${n} geöffnet. Wenn du zustimmst, schickt Body Check
+    dein ganzes Tagebuch an ${n}: alle Einträge, Mittel, Werte und Notizen –
+    jedes Mal, wenn sich etwas ändert und Netz da ist.</p>
+    <p class="klein">Bis du zustimmst, geht nichts weg. Unter „Mehr“ kannst du das
+    Teilen jederzeit beenden; dann bittet Body Check darum, es dort zu löschen.</p>
+    ${istApfel() && !laeuftAlsApp() ? `<p class="klein">Du trägst sonst in Body Check vom
+    Home-Bildschirm ein? Dann gilt das hier nicht für dieses Tagebuch: Kopiere den Code,
+    öffne Body Check vom Home-Bildschirm und füge ihn dort unter „Mehr“ › „Mit jemandem teilen“ ein.</p>
+    <div class="reihe">${knopf('teilen-kopieren', 'Code kopieren')}</div>` : ''}
+    <div class="reihe">
+      ${knopf('teilen-ja', 'Ja, teilen', 'btn-primary')}
+      ${knopf('teilen-nein', 'Nein', 'btn-ghost')}
+    </div>
+  </div>`;
+}
+
+function teilenKarte() {
+  const kp = teilenAktiv();
+  if (!kp) {
+    if (teilenWartet()) return '';
+    return `<details class="karte teilen-einrichten">
+      <summary>Mit jemandem teilen</summary>
+      <p class="klein">Hat dir jemand, dem du vertraust, einen Teilen-Code oder -Link
+      geschickt? Füge ihn hier ein. Danach fragt Body Check dich auf „Tag“, ob dein
+      Tagebuch wirklich an diese Person gehen soll – vorher geht nichts weg.</p>
+      <input type="text" id="teilenCode" autocomplete="off" aria-label="Teilen-Code">
+      <div class="reihe">${knopf('teilen-code', 'Code einfügen')}</div>
+    </details>`;
+  }
+  const n = esc(kp.n);
+  return `<div class="karte teilen-karte">
+    <h3>Geteilt mit ${n}</h3>
+    <p class="klein">Dein Tagebuch geht an ${n}, sobald sich etwas ändert und Netz da ist.
+    Das ist die einzige Ausnahme davon, dass alles auf diesem Gerät bleibt.</p>
+    <p class="klein">Zuletzt geschickt: ${kp.zuletzt ? esc(fmtDatum(String(kp.zuletzt).slice(0, 10), true)) : 'noch nicht'}</p>
+    <div class="reihe">${knopf('teilen-beenden', 'Teilen beenden', 'btn-danger')}</div>
+  </div>`;
+}
+
 function mehrAnsicht(s) {
   if (ui.anleitung && istApfel()) return anleitungAnsicht(s);
   const gesichert = s.lastBackup
@@ -28076,6 +28277,7 @@ function mehrAnsicht(s) {
   ${istApfel() ? anleitungKarte() : ''}
   ${installKarte()}
   ${fassungKarte()}
+  ${teilenKarte()}
 
   <div class="karte">
     <h3>Sicherung</h3>
@@ -29785,8 +29987,9 @@ function willkommen() {
     ${zuerst}
     <ul class="punkte">
       <li><b>Bleibt hier.</b> Kein Konto, kein Server. Was du über deinen
-        Bauch einträgst, liegt auf diesem Gerät und geht nirgendwo hin. Einzige Ausnahme: Verbesserungsvorschläge unter „Ideen" – die
-        gehen an den, der die App gebaut hat, und dort steht das auch.</li>
+        Bauch einträgst, liegt auf diesem Gerät und geht nirgendwo hin. Ausnahmen: Verbesserungsvorschläge unter „Ideen" – die
+        gehen an den, der die App gebaut hat –, und das Teilen mit einer Person, dem du
+        selbst ausdrücklich zustimmst. Beides steht dort, wo es passiert.</li>
       <li><b>Läuft ohne Netz.</b> Einmal geöffnet, funktioniert die App auch
         im Flugzeug und im Keller.</li>
       <li><b>Sichern nicht vergessen.</b> Was nur auf einem Gerät liegt, ist
@@ -31876,6 +32079,42 @@ const AKTION = {
     datenAusgeben(ui.bericht || '', berichtName(plusTage(bis, -29), bis), 'text/plain');
   },
 
+  'teilen-ja': () => {
+    if (teilenZustimmen()) {
+      melden('Gut. Dein Tagebuch wird jetzt geteilt.');
+      teilenSenden(true);
+    }
+    zeichne();
+  },
+  'teilen-kopieren': () => {
+    const code = teilenWartetCode();
+    try {
+      navigator.clipboard.writeText(code).then(() => melden('Code kopiert.'), () => melden('Kopieren ging nicht.'));
+    } catch { melden('Kopieren ging nicht.'); }
+  },
+  'teilen-code': () => {
+    const feld = document.getElementById('teilenCode');
+    if (teilenAusCode(feld ? feld.value : '')) {
+      store.einstellen('tab', 'heute');
+    } else {
+      melden('Das ist kein gültiger Teilen-Code.');
+    }
+    zeichne();
+  },
+  'teilen-nein': () => {
+    teilenAblehnen();
+    melden('Gut. Es wird nichts geteilt.');
+    zeichne();
+  },
+  'teilen-beenden': () => {
+    if (!window.confirm('Teilen beenden? Body Check schickt dann nichts mehr und bittet darum, das Geteilte zu löschen.')) return;
+    teilenBeenden().then((ok) => {
+      melden(ok ? 'Teilen beendet. Das Geteilte wurde gelöscht.' : 'Teilen beendet. Löschen ging gerade nicht – ohne Netz?');
+      zeichne();
+    });
+    zeichne();
+  },
+
   'alles-weg': () => {
     // Zwei Fragen sind eine zu viel, keine ist eine zu wenig: Der Knopf steht
     // unter „Mehr" und löscht Monate.
@@ -32292,6 +32531,35 @@ try {
 // voran der Wechsel auf „kann nicht mehr speichern", den der Schreibvorgang
 // selbst feststellt.
 store.horche(zeichne);
+
+/*
+ * Teilen (js/teilen.js): Ein Kopplungslink (#teilen=…) wird gemerkt und die
+ * Adresse sauber gemacht; die Frage steht dann auf „Tag“. Eingeschaltet geht
+ * der Stand nach Änderungen (gebündelt), beim Weglegen und bei „online“ –
+ * und nur, wenn er sich geändert hat.
+ */
+function teilenAusAdresse() {
+  try {
+    if (teilenAusLink(location.hash)) {
+      store.einstellen('tab', 'heute');
+      window.history.replaceState(null, '', location.pathname + location.search);
+      zeichne();
+    }
+  } catch { /* dann eben nicht */ }
+}
+teilenAusAdresse();
+window.addEventListener('hashchange', teilenAusAdresse);
+let teilenUhr = 0;
+function teilenSenden(sofort = false) {
+  if (!teilenAktiv()) return;
+  clearTimeout(teilenUhr);
+  const los = () => { teilenMelden(store.alsJSON(), { fassung: 'v31' }).then((ok) => { if (ok && store.zustandLesen().tab === 'mehr') zeichne(); }); };
+  if (sofort) los(); else teilenUhr = setTimeout(los, 4000);
+}
+store.horche(() => teilenSenden());
+window.addEventListener('online', () => teilenSenden(true));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') teilenSenden(true); });
+teilenSenden(true);
 
 /*
  * Nach einem Neuladen wegen einer neuen Fassung: derselbe Tag, derselbe
