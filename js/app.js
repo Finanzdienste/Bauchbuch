@@ -6095,10 +6095,10 @@ function teilenKarte() {
     if (teilenWartet()) return '';
     return `<details class="karte teilen-einrichten">
       <summary>Mit jemandem teilen</summary>
-      <p class="klein">Hat dir jemand, dem du vertraust, einen Teilen-Code oder -Link
-      geschickt? Füge ihn hier ein. Danach fragt Body Check dich auf „Tag“, ob dein
+      <p class="klein">Hat dir jemand, dem du vertraust, einen Code oder Link geschickt,
+      damit du dein Tagebuch mit ihm teilen kannst? Füge ihn hier ein. Danach fragt Body Check dich auf „Tag“, ob dein
       Tagebuch wirklich an diese Person gehen soll – vorher geht nichts weg.</p>
-      <input type="text" id="teilenCode" autocomplete="off" aria-label="Teilen-Code">
+      <input type="text" id="teilenCode" autocomplete="off" aria-label="Code oder Link">
       <div class="reihe">${knopf('teilen-code', 'Code einfügen')}</div>
     </details>`;
   }
@@ -9954,7 +9954,7 @@ const AKTION = {
     if (teilenAusCode(feld ? feld.value : '')) {
       store.einstellen('tab', 'heute');
     } else {
-      melden('Das ist kein gültiger Teilen-Code.');
+      melden('Das ist kein gültiger Code.');
     }
     zeichne();
   },
