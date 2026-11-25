@@ -30,8 +30,8 @@
  * dem Startbildschirm.
  */
 
-const VERSION = 'v31';
-const STAND = 'bf11b2d4b698';
+const VERSION = 'v32';
+const STAND = '0c96d1349ac9';
 const CACHE = `bauchbuch-${VERSION}-${STAND}`;
 
 const SHELL = [

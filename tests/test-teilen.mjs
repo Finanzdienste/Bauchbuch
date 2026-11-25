@@ -172,5 +172,45 @@ async function neu({ antwort = 200 } = {}) {
   await ctx.close();
 }
 
+/* ---------- 7. Die Einladung: einmal, nur mit Einträgen, ohne Ja nichts ---------- */
+{
+  const ctx = await browser.newContext({ viewport: HANDY, serviceWorkers: 'block' });
+  await ctx.addInitScript(() => { window.__einladungProbe = true; });
+  const page = await ctx.newPage();
+  const fremd = [];
+  await page.route('**://**', (route) => {
+    const r = route.request();
+    if (r.url().startsWith(eigen)) return route.continue();
+    fremd.push({ url: r.url(), rumpf: r.postData() || '' });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: '1' });
+  });
+  await page.goto(URL, { waitUntil: 'networkidle' });
+  await page.evaluate(([k]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ begruesst: true, tab: 'heute', eintraege: [], tage: {} })); }, [KEY]);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+  check(await page.locator('.teilen-frage').count() === 0, 'Einladung: ein leeres Tagebuch wird nicht gefragt');
+  await page.evaluate(([k, z]) => localStorage.setItem(k, JSON.stringify(z)), [KEY, ZUSTAND]);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+  check(await page.locator('.teilen-frage').count() === 1
+    && (await page.locator('.teilen-frage').innerText()).includes('mit Tobi teilen'), 'Einladung: mit Einträgen steht die Frage von selbst da');
+  await page.waitForTimeout(4500);
+  check(fremd.length === 0, 'Einladung: vor dem Ja geht nichts weg');
+  await page.locator('[data-act="teilen-nein"]').click();
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+  check(await page.locator('.teilen-frage').count() === 0 && fremd.length === 0, 'Einladung: nach „Nein“ kommt sie nie wieder');
+  await page.evaluate(() => localStorage.removeItem('bauchbuch.teilen.eingeladen.v1'));
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+  await page.locator('[data-act="teilen-ja"]').click();
+  await page.waitForTimeout(600);
+  let r = {};
+  try { r = JSON.parse(fremd[0].rumpf); } catch { /* leer */ }
+  check(fremd.length === 1 && fremd[0].url.endsWith('/rest/v1/rpc/bodycheck_melden') && /^[a-z0-9]{8,32}$/.test(r.p_geraet || ''),
+    'Einladung: nach „Ja“ genau ein Versand, mit einer Zufallskennung des Geräts');
+  await ctx.close();
+}
+
 await browser.close();
 ende();

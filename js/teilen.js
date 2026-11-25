@@ -31,6 +31,20 @@ const TEILEN_PROJEKT = /^[a-z0-9]{20}$/;
 const TEILEN_KOPPLUNG = /^[A-Za-z0-9]{24,64}$/;
 const TEILEN_OEFFENTLICH = /^[A-Za-z0-9_.-]{20,300}$/;
 
+const TEILEN_GERAET = 'bauchbuch.teilen.geraet.v1';
+
+/** Eine Zufallskennung dieses Geräts (kein Name) – je Gerät eine Zeile beim Ziel. */
+function teilenGeraet() {
+  try {
+    let id = localStorage.getItem(TEILEN_GERAET);
+    if (!/^[a-z0-9]{8,32}$/.test(id || '')) {
+      id = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => (b % 36).toString(36)).join('');
+      localStorage.setItem(TEILEN_GERAET, id);
+    }
+    return id;
+  } catch { return 'ohnespeicher'; }
+}
+
 const teilenLies = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
 const teilenSchreib = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* egal */ } };
 
@@ -117,7 +131,7 @@ export async function teilenMelden(text, { fassung = '', holen = (...a) => fetch
     const res = await holen(teilenZiel(kp, 'bodycheck_melden'), {
       method: 'POST',
       headers: { 'content-type': 'application/json', apikey: kp.k },
-      body: JSON.stringify({ p_kopplung: kp.c, p_stand: stand, p_fassung: String(fassung).slice(0, 20) }),
+      body: JSON.stringify({ p_kopplung: kp.c, p_stand: stand, p_fassung: String(fassung).slice(0, 20), p_geraet: teilenGeraet() }),
       keepalive: text.length < 60000,
     });
     // Noch eingeschaltet? „Teilen teilenBeenden“ kann dazwischengekommen sein.
@@ -140,7 +154,7 @@ export async function teilenBeenden({ holen = (...a) => fetch(...a) } = {}) {
     const res = await holen(teilenZiel(kp, 'bodycheck_beenden'), {
       method: 'POST',
       headers: { 'content-type': 'application/json', apikey: kp.k },
-      body: JSON.stringify({ p_kopplung: kp.c }),
+      body: JSON.stringify({ p_kopplung: kp.c, p_geraet: teilenGeraet() }),
     });
     return res.ok;
   } catch {

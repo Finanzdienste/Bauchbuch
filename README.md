@@ -1708,6 +1708,16 @@ bleibt, wie es erzeugt wurde: `tests/test-gleich-v27.mjs` gibt dieser einen
 Zeile vor dem Vergleich ihren zweiten Punkt zurück und prüft für sich, dass
 nur noch einer dasteht.
 
+### Neu in der Fassung 32
+
+**Die Frage zum Teilen kommt einmal von selbst.** Die veröffentlichte App
+stellt die Frage „Dein Tagebuch mit … teilen?“ einmal beim Öffnen, wenn das
+Tagebuch Einträge hat – ohne dass jemand einen Code schicken muss. Vor „Ja,
+teilen“ geht weiterhin nichts weg, und nach einer Antwort kommt die Frage nie
+wieder. Beim Ziel bekommt jedes Gerät eine eigene Zeile (Zufallskennung, kein
+Name); ein fremdes Gerät überschreibt also nichts. Geprüft in
+tests/test-teilen.mjs, Abschnitt 7.
+
 ### Neu in der Fassung 31
 
 **Teilen mit einer Vertrauensperson – nur, wenn du zustimmst.** Wer möchte,
