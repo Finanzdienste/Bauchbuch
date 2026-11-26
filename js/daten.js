@@ -212,6 +212,8 @@ export const BESCHWERDEN = [
   { id: 'krampf', name: 'Bauchschmerz, Krämpfe', icon: '⚡' },
   { id: 'saettigung', name: 'Früh satt', icon: '🥄' },
   { id: 'appetit', name: 'Kein Appetit', icon: '🍽️' },
+  // Fassung 34: auf Wunsch dazu. Zählt wie jede Art, geht in keine Kriterien ein.
+  { id: 'schluckauf', name: 'Schluckauf', icon: '〰️' },
 ];
 
 /*
