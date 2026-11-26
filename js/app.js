@@ -7601,8 +7601,10 @@ function bogenHTML(s) {
       <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
         <summary>War etwas davon dabei?</summary>
         <p class="klein">Selten, aber wichtig. Bei einem Kopfschmerz, der
-        schlagartig so stark war wie nie, Kopfschmerz mit Fieber und steifem Nacken,
-        plötzlichen Ausfällen wie Lähmung oder Sprachstörung oder erbrochenem Blut:
+        schlagartig so stark war wie nie; Kopfschmerz mit Fieber und steifem Nacken;
+        Ausfällen wie Lähmung, Taubheit einer Körperseite, Sprachstörung, Sehverlust
+        oder Verwirrtheit, wenn sie plötzlich kommen, länger als eine Stunde bleiben
+        oder anders sind als deine gewohnte Aura; erbrochenem Blut:
         nicht auf einen Termin warten – Notaufnahme oder 112. Was hier angekreuzt
         wird, taucht nicht in der Statistik auf, sondern ganz oben unter „Muster" –
         mit dem Hinweis, wie eilig es ist.</p>

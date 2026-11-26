@@ -203,7 +203,7 @@ export const WARNZEICHEN = [
     dringlichkeit: 'zeitnah',
     bereich: 'kopf',
     /*
-     * gesund.bund.de/gehirnerschuetterung-bei-erwachsenen (mit IQWiG, Stand
+     * gesund.bund.de/gehirnerschuetterung-erwachsene (mit IQWiG, Stand
      * 20.04.2021): „Bei Beschwerden wie Bewusstlosigkeit, Gedächtnislücken,
      * anhaltendem Erbrechen oder Schwindel gilt es, einen Notarzt zu rufen";
      * als Bewusstseinstrübung nennt die Seite Menschen, die „orientierungslos,
