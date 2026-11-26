@@ -14,9 +14,9 @@
  *      herauskommen – und der Satz muss sagen, dass Weglassen zu viel wäre.
  *   2. AUCH IN KLEINER MENGE. Schon die Würze schlägt durch. Dann darf keine
  *      Entwarnung für kleine Mengen kommen.
- *   3. IN JEDER MENGE HARMLOS. Auch als Hauptzutat nichts. Das ist die
- *      wertvollste Entlastung, die es hier gibt – aber nur so viel wert wie
- *      die größte geprüfte Menge.
+ *   3. IN JEDER MENGE HARMLOS. Auch als Hauptzutat nichts. Das sagt die
+ *      App so – aber ohne Freispruch für die Zutat, und nur so weit wie die
+ *      größte geprüfte Menge.
  *   4. IMMER DIESELBE ROLLE. Der häufigste Fall im echten Leben. Dann gibt es
  *      keine Antwort, und der Satz sagt, was fehlt – ohne Rat, es kleiner zu
  *      essen (seit der Fassung 30, Belege in js/dosis.js).
@@ -129,9 +129,15 @@ const harmlos = await dosis(bauen({
 }));
 check(harmlos.urteil === 'unauffaellig', `nichts fällt auf (${harmlos.urteil})`);
 check(harmlos.bisStufe === 'haupt', 'geprüft bis zur größten Menge');
+/*
+ * Seit der Fassung 33 kein „das spricht gegen diese Zutat als Auslöser" mehr:
+ * Die Hauptkarte zeigt dieselbe Zutat als auffällig, und bei einer Allergie
+ * reichen laut gesund.bund.de schon kleine Mengen (Beleg in js/dosis.js).
+ */
 check(
-  /spricht gegen/.test(harmlos.satz),
-  'und das ist dann auch eine Aussage, keine Verlegenheit',
+  !/spricht gegen/.test(harmlos.satz) && harmlos.satz.includes('in diesen Mahlzeiten nichts aufgefallen')
+    && harmlos.satz.includes('das kann die Praxis einordnen'),
+  `und es wird kein Freispruch daraus (${harmlos.satz.slice(0, 60)}…)`,
 );
 
 /*

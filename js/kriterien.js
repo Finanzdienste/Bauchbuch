@@ -271,9 +271,29 @@ function dyspepsie(d) {
  * Magen". Beides steht nirgends mehr in der Anzeige; `schwelle` und
  * `wahrscheinlich` werden weiter gerechnet, aber nicht als Deutung
  * ausgegeben (js/app.js, js/bericht.js, js/luecken.js).
+ *
+ * Zwei Posten zählen mehr, als der Fragebogen fragt, und heißen seit der
+ * Fassung 33 danach. Der erste zählt neben „Sodbrennen" auch das allgemeine
+ * „Brennen" aus dem Beschwerdebogen – der Fragebogen fragt nach Brennen
+ * hinter dem Brustbein. Der letzte zählt jeden Tag mit einem säurewirksamen
+ * Mittel, auch einem verordneten – der Fragebogen meint Mittel, die
+ * zusätzlich genommen werden: „additional over-the-counter medication for
+ * heartburn and/or regurgitation" (Abstract, PMID 24466449); bei Menschen,
+ * die schon einen Säureblocker nehmen, „over-the-counter medication use"
+ * (Abstract, PMID 23611985). Bis zur Fassung 32 hießen die Posten wie die
+ * Fragen des Fragebogens, und der Kommentar unten behauptete, eine verordnete
+ * Tablette zähle dort genauso. Die Zählung selbst ist unverändert, damit die
+ * Punktzahl dieselbe bleibt wie in früheren Fassungen; dass sie dadurch
+ * höher liegen kann als im Fragebogen, steht als Vorbehalt in der
+ * Kriterienkarte (js/app.js) und im Bericht (js/bericht.js).
  */
 const GERDQ_POSTEN = [
-  { id: 'sodbrennen', frage: 'Brennen hinter dem Brustbein', arten: ['sodbrennen', 'brennen'], richtung: 1 },
+  {
+    id: 'sodbrennen',
+    frage: 'Sodbrennen oder anderes Brennen',
+    arten: ['sodbrennen', 'brennen'],
+    richtung: 1,
+  },
   { id: 'aufstossen', frage: 'Aufstoßen, Rückfluss in den Mund', arten: ['aufstossen'], richtung: 1 },
   { id: 'oberbauch', frage: 'Schmerz in der Magengrube', arten: ['oberbauch'], richtung: -1 },
   { id: 'uebelkeit', frage: 'Übelkeit', arten: ['uebelkeit'], richtung: -1 },
@@ -314,16 +334,16 @@ function gerdq(d) {
     umgekehrt: false,
   });
 
-  // Tage mit einem säurewirksamen Mittel. Der Fragebogen zielt auf die frei
-  // gekaufte Tablette gegen die Beschwerden – eine dauerhaft verordnete zählt
-  // dort genauso, und unterscheiden kann das Tagebuch beides nicht.
+  // Tage mit einem säurewirksamen Mittel, verordnet oder nicht. Der
+  // Fragebogen meint Mittel, die zusätzlich genommen werden (siehe oben); das
+  // Tagebuch trennt beides nicht, und der Name des Postens sagt das.
   const mittelTage = [...new Set((d.eintraege || [])
     .filter((e) => e.art === 'medikament' && inFenster(e.am, von, d.bis)
       && d.istSaeuremittel(e.mittel))
     .map((e) => e.am))].length;
   posten.push({
     id: 'mittel',
-    frage: 'Ein Mittel gegen die Beschwerden genommen',
+    frage: 'Ein säurewirksames Mittel genommen, auch ein verordnetes',
     tage: mittelTage,
     punkte: gerdqPunkt(mittelTage),
     umgekehrt: false,
@@ -382,6 +402,33 @@ export function kriterien(d) {
     reizdarm: reizdarm(basis),
     dyspepsie: dyspepsie(basis),
     gerdq: gerdq(basis),
+  };
+}
+
+/**
+ * Was beim Reizdarm angezeigt wird – mit der Zeitbedingung.
+ *
+ * `reizdarm.erfuellt` rechnet nur Schmerz und Merkmale; das bleibt so, damit
+ * die Rechnung dieselbe ist wie bisher. Rom IV verlangt aber auch den Beginn
+ * vor mindestens sechs Monaten (siehe 3. oben: „symptom onset at least 6
+ * months before diagnosis"). Bis zur Fassung 32 stand „Kriterien erfüllt"
+ * auch dann, wenn dieser Beginn gar nicht eingetragen oder noch nicht
+ * erreicht war. Seit der Fassung 33 heißt es nur mit erfüllter Zeitbedingung
+ * so; sonst sagt der Satz, was fehlt. Die Kriterienkarte, der Bericht und
+ * „Was keine App beantwortet" lesen alle hier.
+ *
+ * @returns {{ erfuellt: boolean, wort: string }}
+ */
+export function reizdarmUrteil(k) {
+  const r = k.reizdarm;
+  if (!r.pruefbar) return { erfuellt: false, wort: 'noch nicht prüfbar' };
+  if (!r.erfuellt) return { erfuellt: false, wort: 'Kriterien nicht erfüllt' };
+  if (k.dauer && k.dauer.erfuellt === true) return { erfuellt: true, wort: 'Kriterien erfüllt' };
+  return {
+    erfuellt: false,
+    wort: (k.dauer && k.dauer.erfuellt === false)
+      ? 'Schmerz und Merkmale erfüllt – der Beginn vor mindestens sechs Monaten ist noch nicht erreicht'
+      : 'Schmerz und Merkmale erfüllt – der Beginn vor mindestens sechs Monaten ist nicht eingetragen',
   };
 }
 

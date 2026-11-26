@@ -35,6 +35,7 @@
  * dem Verdacht, nicht mehr als „dafür" oder „dagegen", und bestimmen den
  * Stand nicht mehr. Quellen für den neuen Wortlaut stehen jeweils am Satz.
  */
+import { reizdarmUrteil } from './kriterien.js';
 
 /** Wie weit ein Verdacht aus dem Tagebuch heraus gestützt ist. */
 export const STAND_WORT = {
@@ -246,7 +247,9 @@ const VERDAECHTE = [
    * keines zeigt; mit Muster sagt sie nur, was es zählt (Beschwerden erst
    * vier Stunden oder länger nach dem Essen), kein „bessert sich danach". Den
    * schwarzen, klebrigen Stuhl stuft js/bild.js als „sofort" ein; dafür steht
-   * der Satz der Warnkarte.
+   * der Satz der Warnkarte. Seit der Fassung 33 auch für erbrochenes Blut, das
+   * gesund.bund.de beim Magengeschwür ebenso als Zeichen einer Blutung nennt
+   * und das js/bild.js (bluterbrechen) ebenfalls „sofort" einstuft.
    */
   {
     id: 'ulkus',
@@ -292,7 +295,8 @@ const VERDAECHTE = [
         dafuer,
         dagegen: [],
         offen: 'Ein Geschwür sieht man, man errechnet es nicht. Bei schwarzem, '
-          + 'klebrigem Stuhl nicht auf einen Termin warten – Notaufnahme oder 112. '
+          + 'klebrigem Stuhl oder wenn du Blut oder kaffeesatzartige Masse erbrichst: '
+          + 'nicht auf einen Termin warten – Notaufnahme oder 112. '
           + 'Zeichen einer Blutarmut gehören laut gesund.bund.de zeitnah ärztlich '
           + 'abgeklärt.',
       };
@@ -473,11 +477,13 @@ const VERDAECHTE = [
       }
       if (r.typ.typ) dafuer.push(`Stuhlform: ${r.typ.name}.`);
       let stand = 'offen';
-      if (r.erfuellt) stand = 'gestuetzt';
+      // „Erfüllt" nur mit der Zeitbedingung, wie im Kasten (reizdarmUrteil).
+      const erfuellt = reizdarmUrteil(d.kriterien).erfuellt;
+      if (erfuellt) stand = 'gestuetzt';
       else if (r.pruefbar && dafuer.length) stand = 'moeglich';
       else if (r.pruefbar) stand = 'unwahrscheinlich';
       // „Erfüllt" nur, wenn der Kasten unter „Kriterien" es auch sagt.
-      const frage = r.erfuellt
+      const frage = erfuellt
         ? 'In meinem Tagebuch sind die Rom-IV-Kriterien für ein Reizdarmsyndrom '
           + 'erfüllt – sind andere Ursachen wie eine Zöliakie oder eine Entzündung im '
           + 'Darm schon abgeklärt worden, etwa mit einem Calprotectin-Test?'
@@ -497,8 +503,17 @@ const VERDAECHTE = [
   {
     id: 'unvertraeglich',
     name: 'Laktose- oder Fruktoseunverträglichkeit',
+    /*
+     * gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026): „Die Beschwerden
+     * treten frühestens eine halbe Stunde nach Verzehr von laktosehaltigen
+     * Lebensmitteln auf. Am stärksten sind sie nach etwa eineinhalb bis zwei
+     * Stunden. Sie können über mehrere Stunden andauern." Bis zur Fassung 32:
+     * „meist Stunden nach dem Essen".
+     */
     was: 'Ein Zucker wird im Dünndarm nicht aufgenommen und im Dickdarm vergoren. '
-      + 'Gas, Krämpfe, Durchfall – meist Stunden nach dem Essen.',
+      + 'Gas, Krämpfe, Durchfall – bei Laktose laut gesund.bund.de frühestens eine '
+      + 'halbe Stunde nach dem Essen, am stärksten nach etwa eineinhalb bis zwei '
+      + 'Stunden; sie können über mehrere Stunden andauern.',
     /*
      * gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026, „Wie wird eine
      * Laktoseintoleranz diagnostiziert?"): „Atemtest: Nach dem Trinken einer
@@ -560,10 +575,15 @@ const VERDAECHTE = [
      * diet for 6–12 months." Bis zur Fassung 29: „wer vorher weglässt,
      * bekommt ein falsch unauffälliges Ergebnis" – so zwingend sagt es die
      * Quelle nicht; welche Antikörper bestimmt werden, nennt sie nicht.
+     * Seit der Fassung 33 dazu, ebenfalls S. 4: „Intestinal damage begins to
+     * heal within weeks of gluten being removed from the diet, and antibody
+     * levels decline over months."
      */
     untersuchung: 'Bluttest auf Antikörper, danach Spiegelung mit Gewebeprobe. '
       + '**Laut EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon 6 bis 12 '
-      + 'Monate glutenfrei gegessen wurde.**',
+      + 'Monate glutenfrei gegessen wurde.** Laut derselben Quelle beginnt die '
+      + 'Darmschleimhaut schon wenige Wochen nach dem Weglassen zu heilen, und die '
+      + 'Antikörper sinken über Monate.',
     frage: 'Ist Zöliakie schon einmal ausgeschlossen worden?',
     pruefe: (d) => {
       const dafuer = [];

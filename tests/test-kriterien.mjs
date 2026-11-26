@@ -162,6 +162,18 @@ check(
   !(await gerd.getAttribute('class')).includes('erfuellt'),
   'der GerdQ-Kasten wird nie als „erfüllt“ markiert',
 );
+/*
+ * W12, Fassung 33: Zwei Posten zählen mehr, als der Fragebogen fragt – auch
+ * anderes Brennen und verordnete Säuremittel. Sie heißen danach, und der
+ * Kasten sagt, dass die Punktzahl dadurch höher liegen kann (Belege an
+ * GERDQ_POSTEN in js/kriterien.js). Die Zählung ist dieselbe wie bisher.
+ */
+check(
+  gText.includes('Sodbrennen oder anderes Brennen') && !gText.includes('Brennen hinter dem Brustbein –')
+    && gText.includes('Ein säurewirksames Mittel genommen, auch ein verordnetes')
+    && gText.includes('Die Punktzahl kann dadurch höher liegen als im Fragebogen'),
+  'die GerdQ-Posten heißen nach dem, was gezählt wird, mit sichtbarem Vorbehalt',
+);
 
 /* ---------- Die Vorbehalte ---------- */
 
@@ -208,6 +220,36 @@ check(
     .includes('fehlt dem Reizdarm-Kasten darunter eine Bedingung'),
   'und zwar dem Kasten darunter – früher hieß es „beiden Kästen oben“',
 );
+
+/*
+ * W11, Fassung 33: Ohne erfüllte Zeitbedingung steht kein „Kriterien
+ * erfüllt" mehr – weder im Kasten noch im Bericht noch unter „Was keine App
+ * beantwortet" –, sondern was fehlt (reizdarmUrteil in js/kriterien.js).
+ */
+{
+  const ohneSeit = await text(page.locator('.krit', { hasText: 'Reizdarmsyndrom' }));
+  check(!ohneSeit.includes('Kriterien erfüllt')
+    && ohneSeit.includes('Schmerz und Merkmale erfüllt – der Beginn vor mindestens sechs Monaten ist nicht eingetragen'),
+  `ohne „seit wann“: kein „Kriterien erfüllt“, sondern was fehlt (${ohneSeit.slice(0, 120)}…)`);
+  const jung = vorTagen(40).slice(0, 7);
+  await setze({
+    begruesst: true, tab: 'muster', eintraege, tage, fenster: 4, mindestFaelle: 5, beschwerdenSeit: jung,
+    tagesfragen: ['stress', 'schlaf', 'nachtwach'],
+  });
+  const zuJung = await text(page.locator('.krit', { hasText: 'Reizdarmsyndrom' }));
+  check(!zuJung.includes('Kriterien erfüllt') && zuJung.includes('ist noch nicht erreicht'),
+    `Beginn vor weniger als sechs Monaten: „noch nicht erreicht“ (${zuJung.slice(0, 120)}…)`);
+  const { arztBericht } = await import('../js/bericht.js');
+  const heute = vorTagen(0);
+  const zettel = arztBericht({ eintraege, tage, fenster: 4, mindestFaelle: 5, beschwerdenSeit: jung }, vorTagen(89), heute)
+    .replace(/\s+/g, ' ');
+  check(!zettel.includes('Kriterien erfüllt') && zettel.includes('Schmerz und Merkmale erfüllt')
+    && zettel.includes('noch nicht erreicht'),
+  'auch der Bericht schreibt ohne die Zeitbedingung kein „Kriterien erfüllt“');
+  const mitSeit = arztBericht({ eintraege, tage, fenster: 4, mindestFaelle: 5, beschwerdenSeit: '2023-01' }, vorTagen(89), heute);
+  check(mitSeit.includes('Rom IV, Reizdarmsyndrom       Kriterien erfüllt'),
+    'mit erfüllter Zeitbedingung steht es da wie bisher');
+}
 
 /* ---------- Zu kurzes Tagebuch: gar keine Behauptung ---------- */
 

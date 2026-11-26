@@ -255,6 +255,7 @@ check(
     ...d,
     kriterien: {
       ...d.kriterien,
+      dauer: { seit: '2024-01', monate: 30, erfuellt: true },
       reizdarm: {
         pruefbar: true, schmerzErfuellt: true, schmerzTage: 30, proWoche: 3.5,
         merkmale: [], typ: { typ: null, fehlt: 5 }, erfuellt: true,
@@ -264,6 +265,21 @@ check(
   const rdJa = lErfuellt.verdaechte.find((v) => v.id === 'reizdarm');
   check(rdJa.stand === 'gestuetzt' && rdJa.frage.includes('Rom-IV-Kriterien für ein Reizdarmsyndrom erfüllt'),
     `Reizdarm erfüllt: dann und nur dann sagt die Frage es (${rdJa.frage})`);
+  // W11, Fassung 33: Ohne erfüllte Zeitbedingung kein „erfüllt“ und kein „passt zum Verlauf“.
+  const lOhneBeginn = luecken({
+    ...d,
+    kriterien: {
+      ...d.kriterien,
+      dauer: { seit: null, monate: null, erfuellt: null },
+      reizdarm: {
+        pruefbar: true, schmerzErfuellt: true, schmerzTage: 30, proWoche: 3.5,
+        merkmale: [], typ: { typ: null, fehlt: 5 }, erfuellt: true,
+      },
+    },
+  });
+  const rdOhne = lOhneBeginn.verdaechte.find((v) => v.id === 'reizdarm');
+  check(rdOhne.stand !== 'gestuetzt' && !/erfüllt/.test(rdOhne.frage || ''),
+    `Schmerz und Merkmale ja, Beginn nicht eingetragen: kein „erfüllt“ (${rdOhne.stand})`);
 
   /*
    * Mit Gastritis Typ C und einem Schmerzmittel: was feststeht und was nicht –
@@ -298,6 +314,17 @@ check(
     `ohne Nüchternmuster behauptet die Frage keines (${ulkus.frage})`);
   check(ulkus.offen.includes('nicht auf einen Termin warten – Notaufnahme oder 112'),
     'schwarzer, klebriger Stuhl mit dem Satz der Warnkarte');
+  // W1–W3, Fassung 33 (Belege an den Verdachten in js/luecken.js).
+  check(ulkus.offen.includes('wenn du Blut oder kaffeesatzartige Masse erbrichst: nicht auf einen Termin warten'),
+    'Geschwür: auch erbrochenes Blut ist ein Notfallzeichen, nicht nur schwarzer Stuhl');
+  const alle = luecken(d).verdaechte;
+  const zucker = alle.find((v) => v.id === 'unvertraeglich');
+  check(zucker && zucker.was.includes('frühestens eine halbe Stunde') && !zucker.was.includes('meist Stunden nach dem Essen'),
+    'Laktose: Beschwerden frühestens nach einer halben Stunde, nicht „meist Stunden danach“');
+  const zoel = alle.find((v) => v.id === 'zoeliakie');
+  check(zoel && zoel.untersuchung.includes('schon wenige Wochen nach dem Weglassen zu heilen')
+    && zoel.untersuchung.includes('Antikörper sinken über Monate'),
+  'Zöliakie: Schleimhaut heilt nach Wochen, Antikörper sinken über Monate (EMA)');
   const mitMuster = luecken({ ...d, musterIds: ['nuechtern'], essen: { ...kurzNach, nuechtern: 14, nachDemEssen: 3, anteilNuechtern: 0.7, anteilNachDemEssen: 0.15 } })
     .verdaechte.find((v) => v.id === 'ulkus');
   check(mitMuster.stand === 'moeglich' && mitMuster.frage.includes('kommt oft nüchtern')

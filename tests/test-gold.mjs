@@ -246,7 +246,32 @@ const TEXTE = [
     neu: /(in der Phase „[^"]+" \()(\d+),(\d)( im Mittel über \d+ Tage\), am schwächsten in der Phase „[^"]+" \()(\d+),(\d)( über \d+ Tage\))/g,
     alt: (z, a, b, c, d, e, f, g) => `${a}${b}.${c}${d}${e}.${f}${g}`,
   },
+  /*
+   * Fassung 33: Die GerdQ-Posten heißen nach dem, was sie zählen (W12, Beleg
+   * an GERDQ_POSTEN in js/kriterien.js). Gezählt wird wie bisher – die Tage
+   * und Punkte im Gold bleiben, nur die beiden Namen bekommen ihren alten
+   * Wortlaut zurück.
+   */
+  { wo: ['kriterien'], neu: 'Sodbrennen oder anderes Brennen', alt: 'Brennen hinter dem Brustbein' },
+  {
+    wo: ['kriterien'],
+    neu: 'Ein säurewirksames Mittel genommen, auch ein verordnetes',
+    alt: 'Ein Mittel gegen die Beschwerden genommen',
+  },
+  // Fassung 33: der Zöliakie-Satz bei Weizen und Gluten mit dem Wortlaut der
+  // EMA (W3, Beleg an 'gluten' in js/daten.js).
+  {
+    wo: ['klassenBilanz'],
+    neu: 'Bei Zöliakie ein Auslöser, bei anderen eher die Fruktane im selben Korn. Wichtig: Laut EMA verlieren '
+      + 'Bluttest und Gewebeprobe auf Zöliakie ihren Nutzen, wenn schon 6 bis 12 Monate glutenfrei gegessen '
+      + 'wurde; die Antikörper sinken über Monate.',
+    alt: 'Bei Zöliakie ein Auslöser, bei anderen eher die Fruktane im selben Korn. Wichtig: Ein Bluttest auf '
+      + 'Zöliakie geht nur, solange noch Gluten gegessen wird.',
+  },
 ];
+
+/** Die Rechnungen, in denen seit der Fassung 33 berichtigter Wortlaut steht. */
+const WORTLAUT_33 = ['kriterien', 'klassenBilanz'];
 
 /*
  * Für die Sätze unter HAT ES ETWAS BEWIRKT? (befund in js/ansprechen.js): Der
@@ -281,6 +306,16 @@ function locker(vorlage) {
  * anders ist, steht sie als Gruppe im Muster und wird übernommen.
  */
 const BERICHT = [
+  /*
+   * Fassung 33: Unter dem GerdQ steht, dass zwei Posten mehr zählen, als der
+   * Fragebogen fragt (W12, Beleg an GERDQ_POSTEN in js/kriterien.js). Die
+   * Punktzahl in der Zeile darüber ist dieselbe wie im Gold.
+   */
+  {
+    neu: '\n    Mitgezählt sind auch anderes Brennen als hinter dem Brustbein und\n'
+      + '    verordnete Säuremittel; die Punktzahl kann daher höher liegen.',
+    alt: '',
+  },
   /*
    * HAT ES ETWAS BEWIRKT? (js/ansprechen.js): Der Säureblocker ohne Besserung
    * ohne Schluss auf die Ursache und ohne Säure-Rebound; Mittel außerhalb der
@@ -520,7 +555,7 @@ function zurueck(jetzt) {
   // Über JSON, wie der Vergleich unten: NaN und undefined wie dort.
   const roh = JSON.parse(JSON.stringify(jetzt));
   const raus = { ...roh };
-  ['raete', 'bildLesen', 'phasenUrteil', ...MIT_ORT].forEach((k) => { raus[k] = texteZurueck(roh[k], k); });
+  ['raete', 'bildLesen', 'phasenUrteil', ...MIT_ORT, ...WORTLAUT_33].forEach((k) => { raus[k] = texteZurueck(roh[k], k); });
   raus.arztBericht = roh.arztBericht.map(berichtZurueck);
   return raus;
 }
@@ -626,7 +661,7 @@ for (const saat of GOLD_SAATEN) {
 {
   const nie = [...gegriffen].filter(([, n]) => n === 0).map(([r]) => `„${String(r.neu).slice(0, 40)}…“`);
   check(nie.length === 0,
-    `jede der ${gegriffen.size} Regeln für den Wortlaut der Fassung 30 greift${nie.length ? ` – nie: ${nie.join(', ')}` : ''}`);
+    `jede der ${gegriffen.size} Regeln für den Wortlaut der Fassungen 30 bis 33 greift${nie.length ? ` – nie: ${nie.join(', ')}` : ''}`);
 }
 
 ende();

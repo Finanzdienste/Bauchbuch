@@ -158,6 +158,56 @@ check(
   'und zwar für beide Bedingungen, nicht nur für eine',
 );
 
+/* ---------- Fassung 33: K1–K4, der Satz der Stufe „sofort" überall ---------- */
+
+/*
+ * Jedes Warnzeichen der Stufe „sofort" sagt in seinem eigenen Satz, was zu
+ * tun ist – nicht nur die Warnkarte darunter. Ebenso die Zeichen der Stufe
+ * „zeitnah", die eine Bedingung für „sofort" nennen (Sturz, Schwangerschaft,
+ * Sehstörung nach dem 50.). Ein bloßes „sofort" oder „Nicht abwarten" ohne
+ * Notaufnahme und 112 gibt es nicht mehr. Belege in js/bild.js.
+ */
+{
+  const SOFORT = /nicht auf einen Termin warten – Notaufnahme oder 112\./i;
+  const liste = await page.evaluate(() => import('./js/bild.js').then((m) => m.WARNZEICHEN));
+  const ohne = liste.filter((w) => w.dringlichkeit === 'sofort' && !SOFORT.test(w.warum)).map((w) => w.id);
+  check(ohne.length === 0, `jedes „sofort“-Zeichen: nicht auf einen Termin warten – Notaufnahme oder 112${ohne.length ? ` – fehlt: ${ohne.join(', ')}` : ''}`);
+  const mitBedingung = ['kopfsturz', 'kopfschwanger', 'kopfneu50'].filter((id) => !SOFORT.test(liste.find((w) => w.id === id).warum));
+  check(mitBedingung.length === 0, `Sturz, Schwangerschaft und Sehstörung nach dem 50.: mit demselben Satz${mitBedingung.length ? ` – fehlt: ${mitBedingung.join(', ')}` : ''}`);
+  const blank = liste.filter((w) => /:\s*sofort\b|sofort, nicht zeitnah|Nicht abwarten\.|nicht der nächste Termin/.test(w.warum)).map((w) => w.id);
+  check(blank.length === 0, `kein bloßes „sofort“ und kein anderer Wortlaut mehr${blank.length ? ` – noch: ${blank.join(', ')}` : ''}`);
+  // K1: Brustschmerz für sich, länger als fünf Minuten, und der Hals.
+  const brust = liste.find((w) => w.id === 'ausstrahlung');
+  check(brust.dringlichkeit === 'sofort' && /Brust, der länger als fünf Minuten anhält/.test(brust.name)
+    && /Arm, Hals, Kiefer oder Rücken/.test(brust.name) && !/mit Luftnot oder kaltem Schweiß/.test(brust.name),
+  `Brustschmerz schon für sich, länger als fünf Minuten, Ausstrahlung auch in den Hals (${brust.name})`);
+  // K2: die Zeichen nach einem Sturz so, wie gesund.bund.de sie nennt.
+  const sturz = liste.find((w) => w.id === 'kopfsturz').warum;
+  check(['Bewusstlosigkeit', 'Gedächtnislücken', 'Erbrechen', 'Schwindel'].every((x) => sturz.includes(x)),
+    'nach einem Sturz: Bewusstlosigkeit, Gedächtnislücken, Erbrechen, Schwindel');
+  // W4–W6 aus derselben Liste.
+  check(!liste.find((w) => w.id === 'blutstuhl').warum.includes('häufigste Ursache'),
+    'frisches Blut ohne „Hämorrhoiden die häufigste Ursache“');
+  check(liste.find((w) => w.id === 'kopfausfall').warum.includes('5 bis 60 Minuten')
+    && !liste.find((w) => w.id === 'kopfausfall').warum.includes('spätestens einer Stunde ganz vorbei'),
+  'die Aura mit 5 bis 60 Minuten je Zeichen (ICHD-3), nicht „nach spätestens einer Stunde ganz vorbei“');
+}
+
+/*
+ * K4: Schon beim Ankreuzen steht im Beschwerde- und im Kopfbogen der Satz
+ * für die Zeichen der Stufe „sofort" – wie im Stuhlbogen.
+ */
+for (const art of ['beschwerde', 'kopf']) {
+  await setze({ begruesst: true, tab: 'heute', eintraege: [], tage: {} });
+  await page.locator(`[data-act="neu"][data-art="${art}"]`).click();
+  await page.waitForTimeout(150);
+  const bogen = ((await page.locator('details.warnbogen').textContent()) || '').replace(/\s+/g, ' ');
+  check(bogen.includes(': nicht auf einen Termin warten – Notaufnahme oder 112.')
+    && bogen.includes(art === 'kopf' ? 'Kopfschmerz mit Fieber und steifem Nacken' : 'Schmerz oder Druck in der Brust'),
+  `im ${art === 'kopf' ? 'Kopf' : 'Beschwerde'}bogen steht beim Ankreuzen: Notaufnahme oder 112 (${bogen.slice(0, 90)}…)`);
+  await page.keyboard.press('Escape');
+}
+
 check(fehler.length === 0, `keine Fehler${fehler.length ? `: ${fehler.join(' | ')}` : ''}`);
 await browser.close();
 ende();

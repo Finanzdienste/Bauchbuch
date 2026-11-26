@@ -311,11 +311,26 @@ export function karenzBild(plan, eintraege, tage, heute) {
         ? `Bisher ${besserung.toFixed(1).replace('.', ',')} Stufen besser: ${zahlen} `
           + `Das sieht gut aus – und es ist noch keine Antwort darauf, *was* davon. `
           + `Die kommt erst mit der Wiedereinführung.`
-        : `Bisher kein deutlicher Unterschied: ${zahlen} Weiter bis zum Ende der `
-          + `Karenz; darunter ist es zu früh für ein Urteil.`,
+        : `Bisher kein deutlicher Unterschied: ${zahlen} Ein Urteil gibt es erst am `
+          + `Ende der Karenz.`,
     };
   }
 
+  /*
+   * Fassung 33: Die Sätze sagen, was im Tagebuch zu sehen ist, und was die
+   * Fachliteratur als nächsten Schritt beschreibt – keine festen Anweisungen
+   * („Iss wieder normal", „darf zurück auf den Teller", „Behalte die kleinere
+   * Menge und lass die größere weg", „bleibt vorerst draußen – … in einem
+   * halben Jahr", „Damit steht fest, dass es sich lohnt", „kostet
+   * Ballaststoffe, Kalzium und Vielfalt"). Belege: Whelan et al., J Hum Nutr
+   * Diet 2018 (PMID 29336079): drei Stufen „FODMAP restriction; FODMAP
+   * reintroduction; and FODMAP personalisation", wiedereingeführt wird, „if
+   * restriction has successfully reduced IBS symptoms"; Tuck & Barrett, J
+   * Gastroenterol Hepatol 2017 (PMID 28244664): „Dietitians should tailor the
+   * challenge process to the individual patient". Deshalb geht die Frage, was
+   * daraus für den Speiseplan folgt, an die Praxis oder eine
+   * Ernährungsfachkraft (siehe auch planTeil in js/app.js).
+   */
   if (besserung >= PLAN_SCHWELLE) {
     return {
       urteil: 'hilft',
@@ -324,17 +339,18 @@ export function karenzBild(plan, eintraege, tage, heute) {
       karenz,
       besserung,
       satz: `${besserung.toFixed(1).replace('.', ',')} Stufen besser: ${zahlen} `
-        + `Damit steht fest, dass es sich lohnt weiterzumachen – und jetzt kommt `
-        + `der Teil, auf den alles hinausläuft. **Die Karenz ist nicht das Ziel.** `
-        + `Sie ist der Aufbau: Erst die Wiedereinführung sagt, welche Gruppe `
-        + `es war, und alles andere darf zurück auf den Teller.`,
+        + `Im Tagebuch ist es während der Karenz deutlich besser. **Die Karenz ist `
+        + `nicht das Ziel.** In der Fachliteratur folgt auf sie die Wiedereinführung, `
+        + `Gruppe für Gruppe – erst sie zeigt, welche Gruppe auffällt. Wie es `
+        + `weitergeht, kannst du mit der Praxis oder einer Ernährungsfachkraft besprechen.`,
     };
   }
 
   /*
    * Der Abbruch. Die wichtigste Ausgabe dieser Datei, und sie muss unmissver-
-   * ständlich sein: nicht „vielleicht doch noch weiterprobieren", sondern
-   * aufhören.
+   * ständlich sein: Dieser Plan führt nicht zur Wiedereinführung weiter, denn
+   * die kommt laut Whelan et al. (siehe oben) erst, wenn die Karenz die
+   * Beschwerden gebessert hat. Was stattdessen kommt, sagt nicht die App.
    */
   return {
     urteil: 'hilft-nicht',
@@ -343,13 +359,11 @@ export function karenzBild(plan, eintraege, tage, heute) {
     karenz,
     besserung,
     satz: `Kein deutlicher Unterschied: ${zahlen} Damit ist dieser Plan zu Ende, `
-      + `und das ist die richtige Folgerung und kein Fehlschlag: Wenn `
-      + `${plan.karenzTage} Tage ohne diese Kohlenhydrate nichts geändert haben, `
-      + `wird die Wiedereinführung es auch nicht klären – dann liegt es nicht `
-      + `daran. Iss wieder normal. Eine Diät, die nichts bringt, ist kein `
-      + `neutraler Zustand: Sie kostet Ballaststoffe, Kalzium und Vielfalt, und `
-      + `dafür bekommst du hier nichts. Was stattdessen dransteht, steht unter `
-      + `„Was noch fehlt".`,
+      + `und das ist kein Fehlschlag: In der Fachliteratur folgt die `
+      + `Wiedereinführung erst, wenn ${plan.karenzTage} Tage ohne diese `
+      + `Kohlenhydrate die Beschwerden gebessert haben. Wie es weitergeht, kannst du `
+      + `mit der Praxis oder einer Ernährungsfachkraft besprechen. Was sonst noch `
+      + `offen ist, steht unter „Was noch fehlt".`,
   };
 }
 
@@ -454,10 +468,9 @@ export function stufenBild(plan, st, eintraege, tage, heute) {
       ...gemeinsam,
       urteil: 'vertraegt',
       wort: STUFEN_URTEIL.vertraegt,
-      satz: `Kein deutlicher Unterschied: ${zahlen} Diese Gruppe darf zurück auf `
-        + `den Teller – bis ${g.mengen[STUFE_TAGE - 1] || 'zur geprüften Menge'} `
-        + `${g.womit ? `${g.womit} ` : ''}war nichts zu merken. Jede Gruppe, die `
-        + `zurückkommt, ist der eigentliche Ertrag des ganzen Plans.`,
+      satz: `Kein deutlicher Unterschied: ${zahlen} Bis `
+        + `${g.mengen[STUFE_TAGE - 1] || 'zur geprüften Menge'} `
+        + `${g.womit ? `${g.womit} ` : ''}war im Tagebuch nichts zu merken.`,
     };
   }
 
@@ -477,9 +490,9 @@ export function stufenBild(plan, st, eintraege, tage, heute) {
       abTag: abTag + 1,
       gehtBis: g.mengen[abTag - 1],
       satz: `${zahlen} Aber nicht von Anfang an: ${g.mengen[abTag - 1]} `
-        + `${g.womit || ''} ging noch, ab ${g.mengen[abTag]} kam es. Das ist die `
-        + `nützlichste Antwort, die dieser Plan geben kann – **streichen wäre `
-        + `hier zu viel.** Behalte die kleinere Menge und lass die größere weg.`,
+        + `${g.womit || ''} ging noch, ab ${g.mengen[abTag]} kam es. Die kleinere `
+        + `Menge war unauffällig, die größere nicht. Was das für deinen Speiseplan `
+        + `heißt, kannst du mit einer Ernährungsfachkraft besprechen.`,
     };
   }
 
@@ -501,9 +514,9 @@ export function stufenBild(plan, st, eintraege, tage, heute) {
       wort: STUFEN_URTEIL.reagiert,
       satz: `${zahlen} Diese Gruppe hat reagiert – aber am ersten Tag, dem mit der `
         + `kleinsten Menge (${g.mengen[0] || 'die erste Stufe'}), steht nichts im `
-        + `Tagebuch. Ob die kleine Menge durchgeht, ist damit offen, und das ist `
-        + `genau die Frage, an der hängt, ob du die Gruppe streichen musst oder `
-        + `nur begrenzen. Diese Stufe lohnt eine Wiederholung.`,
+        + `Tagebuch. Ob die kleine Menge unauffällig ist, ist damit offen; eine `
+        + `Wiederholung dieser Stufe könnte das zeigen. Ob sie für dich passt, kannst `
+        + `du mit einer Ernährungsfachkraft besprechen.`,
     };
   }
 
@@ -512,10 +525,9 @@ export function stufenBild(plan, st, eintraege, tage, heute) {
     urteil: 'vertraegt-nicht',
     wort: STUFEN_URTEIL['vertraegt-nicht'],
     satz: `${zahlen} Schon die kleinste geprüfte Menge `
-      + `(${g.mengen[0] || 'die erste Stufe'}${g.womit ? ` ${g.womit}` : ''}) hat `
-      + `durchgeschlagen. Diese Gruppe bleibt vorerst draußen – und lohnt in `
-      + `einem halben Jahr einen zweiten Versuch: Verträglichkeiten ändern sich, `
-      + `besonders wenn sich der Darm zwischendurch beruhigt hat.`,
+      + `(${g.mengen[0] || 'die erste Stufe'}${g.womit ? ` ${g.womit}` : ''}) `
+      + `fiel im Tagebuch auf. Was das für deinen Speiseplan heißt, kannst du mit `
+      + `einer Ernährungsfachkraft besprechen.`,
   };
 }
 
@@ -544,11 +556,13 @@ export function planBild(plan, eintraege, tage, heute) {
     schritt = {
       entscheid: true,
       satz: karenz.urteil === 'hilft'
-        ? 'Die Karenz ist um und sie hat geholfen. Jetzt die Wiedereinführung – '
-          + 'wähle die Gruppe, deren Antwort dir am meisten bringt.'
+        ? 'Die Karenz ist um, und im Tagebuch ist es deutlich besser. Im Plan folgt '
+          + 'jetzt die Wiedereinführung – wähle die Gruppe, deren Antwort dir am '
+          + 'meisten bringt.'
         : (karenz.urteil === 'hilft-nicht'
-          ? 'Die Karenz ist um und hat nichts gebracht. Hier ist Schluss: wieder '
-            + 'normal essen.'
+          ? 'Die Karenz ist um, und es ist kein deutlicher Unterschied zu sehen. Wie '
+            + 'es weitergeht, kannst du mit der Praxis oder einer Ernährungsfachkraft '
+            + 'besprechen.'
           : 'Die Karenz ist um, aber es fehlen notierte Tage für ein Urteil.'),
     };
   } else if (stand.phase === 'stufe') {
@@ -584,9 +598,9 @@ export function planBild(plan, eintraege, tage, heute) {
     const gut = stufen.filter((x) => x.urteil === 'vertraegt').length;
     const teils = stufen.filter((x) => x.urteil === 'menge').length;
     schritt = {
-      satz: `Alle gewählten Gruppen durch. ${gut} davon verträgst du, `
-        + `${teils} in kleiner Menge. Dein Alltag ist ab jetzt die Karenz plus `
-        + `alles, was zurückdurfte – und nicht die Karenz.`,
+      satz: `Alle gewählten Gruppen durch. Bei ${gut} davon war im Tagebuch nichts `
+        + `zu merken, bei ${teils} erst in der größeren Menge. Was das für deinen `
+        + `Speiseplan heißt, kannst du mit einer Ernährungsfachkraft besprechen.`,
     };
   }
 

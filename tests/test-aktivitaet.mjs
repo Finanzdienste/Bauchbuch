@@ -755,7 +755,7 @@ const ALT = {
     && mh.includes('Mehr dazu') && !mh.includes('Hersteller'),
     'mit Massagepistole: der Verweis auf die Sicherheitshinweise und „Mehr dazu"');
   check(await page.locator('.massage-hinweis details[open]').count() === 0
-    && mh.includes('Zeichen eines Schlaganfalls') && mh.includes('112, nicht auf einen Termin warten'),
+    && mh.includes('Zeichen eines Schlaganfalls') && mh.includes('nicht auf einen Termin warten – Notaufnahme oder 112'),
     'die Einzelheiten zugeklappt, darin die Schlaganfallzeichen mit 112 wie auf der Warnkarte');
   await breit(page, 'Bogen mit Massagehinweis');
   await page.locator('[data-act="aktiv-wahl"][data-id="massagepistole"]').click();

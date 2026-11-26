@@ -176,7 +176,9 @@ const { WARNZEICHEN } = await import(pathToFileURL(path.join(ROOT, 'js', 'bild.j
 const SOFORT_WORT = {
   bluterbrechen: 'erbrochenem Blut',
   teerstuhl: 'schwarzem, klebrigem Stuhl',
-  ausstrahlung: 'in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß',
+  // Seit der Fassung 33 auch Brustschmerz für sich und der Hals (K1, Beleg in js/bild.js).
+  ausstrahlung: 'Schmerz oder Druck in der Brust, der länger als fünf Minuten anhält, oder Schmerz, der in Arm, '
+    + 'Hals, Kiefer oder Rücken ausstrahlt',
   donnerschlag: 'schlagartig so stark war wie nie',
   // Mit derselben Bedingung wie in bild.js – nicht nur „plötzlich".
   kopfausfall: 'Lähmung, Taubheit einer Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit, wenn sie '

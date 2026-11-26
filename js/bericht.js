@@ -41,7 +41,7 @@ import {
 } from './adhs.js';
 import { spannungAuswertung } from './spannung.js';
 import { familienVergleiche, grenzeText, hatUrteil } from './vergleich.js';
-import { kriterien } from './kriterien.js';
+import { kriterien, reizdarmUrteil } from './kriterien.js';
 import { stuhlZahlen, wasserSatz, wasserVergleich } from './stuhl.js';
 import { glasName, literText, wasserZahlen } from './wasser.js';
 import {
@@ -1493,7 +1493,15 @@ export function arztBericht(zustand, von, bis) {
    * sofort, welche Frage noch offen ist.
    */
   if (k.reizdarm.pruefbar) {
-    kZeilen.push(`  Rom IV, Reizdarmsyndrom       ${k.reizdarm.erfuellt ? 'Kriterien erfüllt' : 'nicht erfüllt'}`);
+    // „Erfüllt" nur mit der Zeitbedingung (reizdarmUrteil in js/kriterien.js);
+    // ohne sie steht der Satz, was fehlt, umbrochen darunter.
+    const ru = reizdarmUrteil(k);
+    if (ru.erfuellt || !k.reizdarm.erfuellt) {
+      kZeilen.push(`  Rom IV, Reizdarmsyndrom       ${ru.erfuellt ? 'Kriterien erfüllt' : 'nicht erfüllt'}`);
+    } else {
+      kZeilen.push('  Rom IV, Reizdarmsyndrom       Schmerz und Merkmale erfüllt');
+      umbrochen(`– ${ru.wort.split(' – ')[1]}`, 62).forEach((z) => kZeilen.push(`    ${z}`));
+    }
     kZeilen.push(`    Bauchschmerz an ${k.reizdarm.schmerzTage} Tagen `
       + `(${fmtZahl(k.reizdarm.proWoche)} je Woche der notierten Tage),`);
     kZeilen.push(`    ${k.reizdarm.erfuellteMerkmale} von 3 Merkmalen erfüllt`);
@@ -1538,6 +1546,10 @@ export function arztBericht(zustand, von, bis) {
   if (k.gerdq.belastbar) {
     kZeilen.push(`  GerdQ (letzte 7 Tage)         ${k.gerdq.punkte} von 18 Punkten`);
     kZeilen.push('    (aus den Einträgen gezählt, kein ausgefüllter Fragebogen)');
+    // Fassung 33: Zwei Posten zählen mehr, als der Fragebogen fragt (Beleg
+    // an GERDQ_POSTEN in js/kriterien.js).
+    kZeilen.push('    Mitgezählt sind auch anderes Brennen als hinter dem Brustbein und');
+    kZeilen.push('    verordnete Säuremittel; die Punktzahl kann daher höher liegen.');
   } else {
     kZeilen.push(`  GerdQ (letzte 7 Tage)         nicht belastbar – nur `
       + `${k.gerdq.erfasst} der 7 Tage notiert`);

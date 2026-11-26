@@ -23,7 +23,10 @@
  *     berichtigt hat – jeder einzeln, mit neuem und altem Wortlaut (siehe
  *     WORTLAUT_30 unten). Zahlen und Urteile bleiben dabei, wie sie waren;
  *     dazu gehören auch Zehntel, die jetzt wie sonst in der App ein Komma
- *     haben, und ein Halbgeviertstrich statt eines Geviertstrichs.
+ *     haben, und ein Halbgeviertstrich statt eines Geviertstrichs. Seit
+ *     der Fassung 33 stehen dort auch der Zöliakie-Satz bei Weizen und Gluten
+ *     und die beiden GerdQ-Posten, die nach dem heißen, was sie zählen – mit
+ *     dem Vorbehalt dazu; die Zahlen sind dieselben.
  *
  * Verglichen wird mit dem Gold (tests/gold/v27-ansichten.json): derselbe
  * Speicherstand, dieselbe Uhr, dieselbe iPhone-Kennung, als App vom
@@ -264,13 +267,36 @@ const WORTLAUT_30 = [
    */
   {
     tab: 'muster',
+    // Fassung 33 (W12): dazu, dass zwei Posten mehr zählen, als der Fragebogen
+    // fragt (Beleg an GERDQ_POSTEN in js/kriterien.js).
     neu: 'Gezählt aus deinen Eintragungen der letzten sieben Tage, kein ausgefüllter Fragebogen. Der GerdQ ist ein '
       + 'Fragebogen mit sechs Fragen zur Selbsteinschätzung, der Praxen bei der Einordnung von Reflux helfen soll. '
-      + 'Zwei Posten zählt Body Check umgekehrt: Je öfter sie eingetragen sind, desto weniger Punkte. Was die '
-      + 'Punktzahl hier bedeutet, kann die Praxis einordnen.',
+      + 'Zwei Posten zählt Body Check umgekehrt: Je öfter sie eingetragen sind, desto weniger Punkte. Zwei Posten '
+      + 'zählen mehr, als der Fragebogen fragt: auch anderes Brennen als hinter dem Brustbein, und jeden Tag mit '
+      + 'einem säurewirksamen Mittel, auch einem verordneten. Die Punktzahl kann dadurch höher liegen als im '
+      + 'Fragebogen. Was sie hier bedeutet, kann die Praxis einordnen.',
     alt: 'Ab 8 Punkten gilt eine Refluxkrankheit als wahrscheinlich – du liegst bei 9. Zwei der sechs Fragen zählen '
       + 'umgekehrt: Oberbauchschmerz und Übelkeit sprechen eher gegen Reflux und für etwas anderes im Magen. Das ist '
       + 'kein Fehler, das ist der Trick des Fragebogens.',
+  },
+  // Fassung 33 (W3): der Zöliakie-Satz bei Weizen und Gluten mit dem Wortlaut
+  // der EMA (Beleg an 'gluten' in js/daten.js).
+  {
+    tab: 'muster',
+    neu: 'Bei Zöliakie ein Auslöser, bei anderen eher die Fruktane im selben Korn. Wichtig: Laut EMA verlieren '
+      + 'Bluttest und Gewebeprobe auf Zöliakie ihren Nutzen, wenn schon 6 bis 12 Monate glutenfrei gegessen '
+      + 'wurde; die Antikörper sinken über Monate.',
+    alt: 'Bei Zöliakie ein Auslöser, bei anderen eher die Fruktane im selben Korn. Wichtig: Ein Bluttest auf '
+      + 'Zöliakie geht nur, solange noch Gluten gegessen wird.',
+  },
+  // Fassung 33 (W12): die zwei GerdQ-Posten heißen nach dem, was sie zählen;
+  // die Zahl der Tage dahinter bleibt.
+  { tab: 'muster', teil: true, neu: /^Sodbrennen oder anderes Brennen – an /, alt: 'Brennen hinter dem Brustbein – an ' },
+  {
+    tab: 'muster',
+    teil: true,
+    neu: /^Ein säurewirksames Mittel genommen, auch ein verordnetes – an /,
+    alt: 'Ein Mittel gegen die Beschwerden genommen – an ',
   },
   {
     tab: 'muster',

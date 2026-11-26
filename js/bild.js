@@ -47,7 +47,14 @@ export const WARNZEICHEN = [
     id: 'bluterbrechen',
     name: 'Blut erbrochen oder kaffeesatzartiges Erbrechen',
     dringlichkeit: 'sofort',
-    warum: 'Das kann eine Blutung im Magen oder in der Speiseröhre sein.',
+    /*
+     * Seit der Fassung 33 tragen alle Warnzeichen der Stufe „sofort" denselben
+     * Satz wie die Warnkarte (js/app.js, warnTeil) und js/lage.js: nicht auf
+     * einen Termin warten – Notaufnahme oder 112. Bis zur Fassung 32 fehlte er
+     * hier, beim schwarzen Stuhl und beim Kopfschmerz mit steifem Nacken.
+     */
+    warum: 'Das kann eine Blutung im Magen oder in der Speiseröhre sein. Nicht auf '
+      + 'einen Termin warten – Notaufnahme oder 112.',
   },
   {
     id: 'teerstuhl',
@@ -55,20 +62,42 @@ export const WARNZEICHEN = [
     dringlichkeit: 'sofort',
     warum: 'Schwarzer Stuhl kann verdautes Blut sein. (Eisentabletten, Heidelbeeren '
       + 'und Bismut färben ihn ebenfalls dunkel – das gehört dazugesagt, aber '
-      + 'geklärt wird das dort und nicht hier.)',
+      + 'geklärt wird das dort und nicht hier.) Nicht auf einen Termin warten – '
+      + 'Notaufnahme oder 112.',
   },
+  /*
+   * gesund.bund.de/herzinfarkt (mit IQWiG, Stand 28.08.2020): Schmerzen in der
+   * Brust, die „mehr als fünf Minuten an[dauern] und … von der Brust in einen
+   * Arm, den Rücken, den Hals oder den Oberbauch ausstrahlen" können; bei
+   * Frauen Ausstrahlung auch „in die Schulterblätter, den Nacken und den
+   * Kiefer"; „Luftnot, Übelkeit und Erbrechen … können bei Frauen auch die
+   * einzigen Anzeichen eines Herzinfarkts sein"; „Treten Schmerzen im
+   * Brustbereich auf, sollten die Betroffenen deshalb immer den Notruf 112
+   * wählen". Bis zur Fassung 32 griff das Zeichen nur bei Ausstrahlung *und*
+   * Luftnot oder kaltem Schweiß; Brustschmerz allein und der Hals fehlten, und
+   * der Satz darunter nannte keine 112.
+   */
   {
     id: 'ausstrahlung',
-    name: 'Schmerz strahlt in Arm, Kiefer oder Rücken aus, mit Luftnot oder kaltem Schweiß',
+    name: 'Schmerz oder Druck in der Brust, der länger als fünf Minuten anhält, oder Schmerz, '
+      + 'der in Arm, Hals, Kiefer oder Rücken ausstrahlt',
     dringlichkeit: 'sofort',
-    warum: 'Beschwerden in der Magengegend können vom Herzen kommen, besonders '
-      + 'bei Frauen. Das ist der eine Fall, in dem Abwarten teuer wird.',
+    warum: 'Beschwerden in der Magengegend können vom Herzen kommen; bei Frauen sind '
+      + 'Luftnot, Übelkeit oder Erbrechen manchmal die einzigen Zeichen. Nicht auf '
+      + 'einen Termin warten – Notaufnahme oder 112.',
   },
   {
     id: 'blutstuhl',
     name: 'Frisches Blut im Stuhl',
     dringlichkeit: 'zeitnah',
-    warum: 'Gehört abgeklärt, auch wenn Hämorrhoiden die häufigste Ursache sind.',
+    /*
+     * gesund.bund.de/haemorrhoiden (mit IQWiG, Stand 05.03.2026): „Wer Blut im
+     * Stuhl entdeckt, sollte das auf jeden Fall ärztlich abklären lassen." Bis
+     * zur Fassung 32: „auch wenn Hämorrhoiden die häufigste Ursache sind" –
+     * diese Rangfolge nennt die Seite nicht.
+     */
+    warum: 'Blut im Stuhl gehört laut gesund.bund.de auf jeden Fall ärztlich abgeklärt – '
+      + 'auch wenn du Hämorrhoiden hast.',
   },
   {
     id: 'schlucken',
@@ -131,8 +160,8 @@ export const WARNZEICHEN = [
     dringlichkeit: 'sofort',
     bereich: 'kopf',
     warum: 'Ein Schmerz, der schlagartig auf dem Höhepunkt ist, kann eine Blutung '
-      + 'im Kopf sein – auch wenn er wieder nachlässt. Notaufnahme oder 112, '
-      + 'nicht der nächste Termin.',
+      + 'im Kopf sein – auch wenn er wieder nachlässt. Nicht auf einen Termin '
+      + 'warten – Notaufnahme oder 112.',
   },
   /*
    * Nicht „zum ersten Mal". Wer eine Migräne mit Aura kennt, erklärt sich
@@ -140,42 +169,77 @@ export const WARNZEICHEN = [
    * klassische Verzögerung. Und eine zweite Lähmung ist genauso ein Notfall
    * wie die erste. Was Aura und Ausfall trennt, ist nicht die Neuheit, sondern
    * der Charakter: Tempo, Dauer, Lähmung, Sprache.
+   *
+   * Zur Dauer: ICHD-3 (deutsche Fassung), 1.2 Migräne mit Aura, Kriterium C:
+   * „wenigstens ein Aurasymptom entwickelt sich allmählich über ≥5 Minuten
+   * hinweg", „jedes Aurasymptom hält 5 bis 60 Minuten an"; laut Anmerkung
+   * darf eine Aura mit drei Symptomen bis zu 3 × 60 Minuten dauern. Bis zur
+   * Fassung 32 hieß es, die ganze Aura sei „nach spätestens einer Stunde ganz
+   * vorbei" – das widerspricht der Anmerkung.
    */
   {
     id: 'kopfausfall',
     name: 'Lähmung, Taubheit einer Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit – plötzlich, länger als eine Stunde oder anders als deine gewohnte Aura',
     dringlichkeit: 'sofort',
     bereich: 'kopf',
-    warum: 'Eine Aura, wie du sie kennst, baut sich über Minuten auf, wandert und '
-      + 'ist nach spätestens einer Stunde ganz vorbei. Was schlagartig da ist, '
+    warum: 'Eine Aura, wie du sie kennst, baut sich über Minuten auf und wandert; '
+      + 'ein einzelnes Aurazeichen dauert meist 5 bis 60 Minuten. Was schlagartig da ist, '
       + 'eine Seite lähmt oder taub macht, das Sprechen nimmt oder länger als '
       + 'eine Stunde bleibt, kann ein Schlaganfall sein – auch mit Migräne, und '
-      + 'auch wenn du so etwas schon einmal hattest. 112, nicht der nächste Termin.',
+      + 'auch wenn du so etwas schon einmal hattest. Nicht auf einen Termin warten – '
+      + 'Notaufnahme oder 112.',
   },
   {
     id: 'kopfnacken',
     name: 'Kopfschmerz mit Fieber und steifem Nacken',
     dringlichkeit: 'sofort',
     bereich: 'kopf',
-    warum: 'Die drei zusammen sind die Zeichen einer Hirnhautentzündung. Nicht abwarten.',
+    warum: 'Die drei zusammen sind die Zeichen einer Hirnhautentzündung. Nicht auf '
+      + 'einen Termin warten – Notaufnahme oder 112.',
   },
   {
     id: 'kopfsturz',
     name: 'Kopfschmerz nach einem Sturz oder Schlag auf den Kopf',
     dringlichkeit: 'zeitnah',
     bereich: 'kopf',
-    warum: 'Gehört angesehen, auch wenn es Tage her ist. Kommt Erbrechen, '
-      + 'Verwirrtheit oder Schläfrigkeit dazu, oder nimmst du einen Blutverdünner: '
-      + 'sofort, nicht zeitnah.',
+    /*
+     * gesund.bund.de/gehirnerschuetterung-bei-erwachsenen (mit IQWiG, Stand
+     * 20.04.2021): „Bei Beschwerden wie Bewusstlosigkeit, Gedächtnislücken,
+     * anhaltendem Erbrechen oder Schwindel gilt es, einen Notarzt zu rufen";
+     * als Bewusstseinstrübung nennt die Seite Menschen, die „orientierungslos,
+     * schläfrig und verwirrt erscheinen". Bis zur Fassung 32 stand hier nur
+     * „sofort, nicht zeitnah" ohne Notaufnahme und 112.
+     */
+    warum: 'Gehört angesehen, auch wenn es Tage her ist. Kommen Bewusstlosigkeit, '
+      + 'Gedächtnislücken, Erbrechen, Schwindel, Verwirrtheit oder Schläfrigkeit dazu, '
+      + 'oder nimmst du einen Blutverdünner: nicht auf einen Termin warten – '
+      + 'Notaufnahme oder 112.',
   },
   {
     id: 'kopfneu50',
     name: 'Kopfschmerz, der zum ersten Mal im Leben nach dem 50. Geburtstag kommt',
     dringlichkeit: 'zeitnah',
     bereich: 'kopf',
+    /*
+     * ICHD-3 (deutsche Fassung), 6.4.1 Kopfschmerz zurückzuführen auf eine
+     * Riesenzellarteriitis, Kommentar: „Das Hauptrisiko liegt in einer
+     * Erblindung …. Dies kann durch eine notfallmäßig eingeleitete
+     * Kortikoidtherapie verhindert werden. Der Abstand zwischen der Erblindung
+     * eines Auges und des anderen beträgt üblicherweise weniger als 1 Woche."
+     * Bis zur Fassung 32 stand für die Sehstörung nur „zügig".
+     */
     warum: 'So spät fängt selten eine Migräne neu an. Das gehört einmal angesehen, '
-      + 'mit Blutwerten – mit Kauschmerz, Sehstörung oder empfindlichen Schläfen zügig.',
+      + 'mit Blutwerten – mit Kauschmerz oder empfindlichen Schläfen zügig. Kommt eine '
+      + 'Sehstörung dazu, nicht auf einen Termin warten – Notaufnahme oder 112.',
   },
+  /*
+   * gesund.bund.de, ICD-Code O14.1 (schwere Präeklampsie): „Bei der schweren
+   * Form dieser Erkrankung können zusätzlich unter anderem Sehstörungen,
+   * Kopfschmerzen, Bauchschmerzen, Übelkeit und Erbrechen auftreten"; O15.1
+   * (Eklampsie): ein Krampfanfall, der sich mit „Kopfschmerzen, Sehstörungen
+   * oder Übelkeit" ankündigen kann. Bis zur Fassung 32 stand nur „sofort"
+   * ohne Notaufnahme und 112.
+   */
   {
     id: 'kopfschwanger',
     name: 'Neuer oder anderer Kopfschmerz in der Schwangerschaft oder in den Wochen nach der Geburt',
@@ -183,7 +247,8 @@ export const WARNZEICHEN = [
     bereich: 'kopf',
     warum: 'In dieser Zeit stecken hinter einem neuen Kopfschmerz Dinge, die man '
       + 'messen und behandeln kann – Blutdruck zum Beispiel. Mit Sehstörung, '
-      + 'Schwellungen oder Oberbauchschmerz: sofort.',
+      + 'Schwellungen oder Oberbauchschmerz: nicht auf einen Termin warten – '
+      + 'Notaufnahme oder 112.',
   },
   {
     id: 'kopfanstrengung',

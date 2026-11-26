@@ -91,9 +91,18 @@ check(
   nurDann.staerkste === 'zweite Zyklushälfte',
   `und zwar in der zweiten Zyklushälfte (${nurDann.staerkste})`,
 );
+/*
+ * Seit der Fassung 33 ohne „spricht eher für eine wechselnde Empfindlichkeit
+ * als für eine Unverträglichkeit": Mengen vergleicht die Rechnung nicht, und
+ * laut gesund.bund.de kann beides zugleich vorliegen (Beleg in
+ * js/wechselwirkung.js). Der Satz nennt den Unterschied je Phase und gibt die
+ * Einordnung an die Praxis.
+ */
 check(
-  nurDann.satz.includes('wechselnde Empfindlichkeit'),
-  'die App nennt das eine wechselnde Empfindlichkeit, keine Unverträglichkeit',
+  !nurDann.satz.includes('wechselnde Empfindlichkeit') && !nurDann.satz.includes('Unverträglichkeit')
+    && /Stufen Unterschied/.test(nurDann.satz)
+    && nurDann.satz.includes('Was dahintersteckt, lässt sich daraus nicht ablesen; das kann die Praxis einordnen.'),
+  `die App nennt den Unterschied je Phase und redet keine Unverträglichkeit aus (${nurDann.satz.slice(0, 60)}…)`,
 );
 
 /*

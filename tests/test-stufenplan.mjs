@@ -127,9 +127,20 @@ check(
   /kein Fehlschlag|richtige Folgerung/.test(nutzlos.karenz.satz),
   'ohne daraus ein Versagen zu machen',
 );
+/*
+ * Seit der Fassung 33 ohne feste Anweisung („Iss wieder normal") und ohne
+ * „kostet Ballaststoffe, Kalzium und Vielfalt": Wie es weitergeht, gehört in
+ * die Praxis oder zu einer Ernährungsfachkraft (Belege in js/stufenplan.js).
+ */
 check(
-  /Ballaststoffe|Kalzium/.test(nutzlos.karenz.satz),
-  'mit dem Grund, warum Weitermachen schadet und nicht bloß nichts nützt',
+  !/Iss wieder normal|Ballaststoffe|Kalzium/.test(nutzlos.karenz.satz)
+    && /Praxis oder einer Ernährungsfachkraft/.test(nutzlos.karenz.satz),
+  'ohne Ernährungsanweisung, mit dem Verweis auf Praxis oder Ernährungsfachkraft',
+);
+check(
+  !/wieder\s+normal essen|Hier ist Schluss/.test(nutzlos.schritt || '')
+    && /Praxis oder einer Ernährungsfachkraft/.test(nutzlos.schritt || ''),
+  `auch der nächste Schritt ohne Anweisung (${nutzlos.schritt})`,
 );
 check(
   !/Wiedereinführung/.test(nutzlos.schritt || ''),
@@ -173,8 +184,8 @@ check(
   `was nichts macht, darf zurück (${gut.stufen[0].urteil})`,
 );
 check(
-  /zurück auf den Teller/.test(gut.stufen[0].satz),
-  'und die App sagt das auch so',
+  /war im Tagebuch nichts zu merken/.test(gut.stufen[0].satz) && !/zurück auf den Teller/.test(gut.stufen[0].satz),
+  'und die App sagt, was im Tagebuch steht – ohne „darf zurück auf den Teller“',
 );
 
 /* ---------- 4. Eine Gruppe, bei der es auf die Menge ankommt ---------- */
@@ -198,8 +209,10 @@ check(
   `bis eine Scheibe geht es (${menge.stufen[0].gehtBis})`,
 );
 check(
-  /streichen wäre hier zu viel/.test(menge.stufen[0].satz),
-  'und Streichen wäre ausdrücklich zu viel',
+  /Die kleinere\s+Menge war unauffällig, die größere nicht/.test(menge.stufen[0].satz)
+    && !/Behalte|lass die größere weg|streichen/.test(menge.stufen[0].satz)
+    && /Ernährungsfachkraft/.test(menge.stufen[0].satz),
+  'die Menge wird benannt, ohne Anweisung zum Behalten oder Weglassen',
 );
 
 /* ---------- 5. Eine Gruppe, die schon in kleiner Menge durchschlägt ---------- */
@@ -213,8 +226,10 @@ check(
   `schon die kleinste Menge zählt (${schlecht.stufen[0].urteil})`,
 );
 check(
-  /halben Jahr/.test(schlecht.stufen[0].satz),
-  'mit dem Hinweis, dass sich das wieder ändern kann',
+  /fiel im Tagebuch auf/.test(schlecht.stufen[0].satz)
+    && !/halben Jahr|bleibt vorerst draußen/.test(schlecht.stufen[0].satz)
+    && /Ernährungsfachkraft/.test(schlecht.stufen[0].satz),
+  'ohne „bleibt vorerst draußen“, mit dem Verweis auf eine Ernährungsfachkraft',
 );
 
 /*

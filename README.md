@@ -1708,6 +1708,34 @@ bleibt, wie es erzeugt wurde: `tests/test-gleich-v27.mjs` gibt dieser einen
 Zeile vor dem Vergleich ihren zweiten Punkt zurück und prüft für sich, dass
 nur noch einer dasteht.
 
+### Neu in der Fassung 33
+
+**Warnzeichen und Wissenstexte noch einmal gegen die Quellen geprüft.** Jedes
+Warnzeichen der Stufe „sofort“ sagt jetzt in seinem eigenen Satz: nicht auf
+einen Termin warten – Notaufnahme oder 112; ebenso die Zeichen, die eine
+Bedingung für „sofort“ nennen (Sturz auf den Kopf, Kopfschmerz in der
+Schwangerschaft, Sehstörung bei einem neuen Kopfschmerz nach dem 50.). Schmerz
+oder Druck in der Brust gilt schon für sich als Warnzeichen, wenn er länger als
+fünf Minuten anhält oder auch in den Hals ausstrahlt (gesund.bund.de,
+Herzinfarkt). Beschwerde- und Kopfbogen nennen den Satz schon beim Ankreuzen,
+und der Provokationstest sagt bei jedem Durchgang mit der Sache, was bei
+Atemnot oder Schwellungen zu tun ist.
+
+Dazu, je mit Beleg am Code: erbrochenes Blut beim Geschwür; die Zeit bis zu
+Beschwerden bei Laktose; was die EMA zur Zöliakie-Untersuchung nach dem
+Weglassen sagt; die Dauer einer Aura nach ICHD-3; ein Zwerchfellbruch als
+mögliche, nicht feststehende Ursache von Reflux; Laktose- und Fruktosebefund
+streichen die Frage zum anderen Zucker nicht mehr. „Kriterien erfüllt“ beim
+Reizdarm steht nur noch mit erfüllter Zeitbedingung, sonst steht da, was
+fehlt. Zwei GerdQ-Posten heißen nach dem, was sie zählen, mit dem Vorbehalt,
+dass die Punktzahl dadurch höher liegen kann; die Zählung selbst und damit alle
+Zahlen sind dieselben wie bisher. Im Stufenplan, bei der Menge einer Zutat und
+beim Zyklus stehen keine festen Anweisungen und keine Entwarnungen mehr,
+sondern was im Tagebuch zu sehen ist – und der Verweis auf Praxis oder
+Ernährungsfachkraft. Das Gold der Fassung 27 bleibt, wie es erzeugt wurde; die
+berichtigten Sätze bekommen in `tests/test-gold.mjs` und
+`tests/test-gleich-v27.mjs` je einzeln ihren alten Wortlaut zurück.
+
 ### Neu in der Fassung 32
 
 **Die Frage zum Teilen kommt einmal von selbst.** Die veröffentlichte App
@@ -3152,7 +3180,7 @@ in einer der Listen, geht genau eine der beiden Fassungen still kaputt.
 
 ### Tests
 
-Fünfundsiebzig Dateien, über 4200 Prüfungen, alle in einem echten Chromium. Kein
+Sechsundsiebzig Dateien, über 4300 Prüfungen, alle in einem echten Chromium. Kein
 Rahmenwerk: Jeder Test ist ein eigenes Programm und meldet sein Ergebnis über
 den Rückgabewert.
 

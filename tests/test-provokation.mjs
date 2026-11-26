@@ -311,6 +311,40 @@ const weiter = await page.evaluate(async ([p, e, h]) => {
   bauen([[20, false, 6], [17, false, 6], [14, false, 0], [11, true, 0], [8, true, 0]]).eintraege, heute]);
 check(weiter && weiter.dran === true, `und der nächste Schritt ist dran, statt „genug beisammen" (${weiter && weiter.satz})`);
 
+/*
+ * K5, Fassung 33: Jeder Durchgang mit der Sache findet zu Hause statt. Wo
+ * die App dazu auffordert, steht, was bei einer schweren Reaktion zu tun ist
+ * – mit dem Satz aller Zeichen der Stufe „sofort" (Beleg in
+ * js/provokation.js, NOTFALL_SATZ). Ein Leerdurchgang braucht ihn nicht.
+ */
+{
+  const SOFORT = 'nicht auf einen Termin warten – Notaufnahme oder 112.';
+  const schritte = await page.evaluate(async ([h, a, b]) => {
+    const m = await import('./js/provokation.js');
+    const p0 = { id: 'p0', art: 'klasse', ziel: 'laktose', was: '250 ml Milch', nuechtern: 4, fenster: 4, laeufe: [] };
+    return {
+      erster: m.naechsterSchritt(p0, h),
+      nochEiner: m.naechsterSchritt(a.provokation, h, m.provokationsBild(a.provokation, a.eintraege, h).urteil),
+      leer: m.naechsterSchritt(b.provokation, h, m.provokationsBild(b.provokation, b.eintraege, h).urteil),
+      satz: m.NOTFALL_SATZ,
+    };
+  }, [heute,
+    // Wie 6d oben: „deutet sich an", der letzte war ein Leerdurchgang – also
+    // noch einer mit der Sache.
+    bauen([[20, false, 6], [17, false, 6], [14, false, 0], [11, true, 0], [8, true, 0]]),
+    // Drei mit der Sache, noch kein Leerdurchgang – also jetzt einer.
+    bauen([[20, false, 6], [17, false, 6], [14, false, 0]])]);
+  check(schritte.satz.includes('Atemnot') && schritte.satz.includes('Schwellungen im Mund oder Rachen')
+    && schritte.satz.endsWith(SOFORT),
+  `der Notfallsatz nennt Atemnot und Schwellungen und endet mit „${SOFORT}“`);
+  check(schritte.erster.dran && !schritte.erster.leer && schritte.erster.satz.endsWith(schritte.satz),
+    `der erste Durchgang trägt den Notfallsatz (${schritte.erster.satz.slice(0, 50)}…)`);
+  check(schritte.nochEiner.dran && !schritte.nochEiner.leer && schritte.nochEiner.satz.endsWith(schritte.satz),
+    `„noch ein Durchgang“ mit der Sache trägt ihn auch (${schritte.nochEiner.satz.slice(0, 50)}…)`);
+  check(schritte.leer.leer && !schritte.leer.satz.includes('112'),
+    `der Leerdurchgang ohne die Sache braucht ihn nicht (${schritte.leer.satz.slice(0, 50)}…)`);
+}
+
 /* ---------- 7. In der Anzeige ---------- */
 
 const daten = bauen([

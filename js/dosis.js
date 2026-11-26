@@ -169,6 +169,13 @@ export function dosisBild(eintraege, id, fenster = 4) {
      * Keine Stufe fällt auf – aber „unauffällig" ist nur so viel wert wie die
      * größte geprüfte Menge. Wer bloß die Würze geprüft hat, hat nichts über
      * die Suppe gesagt.
+     *
+     * Und auch bis zur Hauptzutat ist „unauffällig" kein Freispruch. Bis zur
+     * Fassung 32 hieß es dann „das spricht gegen diese Zutat als Auslöser" –
+     * gegen die Hauptkarte, auf der dieselbe Zutat auffällt, und gegen
+     * gesund.bund.de (Nahrungsmittelallergie, Stand 27.05.2024): „Bereits
+     * kleine Mengen eines Lebensmittels" können reichen. Jetzt steht nur, was
+     * in dieser Aufteilung gezählt ist.
      */
     const groesste = pruefbare[pruefbare.length - 1];
     return {
@@ -176,11 +183,13 @@ export function dosisBild(eintraege, id, fenster = 4) {
       stufen,
       gegenFaelle,
       bisStufe: groesste,
-      satz: `Bis hin zu „${groesste.name}" ist nichts aufgefallen `
-        + `(${groesste.faelle} Mahlzeiten). ${groesste.rang === 3
-          ? 'Größere Mengen als eine Hauptzutat gibt es nicht – das spricht gegen '
-            + 'diese Zutat als Auslöser.'
-          : 'Über größere Mengen sagt das nichts; die sind noch nicht geprüft.'}`,
+      satz: groesste.rang === 3
+        ? `Bis hin zu „${groesste.name}" ist in diesen Mahlzeiten nichts aufgefallen `
+          + `(${groesste.faelle} Mahlzeiten). Warum die Zutat oben trotzdem auffällt, zeigt `
+          + 'diese Aufteilung nicht; das kann die Praxis einordnen.'
+        : `Bis hin zu „${groesste.name}" ist nichts aufgefallen `
+          + `(${groesste.faelle} Mahlzeiten). Über größere Mengen sagt das nichts; die sind `
+          + 'noch nicht geprüft.',
     };
   }
 

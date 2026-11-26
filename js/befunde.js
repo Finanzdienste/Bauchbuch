@@ -76,15 +76,26 @@
  * bestehen.
  */
 export const BEFUNDE = [
+  /*
+   * gesund.bund.de, Sodbrennen und Refluxkrankheit (mit IQWiG, Stand
+   * 04.04.2025): „Für eine Refluxkrankheit kann es verschiedene Ursachen
+   * geben. … Bei manchen Menschen ist ein Zwerchfellbruch (Hiatushernie) die
+   * Ursache. … dadurch kann es den Schließmuskel zwischen Speiseröhre und
+   * Magen nicht mehr unterstützen." Eine mögliche Ursache also, keine, die
+   * feststeht. Bis zur Fassung 32 hieß es, Sodbrennen und Aufstoßen hätten
+   * damit „eine Erklärung, die schon feststeht", und der Befund strich die
+   * offene Frage nach Reflux (klaert: ['reflux']).
+   */
   {
     id: 'hiatushernie',
     name: 'Zwerchfellbruch (Hiatushernie)',
     was: 'Ein Teil des Magens rutscht durch das Zwerchfell nach oben.',
     organisch: true,
-    klaert: ['reflux'],
-    bedeutet: 'Ein bekannter Grund für Reflux: Der Verschluss zwischen Magen '
-      + 'und Speiseröhre hält schlechter. Was die App an Sodbrennen und '
-      + 'Aufstoßen zählt, hat damit eine Erklärung, die schon feststeht.',
+    klaert: [],
+    bedeutet: 'Laut gesund.bund.de bei manchen Menschen die Ursache von Reflux: '
+      + 'Der Bruch kann den Verschluss zwischen Magen und Speiseröhre schlechter '
+      + 'unterstützen. Ob er auch hinter dem steckt, was die App an Sodbrennen und '
+      + 'Aufstoßen zählt, kann die Praxis einordnen.',
   },
   /*
    * Quellen (Fassung 30): gesund.bund.de/glossar/typ-c-gastritis: „Ist die
@@ -178,17 +189,25 @@ export const BEFUNDE = [
     name: 'Laktoseintoleranz (nachgewiesen)',
     was: 'Milchzucker wird nicht ausreichend gespalten – mit Test bestätigt.',
     organisch: false,
-    klaert: ['unvertraeglich'],
+    /*
+     * klaert ist seit der Fassung 33 leer: Ein Befund zur Laktose sagt nichts
+     * über Fruktose und umgekehrt, und die Karte „Laktose- oder
+     * Fruktoseunverträglichkeit" (js/luecken.js) fragt nach beiden. Bis zur
+     * Fassung 32 strich jeder der beiden Befunde die ganze Karte.
+     */
+    klaert: [],
     bedeutet: 'Ein Provokationstest auf Laktose erübrigt sich damit; die '
-      + 'interessante Frage ist nur noch, wie viel du verträgst.',
+      + 'interessante Frage ist nur noch, wie viel du verträgst. Ob auch andere '
+      + 'Zucker eine Rolle spielen, beantwortet dieser Befund nicht.',
   },
   {
     id: 'fruktose',
     name: 'Fruktosemalabsorption (nachgewiesen)',
     was: 'Fruchtzucker wird im Dünndarm schlecht aufgenommen – mit Test bestätigt.',
     organisch: false,
-    klaert: ['unvertraeglich'],
-    bedeutet: 'Wie bei Laktose: Die Frage ist nicht mehr ob, sondern wie viel.',
+    klaert: [],
+    bedeutet: 'Wie bei Laktose: Die Frage ist nicht mehr ob, sondern wie viel. Ob '
+      + 'auch andere Zucker eine Rolle spielen, beantwortet dieser Befund nicht.',
   },
   {
     id: 'reizdarm',

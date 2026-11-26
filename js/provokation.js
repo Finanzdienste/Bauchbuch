@@ -603,6 +603,21 @@ export function provokationsBild(p, eintraege, heute) {
  * Ein Test ohne diese Zeile wird vergessen. Er besteht ja gerade nicht aus
  * einem Knopf, sondern aus Terminen, die man sich selbst setzt.
  */
+/*
+ * Jeder Durchgang mit der Sache findet zu Hause statt, ohne Aufsicht. Deshalb
+ * steht seit der Fassung 33 an jedem solchen Schritt, was bei einer schweren
+ * Reaktion zu tun ist. gesund.bund.de, Nahrungsmittelallergie (Stand
+ * 27.05.2024): Eine Nahrungsmittelallergie „kann auch zu einer
+ * anaphylaktischen Reaktion führen: Blutdruckabfall, Bewusstlosigkeit,
+ * Hautausschlag und Schwellungen im Gesicht sind mögliche Symptome. Kommt es
+ * zu Schwellungen der Atemwege, kann dies Atemnot hervorrufen."
+ * Medikamentenallergie (Stand 14.03.2024): „Bei einem anaphylaktischen
+ * Schock sollte sofort die Notrufnummer 112" gewählt werden.
+ */
+export const NOTFALL_SATZ = 'Bekommst du während eines Durchgangs Atemnot, Schwellungen im '
+  + 'Mund oder Rachen, Ausschlag mit Kreislaufproblemen oder wirst du benommen: nicht '
+  + 'auf einen Termin warten – Notaufnahme oder 112.';
+
 export function naechsterSchritt(p, heute, urteil = null) {
   if (!p || p.beendet) return null;
   const laeufe = [...(p.laeufe || [])].sort((a, b) => (a.am < b.am ? -1 : 1));
@@ -631,7 +646,8 @@ export function naechsterSchritt(p, heute, urteil = null) {
       dran: true,
       leer: false,
       satz: `Morgen früh nüchtern: ${p.was || 'die festgelegte Menge'}. Danach `
-        + `${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht.`,
+        + `${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht. `
+        + NOTFALL_SATZ,
     };
   }
   if (leere < MINDEST_LEER) {
@@ -657,7 +673,8 @@ export function naechsterSchritt(p, heute, urteil = null) {
         ? 'Noch ein Leerdurchgang: derselbe Ablauf, gleiche Uhrzeit, nüchtern – nur ohne '
           + 'die Sache. Mehr Vergleiche machen das Ergebnis klarer.'
         : `Noch ein Durchgang: morgen früh nüchtern ${p.was || 'die festgelegte Menge'}, `
-          + `danach ${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht.`,
+          + `danach ${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht. `
+          + NOTFALL_SATZ,
     };
   }
   return { dran: false, satz: 'Genug Durchgänge beisammen – das Ergebnis steht unten.' };

@@ -255,6 +255,19 @@ await page.screenshot({ path: `${SHOT}/71-befunde.png` });
  */
 {
   const { BEFUNDE } = await import('../js/befunde.js');
+  /*
+   * W7/W8, Fassung 33: Ein Zwerchfellbruch ist laut gesund.bund.de nur bei
+   * manchen Menschen die Ursache von Reflux und streicht die Frage danach
+   * nicht mehr; ein Befund zu Laktose oder Fruktose streicht die Karte zu
+   * beiden Zuckern nicht mehr (Belege in js/befunde.js).
+   */
+  const von = (id) => BEFUNDE.find((x) => x.id === id);
+  check(von('hiatushernie').klaert.length === 0 && !von('hiatushernie').bedeutet.includes('schon feststeht')
+    && von('hiatushernie').bedeutet.includes('bei manchen Menschen'),
+  'Zwerchfellbruch: eine mögliche Ursache von Reflux, keine Erklärung, die feststeht');
+  check(['laktose', 'fruktose'].every((id) => von(id).klaert.length === 0
+    && von(id).bedeutet.includes('Ob auch andere Zucker eine Rolle spielen, beantwortet dieser Befund nicht.')),
+  'Laktose- und Fruktosebefund streichen die Karte zu beiden Zuckern nicht und sagen das');
   const typA = BEFUNDE.find((b) => b.id === 'gastritis-a');
   const typB = BEFUNDE.find((b) => b.id === 'gastritis-b');
   check(typA.bedeutet.includes('Vitamin B12 im Dünndarm aufzunehmen') && !typA.bedeutet.includes('im Magen aufgenommen')

@@ -264,7 +264,7 @@ const text = async (page, sel) => ((await page.locator(sel).count())
   // Schlaganfallzeichen nach gesund.bund.de mit 112.
   // textContent, damit auch das Zugeklappte unter „Mehr dazu" mitzählt.
   const ganz = (await page.locator('.massage-hinweis').first().textContent()).replace(/\s+/g, ' ');
-  check(!/Hersteller|Halsarterie|Muskelschäden|Fallberichten/.test(ganz) && /112, nicht auf einen Termin warten/.test(ganz),
+  check(!/Hersteller|Halsarterie|Muskelschäden|Fallberichten/.test(ganz) && /nicht auf einen Termin warten – Notaufnahme oder 112/.test(ganz),
     'keine ungeprüften Herstellerangaben oder Fallberichte, aber der Notruf wie auf der Warnkarte');
   check(await breitOk(page), 'der Aktivitäts-Bogen passt in 320 Pixel');
   await ctx.close();

@@ -175,6 +175,15 @@ export function phasenWirkung(bewertet, id, tage, vergleiche = 1) {
   const eigenstaendig = staerkste.differenz >= Math.max(
     MINDEST_WIRKUNG, strenge(vergleiche) * staerkste.se,
   );
+  /*
+   * Der Satz nennt nur den Unterschied je Phase. Bis zur Fassung 32 hieß es
+   * dazu „Dieselbe Menge, andere Wirkung – das spricht eher für eine
+   * wechselnde Empfindlichkeit als für eine Unverträglichkeit". Die Mengen
+   * vergleicht diese Rechnung aber gar nicht, und laut gesund.bund.de
+   * (Reizdarmsyndrom, Stand 28.08.2024, „Wie wird … festgestellt?") kann „auch
+   * beides vorliegen – eine Nahrungsmittel-Unverträglichkeit und ein
+   * Reizdarmsyndrom". Wie in js/lage.js und js/bericht.js.
+   */
   if (spanne >= Math.max(SPANNE, zufall) && eigenstaendig) {
     return {
       urteil: 'wechselt',
@@ -185,9 +194,8 @@ export function phasenWirkung(bewertet, id, tage, vergleiche = 1) {
       spanne,
       satz: `In der Phase „${staerkste.name}" fällt das deutlich stärker aus `
         + `(${staerkste.differenz.toFixed(1).replace('.', ',')} Stufen Unterschied) als in der Phase `
-        + `„${schwaechste.name}" (${schwaechste.differenz.toFixed(1).replace('.', ',')}). Dieselbe `
-        + 'Menge, andere Wirkung – das spricht eher für eine wechselnde '
-        + 'Empfindlichkeit als für eine Unverträglichkeit.',
+        + `„${schwaechste.name}" (${schwaechste.differenz.toFixed(1).replace('.', ',')}). Was `
+        + 'dahintersteckt, lässt sich daraus nicht ablesen; das kann die Praxis einordnen.',
     };
   }
 

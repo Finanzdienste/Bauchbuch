@@ -35,7 +35,7 @@ import { bezugBilanz, stuhlZahlen, wasserSatz, wasserVergleich } from './stuhl.j
 import {
   GLAS_GROESSEN, WASSER_HOECHSTENS, glasMl, glasName, literText, wasserVon,
 } from './wasser.js';
-import { genugFuerKriterien, kriterien } from './kriterien.js';
+import { genugFuerKriterien, kriterien, reizdarmUrteil } from './kriterien.js';
 import {
   DAUER_VORSCHLAEGE, VERSUCH_URTEIL, betrifft, ergebnis, phase, versuchStand,
   vorschlaege,
@@ -3287,11 +3287,12 @@ function kriterienTeil(s, d) {
     ? `<span class="haken ${erfuellt ? 'ja' : 'nein'}">${erfuellt ? '✓' : '–'}</span>`
     : '<span class="haken offen">?</span>');
 
-  const reizdarmKasten = `<li class="krit ${r.erfuellt ? 'erfuellt' : ''}">
+  // „Erfüllt" nur mit der Zeitbedingung (reizdarmUrteil in js/kriterien.js).
+  const ru = reizdarmUrteil(k);
+  const reizdarmKasten = `<li class="krit ${ru.erfuellt ? 'erfuellt' : ''}">
     <div class="krit-kopf">
       <b>Reizdarmsyndrom (Rom IV)</b>
-      <span class="fund-urteil">${r.pruefbar
-    ? (r.erfuellt ? 'Kriterien erfüllt' : 'Kriterien nicht erfüllt') : 'noch nicht prüfbar'}</span>
+      <span class="fund-urteil">${esc(ru.wort)}</span>
     </div>
     <ul class="kritliste">
       <li>${haken(r.schmerzErfuellt, r.pruefbar)}
@@ -3355,8 +3356,11 @@ function kriterienTeil(s, d) {
        Fragebogen. Der GerdQ ist ein Fragebogen mit sechs Fragen zur
        Selbsteinschätzung, der Praxen bei der Einordnung von Reflux helfen soll.
        Zwei Posten zählt Body Check umgekehrt: Je öfter sie eingetragen sind,
-       desto weniger Punkte. Was die Punktzahl hier bedeutet, kann die Praxis
-       einordnen.`
+       desto weniger Punkte. Zwei Posten zählen mehr, als der Fragebogen fragt:
+       auch anderes Brennen als hinter dem Brustbein, und jeden Tag mit einem
+       säurewirksamen Mittel, auch einem verordneten. Die Punktzahl kann
+       dadurch höher liegen als im Fragebogen. Was sie hier bedeutet, kann die
+       Praxis einordnen.`
     : `Von den letzten sieben Tagen sind nur ${g.erfasst} notiert. Was nicht
        eingetragen ist, zählt hier als „nicht gehabt“ – die Punktzahl wäre damit
        nicht zu gebrauchen.`}</p>
@@ -3568,7 +3572,7 @@ function planTeil(s, d) {
     <p>${esc(b.karenz.satz.replace(/\*\*/g, ''))}</p>
 
     ${abbruch ? `<div class="reihe">
-      ${knopf('plan-beenden', 'Plan beenden und wieder normal essen', 'btn-primary')}
+      ${knopf('plan-beenden', 'Plan beenden', 'btn-primary')}
     </div>` : ''}
 
     ${!abbruch && (b.stufen.length || b.stand.phase !== 'karenz') ? `
@@ -5429,9 +5433,9 @@ function warnTeil(d) {
       <span class="klein">${mehrzahl(w.anzahl, 'Mal', 'Mal')} eingetragen,
         zuletzt ${esc(fmtDatum(w.zuletzt, true))}</span>
     </li>`).join('')}</ul>
-    <p class="klein">Bei erbrochenem Blut; schwarzem, klebrigem Stuhl; Schmerz,
-    der in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß;
-    einem Kopfschmerz, der schlagartig so stark war wie nie; Kopfschmerz mit
+    <p class="klein">Bei erbrochenem Blut; schwarzem, klebrigem Stuhl; Schmerz
+    oder Druck in der Brust, der länger als fünf Minuten anhält, oder Schmerz,
+    der in Arm, Hals, Kiefer oder Rücken ausstrahlt; einem Kopfschmerz, der schlagartig so stark war wie nie; Kopfschmerz mit
     Fieber und steifem Nacken; Ausfällen wie Lähmung, Taubheit einer
     Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit, wenn sie plötzlich
     kommen, länger als eine Stunde bleiben oder anders sind als die gewohnte
@@ -5443,7 +5447,10 @@ function warnTeil(d) {
    * kopfnacken) und sagt dazu dasselbe wie dort und wie js/lage.js. Bis zur
    * Fassung 29 stand „Bei Blut" – das schloss frisches Blut im Stuhl ein, das
    * in bild.js „zeitnah" ist –, und der Kopfschmerz mit Fieber und steifem
-   * Nacken fehlte.
+   * Nacken fehlte. Seit der Fassung 33 steht der Brustschmerz wie in bild.js
+   * (ausstrahlung, Beleg dort: gesund.bund.de/herzinfarkt): schon für sich,
+   * länger als fünf Minuten, oder mit Ausstrahlung auch in den Hals – nicht
+   * mehr nur zusammen mit Luftnot oder kaltem Schweiß.
    *
    * Die Ausfälle mit derselben Bedingung wie in bild.js (kopfausfall):
    * plötzlich, länger als eine Stunde oder anders als die gewohnte Aura. Nur
@@ -7458,6 +7465,11 @@ function bogenHTML(s) {
         <p class="feld-name">Wie viel davon? Keine Gramm – die Rolle genügt.</p>
         <div class="zutaten">${e.zutaten.map(zutatZeile).join('')}</div>` : ''}`;
   } else if (b.art === 'beschwerde') {
+    /*
+     * Im Warnbogen steht seit der Fassung 33, wie im Stuhlbogen, schon beim
+     * Ankreuzen der Satz für die Zeichen der Stufe „sofort" (js/bild.js, mit
+     * den Belegen dort) – nicht erst unter „Muster". Ebenso im Kopfbogen.
+     */
     mitte = `
       <p class="feld-name">Wie stark?</p>
       ${skala(e.staerke)}
@@ -7475,7 +7487,10 @@ function bogenHTML(s) {
              value="${esc(e.notiz || '')}" placeholder="optional" autocomplete="off">
       <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
         <summary>War etwas davon dabei?</summary>
-        <p class="klein">Selten, aber wichtig. Was hier angekreuzt wird, taucht
+        <p class="klein">Selten, aber wichtig. Bei erbrochenem Blut, schwarzem,
+        klebrigem Stuhl oder Schmerz oder Druck in der Brust, der länger als fünf
+        Minuten anhält oder in Arm, Hals, Kiefer oder Rücken ausstrahlt: nicht auf
+        einen Termin warten – Notaufnahme oder 112. Was hier angekreuzt wird, taucht
         nicht in der Statistik auf, sondern ganz oben unter „Muster" – mit dem
         Hinweis, wie eilig es ist.</p>
         ${marken(WARNZEICHEN.filter((w) => w.bereich !== 'kopf'), e.warnzeichen || [], 'warnzeichen')}
@@ -7585,9 +7600,12 @@ function bogenHTML(s) {
              value="${esc(e.notiz || '')}" placeholder="optional" autocomplete="off">
       <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
         <summary>War etwas davon dabei?</summary>
-        <p class="klein">Selten, aber wichtig. Was hier angekreuzt wird, taucht
-        nicht in der Statistik auf, sondern ganz oben unter „Muster" – mit dem
-        Hinweis, wie eilig es ist.</p>
+        <p class="klein">Selten, aber wichtig. Bei einem Kopfschmerz, der
+        schlagartig so stark war wie nie, Kopfschmerz mit Fieber und steifem Nacken,
+        plötzlichen Ausfällen wie Lähmung oder Sprachstörung oder erbrochenem Blut:
+        nicht auf einen Termin warten – Notaufnahme oder 112. Was hier angekreuzt
+        wird, taucht nicht in der Statistik auf, sondern ganz oben unter „Muster" –
+        mit dem Hinweis, wie eilig es ist.</p>
         ${marken(WARNZEICHEN.filter((w) => w.bereich === 'kopf' || w.id === 'bluterbrechen'),
     e.warnzeichen || [], 'warnzeichen')}
       </details>`;

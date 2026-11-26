@@ -93,9 +93,19 @@ export const KLASSEN = [
     id: 'gluten',
     name: 'Weizen und Gluten',
     kurz: 'Gluten',
+    /*
+     * Wie in planAngebot (js/app.js): EMA, Wheat starch (containing gluten)
+     * used as an excipient, EMA/CHMP/639441/2013 corr. 2, S. 4: „all tests lose
+     * their usefulness if the person has already been eating a gluten-free
+     * diet for 6–12 months. Intestinal damage begins to heal within weeks …,
+     * and antibody levels decline over months." Bis zur Fassung 32: „Ein
+     * Bluttest auf Zöliakie geht nur, solange noch Gluten gegessen wird" – so
+     * zwingend sagt es die Quelle nicht.
+     */
     was: 'Bei Zöliakie ein Auslöser, bei anderen eher die Fruktane im selben '
-      + 'Korn. Wichtig: Ein Bluttest auf Zöliakie geht nur, solange noch '
-      + 'Gluten gegessen wird.',
+      + 'Korn. Wichtig: Laut EMA verlieren Bluttest und Gewebeprobe auf Zöliakie '
+      + 'ihren Nutzen, wenn schon 6 bis 12 Monate glutenfrei gegessen wurde; die '
+      + 'Antikörper sinken über Monate.',
   },
   {
     id: 'scharf',

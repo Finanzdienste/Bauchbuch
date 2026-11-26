@@ -118,8 +118,9 @@ export const GEGENMITTEL_VORBEHALT = 'Wird massiert oder gewärmt, wenn sich sch
  * Schwäche, Sprachstörungen, Lähmungserscheinungen und Taubheitsgefühle,
  * Gesichtsfeldausfall, Schwindel und ein unsicherer Gang; „Bei jedem
  * Verdacht auf einen Schlaganfall ist es wichtig, schnell den Notruf 112 zu
- * wählen"). Der Wortlaut folgt der Warnkarte (js/bild.js, kopfausfall): 112,
- * nicht der nächste Termin.
+ * wählen"). Der Wortlaut folgt seit der Fassung 33 dem Satz aller
+ * Warnzeichen der Stufe „sofort" (js/bild.js, kopfausfall): nicht auf einen
+ * Termin warten – Notaufnahme oder 112.
  */
 export const MASSAGE_HINWEIS = {
   satz: 'Wo und bei wem ein Gerät nicht angewendet werden soll, steht in seinen '
@@ -127,7 +128,7 @@ export const MASSAGE_HINWEIS = {
     + 'Physiotherapie.',
   details: 'Plötzliche Lähmung oder Taubheit, Sprach- oder Sehstörung, Schwindel oder ein '
     + 'unsicherer Gang können Zeichen eines Schlaganfalls sein – egal, wobei sie auftreten. '
-    + 'Dann 112, nicht auf einen Termin warten.',
+    + 'Dann nicht auf einen Termin warten – Notaufnahme oder 112.',
 };
 
 /*

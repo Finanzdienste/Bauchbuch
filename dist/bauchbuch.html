@@ -3980,9 +3980,19 @@ const KLASSEN = [
     id: 'gluten',
     name: 'Weizen und Gluten',
     kurz: 'Gluten',
+    /*
+     * Wie in planAngebot (js/app.js): EMA, Wheat starch (containing gluten)
+     * used as an excipient, EMA/CHMP/639441/2013 corr. 2, S. 4: „all tests lose
+     * their usefulness if the person has already been eating a gluten-free
+     * diet for 6–12 months. Intestinal damage begins to heal within weeks …,
+     * and antibody levels decline over months." Bis zur Fassung 32: „Ein
+     * Bluttest auf Zöliakie geht nur, solange noch Gluten gegessen wird" – so
+     * zwingend sagt es die Quelle nicht.
+     */
     was: 'Bei Zöliakie ein Auslöser, bei anderen eher die Fruktane im selben '
-      + 'Korn. Wichtig: Ein Bluttest auf Zöliakie geht nur, solange noch '
-      + 'Gluten gegessen wird.',
+      + 'Korn. Wichtig: Laut EMA verlieren Bluttest und Gewebeprobe auf Zöliakie '
+      + 'ihren Nutzen, wenn schon 6 bis 12 Monate glutenfrei gegessen wurde; die '
+      + 'Antikörper sinken über Monate.',
   },
   {
     id: 'scharf',
@@ -4584,15 +4594,26 @@ function widerspruchsSatz(t) {
  * bestehen.
  */
 const BEFUNDE = [
+  /*
+   * gesund.bund.de, Sodbrennen und Refluxkrankheit (mit IQWiG, Stand
+   * 04.04.2025): „Für eine Refluxkrankheit kann es verschiedene Ursachen
+   * geben. … Bei manchen Menschen ist ein Zwerchfellbruch (Hiatushernie) die
+   * Ursache. … dadurch kann es den Schließmuskel zwischen Speiseröhre und
+   * Magen nicht mehr unterstützen." Eine mögliche Ursache also, keine, die
+   * feststeht. Bis zur Fassung 32 hieß es, Sodbrennen und Aufstoßen hätten
+   * damit „eine Erklärung, die schon feststeht", und der Befund strich die
+   * offene Frage nach Reflux (klaert: ['reflux']).
+   */
   {
     id: 'hiatushernie',
     name: 'Zwerchfellbruch (Hiatushernie)',
     was: 'Ein Teil des Magens rutscht durch das Zwerchfell nach oben.',
     organisch: true,
-    klaert: ['reflux'],
-    bedeutet: 'Ein bekannter Grund für Reflux: Der Verschluss zwischen Magen '
-      + 'und Speiseröhre hält schlechter. Was die App an Sodbrennen und '
-      + 'Aufstoßen zählt, hat damit eine Erklärung, die schon feststeht.',
+    klaert: [],
+    bedeutet: 'Laut gesund.bund.de bei manchen Menschen die Ursache von Reflux: '
+      + 'Der Bruch kann den Verschluss zwischen Magen und Speiseröhre schlechter '
+      + 'unterstützen. Ob er auch hinter dem steckt, was die App an Sodbrennen und '
+      + 'Aufstoßen zählt, kann die Praxis einordnen.',
   },
   /*
    * Quellen (Fassung 30): gesund.bund.de/glossar/typ-c-gastritis: „Ist die
@@ -4686,17 +4707,25 @@ const BEFUNDE = [
     name: 'Laktoseintoleranz (nachgewiesen)',
     was: 'Milchzucker wird nicht ausreichend gespalten – mit Test bestätigt.',
     organisch: false,
-    klaert: ['unvertraeglich'],
+    /*
+     * klaert ist seit der Fassung 33 leer: Ein Befund zur Laktose sagt nichts
+     * über Fruktose und umgekehrt, und die Karte „Laktose- oder
+     * Fruktoseunverträglichkeit" (js/luecken.js) fragt nach beiden. Bis zur
+     * Fassung 32 strich jeder der beiden Befunde die ganze Karte.
+     */
+    klaert: [],
     bedeutet: 'Ein Provokationstest auf Laktose erübrigt sich damit; die '
-      + 'interessante Frage ist nur noch, wie viel du verträgst.',
+      + 'interessante Frage ist nur noch, wie viel du verträgst. Ob auch andere '
+      + 'Zucker eine Rolle spielen, beantwortet dieser Befund nicht.',
   },
   {
     id: 'fruktose',
     name: 'Fruktosemalabsorption (nachgewiesen)',
     was: 'Fruchtzucker wird im Dünndarm schlecht aufgenommen – mit Test bestätigt.',
     organisch: false,
-    klaert: ['unvertraeglich'],
-    bedeutet: 'Wie bei Laktose: Die Frage ist nicht mehr ob, sondern wie viel.',
+    klaert: [],
+    bedeutet: 'Wie bei Laktose: Die Frage ist nicht mehr ob, sondern wie viel. Ob '
+      + 'auch andere Zucker eine Rolle spielen, beantwortet dieser Befund nicht.',
   },
   {
     id: 'reizdarm',
@@ -10382,8 +10411,9 @@ const GEGENMITTEL_VORBEHALT = 'Wird massiert oder gewärmt, wenn sich schon etwa
  * Schwäche, Sprachstörungen, Lähmungserscheinungen und Taubheitsgefühle,
  * Gesichtsfeldausfall, Schwindel und ein unsicherer Gang; „Bei jedem
  * Verdacht auf einen Schlaganfall ist es wichtig, schnell den Notruf 112 zu
- * wählen"). Der Wortlaut folgt der Warnkarte (js/bild.js, kopfausfall): 112,
- * nicht der nächste Termin.
+ * wählen"). Der Wortlaut folgt seit der Fassung 33 dem Satz aller
+ * Warnzeichen der Stufe „sofort" (js/bild.js, kopfausfall): nicht auf einen
+ * Termin warten – Notaufnahme oder 112.
  */
 const MASSAGE_HINWEIS = {
   satz: 'Wo und bei wem ein Gerät nicht angewendet werden soll, steht in seinen '
@@ -10391,7 +10421,7 @@ const MASSAGE_HINWEIS = {
     + 'Physiotherapie.',
   details: 'Plötzliche Lähmung oder Taubheit, Sprach- oder Sehstörung, Schwindel oder ein '
     + 'unsicherer Gang können Zeichen eines Schlaganfalls sein – egal, wobei sie auftreten. '
-    + 'Dann 112, nicht auf einen Termin warten.',
+    + 'Dann nicht auf einen Termin warten – Notaufnahme oder 112.',
 };
 
 /*
@@ -13450,9 +13480,29 @@ function dyspepsie(d) {
  * Magen". Beides steht nirgends mehr in der Anzeige; `schwelle` und
  * `wahrscheinlich` werden weiter gerechnet, aber nicht als Deutung
  * ausgegeben (js/app.js, js/bericht.js, js/luecken.js).
+ *
+ * Zwei Posten zählen mehr, als der Fragebogen fragt, und heißen seit der
+ * Fassung 33 danach. Der erste zählt neben „Sodbrennen" auch das allgemeine
+ * „Brennen" aus dem Beschwerdebogen – der Fragebogen fragt nach Brennen
+ * hinter dem Brustbein. Der letzte zählt jeden Tag mit einem säurewirksamen
+ * Mittel, auch einem verordneten – der Fragebogen meint Mittel, die
+ * zusätzlich genommen werden: „additional over-the-counter medication for
+ * heartburn and/or regurgitation" (Abstract, PMID 24466449); bei Menschen,
+ * die schon einen Säureblocker nehmen, „over-the-counter medication use"
+ * (Abstract, PMID 23611985). Bis zur Fassung 32 hießen die Posten wie die
+ * Fragen des Fragebogens, und der Kommentar unten behauptete, eine verordnete
+ * Tablette zähle dort genauso. Die Zählung selbst ist unverändert, damit die
+ * Punktzahl dieselbe bleibt wie in früheren Fassungen; dass sie dadurch
+ * höher liegen kann als im Fragebogen, steht als Vorbehalt in der
+ * Kriterienkarte (js/app.js) und im Bericht (js/bericht.js).
  */
 const GERDQ_POSTEN = [
-  { id: 'sodbrennen', frage: 'Brennen hinter dem Brustbein', arten: ['sodbrennen', 'brennen'], richtung: 1 },
+  {
+    id: 'sodbrennen',
+    frage: 'Sodbrennen oder anderes Brennen',
+    arten: ['sodbrennen', 'brennen'],
+    richtung: 1,
+  },
   { id: 'aufstossen', frage: 'Aufstoßen, Rückfluss in den Mund', arten: ['aufstossen'], richtung: 1 },
   { id: 'oberbauch', frage: 'Schmerz in der Magengrube', arten: ['oberbauch'], richtung: -1 },
   { id: 'uebelkeit', frage: 'Übelkeit', arten: ['uebelkeit'], richtung: -1 },
@@ -13493,16 +13543,16 @@ function gerdq(d) {
     umgekehrt: false,
   });
 
-  // Tage mit einem säurewirksamen Mittel. Der Fragebogen zielt auf die frei
-  // gekaufte Tablette gegen die Beschwerden – eine dauerhaft verordnete zählt
-  // dort genauso, und unterscheiden kann das Tagebuch beides nicht.
+  // Tage mit einem säurewirksamen Mittel, verordnet oder nicht. Der
+  // Fragebogen meint Mittel, die zusätzlich genommen werden (siehe oben); das
+  // Tagebuch trennt beides nicht, und der Name des Postens sagt das.
   const mittelTage = [...new Set((d.eintraege || [])
     .filter((e) => e.art === 'medikament' && inFenster(e.am, von, d.bis)
       && d.istSaeuremittel(e.mittel))
     .map((e) => e.am))].length;
   posten.push({
     id: 'mittel',
-    frage: 'Ein Mittel gegen die Beschwerden genommen',
+    frage: 'Ein säurewirksames Mittel genommen, auch ein verordnetes',
     tage: mittelTage,
     punkte: gerdqPunkt(mittelTage),
     umgekehrt: false,
@@ -13561,6 +13611,33 @@ function kriterien(d) {
     reizdarm: reizdarm(basis),
     dyspepsie: dyspepsie(basis),
     gerdq: gerdq(basis),
+  };
+}
+
+/**
+ * Was beim Reizdarm angezeigt wird – mit der Zeitbedingung.
+ *
+ * `reizdarm.erfuellt` rechnet nur Schmerz und Merkmale; das bleibt so, damit
+ * die Rechnung dieselbe ist wie bisher. Rom IV verlangt aber auch den Beginn
+ * vor mindestens sechs Monaten (siehe 3. oben: „symptom onset at least 6
+ * months before diagnosis"). Bis zur Fassung 32 stand „Kriterien erfüllt"
+ * auch dann, wenn dieser Beginn gar nicht eingetragen oder noch nicht
+ * erreicht war. Seit der Fassung 33 heißt es nur mit erfüllter Zeitbedingung
+ * so; sonst sagt der Satz, was fehlt. Die Kriterienkarte, der Bericht und
+ * „Was keine App beantwortet" lesen alle hier.
+ *
+ * @returns {{ erfuellt: boolean, wort: string }}
+ */
+function reizdarmUrteil(k) {
+  const r = k.reizdarm;
+  if (!r.pruefbar) return { erfuellt: false, wort: 'noch nicht prüfbar' };
+  if (!r.erfuellt) return { erfuellt: false, wort: 'Kriterien nicht erfüllt' };
+  if (k.dauer && k.dauer.erfuellt === true) return { erfuellt: true, wort: 'Kriterien erfüllt' };
+  return {
+    erfuellt: false,
+    wort: (k.dauer && k.dauer.erfuellt === false)
+      ? 'Schmerz und Merkmale erfüllt – der Beginn vor mindestens sechs Monaten ist noch nicht erreicht'
+      : 'Schmerz und Merkmale erfüllt – der Beginn vor mindestens sechs Monaten ist nicht eingetragen',
   };
 }
 
@@ -14356,7 +14433,9 @@ const VERDAECHTE = [
    * keines zeigt; mit Muster sagt sie nur, was es zählt (Beschwerden erst
    * vier Stunden oder länger nach dem Essen), kein „bessert sich danach". Den
    * schwarzen, klebrigen Stuhl stuft js/bild.js als „sofort" ein; dafür steht
-   * der Satz der Warnkarte.
+   * der Satz der Warnkarte. Seit der Fassung 33 auch für erbrochenes Blut, das
+   * gesund.bund.de beim Magengeschwür ebenso als Zeichen einer Blutung nennt
+   * und das js/bild.js (bluterbrechen) ebenfalls „sofort" einstuft.
    */
   {
     id: 'ulkus',
@@ -14402,7 +14481,8 @@ const VERDAECHTE = [
         dafuer,
         dagegen: [],
         offen: 'Ein Geschwür sieht man, man errechnet es nicht. Bei schwarzem, '
-          + 'klebrigem Stuhl nicht auf einen Termin warten – Notaufnahme oder 112. '
+          + 'klebrigem Stuhl oder wenn du Blut oder kaffeesatzartige Masse erbrichst: '
+          + 'nicht auf einen Termin warten – Notaufnahme oder 112. '
           + 'Zeichen einer Blutarmut gehören laut gesund.bund.de zeitnah ärztlich '
           + 'abgeklärt.',
       };
@@ -14583,11 +14663,13 @@ const VERDAECHTE = [
       }
       if (r.typ.typ) dafuer.push(`Stuhlform: ${r.typ.name}.`);
       let stand = 'offen';
-      if (r.erfuellt) stand = 'gestuetzt';
+      // „Erfüllt" nur mit der Zeitbedingung, wie im Kasten (reizdarmUrteil).
+      const erfuellt = reizdarmUrteil(d.kriterien).erfuellt;
+      if (erfuellt) stand = 'gestuetzt';
       else if (r.pruefbar && dafuer.length) stand = 'moeglich';
       else if (r.pruefbar) stand = 'unwahrscheinlich';
       // „Erfüllt" nur, wenn der Kasten unter „Kriterien" es auch sagt.
-      const frage = r.erfuellt
+      const frage = erfuellt
         ? 'In meinem Tagebuch sind die Rom-IV-Kriterien für ein Reizdarmsyndrom '
           + 'erfüllt – sind andere Ursachen wie eine Zöliakie oder eine Entzündung im '
           + 'Darm schon abgeklärt worden, etwa mit einem Calprotectin-Test?'
@@ -14607,8 +14689,17 @@ const VERDAECHTE = [
   {
     id: 'unvertraeglich',
     name: 'Laktose- oder Fruktoseunverträglichkeit',
+    /*
+     * gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026): „Die Beschwerden
+     * treten frühestens eine halbe Stunde nach Verzehr von laktosehaltigen
+     * Lebensmitteln auf. Am stärksten sind sie nach etwa eineinhalb bis zwei
+     * Stunden. Sie können über mehrere Stunden andauern." Bis zur Fassung 32:
+     * „meist Stunden nach dem Essen".
+     */
     was: 'Ein Zucker wird im Dünndarm nicht aufgenommen und im Dickdarm vergoren. '
-      + 'Gas, Krämpfe, Durchfall – meist Stunden nach dem Essen.',
+      + 'Gas, Krämpfe, Durchfall – bei Laktose laut gesund.bund.de frühestens eine '
+      + 'halbe Stunde nach dem Essen, am stärksten nach etwa eineinhalb bis zwei '
+      + 'Stunden; sie können über mehrere Stunden andauern.',
     /*
      * gesund.bund.de, Laktoseintoleranz (Stand 23.02.2026, „Wie wird eine
      * Laktoseintoleranz diagnostiziert?"): „Atemtest: Nach dem Trinken einer
@@ -14670,10 +14761,15 @@ const VERDAECHTE = [
      * diet for 6–12 months." Bis zur Fassung 29: „wer vorher weglässt,
      * bekommt ein falsch unauffälliges Ergebnis" – so zwingend sagt es die
      * Quelle nicht; welche Antikörper bestimmt werden, nennt sie nicht.
+     * Seit der Fassung 33 dazu, ebenfalls S. 4: „Intestinal damage begins to
+     * heal within weeks of gluten being removed from the diet, and antibody
+     * levels decline over months."
      */
     untersuchung: 'Bluttest auf Antikörper, danach Spiegelung mit Gewebeprobe. '
       + '**Laut EMA verlieren diese Untersuchungen ihren Nutzen, wenn schon 6 bis 12 '
-      + 'Monate glutenfrei gegessen wurde.**',
+      + 'Monate glutenfrei gegessen wurde.** Laut derselben Quelle beginnt die '
+      + 'Darmschleimhaut schon wenige Wochen nach dem Weglassen zu heilen, und die '
+      + 'Antikörper sinken über Monate.',
     frage: 'Ist Zöliakie schon einmal ausgeschlossen worden?',
     pruefe: (d) => {
       const dafuer = [];
@@ -15870,6 +15966,15 @@ function phasenWirkung(bewertet, id, tage, vergleiche = 1) {
   const eigenstaendig = staerkste.differenz >= Math.max(
     MINDEST_WIRKUNG, strenge(vergleiche) * staerkste.se,
   );
+  /*
+   * Der Satz nennt nur den Unterschied je Phase. Bis zur Fassung 32 hieß es
+   * dazu „Dieselbe Menge, andere Wirkung – das spricht eher für eine
+   * wechselnde Empfindlichkeit als für eine Unverträglichkeit". Die Mengen
+   * vergleicht diese Rechnung aber gar nicht, und laut gesund.bund.de
+   * (Reizdarmsyndrom, Stand 28.08.2024, „Wie wird … festgestellt?") kann „auch
+   * beides vorliegen – eine Nahrungsmittel-Unverträglichkeit und ein
+   * Reizdarmsyndrom". Wie in js/lage.js und js/bericht.js.
+   */
   if (spanne >= Math.max(SPANNE, zufall) && eigenstaendig) {
     return {
       urteil: 'wechselt',
@@ -15880,9 +15985,8 @@ function phasenWirkung(bewertet, id, tage, vergleiche = 1) {
       spanne,
       satz: `In der Phase „${staerkste.name}" fällt das deutlich stärker aus `
         + `(${staerkste.differenz.toFixed(1).replace('.', ',')} Stufen Unterschied) als in der Phase `
-        + `„${schwaechste.name}" (${schwaechste.differenz.toFixed(1).replace('.', ',')}). Dieselbe `
-        + 'Menge, andere Wirkung – das spricht eher für eine wechselnde '
-        + 'Empfindlichkeit als für eine Unverträglichkeit.',
+        + `„${schwaechste.name}" (${schwaechste.differenz.toFixed(1).replace('.', ',')}). Was `
+        + 'dahintersteckt, lässt sich daraus nicht ablesen; das kann die Praxis einordnen.',
     };
   }
 
@@ -16137,6 +16241,13 @@ function dosisBild(eintraege, id, fenster = 4) {
      * Keine Stufe fällt auf – aber „unauffällig" ist nur so viel wert wie die
      * größte geprüfte Menge. Wer bloß die Würze geprüft hat, hat nichts über
      * die Suppe gesagt.
+     *
+     * Und auch bis zur Hauptzutat ist „unauffällig" kein Freispruch. Bis zur
+     * Fassung 32 hieß es dann „das spricht gegen diese Zutat als Auslöser" –
+     * gegen die Hauptkarte, auf der dieselbe Zutat auffällt, und gegen
+     * gesund.bund.de (Nahrungsmittelallergie, Stand 27.05.2024): „Bereits
+     * kleine Mengen eines Lebensmittels" können reichen. Jetzt steht nur, was
+     * in dieser Aufteilung gezählt ist.
      */
     const groesste = pruefbare[pruefbare.length - 1];
     return {
@@ -16144,11 +16255,13 @@ function dosisBild(eintraege, id, fenster = 4) {
       stufen,
       gegenFaelle,
       bisStufe: groesste,
-      satz: `Bis hin zu „${groesste.name}" ist nichts aufgefallen `
-        + `(${groesste.faelle} Mahlzeiten). ${groesste.rang === 3
-          ? 'Größere Mengen als eine Hauptzutat gibt es nicht – das spricht gegen '
-            + 'diese Zutat als Auslöser.'
-          : 'Über größere Mengen sagt das nichts; die sind noch nicht geprüft.'}`,
+      satz: groesste.rang === 3
+        ? `Bis hin zu „${groesste.name}" ist in diesen Mahlzeiten nichts aufgefallen `
+          + `(${groesste.faelle} Mahlzeiten). Warum die Zutat oben trotzdem auffällt, zeigt `
+          + 'diese Aufteilung nicht; das kann die Praxis einordnen.'
+        : `Bis hin zu „${groesste.name}" ist nichts aufgefallen `
+          + `(${groesste.faelle} Mahlzeiten). Über größere Mengen sagt das nichts; die sind `
+          + 'noch nicht geprüft.',
     };
   }
 
@@ -17059,6 +17172,21 @@ function provokationsBild(p, eintraege, heute) {
  * Ein Test ohne diese Zeile wird vergessen. Er besteht ja gerade nicht aus
  * einem Knopf, sondern aus Terminen, die man sich selbst setzt.
  */
+/*
+ * Jeder Durchgang mit der Sache findet zu Hause statt, ohne Aufsicht. Deshalb
+ * steht seit der Fassung 33 an jedem solchen Schritt, was bei einer schweren
+ * Reaktion zu tun ist. gesund.bund.de, Nahrungsmittelallergie (Stand
+ * 27.05.2024): Eine Nahrungsmittelallergie „kann auch zu einer
+ * anaphylaktischen Reaktion führen: Blutdruckabfall, Bewusstlosigkeit,
+ * Hautausschlag und Schwellungen im Gesicht sind mögliche Symptome. Kommt es
+ * zu Schwellungen der Atemwege, kann dies Atemnot hervorrufen."
+ * Medikamentenallergie (Stand 14.03.2024): „Bei einem anaphylaktischen
+ * Schock sollte sofort die Notrufnummer 112" gewählt werden.
+ */
+const NOTFALL_SATZ = 'Bekommst du während eines Durchgangs Atemnot, Schwellungen im '
+  + 'Mund oder Rachen, Ausschlag mit Kreislaufproblemen oder wirst du benommen: nicht '
+  + 'auf einen Termin warten – Notaufnahme oder 112.';
+
 function naechsterSchritt(p, heute, urteil = null) {
   if (!p || p.beendet) return null;
   const laeufe = [...(p.laeufe || [])].sort((a, b) => (a.am < b.am ? -1 : 1));
@@ -17087,7 +17215,8 @@ function naechsterSchritt(p, heute, urteil = null) {
       dran: true,
       leer: false,
       satz: `Morgen früh nüchtern: ${p.was || 'die festgelegte Menge'}. Danach `
-        + `${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht.`,
+        + `${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht. `
+        + NOTFALL_SATZ,
     };
   }
   if (leere < MINDEST_LEER) {
@@ -17113,7 +17242,8 @@ function naechsterSchritt(p, heute, urteil = null) {
         ? 'Noch ein Leerdurchgang: derselbe Ablauf, gleiche Uhrzeit, nüchtern – nur ohne '
           + 'die Sache. Mehr Vergleiche machen das Ergebnis klarer.'
         : `Noch ein Durchgang: morgen früh nüchtern ${p.was || 'die festgelegte Menge'}, `
-          + `danach ${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht.`,
+          + `danach ${p.fenster || FENSTER_STD} Stunden nichts essen und eintragen, wie es dir geht. `
+          + NOTFALL_SATZ,
     };
   }
   return { dran: false, satz: 'Genug Durchgänge beisammen – das Ergebnis steht unten.' };
@@ -17432,11 +17562,26 @@ function karenzBild(plan, eintraege, tage, heute) {
         ? `Bisher ${besserung.toFixed(1).replace('.', ',')} Stufen besser: ${zahlen} `
           + `Das sieht gut aus – und es ist noch keine Antwort darauf, *was* davon. `
           + `Die kommt erst mit der Wiedereinführung.`
-        : `Bisher kein deutlicher Unterschied: ${zahlen} Weiter bis zum Ende der `
-          + `Karenz; darunter ist es zu früh für ein Urteil.`,
+        : `Bisher kein deutlicher Unterschied: ${zahlen} Ein Urteil gibt es erst am `
+          + `Ende der Karenz.`,
     };
   }
 
+  /*
+   * Fassung 33: Die Sätze sagen, was im Tagebuch zu sehen ist, und was die
+   * Fachliteratur als nächsten Schritt beschreibt – keine festen Anweisungen
+   * („Iss wieder normal", „darf zurück auf den Teller", „Behalte die kleinere
+   * Menge und lass die größere weg", „bleibt vorerst draußen – … in einem
+   * halben Jahr", „Damit steht fest, dass es sich lohnt", „kostet
+   * Ballaststoffe, Kalzium und Vielfalt"). Belege: Whelan et al., J Hum Nutr
+   * Diet 2018 (PMID 29336079): drei Stufen „FODMAP restriction; FODMAP
+   * reintroduction; and FODMAP personalisation", wiedereingeführt wird, „if
+   * restriction has successfully reduced IBS symptoms"; Tuck & Barrett, J
+   * Gastroenterol Hepatol 2017 (PMID 28244664): „Dietitians should tailor the
+   * challenge process to the individual patient". Deshalb geht die Frage, was
+   * daraus für den Speiseplan folgt, an die Praxis oder eine
+   * Ernährungsfachkraft (siehe auch planTeil in js/app.js).
+   */
   if (besserung >= PLAN_SCHWELLE) {
     return {
       urteil: 'hilft',
@@ -17445,17 +17590,18 @@ function karenzBild(plan, eintraege, tage, heute) {
       karenz,
       besserung,
       satz: `${besserung.toFixed(1).replace('.', ',')} Stufen besser: ${zahlen} `
-        + `Damit steht fest, dass es sich lohnt weiterzumachen – und jetzt kommt `
-        + `der Teil, auf den alles hinausläuft. **Die Karenz ist nicht das Ziel.** `
-        + `Sie ist der Aufbau: Erst die Wiedereinführung sagt, welche Gruppe `
-        + `es war, und alles andere darf zurück auf den Teller.`,
+        + `Im Tagebuch ist es während der Karenz deutlich besser. **Die Karenz ist `
+        + `nicht das Ziel.** In der Fachliteratur folgt auf sie die Wiedereinführung, `
+        + `Gruppe für Gruppe – erst sie zeigt, welche Gruppe auffällt. Wie es `
+        + `weitergeht, kannst du mit der Praxis oder einer Ernährungsfachkraft besprechen.`,
     };
   }
 
   /*
    * Der Abbruch. Die wichtigste Ausgabe dieser Datei, und sie muss unmissver-
-   * ständlich sein: nicht „vielleicht doch noch weiterprobieren", sondern
-   * aufhören.
+   * ständlich sein: Dieser Plan führt nicht zur Wiedereinführung weiter, denn
+   * die kommt laut Whelan et al. (siehe oben) erst, wenn die Karenz die
+   * Beschwerden gebessert hat. Was stattdessen kommt, sagt nicht die App.
    */
   return {
     urteil: 'hilft-nicht',
@@ -17464,13 +17610,11 @@ function karenzBild(plan, eintraege, tage, heute) {
     karenz,
     besserung,
     satz: `Kein deutlicher Unterschied: ${zahlen} Damit ist dieser Plan zu Ende, `
-      + `und das ist die richtige Folgerung und kein Fehlschlag: Wenn `
-      + `${plan.karenzTage} Tage ohne diese Kohlenhydrate nichts geändert haben, `
-      + `wird die Wiedereinführung es auch nicht klären – dann liegt es nicht `
-      + `daran. Iss wieder normal. Eine Diät, die nichts bringt, ist kein `
-      + `neutraler Zustand: Sie kostet Ballaststoffe, Kalzium und Vielfalt, und `
-      + `dafür bekommst du hier nichts. Was stattdessen dransteht, steht unter `
-      + `„Was noch fehlt".`,
+      + `und das ist kein Fehlschlag: In der Fachliteratur folgt die `
+      + `Wiedereinführung erst, wenn ${plan.karenzTage} Tage ohne diese `
+      + `Kohlenhydrate die Beschwerden gebessert haben. Wie es weitergeht, kannst du `
+      + `mit der Praxis oder einer Ernährungsfachkraft besprechen. Was sonst noch `
+      + `offen ist, steht unter „Was noch fehlt".`,
   };
 }
 
@@ -17575,10 +17719,9 @@ function stufenBild(plan, st, eintraege, tage, heute) {
       ...gemeinsam,
       urteil: 'vertraegt',
       wort: STUFEN_URTEIL.vertraegt,
-      satz: `Kein deutlicher Unterschied: ${zahlen} Diese Gruppe darf zurück auf `
-        + `den Teller – bis ${g.mengen[STUFE_TAGE - 1] || 'zur geprüften Menge'} `
-        + `${g.womit ? `${g.womit} ` : ''}war nichts zu merken. Jede Gruppe, die `
-        + `zurückkommt, ist der eigentliche Ertrag des ganzen Plans.`,
+      satz: `Kein deutlicher Unterschied: ${zahlen} Bis `
+        + `${g.mengen[STUFE_TAGE - 1] || 'zur geprüften Menge'} `
+        + `${g.womit ? `${g.womit} ` : ''}war im Tagebuch nichts zu merken.`,
     };
   }
 
@@ -17598,9 +17741,9 @@ function stufenBild(plan, st, eintraege, tage, heute) {
       abTag: abTag + 1,
       gehtBis: g.mengen[abTag - 1],
       satz: `${zahlen} Aber nicht von Anfang an: ${g.mengen[abTag - 1]} `
-        + `${g.womit || ''} ging noch, ab ${g.mengen[abTag]} kam es. Das ist die `
-        + `nützlichste Antwort, die dieser Plan geben kann – **streichen wäre `
-        + `hier zu viel.** Behalte die kleinere Menge und lass die größere weg.`,
+        + `${g.womit || ''} ging noch, ab ${g.mengen[abTag]} kam es. Die kleinere `
+        + `Menge war unauffällig, die größere nicht. Was das für deinen Speiseplan `
+        + `heißt, kannst du mit einer Ernährungsfachkraft besprechen.`,
     };
   }
 
@@ -17622,9 +17765,9 @@ function stufenBild(plan, st, eintraege, tage, heute) {
       wort: STUFEN_URTEIL.reagiert,
       satz: `${zahlen} Diese Gruppe hat reagiert – aber am ersten Tag, dem mit der `
         + `kleinsten Menge (${g.mengen[0] || 'die erste Stufe'}), steht nichts im `
-        + `Tagebuch. Ob die kleine Menge durchgeht, ist damit offen, und das ist `
-        + `genau die Frage, an der hängt, ob du die Gruppe streichen musst oder `
-        + `nur begrenzen. Diese Stufe lohnt eine Wiederholung.`,
+        + `Tagebuch. Ob die kleine Menge unauffällig ist, ist damit offen; eine `
+        + `Wiederholung dieser Stufe könnte das zeigen. Ob sie für dich passt, kannst `
+        + `du mit einer Ernährungsfachkraft besprechen.`,
     };
   }
 
@@ -17633,10 +17776,9 @@ function stufenBild(plan, st, eintraege, tage, heute) {
     urteil: 'vertraegt-nicht',
     wort: STUFEN_URTEIL['vertraegt-nicht'],
     satz: `${zahlen} Schon die kleinste geprüfte Menge `
-      + `(${g.mengen[0] || 'die erste Stufe'}${g.womit ? ` ${g.womit}` : ''}) hat `
-      + `durchgeschlagen. Diese Gruppe bleibt vorerst draußen – und lohnt in `
-      + `einem halben Jahr einen zweiten Versuch: Verträglichkeiten ändern sich, `
-      + `besonders wenn sich der Darm zwischendurch beruhigt hat.`,
+      + `(${g.mengen[0] || 'die erste Stufe'}${g.womit ? ` ${g.womit}` : ''}) `
+      + `fiel im Tagebuch auf. Was das für deinen Speiseplan heißt, kannst du mit `
+      + `einer Ernährungsfachkraft besprechen.`,
   };
 }
 
@@ -17665,11 +17807,13 @@ function planBild(plan, eintraege, tage, heute) {
     schritt = {
       entscheid: true,
       satz: karenz.urteil === 'hilft'
-        ? 'Die Karenz ist um und sie hat geholfen. Jetzt die Wiedereinführung – '
-          + 'wähle die Gruppe, deren Antwort dir am meisten bringt.'
+        ? 'Die Karenz ist um, und im Tagebuch ist es deutlich besser. Im Plan folgt '
+          + 'jetzt die Wiedereinführung – wähle die Gruppe, deren Antwort dir am '
+          + 'meisten bringt.'
         : (karenz.urteil === 'hilft-nicht'
-          ? 'Die Karenz ist um und hat nichts gebracht. Hier ist Schluss: wieder '
-            + 'normal essen.'
+          ? 'Die Karenz ist um, und es ist kein deutlicher Unterschied zu sehen. Wie '
+            + 'es weitergeht, kannst du mit der Praxis oder einer Ernährungsfachkraft '
+            + 'besprechen.'
           : 'Die Karenz ist um, aber es fehlen notierte Tage für ein Urteil.'),
     };
   } else if (stand.phase === 'stufe') {
@@ -17705,9 +17849,9 @@ function planBild(plan, eintraege, tage, heute) {
     const gut = stufen.filter((x) => x.urteil === 'vertraegt').length;
     const teils = stufen.filter((x) => x.urteil === 'menge').length;
     schritt = {
-      satz: `Alle gewählten Gruppen durch. ${gut} davon verträgst du, `
-        + `${teils} in kleiner Menge. Dein Alltag ist ab jetzt die Karenz plus `
-        + `alles, was zurückdurfte – und nicht die Karenz.`,
+      satz: `Alle gewählten Gruppen durch. Bei ${gut} davon war im Tagebuch nichts `
+        + `zu merken, bei ${teils} erst in der größeren Menge. Was das für deinen `
+        + `Speiseplan heißt, kannst du mit einer Ernährungsfachkraft besprechen.`,
     };
   }
 
@@ -18890,7 +19034,14 @@ const WARNZEICHEN = [
     id: 'bluterbrechen',
     name: 'Blut erbrochen oder kaffeesatzartiges Erbrechen',
     dringlichkeit: 'sofort',
-    warum: 'Das kann eine Blutung im Magen oder in der Speiseröhre sein.',
+    /*
+     * Seit der Fassung 33 tragen alle Warnzeichen der Stufe „sofort" denselben
+     * Satz wie die Warnkarte (js/app.js, warnTeil) und js/lage.js: nicht auf
+     * einen Termin warten – Notaufnahme oder 112. Bis zur Fassung 32 fehlte er
+     * hier, beim schwarzen Stuhl und beim Kopfschmerz mit steifem Nacken.
+     */
+    warum: 'Das kann eine Blutung im Magen oder in der Speiseröhre sein. Nicht auf '
+      + 'einen Termin warten – Notaufnahme oder 112.',
   },
   {
     id: 'teerstuhl',
@@ -18898,20 +19049,42 @@ const WARNZEICHEN = [
     dringlichkeit: 'sofort',
     warum: 'Schwarzer Stuhl kann verdautes Blut sein. (Eisentabletten, Heidelbeeren '
       + 'und Bismut färben ihn ebenfalls dunkel – das gehört dazugesagt, aber '
-      + 'geklärt wird das dort und nicht hier.)',
+      + 'geklärt wird das dort und nicht hier.) Nicht auf einen Termin warten – '
+      + 'Notaufnahme oder 112.',
   },
+  /*
+   * gesund.bund.de/herzinfarkt (mit IQWiG, Stand 28.08.2020): Schmerzen in der
+   * Brust, die „mehr als fünf Minuten an[dauern] und … von der Brust in einen
+   * Arm, den Rücken, den Hals oder den Oberbauch ausstrahlen" können; bei
+   * Frauen Ausstrahlung auch „in die Schulterblätter, den Nacken und den
+   * Kiefer"; „Luftnot, Übelkeit und Erbrechen … können bei Frauen auch die
+   * einzigen Anzeichen eines Herzinfarkts sein"; „Treten Schmerzen im
+   * Brustbereich auf, sollten die Betroffenen deshalb immer den Notruf 112
+   * wählen". Bis zur Fassung 32 griff das Zeichen nur bei Ausstrahlung *und*
+   * Luftnot oder kaltem Schweiß; Brustschmerz allein und der Hals fehlten, und
+   * der Satz darunter nannte keine 112.
+   */
   {
     id: 'ausstrahlung',
-    name: 'Schmerz strahlt in Arm, Kiefer oder Rücken aus, mit Luftnot oder kaltem Schweiß',
+    name: 'Schmerz oder Druck in der Brust, der länger als fünf Minuten anhält, oder Schmerz, '
+      + 'der in Arm, Hals, Kiefer oder Rücken ausstrahlt',
     dringlichkeit: 'sofort',
-    warum: 'Beschwerden in der Magengegend können vom Herzen kommen, besonders '
-      + 'bei Frauen. Das ist der eine Fall, in dem Abwarten teuer wird.',
+    warum: 'Beschwerden in der Magengegend können vom Herzen kommen; bei Frauen sind '
+      + 'Luftnot, Übelkeit oder Erbrechen manchmal die einzigen Zeichen. Nicht auf '
+      + 'einen Termin warten – Notaufnahme oder 112.',
   },
   {
     id: 'blutstuhl',
     name: 'Frisches Blut im Stuhl',
     dringlichkeit: 'zeitnah',
-    warum: 'Gehört abgeklärt, auch wenn Hämorrhoiden die häufigste Ursache sind.',
+    /*
+     * gesund.bund.de/haemorrhoiden (mit IQWiG, Stand 05.03.2026): „Wer Blut im
+     * Stuhl entdeckt, sollte das auf jeden Fall ärztlich abklären lassen." Bis
+     * zur Fassung 32: „auch wenn Hämorrhoiden die häufigste Ursache sind" –
+     * diese Rangfolge nennt die Seite nicht.
+     */
+    warum: 'Blut im Stuhl gehört laut gesund.bund.de auf jeden Fall ärztlich abgeklärt – '
+      + 'auch wenn du Hämorrhoiden hast.',
   },
   {
     id: 'schlucken',
@@ -18974,8 +19147,8 @@ const WARNZEICHEN = [
     dringlichkeit: 'sofort',
     bereich: 'kopf',
     warum: 'Ein Schmerz, der schlagartig auf dem Höhepunkt ist, kann eine Blutung '
-      + 'im Kopf sein – auch wenn er wieder nachlässt. Notaufnahme oder 112, '
-      + 'nicht der nächste Termin.',
+      + 'im Kopf sein – auch wenn er wieder nachlässt. Nicht auf einen Termin '
+      + 'warten – Notaufnahme oder 112.',
   },
   /*
    * Nicht „zum ersten Mal". Wer eine Migräne mit Aura kennt, erklärt sich
@@ -18983,42 +19156,77 @@ const WARNZEICHEN = [
    * klassische Verzögerung. Und eine zweite Lähmung ist genauso ein Notfall
    * wie die erste. Was Aura und Ausfall trennt, ist nicht die Neuheit, sondern
    * der Charakter: Tempo, Dauer, Lähmung, Sprache.
+   *
+   * Zur Dauer: ICHD-3 (deutsche Fassung), 1.2 Migräne mit Aura, Kriterium C:
+   * „wenigstens ein Aurasymptom entwickelt sich allmählich über ≥5 Minuten
+   * hinweg", „jedes Aurasymptom hält 5 bis 60 Minuten an"; laut Anmerkung
+   * darf eine Aura mit drei Symptomen bis zu 3 × 60 Minuten dauern. Bis zur
+   * Fassung 32 hieß es, die ganze Aura sei „nach spätestens einer Stunde ganz
+   * vorbei" – das widerspricht der Anmerkung.
    */
   {
     id: 'kopfausfall',
     name: 'Lähmung, Taubheit einer Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit – plötzlich, länger als eine Stunde oder anders als deine gewohnte Aura',
     dringlichkeit: 'sofort',
     bereich: 'kopf',
-    warum: 'Eine Aura, wie du sie kennst, baut sich über Minuten auf, wandert und '
-      + 'ist nach spätestens einer Stunde ganz vorbei. Was schlagartig da ist, '
+    warum: 'Eine Aura, wie du sie kennst, baut sich über Minuten auf und wandert; '
+      + 'ein einzelnes Aurazeichen dauert meist 5 bis 60 Minuten. Was schlagartig da ist, '
       + 'eine Seite lähmt oder taub macht, das Sprechen nimmt oder länger als '
       + 'eine Stunde bleibt, kann ein Schlaganfall sein – auch mit Migräne, und '
-      + 'auch wenn du so etwas schon einmal hattest. 112, nicht der nächste Termin.',
+      + 'auch wenn du so etwas schon einmal hattest. Nicht auf einen Termin warten – '
+      + 'Notaufnahme oder 112.',
   },
   {
     id: 'kopfnacken',
     name: 'Kopfschmerz mit Fieber und steifem Nacken',
     dringlichkeit: 'sofort',
     bereich: 'kopf',
-    warum: 'Die drei zusammen sind die Zeichen einer Hirnhautentzündung. Nicht abwarten.',
+    warum: 'Die drei zusammen sind die Zeichen einer Hirnhautentzündung. Nicht auf '
+      + 'einen Termin warten – Notaufnahme oder 112.',
   },
   {
     id: 'kopfsturz',
     name: 'Kopfschmerz nach einem Sturz oder Schlag auf den Kopf',
     dringlichkeit: 'zeitnah',
     bereich: 'kopf',
-    warum: 'Gehört angesehen, auch wenn es Tage her ist. Kommt Erbrechen, '
-      + 'Verwirrtheit oder Schläfrigkeit dazu, oder nimmst du einen Blutverdünner: '
-      + 'sofort, nicht zeitnah.',
+    /*
+     * gesund.bund.de/gehirnerschuetterung-bei-erwachsenen (mit IQWiG, Stand
+     * 20.04.2021): „Bei Beschwerden wie Bewusstlosigkeit, Gedächtnislücken,
+     * anhaltendem Erbrechen oder Schwindel gilt es, einen Notarzt zu rufen";
+     * als Bewusstseinstrübung nennt die Seite Menschen, die „orientierungslos,
+     * schläfrig und verwirrt erscheinen". Bis zur Fassung 32 stand hier nur
+     * „sofort, nicht zeitnah" ohne Notaufnahme und 112.
+     */
+    warum: 'Gehört angesehen, auch wenn es Tage her ist. Kommen Bewusstlosigkeit, '
+      + 'Gedächtnislücken, Erbrechen, Schwindel, Verwirrtheit oder Schläfrigkeit dazu, '
+      + 'oder nimmst du einen Blutverdünner: nicht auf einen Termin warten – '
+      + 'Notaufnahme oder 112.',
   },
   {
     id: 'kopfneu50',
     name: 'Kopfschmerz, der zum ersten Mal im Leben nach dem 50. Geburtstag kommt',
     dringlichkeit: 'zeitnah',
     bereich: 'kopf',
+    /*
+     * ICHD-3 (deutsche Fassung), 6.4.1 Kopfschmerz zurückzuführen auf eine
+     * Riesenzellarteriitis, Kommentar: „Das Hauptrisiko liegt in einer
+     * Erblindung …. Dies kann durch eine notfallmäßig eingeleitete
+     * Kortikoidtherapie verhindert werden. Der Abstand zwischen der Erblindung
+     * eines Auges und des anderen beträgt üblicherweise weniger als 1 Woche."
+     * Bis zur Fassung 32 stand für die Sehstörung nur „zügig".
+     */
     warum: 'So spät fängt selten eine Migräne neu an. Das gehört einmal angesehen, '
-      + 'mit Blutwerten – mit Kauschmerz, Sehstörung oder empfindlichen Schläfen zügig.',
+      + 'mit Blutwerten – mit Kauschmerz oder empfindlichen Schläfen zügig. Kommt eine '
+      + 'Sehstörung dazu, nicht auf einen Termin warten – Notaufnahme oder 112.',
   },
+  /*
+   * gesund.bund.de, ICD-Code O14.1 (schwere Präeklampsie): „Bei der schweren
+   * Form dieser Erkrankung können zusätzlich unter anderem Sehstörungen,
+   * Kopfschmerzen, Bauchschmerzen, Übelkeit und Erbrechen auftreten"; O15.1
+   * (Eklampsie): ein Krampfanfall, der sich mit „Kopfschmerzen, Sehstörungen
+   * oder Übelkeit" ankündigen kann. Bis zur Fassung 32 stand nur „sofort"
+   * ohne Notaufnahme und 112.
+   */
   {
     id: 'kopfschwanger',
     name: 'Neuer oder anderer Kopfschmerz in der Schwangerschaft oder in den Wochen nach der Geburt',
@@ -19026,7 +19234,8 @@ const WARNZEICHEN = [
     bereich: 'kopf',
     warum: 'In dieser Zeit stecken hinter einem neuen Kopfschmerz Dinge, die man '
       + 'messen und behandeln kann – Blutdruck zum Beispiel. Mit Sehstörung, '
-      + 'Schwellungen oder Oberbauchschmerz: sofort.',
+      + 'Schwellungen oder Oberbauchschmerz: nicht auf einen Termin warten – '
+      + 'Notaufnahme oder 112.',
   },
   {
     id: 'kopfanstrengung',
@@ -22094,7 +22303,15 @@ function arztBericht(zustand, von, bis) {
    * sofort, welche Frage noch offen ist.
    */
   if (k.reizdarm.pruefbar) {
-    kZeilen.push(`  Rom IV, Reizdarmsyndrom       ${k.reizdarm.erfuellt ? 'Kriterien erfüllt' : 'nicht erfüllt'}`);
+    // „Erfüllt" nur mit der Zeitbedingung (reizdarmUrteil in js/kriterien.js);
+    // ohne sie steht der Satz, was fehlt, umbrochen darunter.
+    const ru = reizdarmUrteil(k);
+    if (ru.erfuellt || !k.reizdarm.erfuellt) {
+      kZeilen.push(`  Rom IV, Reizdarmsyndrom       ${ru.erfuellt ? 'Kriterien erfüllt' : 'nicht erfüllt'}`);
+    } else {
+      kZeilen.push('  Rom IV, Reizdarmsyndrom       Schmerz und Merkmale erfüllt');
+      umbrochen(`– ${ru.wort.split(' – ')[1]}`, 62).forEach((z) => kZeilen.push(`    ${z}`));
+    }
     kZeilen.push(`    Bauchschmerz an ${k.reizdarm.schmerzTage} Tagen `
       + `(${fmtZahl(k.reizdarm.proWoche)} je Woche der notierten Tage),`);
     kZeilen.push(`    ${k.reizdarm.erfuellteMerkmale} von 3 Merkmalen erfüllt`);
@@ -22139,6 +22356,10 @@ function arztBericht(zustand, von, bis) {
   if (k.gerdq.belastbar) {
     kZeilen.push(`  GerdQ (letzte 7 Tage)         ${k.gerdq.punkte} von 18 Punkten`);
     kZeilen.push('    (aus den Einträgen gezählt, kein ausgefüllter Fragebogen)');
+    // Fassung 33: Zwei Posten zählen mehr, als der Fragebogen fragt (Beleg
+    // an GERDQ_POSTEN in js/kriterien.js).
+    kZeilen.push('    Mitgezählt sind auch anderes Brennen als hinter dem Brustbein und');
+    kZeilen.push('    verordnete Säuremittel; die Punktzahl kann daher höher liegen.');
   } else {
     kZeilen.push(`  GerdQ (letzte 7 Tage)         nicht belastbar – nur `
       + `${k.gerdq.erfasst} der 7 Tage notiert`);
@@ -25444,11 +25665,12 @@ function kriterienTeil(s, d) {
     ? `<span class="haken ${erfuellt ? 'ja' : 'nein'}">${erfuellt ? '✓' : '–'}</span>`
     : '<span class="haken offen">?</span>');
 
-  const reizdarmKasten = `<li class="krit ${r.erfuellt ? 'erfuellt' : ''}">
+  // „Erfüllt" nur mit der Zeitbedingung (reizdarmUrteil in js/kriterien.js).
+  const ru = reizdarmUrteil(k);
+  const reizdarmKasten = `<li class="krit ${ru.erfuellt ? 'erfuellt' : ''}">
     <div class="krit-kopf">
       <b>Reizdarmsyndrom (Rom IV)</b>
-      <span class="fund-urteil">${r.pruefbar
-    ? (r.erfuellt ? 'Kriterien erfüllt' : 'Kriterien nicht erfüllt') : 'noch nicht prüfbar'}</span>
+      <span class="fund-urteil">${esc(ru.wort)}</span>
     </div>
     <ul class="kritliste">
       <li>${haken(r.schmerzErfuellt, r.pruefbar)}
@@ -25512,8 +25734,11 @@ function kriterienTeil(s, d) {
        Fragebogen. Der GerdQ ist ein Fragebogen mit sechs Fragen zur
        Selbsteinschätzung, der Praxen bei der Einordnung von Reflux helfen soll.
        Zwei Posten zählt Body Check umgekehrt: Je öfter sie eingetragen sind,
-       desto weniger Punkte. Was die Punktzahl hier bedeutet, kann die Praxis
-       einordnen.`
+       desto weniger Punkte. Zwei Posten zählen mehr, als der Fragebogen fragt:
+       auch anderes Brennen als hinter dem Brustbein, und jeden Tag mit einem
+       säurewirksamen Mittel, auch einem verordneten. Die Punktzahl kann
+       dadurch höher liegen als im Fragebogen. Was sie hier bedeutet, kann die
+       Praxis einordnen.`
     : `Von den letzten sieben Tagen sind nur ${g.erfasst} notiert. Was nicht
        eingetragen ist, zählt hier als „nicht gehabt“ – die Punktzahl wäre damit
        nicht zu gebrauchen.`}</p>
@@ -25725,7 +25950,7 @@ function planTeil(s, d) {
     <p>${esc(b.karenz.satz.replace(/\*\*/g, ''))}</p>
 
     ${abbruch ? `<div class="reihe">
-      ${knopf('plan-beenden', 'Plan beenden und wieder normal essen', 'btn-primary')}
+      ${knopf('plan-beenden', 'Plan beenden', 'btn-primary')}
     </div>` : ''}
 
     ${!abbruch && (b.stufen.length || b.stand.phase !== 'karenz') ? `
@@ -27586,9 +27811,9 @@ function warnTeil(d) {
       <span class="klein">${mehrzahl(w.anzahl, 'Mal', 'Mal')} eingetragen,
         zuletzt ${esc(fmtDatum(w.zuletzt, true))}</span>
     </li>`).join('')}</ul>
-    <p class="klein">Bei erbrochenem Blut; schwarzem, klebrigem Stuhl; Schmerz,
-    der in Arm, Kiefer oder Rücken ausstrahlt, mit Luftnot oder kaltem Schweiß;
-    einem Kopfschmerz, der schlagartig so stark war wie nie; Kopfschmerz mit
+    <p class="klein">Bei erbrochenem Blut; schwarzem, klebrigem Stuhl; Schmerz
+    oder Druck in der Brust, der länger als fünf Minuten anhält, oder Schmerz,
+    der in Arm, Hals, Kiefer oder Rücken ausstrahlt; einem Kopfschmerz, der schlagartig so stark war wie nie; Kopfschmerz mit
     Fieber und steifem Nacken; Ausfällen wie Lähmung, Taubheit einer
     Körperseite, Sprachstörung, Sehverlust oder Verwirrtheit, wenn sie plötzlich
     kommen, länger als eine Stunde bleiben oder anders sind als die gewohnte
@@ -27600,7 +27825,10 @@ function warnTeil(d) {
    * kopfnacken) und sagt dazu dasselbe wie dort und wie js/lage.js. Bis zur
    * Fassung 29 stand „Bei Blut" – das schloss frisches Blut im Stuhl ein, das
    * in bild.js „zeitnah" ist –, und der Kopfschmerz mit Fieber und steifem
-   * Nacken fehlte.
+   * Nacken fehlte. Seit der Fassung 33 steht der Brustschmerz wie in bild.js
+   * (ausstrahlung, Beleg dort: gesund.bund.de/herzinfarkt): schon für sich,
+   * länger als fünf Minuten, oder mit Ausstrahlung auch in den Hals – nicht
+   * mehr nur zusammen mit Luftnot oder kaltem Schweiß.
    *
    * Die Ausfälle mit derselben Bedingung wie in bild.js (kopfausfall):
    * plötzlich, länger als eine Stunde oder anders als die gewohnte Aura. Nur
@@ -29615,6 +29843,11 @@ function bogenHTML(s) {
         <p class="feld-name">Wie viel davon? Keine Gramm – die Rolle genügt.</p>
         <div class="zutaten">${e.zutaten.map(zutatZeile).join('')}</div>` : ''}`;
   } else if (b.art === 'beschwerde') {
+    /*
+     * Im Warnbogen steht seit der Fassung 33, wie im Stuhlbogen, schon beim
+     * Ankreuzen der Satz für die Zeichen der Stufe „sofort" (js/bild.js, mit
+     * den Belegen dort) – nicht erst unter „Muster". Ebenso im Kopfbogen.
+     */
     mitte = `
       <p class="feld-name">Wie stark?</p>
       ${skala(e.staerke)}
@@ -29632,7 +29865,10 @@ function bogenHTML(s) {
              value="${esc(e.notiz || '')}" placeholder="optional" autocomplete="off">
       <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
         <summary>War etwas davon dabei?</summary>
-        <p class="klein">Selten, aber wichtig. Was hier angekreuzt wird, taucht
+        <p class="klein">Selten, aber wichtig. Bei erbrochenem Blut, schwarzem,
+        klebrigem Stuhl oder Schmerz oder Druck in der Brust, der länger als fünf
+        Minuten anhält oder in Arm, Hals, Kiefer oder Rücken ausstrahlt: nicht auf
+        einen Termin warten – Notaufnahme oder 112. Was hier angekreuzt wird, taucht
         nicht in der Statistik auf, sondern ganz oben unter „Muster" – mit dem
         Hinweis, wie eilig es ist.</p>
         ${marken(WARNZEICHEN.filter((w) => w.bereich !== 'kopf'), e.warnzeichen || [], 'warnzeichen')}
@@ -29742,9 +29978,12 @@ function bogenHTML(s) {
              value="${esc(e.notiz || '')}" placeholder="optional" autocomplete="off">
       <details class="warnbogen"${(e.warnzeichen || []).length ? ' open' : ''}>
         <summary>War etwas davon dabei?</summary>
-        <p class="klein">Selten, aber wichtig. Was hier angekreuzt wird, taucht
-        nicht in der Statistik auf, sondern ganz oben unter „Muster" – mit dem
-        Hinweis, wie eilig es ist.</p>
+        <p class="klein">Selten, aber wichtig. Bei einem Kopfschmerz, der
+        schlagartig so stark war wie nie, Kopfschmerz mit Fieber und steifem Nacken,
+        plötzlichen Ausfällen wie Lähmung oder Sprachstörung oder erbrochenem Blut:
+        nicht auf einen Termin warten – Notaufnahme oder 112. Was hier angekreuzt
+        wird, taucht nicht in der Statistik auf, sondern ganz oben unter „Muster" –
+        mit dem Hinweis, wie eilig es ist.</p>
         ${marken(WARNZEICHEN.filter((w) => w.bereich === 'kopf' || w.id === 'bluterbrechen'),
     e.warnzeichen || [], 'warnzeichen')}
       </details>`;
